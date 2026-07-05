@@ -1,0 +1,42 @@
+{
+  "name": "@zenith/stateful",
+  "version": "1.4.0",
+  "description": "Zenith framework — Stateful Components (v0.6.0). High-level components that auto-manage loading/error/empty/success/offline/retry states: zen-resource-view, zen-action-button, zen-auth-view.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "stateful",
+    "components",
+    "resource",
+    "auth",
+    "action",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@zenith/runtime": "1.0.0",
+    "@zenith/resource": "1.0.0",
+    "@zenith/state": "1.0.0",
+    "@zenith/auth": "1.0.0",
+    "@zenith/actions": "1.0.0",
+    "@zenith/expressions": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

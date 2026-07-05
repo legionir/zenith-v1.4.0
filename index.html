@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith Framework v1.4.0 — فریم‌ورک HTML-First واکنش‌گرا</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f;
+      --bg-secondary: #131830;
+      --bg-tertiary: #1c2240;
+      --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2);
+      --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-dark: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --gradient-text: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+      --glow: 0 0 40px rgba(99, 102, 241, 0.3);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ───── NAVBAR ───── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 31, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--gradient);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: var(--glow);
+    }
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      list-style: none;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+    .nav-cta {
+      background: var(--gradient);
+      color: white !important;
+      padding: 9px 18px !important;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+    .nav-cta:hover { transform: translateY(-1px); }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+    }
+
+    /* ───── HERO ───── */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      color: var(--success);
+      font-size: 0.82rem;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 .gradient {
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto 36px;
+      line-height: 1.8;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.98rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--accent);
+    }
+
+    /* ───── STATS ───── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 50px 0;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .stat-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-4px);
+    }
+    .stat-value {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ───── SECTION ───── */
+    section {
+      padding: 60px 0;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .section-header h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+    .section-header p {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .section-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-light);
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ───── FEATURES ───── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.3s;
+      backdrop-filter: blur(10px);
+    }
+    .feature-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(99, 102, 241, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.93rem;
+      line-height: 1.7;
+    }
+
+    /* ───── CHANGELOG ───── */
+    .changelog-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      backdrop-filter: blur(10px);
+    }
+    .changelog-version {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .changelog-version .ver-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: var(--gradient-text);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+    }
+    .changelog-version .ver-date {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      direction: ltr;
+    }
+    .changelog-version .ver-badge {
+      padding: 3px 12px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .changelog-summary {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin: 14px 0 24px;
+      line-height: 1.7;
+    }
+    .changelog-pkg {
+      margin-bottom: 22px;
+    }
+    .changelog-pkg:last-child { margin-bottom: 0; }
+    .changelog-pkg-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .changelog-pkg-name {
+      font-family: ui-monospace, monospace;
+      font-size: 0.92rem;
+      color: var(--accent-light);
+      font-weight: 600;
+      direction: ltr;
+    }
+    .changelog-pkg-count {
+      padding: 2px 8px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+    }
+    .changelog-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .changelog-items li {
+      padding: 8px 0 8px 22px;
+      position: relative;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.65;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.07);
+    }
+    .changelog-items li:last-child { border-bottom: none; }
+    .changelog-items li::before {
+      content: '';
+      position: absolute;
+      right: 6px;
+      top: 16px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .changelog-severity {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 6px;
+      direction: ltr;
+    }
+    .changelog-severity.critical {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+    .changelog-severity.high {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+    .changelog-severity.medium {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-light);
+    }
+    .changelog-severity.low {
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--text-muted);
+    }
+    .changelog-file {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      direction: ltr;
+      display: inline-block;
+    }
+    .changelog-footer {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    /* ───── QUICK START ───── */
+    .quickstart {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      backdrop-filter: blur(10px);
+    }
+    .code-block {
+      background: #0a0e1f;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-family: 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+      font-size: 0.88rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      direction: ltr;
+      text-align: left;
+      margin: 16px 0;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+    }
+    .tip-box {
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .code-block .comment { color: #8b949e; }
+    .code-block .keyword { color: #ff7b72; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .function { color: #d2a8ff; }
+    .code-block .prompt { color: #58a6ff; user-select: none; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.92rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      color: var(--accent-light);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ───── PACKAGE LIST ───── */
+    .package-group {
+      margin-bottom: 36px;
+    }
+    .package-group h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .package-group h3 .emoji {
+      font-size: 1.4rem;
+    }
+    .package-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px;
+    }
+    .package-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+    .package-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .package-card .name {
+      font-family: ui-monospace, monospace;
+      font-size: 0.92rem;
+      color: var(--accent-light);
+      font-weight: 600;
+      margin-bottom: 6px;
+      direction: ltr;
+      text-align: left;
+    }
+    .package-card .desc {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    .package-card .meta {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .package-card .meta span {
+      padding: 2px 8px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+    }
+
+    /* ───── DEMOS ───── */
+    .demos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .demo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .demo-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--gradient);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .demo-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(99, 102, 241, 0.2);
+    }
+    .demo-card:hover::before { opacity: 1; }
+    .demo-card .icon {
+      font-size: 1.8rem;
+      margin-bottom: 4px;
+    }
+    .demo-card h4 {
+      font-size: 1.08rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .demo-card p {
+      color: var(--text-secondary);
+      font-size: 0.87rem;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+    .demo-card .badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .demo-card .badges span {
+      padding: 2px 8px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--accent-light);
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+    }
+    .demo-card .arrow {
+      position: absolute;
+      top: 22px;
+      left: 22px;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    .demo-card:hover .arrow {
+      color: var(--accent-light);
+      transform: translateX(-4px);
+    }
+
+    /* ───── DOWNLOAD ───── */
+    .download-section {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.05));
+      border: 1px solid var(--border-strong);
+      border-radius: 24px;
+      padding: 50px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .download-section h2 {
+      font-size: 2rem;
+      margin-bottom: 14px;
+    }
+    .download-section p {
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .download-buttons {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ───── FOOTER ───── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      margin-top: 60px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    footer a {
+      color: var(--accent-light);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    /* ───── UTIL ───── */
+    .text-mono {
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ───── NAVBAR ───── -->
+  <nav>
+    <div class="container">
+      <a href="#top" class="logo">
+        <div class="logo-icon">🏔️</div>
+        Zenith
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">ویژگی‌ها</a></li>
+        <li><a href="#quickstart">شروع سریع</a></li>
+        <li><a href="#packages">پکیج‌ها</a></li>
+        <li><a href="#demos">دموها</a></li>
+        <li><a href="docs/LLM-GUIDE.md" target="_blank">مستندات</a></li>
+        <li><a href="download/zenith-v1.4.0.zip" class="nav-cta" download>دریافت پروژه</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ───── HERO ───── -->
+  <header id="top" class="hero">
+    <div class="container">
+      <h1>
+        فریم‌ورک <span class="gradient">Zenith</span><br>
+        HTML-First و واکنش‌گرا
+      </h1>
+      <p>
+        یک فریم‌ورک مدرن برای ساخت رابط‌های کاربری — بدون Virtual DOM، بدون JSX، بدون Build Step اجباری. منطق با directiveهای <code class="text-mono">zen-*</code> در HTML نوشته می‌شود.
+      </p>
+      <div class="hero-cta">
+        <a href="#quickstart" class="btn btn-primary">
+          🚀 شروع سریع
+        </a>
+        <a href="#demos" class="btn btn-secondary">
+          🎬 مشاهده دموها
+        </a>
+        <a href="docs/LLM-GUIDE.md" target="_blank" class="btn btn-secondary">
+          📖 مستندات کامل
+        </a>
+        <a href="docs/BENCHMARKS.md" target="_blank" class="btn btn-secondary">
+          📊 بنچمارک‌ها
+        </a>
+        <a href="download/zenith-v1.4.0.zip" class="btn btn-primary" download>
+          📦 دریافت پروژه
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ───── STATS ───── -->
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value">۳۲</div>
+        <div class="stat-label">پکیج مستقل</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">۱۲۰۲</div>
+        <div class="stat-label">تست سبز</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">۳۲+</div>
+        <div class="stat-label">پکیج (stateful جدید در ۰.۶.۰)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">خطای TypeScript</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── FEATURES ───── -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">چرا Zenith؟</span>
+        <h2>ویژگی‌های کلیدی</h2>
+        <p>یک فریم‌ورک کامل برای تولید اپلیکیشن‌های مدرن — از prototype تا production</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>HTML-First</h3>
+          <p>منطق برنامه با directiveهای <span class="text-mono">zen-*</span> در HTML نوشته می‌شود. نه JSX، نه Template Strings. کد شما خوانا و semantic است.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Fine-grained Reactivity</h3>
+          <p>مبتنی بر Signal بدون Virtual DOM. فقط کامپوننت‌های وابسته به یک Signal آپدیت می‌شوند — نه کل tree.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Security by Default</h3>
+          <p>Expression Engine اختصاصی بدون <span class="text-mono">eval()</span> یا <span class="text-mono">new Function()</span>. HTML Sanitizer داخلی ضد XSS.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Automatic Batching</h3>
+          <p>Scheduler مبتنی بر Microtask: ۱۰۰ <span class="text-mono">set</span> متوالی → ۱ DOM Update. با Priority Queue.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>Persian & RTL First</h3>
+          <p>پشتیبانی داخلی از اعداد فارسی، تاریخ شمسی، فرمت قیمت تومان، و راست‌چین در همه‌جا.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧪</div>
+          <h3>TypeScript Strict</h3>
+          <p>تمام ۳۱ پکیج با strict mode کامل (<span class="text-mono">noUncheckedIndexedAccess</span>، <span class="text-mono">noImplicitReturns</span>، ...).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛠️</div>
+          <h3>DevTools کامل</h3>
+          <p>Chrome Extension با ۴ پنل (Signals, Timeline, Components, Effects) + VSCode Extension با autocomplete.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>PWA Ready</h3>
+          <p><span class="text-mono">zenith create my-app --pwa</span> با Service Worker با ۳ استراتژی cache، manifest، و push notifications آماده.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>SSR + Hydration</h3>
+          <p>رندر سمت سرور با Streaming و Hydration. CSP nonce پشتیبانی می‌شود.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── QUICK START ───── -->
+  <section id="quickstart">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">شروع در ۳۰ ثانیه</span>
+        <h2>راه‌اندازی سریع</h2>
+        <p>با CLI رسمی Zenith در چند ثانیه پروژه‌تان را بسازید</p>
+      </div>
+      <div class="quickstart">
+        <div class="tabs">
+          <button class="tab active" onclick="showTab(event, 'basic')">پروژه ساده</button>
+          <button class="tab" onclick="showTab(event, 'pwa')">پروژه PWA</button>
+          <button class="tab" onclick="showTab(event, 'manual')">نصب دستی</button>
+        </div>
+
+        <div id="basic" class="tab-content active">
+          <div class="code-block"><span class="comment"># 1. ساخت پروژه جدید</span>
+<span class="prompt">$</span> npx <span class="function">@zenith/cli</span> create my-app
+
+<span class="comment"># 2. ورود به پوشه و نصب</span>
+<span class="prompt">$</span> <span class="keyword">cd</span> my-app
+<span class="prompt">$</span> npm install
+
+<span class="comment"># 3. اجرای dev server</span>
+<span class="prompt">$</span> npm run dev
+
+<span class="comment">✓ Local:    http://localhost:3000/</span></div>
+        </div>
+
+        <div id="pwa" class="tab-content">
+          <div class="code-block"><span class="comment"># ساخت Progressive Web App با Service Worker و manifest</span>
+<span class="prompt">$</span> npx <span class="function">@zenith/cli</span> create my-app --pwa
+
+<span class="prompt">$</span> <span class="keyword">cd</span> my-app
+<span class="prompt">$</span> npm install
+<span class="prompt">$</span> npm install -D vite-plugin-pwa workbox-window
+<span class="prompt">$</span> npm run dev
+
+<span class="comment"># اضافه کردن آیکون‌ها به public/icons/</span>
+<span class="comment"># اپلیکیشن قابل install روی home screen است!</span></div>
+        </div>
+
+        <div id="manual" class="tab-content">
+          <div class="code-block"><span class="comment"># استفاده از CDN (بدون build step)</span>
+<span class="prompt">$</span> mkdir my-app <span class="keyword">&&</span> <span class="keyword">cd</span> my-app
+
+<span class="comment"># ساخت index.html با import map</span>
+<span class="prompt">$</span> cat <span class="string">> index.html</span> <span class="string"><< 'EOF'</span>
+&lt;!DOCTYPE html&gt;
+&lt;html lang=<span class="string">"fa"</span> dir=<span class="string">"rtl"</span>&gt;
+&lt;body&gt;
+  &lt;span zen-text=<span class="string">"$count"</span>&gt;&lt;/span&gt;
+  &lt;button zen-action=<span class="string">"inc"</span>&gt;+&lt;/button&gt;
+
+  &lt;script type=<span class="string">"importmap"</span>&gt;{<span class="string">"imports"</span>: {
+    <span class="string">"@zenith/state"</span>: <span class="string">"/packages/state/dist/index.js"</span>,
+    <span class="string">"@zenith/runtime"</span>: <span class="string">"/packages/runtime/dist/index.js"</span>
+  }}&lt;/script&gt;
+
+  &lt;script type=<span class="string">"module"</span>&gt;
+    <span class="keyword">import</span> { signal } <span class="keyword">from</span> <span class="string">'@zenith/state'</span>;
+    <span class="keyword">import</span> { Zen } <span class="keyword">from</span> <span class="string">'@zenith/runtime'</span>;
+    Zen.action(<span class="string">'inc'</span>, ({state}) =&gt; state.count.set(state.count.get()+1));
+    Zen.start(document.body, { count: signal(0) });
+  &lt;/script&gt;
+&lt;/body&gt;
+<span class="string">EOF</span>
+
+<span class="prompt">$</span> python3 -m http.server 3000</div>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        💡 برای static analysis فایل‌های HTML از <span class="text-mono">npx @zenith/cli check ./src --strict</span> در CI استفاده کنید.
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── PACKAGES ───── -->
+  <section id="packages">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">معماری ماژولار</span>
+        <h2>فهرست کامل پکیج‌ها</h2>
+        <p>۲۹ پکیج مستقل، هرکدام با مسئولیت مشخص — import فقط چیزی که نیاز دارید</p>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🧠</span> Core Engine</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/state</div>
+            <div class="desc">Signal، effect، computed، batch — قلب reactivity. با dependency tracking خودکار.</div>
+            <div class="meta"><span>32 tests</span><span>0 deps</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/expressions</div>
+            <div class="desc">Lexer، Parser، Evaluator اختصاصی بدون eval. پشتیبانی از template literals، arrow functions، nullish coalescing.</div>
+            <div class="meta"><span>72 tests</span><span>XSS-safe</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/scheduler</div>
+            <div class="desc">Microtask batching با Priority Queue (urgent/normal/idle). ۱۰۰ set → ۱ update.</div>
+            <div class="meta"><span>16 tests</span><span>auto-batch</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/runtime</div>
+            <div class="desc">DOM walker + همه directiveها (zen-text, zen-if, zen-for, zen-bind, zen-model, zen-html, zen-fetch, ...)</div>
+            <div class="meta"><span>157 tests</span><span>18 directives</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🎨</span> DOM Directives</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/events</div>
+            <div class="desc">Event Delegation با modifierها (prevent, stop, enter, shift, ctrl, self, once). یک listener روی document.</div>
+            <div class="meta"><span>65 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/components</div>
+            <div class="desc">Light DOM components (نه Shadow DOM) با Props و Slots. کامپوننت‌ها با <span class="text-mono">&lt;zen-component&gt;</span>.</div>
+            <div class="meta"><span>no shadow DOM</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/transition</div>
+            <div class="desc">CSS transitions هنگام enter/leave. با transitionend event + setTimeout fallback.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/error-boundary</div>
+            <div class="desc">Error boundary با <span class="text-mono">zen-error</span> directive + global error handler.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/suspense</div>
+            <div class="desc">Async loading با <span class="text-mono">zen-suspense</span>. polling-based loading detection.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/actions</div>
+            <div class="desc">Action Registry برای sync و async handlers. استفاده با <span class="text-mono">zen-action</span>.</div>
+            <div class="meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🛣️</span> Routing & Data</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/router</div>
+            <div class="desc">SPA Router با lazy page loading, route cache, prefetch on hover, stale-while-revalidate.</div>
+            <div class="meta"><span>83 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/data</div>
+            <div class="desc">Declarative data fetching با <span class="text-mono">zen-fetch</span>. AbortController برای cleanup.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/resource</div>
+            <div class="desc">CRUD Resource با dedup, cache, retry (GET only), optimistic updates, SWR, mutation queue.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/virtual-list</div>
+            <div class="desc">Virtual scrolling برای 10000+ آیتم. static و dynamic heights با ResizeObserver.</div>
+            <div class="meta"><span>binary search</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/crud</div>
+            <div class="desc">Pre-built CRUD actions قابل ترکیب با Resource. snapshot+rollback برای optimistic delete.</div>
+            <div class="meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🏢</span> Business Runtime</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/form</div>
+            <div class="desc">Form store با sync/async validation، cross-field validation، form arrays، dynamic fields. Zod و JSON Schema adapters.</div>
+            <div class="meta"><span>184 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/store</div>
+            <div class="desc">Pinia-like global stores با deep reactivity (recursive Proxy). <span class="text-mono">$patch</span>, <span class="text-mono">$reset</span>, getters, actions.</div>
+            <div class="meta"><span>79 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/auth</div>
+            <div class="desc">Authentication با token/refresh management، storage persistence، auto-refresh قبل از expiry.</div>
+            <div class="meta"><span>80 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/permission</div>
+            <div class="desc">RBAC با super-admin، expression syntax (<span class="text-mono">any:</span>, <span class="text-mono">all:</span>). <span class="text-mono">zen-permission</span> و <span class="text-mono">zen-role</span> directives.</div>
+            <div class="meta"><span>76 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/i18n</div>
+            <div class="desc">اعداد فارسی (۰-۹)، تقویم جلالی، فرمت قیمت تومان، Arabic digits. <span class="text-mono">toPersianNums</span>, <span class="text-mono">toJalali</span>.</div>
+            <div class="meta"><span>63 tests</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🔒</span> Security</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/security</div>
+            <div class="desc">HTML Sanitizer با DOMParser (بدون اجرای script). ۱۴ تگ ممنوع، event handler removal، javascript: protocol blocking، prototype pollution prevention.</div>
+            <div class="meta"><span>79 tests</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">⚙️</span> Build & Tooling</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">@zenith/compiler</div>
+            <div class="desc">Template Compilation: HTML → JS در build time. حذف هزینه‌ی runtime DOM walking.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/vite-plugin</div>
+            <div class="desc">Vite plugin با HMR، DevTools auto-inject، build-time compile. virtual modules برای .zenith.js.</div>
+            <div class="meta"><span>39 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/cli</div>
+            <div class="desc">CLI: <span class="text-mono">create</span>, <span class="text-mono">generate</span>, <span class="text-mono">check</span> (۱۲ static analysis rules برای CI).</div>
+            <div class="meta"><span>22 tests</span></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/ssr</div>
+            <div class="desc">Server-Side Rendering با streaming و hydration. CSP nonce support.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/devtools</div>
+            <div class="desc">DevTools Hook (<span class="text-mono">window.__ZENITH__</span>) برای inspecting signals، timeline، components.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/vscode-extension</div>
+            <div class="desc">VSCode extension با syntax highlighting، autocomplete برای directiveها، snippets، validation.</div>
+            <div class="meta"></div>
+          </div>
+          <div class="package-card">
+            <div class="name">@zenith/dependency-graph</div>
+            <div class="desc">Expression dependency extractor برای build-time optimization و tree-shaking.</div>
+            <div class="meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="package-group">
+        <h3><span class="emoji">🔧</span> Extensions</h3>
+        <div class="package-grid">
+          <div class="package-card">
+            <div class="name">devtools-extension/</div>
+            <div class="desc">Chrome Extension با ۴ پنل: Signals (زنده)، Timeline (تغییرات)، Components (درخت)، Effects (effect graph).</div>
+            <div class="meta"><span>DevTools Panel</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── DEMOS ───── -->
+  <section id="demos">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">آموزش با مثال</span>
+        <h2>دموهای تعاملی</h2>
+        <p>۱۷+ دموی قابل اجرا — هرکدام یک قابلیت یا پکیج را نشان می‌دهد</p>
+      </div>
+      <div class="demos-grid">
+        <a href="demos/state/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">⚡</div>
+          <h4>Signal & Reactivity</h4>
+          <p>Signal، effect، computed. قلب reactivity فریم‌ورک.</p>
+          <div class="badges"><span>state</span><span>effect</span><span>computed</span></div>
+        </a>
+        <a href="demos/expressions/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🧮</div>
+          <h4>Expression Engine</h4>
+          <p>Lexer/Parser/Evaluator بدون eval. template literals، arrow functions.</p>
+          <div class="badges"><span>expressions</span><span>no-eval</span></div>
+        </a>
+        <a href="demos/runtime/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🎨</div>
+          <h4>DOM Directives</h4>
+          <p>zen-text, zen-if, zen-for, zen-model, zen-bind در یک صفحه.</p>
+          <div class="badges"><span>runtime</span><span>directives</span></div>
+        </a>
+        <a href="demos/scheduler/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">📦</div>
+          <h4>Scheduler & Batching</h4>
+          <p>automatic batching، priority queue (urgent/normal/idle).</p>
+          <div class="badges"><span>scheduler</span><span>batching</span></div>
+        </a>
+        <a href="demos/events/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🖱️</div>
+          <h4>Events & Modifiers</h4>
+          <p>Event delegation با prevent, stop, enter, shift, ctrl, self.</p>
+          <div class="badges"><span>events</span><span>delegation</span></div>
+        </a>
+        <a href="demos/components/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🧩</div>
+          <h4>Components</h4>
+          <p>Light DOM components با Props و Slots.</p>
+          <div class="badges"><span>components</span><span>slots</span></div>
+        </a>
+        <a href="demos/router/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🛣️</div>
+          <h4>Router (SPA)</h4>
+          <p>SPA routing با lazy loading، prefetch، route cache.</p>
+          <div class="badges"><span>router</span><span>lazy</span><span>prefetch</span></div>
+        </a>
+        <a href="demos/security/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🔒</div>
+          <h4>Security & Sanitizer</h4>
+          <p>HTML sanitizer با ۱۴ تگ ممنوع، XSS attack prevention.</p>
+          <div class="badges"><span>security</span><span>XSS</span></div>
+        </a>
+        <a href="demos/i18n/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🌐</div>
+          <h4>i18n & Persian</h4>
+          <p>اعداد فارسی، تاریخ شمسی، فرمت قیمت تومان.</p>
+          <div class="badges"><span>i18n</span><span>Jalali</span></div>
+        </a>
+        <a href="demos/form/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">📝</div>
+          <h4>Form Validation</h4>
+          <p>Sync/async validation، cross-field، schema adapter.</p>
+          <div class="badges"><span>form</span><span>validation</span></div>
+        </a>
+        <a href="demos/store/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🏪</div>
+          <h4>Store (Pinia-like)</h4>
+          <p>Global stores با deep reactivity، getters، actions.</p>
+          <div class="badges"><span>store</span><span>deep-proxy</span></div>
+        </a>
+        <a href="demos/auth/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🔐</div>
+          <h4>Auth Flow</h4>
+          <p>Login، token refresh، persistence، route guards.</p>
+          <div class="badges"><span>auth</span><span>JWT</span></div>
+        </a>
+        <a href="demos/permission/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">👥</div>
+          <h4>Permission (RBAC)</h4>
+          <p>Role-based access، super-admin، any:/all: expressions.</p>
+          <div class="badges"><span>permission</span><span>RBAC</span></div>
+        </a>
+        <a href="demos/resource/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">💾</div>
+          <h4>Resource (CRUD)</h4>
+          <p>Cache، retry، optimistic updates، SWR، mutation queue.</p>
+          <div class="badges"><span>resource</span><span>SWR</span></div>
+        </a>
+        <a href="demos/virtual-list/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">📊</div>
+          <h4>Virtual List</h4>
+          <p>10000+ آیتم با static و dynamic heights (ResizeObserver).</p>
+          <div class="badges"><span>virtual-list</span><span>10K items</span></div>
+        </a>
+        <a href="demos/transition/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">✨</div>
+          <h4>Transitions</h4>
+          <p>CSS transitions هنگام enter/leave با fallback.</p>
+          <div class="badges"><span>transition</span><span>CSS</span></div>
+        </a>
+        <a href="demos/error-boundary/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🛡️</div>
+          <h4>Error Boundary</h4>
+          <p>zen-error برای catch کردن خطاها با fallback UI.</p>
+          <div class="badges"><span>error-boundary</span></div>
+        </a>
+        <a href="demos/suspense/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">⏳</div>
+          <h4>Suspense</h4>
+          <p>Async loading با fallback هنگام wait برای data.</p>
+          <div class="badges"><span>suspense</span></div>
+        </a>
+        <a href="demos/integration/index.html" class="demo-card">
+          <div class="arrow">←</div>
+          <div class="icon">🎭</div>
+          <h4>Integration Showcase</h4>
+          <p>دموی ترکیبی: همه پکیج‌ها در یک اپ واقعی.</p>
+          <div class="badges"><span>full-stack</span><span>demo</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── DOWNLOAD ───── -->
+  <section id="download">
+    <div class="container">
+      <div class="download-section">
+        <h2>📦 دریافت پروژه</h2>
+        <div class="download-buttons">
+          <a href="download/zenith-v1.4.0.zip" class="btn btn-primary" download>
+            ⬇️ دانلود ZIP v1.4.0
+          </a>
+          <a href="docs/CHANGELOG.md" target="_blank" class="btn btn-secondary">
+            📋 Changelog
+          </a>
+          <a href="docs/BENCHMARKS.md" target="_blank" class="btn btn-secondary">
+            📊 Benchmarks
+          </a>
+          <a href="docs/LLM-GUIDE.md" target="_blank" class="btn btn-secondary">
+            📖 LLM-GUIDE.md
+          </a>
+          <a href="docs/README.md" target="_blank" class="btn btn-secondary">
+            📄 README
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───── FOOTER ───── -->
+  <footer>
+    <div class="container">
+      <p>
+        🏔️ <strong>Zenith Framework</strong> — ساخته‌شده با ❤️ برای جامعه‌ی فارسی‌زبان
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    function showTab(event, tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+  </script>
+</body>
+</html>

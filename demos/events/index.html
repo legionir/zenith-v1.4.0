@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Events & Modifiers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    /* modern dark UI matching the main index.html */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input, textarea { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 220px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+    .outer { padding: 18px; background: rgba(99, 102, 241, 0.08); border: 2px dashed rgba(99, 102, 241, 0.3); border-radius: 10px; }
+    .inner { padding: 12px; background: rgba(236, 72, 153, 0.08); border: 2px dashed rgba(236, 72, 153, 0.3); border-radius: 8px; margin-top: 8px; text-align: center; cursor: pointer; }
+    .self-target { padding: 14px; background: rgba(16, 185, 129, 0.08); border: 2px dashed rgba(16, 185, 129, 0.4); border-radius: 10px; cursor: pointer; }
+    .self-target .child { padding: 8px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; margin-top: 8px; }
+    .sticky-log { position: sticky; top: 12px; z-index: 5; }
+    .counter-pill { display: inline-block; padding: 2px 10px; background: rgba(99, 102, 241, 0.15); border: 1px solid var(--border-strong); border-radius: 12px; font-family: ui-monospace, monospace; font-size: 0.75rem; color: var(--accent-light); direction: ltr; }
+    form { display: flex; gap: 8px; align-items: center; }
+    form input { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🖱️ <span class="gradient">Events & Modifiers</span></h1>
+    <p class="subtitle">Event Delegation در سطح document + Modifier های prevent/stop/enter/shift/ctrl/self/once</p>
+    <div class="badges">
+      <span class="badge">delegation</span>
+      <span class="badge">prevent</span>
+      <span class="badge">stop</span>
+      <span class="badge">enter</span>
+      <span class="badge">shift+enter</span>
+      <span class="badge">ctrl+click</span>
+      <span class="badge">self</span>
+      <span class="badge">once</span>
+    </div>
+
+    <div id="app">
+      <!-- شمارش‌گر کلی — sticky برای دیدن زنده -->
+      <div class="card sticky-log">
+        <h2>📊 زنده — شمارش‌گر رویدادها</h2>
+        <div class="row" style="font-size: 0.85rem;">
+          <span class="stat">basicClick: <strong zen-text="$counts.basicClick"></strong></span>
+          <span class="stat">explicitClick: <strong zen-text="$counts.explicitClick"></strong></span>
+          <span class="stat">handleSubmit: <strong zen-text="$counts.handleSubmit"></strong></span>
+          <span class="stat">onEnter: <strong zen-text="$counts.onEnter"></strong></span>
+          <span class="stat">onShiftEnter: <strong zen-text="$counts.onShiftEnter"></strong></span>
+          <span class="stat">onCtrlClick: <strong zen-text="$counts.onCtrlClick"></strong></span>
+          <span class="stat">onSelfClick: <strong zen-text="$counts.onSelfClick"></strong></span>
+          <span class="stat">onOnce: <strong zen-text="$counts.onOnce"></strong></span>
+          <span class="stat">onInput: <strong zen-text="$counts.onInput"></strong></span>
+          <span class="stat">onKeyup: <strong zen-text="$counts.onKeyup"></strong></span>
+          <span class="stat">onChange: <strong zen-text="$counts.onChange"></strong></span>
+        </div>
+        <div style="margin-top: 10px;">
+          <button zen-action="clearLog">پاک کردن log و شمارش‌گرها</button>
+        </div>
+      </div>
+
+      <!-- ۱. Basic click -->
+      <div class="card">
+        <h2>۱. کلیک ساده (Default Event)</h2>
+        <p class="desc"><code>zen-action="name"</code> به‌صورت پیش‌فرض روی <code>click</code> تنظیم می‌شود. فقط یک Listener روی <code>document</code> ثبت می‌شود — حتی اگر ۱۰۰۰۰ دکمه داشته باشید.</p>
+        <button zen-action="basicClick">کلیک ساده</button>
+        <pre>&lt;button zen-action="basicClick"&gt;...&lt;/button&gt;</pre>
+      </div>
+
+      <!-- ۲. Explicit event -->
+      <div class="card">
+        <h2>۲. رویداد صریح (Explicit Event)</h2>
+        <p class="desc">با <code>zen-action:click="name"</code> صریحاً رویداد را مشخص کنید. این برای زمانی که می‌خواهید بعداً modifier اضافه کنید تمیزتر است.</p>
+        <button zen-action:click="explicitClick">کلیک صریح</button>
+        <pre>&lt;button zen-action:click="explicitClick"&gt;...&lt;/button&gt;</pre>
+      </div>
+
+      <!-- ۳. prevent modifier -->
+      <div class="card">
+        <h2>۳. <code>.prevent</code> — جلوگیری از رفتار پیش‌فرض</h2>
+        <p class="desc">روی یک <code>&lt;form&gt;</code> با <code>zen-action:submit.prevent</code> — بدون reload صفحه. اگر <code>.prevent</code> را حذف کنید، صفحه reload می‌شود.</p>
+        <form zen-action:submit.prevent="handleSubmit">
+          <input type="text" placeholder="چیزی تایپ کنید و Enter بزنید" required>
+          <button type="submit" class="primary">ثبت</button>
+        </form>
+        <pre>&lt;form zen-action:submit.prevent="handleSubmit"&gt;
+  &lt;input ...&gt;
+  &lt;button type="submit"&gt;ثبت&lt;/button&gt;
+&lt;/form&gt;</pre>
+      </div>
+
+      <!-- ۴. stop modifier -->
+      <div class="card">
+        <h2>۴. <code>.stop</code> — توقف propagation</h2>
+        <p class="desc">دکمه‌ی داخلی <code>.stop</code> دارد — وقتی کلیک می‌شود، رویداد به والد نمی‌رسد. دکمه‌ی خارجی بدون <code>.stop</code> است — کلیک روی آن فقط خودش را trigger می‌کند.</p>
+        <div class="outer" zen-action:click="outerClick">
+          <div style="color: var(--text-secondary); font-size: 0.85rem;">کلیک روی پس‌زمینه ← <code>outerClick</code> اجرا می‌شود</div>
+          <div class="inner" zen-action:click.stop="innerClick">
+            کلیک روی این ← فقط <code>innerClick</code> (propagation متوقف شد)
+          </div>
+        </div>
+        <p class="hint" style="margin-top: 8px;">شمارش outer: <span class="counter-pill" zen-text="$counts.outerClick"></span> — شمارش inner: <span class="counter-pill" zen-text="$counts.innerClick"></span></p>
+      </div>
+
+      <!-- ۵. enter modifier -->
+      <div class="card">
+        <h2>۵. <code>.enter</code> — فقط کلید Enter</h2>
+        <p class="desc">روی <code>keydown</code> فیلتر می‌کند — فقط وقتی کلید Enter فشرده شود، اکشن اجرا می‌شود.</p>
+        <input type="text" placeholder="چیزی تایپ کنید و Enter بزنید" zen-action:keydown.enter="onEnter">
+        <pre>&lt;input zen-action:keydown.enter="onEnter"&gt;</pre>
+      </div>
+
+      <!-- ۶. shift+enter -->
+      <div class="card">
+        <h2>۶. <code>.shift.enter</code> — ترکیب Shift+Enter</h2>
+        <p class="desc">چندین modifier کلیدی می‌توانند ترکیب شوند. این input فقط وقتی trigger می‌شود که Shift+Enter همزمان زده شود.</p>
+        <input type="text" placeholder="Shift+Enter را امتحان کنید" zen-action:keydown.shift.enter="onShiftEnter">
+        <pre>&lt;input zen-action:keydown.shift.enter="onShiftEnter"&gt;</pre>
+      </div>
+
+      <!-- ۷. ctrl+click -->
+      <div class="card">
+        <h2>۷. <code>.ctrl</code> — کلید اصلاحی روی کلیک</h2>
+        <p class="desc">این دکمه فقط وقتی اجرا می‌شود که Ctrl (یا Cmd در مک) همزمان با کلیک نگه داشته شود.</p>
+        <button zen-action:click.ctrl="onCtrlClick">Ctrl+Click کن</button>
+        <pre>&lt;button zen-action:click.ctrl="onCtrlClick"&gt;...&lt;/button&gt;</pre>
+      </div>
+
+      <!-- ۸. self modifier (manual implementation) -->
+      <div class="card">
+        <h2>۸. <code>.self</code> — فقط کلیک روی خود عنصر (نه فرزندان)</h2>
+        <p class="desc">
+          modifier <code>.self</code> در Action خودمان پیاده‌سازی شده (فریم‌ورک آن را silent نادیده می‌گیرد، ما با چک <code>event.target === element</code> اجرای آن را شرطی می‌کنیم).
+          امتحان کنید: کلیک روی پس‌زمینه سبز ← اجرا می‌شود. کلیک روی فرزند زرد ← اجرا نمی‌شود.
+        </p>
+        <div class="self-target" zen-action:click.self="onSelfClick">
+          <div style="color: #6ee7b7;">کلیک روی این ← <code>onSelfClick</code> اجرا می‌شود</div>
+          <div class="child">
+            کلیک روی این فرزند ← اجرا نمی‌شود (target === element نادرست است)
+          </div>
+        </div>
+        <pre>// در Action:
+Zen.action('onSelfClick', ({ event, element }) =&gt; {
+  if (event.target !== element) return;  // manual .self
+  // ...
+});</pre>
+      </div>
+
+      <!-- ۹. once modifier (manual implementation) -->
+      <div class="card">
+        <h2>۹. <code>.once</code> — فقط یک بار اجرا شود</h2>
+        <p class="desc">
+          modifier <code>.once</code> نیز در Action پیاده‌سازی شده (با یک flag ساده). بعد از اولین کلیک، دیگر اجرا نمی‌شود.
+        </p>
+        <button zen-action:click.once="onOnce">فقط یک بار کلیک کن</button>
+        <p class="hint" style="margin-top: 8px;">تعداد دفعات اجرا: <span class="counter-pill" zen-text="$counts.onOnce"></span> (هرگز بیشتر از ۱ نمی‌شود)</p>
+        <pre>let onceFired = false;
+Zen.action('onOnce', () =&gt; {
+  if (onceFired) return;
+  onceFired = true;
+  // ...
+});</pre>
+      </div>
+
+      <!-- ۱۰. Multiple events -->
+      <div class="card">
+        <h2>۱۰. چندین رویداد روی یک عنصر</h2>
+        <p class="desc">
+          یک input می‌تواند همزمان چندین <code>zen-action:&lt;event&gt;</code> داشته باشد. در این مثال: <code>input</code> (هر بار تایپ)، <code>change</code> (وقتی blur می‌شود و مقدار عوض شده)، و <code>keyup</code> (هر بار رها کردن کلید).
+          <br><br>
+          نکته: <code>focus</code> و <code>blur</code> در <strong>bubble</strong> نمی‌شوند، پس در Event Delegation پیش‌فرض پشتیبانی نمی‌شوند. در عوض می‌توانید از <code>keydown</code>، <code>keyup</code>، <code>input</code>، <code>change</code> استفاده کنید که همگی bubble می‌شوند.
+        </p>
+        <input type="text"
+               placeholder="چیزی تایپ کنید — هر event جداگانه fire می‌شود"
+               zen-action:input="onInput"
+               zen-action:change="onChange"
+               zen-action:keyup="onKeyup">
+        <pre>&lt;input
+  zen-action:input="onInput"     &lt;!-- هر بار تایپ --&gt;
+  zen-action:change="onChange"   &lt;!-- هنگام blur با تغییر --&gt;
+  zen-action:keyup="onKeyup"     &lt;!-- هر بار key up --&gt;
+&gt;</pre>
+      </div>
+
+      <!-- Log -->
+      <div class="card">
+        <h2>📜 Log زنده‌ی رویدادها</h2>
+        <p class="desc">هر رویداد به‌محض رخ دادن اینجا لاگ می‌شود. آخرین رویداد در پایین است.</p>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <!-- ═══════════════ v1.3.0 Features ═══════════════ -->
+      <div class="card" style="border-color: var(--accent); border-width: 2px;">
+        <h2>🆕 v1.3.0 — Parameterized Actions</h2>
+        <p class="desc">
+          از v1.3.0 به بعد، می‌توانید آرگومان‌ها را مستقیماً در HTML ارسال کنید:
+          <code>zen-action="save($product)"</code>. آرگومان‌ها با Expression Engine
+          ارزیابی و در <code>ctx.args</code> قرار می‌گیرند. این کار نیاز به
+          <code>getAttribute('data-id')</code> و خواندن دستی از DOM را حذف می‌کند.
+        </p>
+        <div class="row">
+          <span class="stat">args received: <strong zen-text="$paramDemo.lastArgs"></strong></span>
+          <span class="stat">calls: <strong zen-text="$paramDemo.calls"></strong></span>
+        </div>
+        <div style="margin-top: 10px;">
+          <button zen-action="addToList($product.name, $product.price)">addToList($product.name, $product.price)</button>
+          <button zen-action="selectProduct($product)">selectProduct($product)</button>
+          <button zen-action="updateQuantity($product.id, 5)">updateQuantity($product.id, 5)</button>
+          <button zen-action="namespace.test('hello', $product.price)">namespace.test('hello', $product.price)</button>
+        </div>
+        <pre>&lt;button zen-action="addToList($product.name, $product.price)"&gt;...&lt;/button&gt;
+&lt;button zen-action="selectProduct($product)"&gt;...&lt;/button&gt;
+&lt;button zen-action="updateQuantity($product.id, 5)"&gt;...&lt;/button&gt;
+&lt;button zen-action="namespace.test('hello', $product.price)"&gt;...&lt;/button&gt;</pre>
+        <p class="hint">
+          هر بار کلیک می‌کنید، آرگومان‌های ارزیابی‌شده در <code>ctx.args</code> می‌آیند.
+          اکشن <code>namespace.test</code> نشان می‌دهد که از v1.3.0 به بعد، نام‌ها
+          می‌توانند شامل <code>.</code> برای namespacing باشند.
+        </p>
+      </div>
+
+      <div class="card" style="border-color: var(--accent); border-width: 2px;">
+        <h2>🆕 v1.3.0 — Event Modifier Registry</h2>
+        <p class="desc">
+          Plugin ها می‌توانند با <code>registerEventModifier(name, handler)</code>
+          modifier های سفارشی تعریف کنند. اینجا یک modifier <code>.debug</code>
+          ثبت کرده‌ایم که قبل از اجرای اکشن، اطلاعات رویداد را لاگ می‌کند.
+        </p>
+        <div class="row">
+          <button zen-action:click.debug="debugClick">click.debug → log + run action</button>
+          <button zen-action:click.debug.prevent="debugClick">click.debug.prevent</button>
+        </div>
+        <pre>import { registerEventModifier } from '@zenith/events';
+
+registerEventModifier('debug', (event, modifiers, element) =&gt; {
+  console.log('[debug modifier]', event.type, element.tagName);
+  // return false برای جلوگیری از اجرای اکشن
+  return true;
+});
+
+// HTML:
+// &lt;button zen-action:click.debug="myAction"&gt;...&lt;/button&gt;</pre>
+      </div>
+
+      <div class="card" style="border-color: var(--accent); border-width: 2px;">
+        <h2>🆕 v1.3.0 — Action Metadata & Namespace</h2>
+        <p class="desc">
+          <code>registerAction(name, fn, metadata)</code> متادیتای اختیاری قبول می‌کند.
+          <code>Zen.action.list()</code> برای DevTools و documentation آماده است.
+          namespace ها با <code>.</code> کار می‌کنند: <code>cart.save</code>, <code>admin.delete</code>.
+        </p>
+        <div class="row">
+          <button zen-action="listAllActions">نمایش لیست Actions (با متادیتا)</button>
+        </div>
+        <div class="log" id="metaLog" style="margin-top: 10px; max-height: 160px;"></div>
+        <pre>Zen.action('cart.save', (ctx) =&gt; { /* ... */ }, {
+  description: 'ذخیره سبد خرید',
+  category: 'cart',
+  permissions: ['cart:write'],
+});
+
+// لیست برای DevTools:
+const all = Zen.action.list();
+// → [{ name: 'cart.save', metadata: { description: '...', category: 'cart' } }, ...]</pre>
+      </div>
+
+      <div class="card" style="border-color: var(--accent); border-width: 2px;">
+        <h2>🆕 v1.3.0 — Binding Cache (WeakMap)</h2>
+        <p class="desc">
+          نتایج parse کردن <code>zen-action:*</code> attribute ها حالا در یک
+          <code>WeakMap&lt;HTMLElement, CachedBinding&gt;</code> کش می‌شوند.
+          اگر attribute ها تغییر نکرده باشند، re-parse انجام نمی‌شود.
+          این کار برای درخت‌های عمیق و صفحه‌های پویا سودمند است.
+          وقتی attribute تغییر کند (مثلاً توسط <code>.once</code>)، cache خودکار
+          invalidate می‌شود.
+        </p>
+        <p class="hint">
+          این feature کاملاً transparent است — هیچ تغییری در API لازم نیست.
+          فقط performance بهتر می‌شود.
+        </p>
+      </div>
+
+      <div class="card" style="border-color: var(--accent); border-width: 2px;">
+        <h2>🆕 v1.3.0 — Custom Delegation Root</h2>
+        <p class="desc">
+          از v1.3.0 به بعد، می‌توانید Event Delegation را روی یک ریشه‌ی سفارشی
+          (ShadowRoot یا HTMLElement) فعال کنید:
+          <code>initEventDelegation(state, { root: el.shadowRoot })</code>.
+          این برای Web Components و micro-frontends مفید است.
+        </p>
+        <pre>// مستقیم:
+import { initEventDelegation } from '@zenith/events';
+const teardown = initEventDelegation(state, { root: myShadowRoot });
+
+// یا از طریق Zen.start:
+Zen.start(hostEl, state, { delegationRoot: hostEl.shadowRoot });</pre>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          Event Delegation = یک Listener روی <code>document</code> برای هر نوع رویداد، به‌جای Listener روی هر عنصر.
+          مزایا: Memory O(1)، کار با عناصر پویا (zen-if)، Performance بالا.
+          Modifier ها با نقطه (<code>.prevent</code>, <code>.stop</code>, <code>.enter</code>, <code>.shift</code>, ...) زنجیره می‌شوند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { registerEventModifier } from '@zenith/events';
+
+    // ── State ──
+    // counts یک Signal از نوع Object است. برای trigger شدن reactivity،
+    // هر بار یک Object جدید با مقدار افزایش‌یافته می‌سازیم.
+    const counts = signal({
+      basicClick: 0,
+      explicitClick: 0,
+      handleSubmit: 0,
+      onEnter: 0,
+      onShiftEnter: 0,
+      onCtrlClick: 0,
+      onSelfClick: 0,
+      onOnce: 0,
+      onInput: 0,
+      onChange: 0,
+      onKeyup: 0,
+      outerClick: 0,
+      innerClick: 0,
+    });
+
+    // FEATURE (v1.3.0): State برای parameterized actions demo.
+    // createContext خودش پیشوند $ اضافه می‌کند: state.product → context.$product
+    const product = signal({ id: 42, name: 'Widget', price: 12500 });
+    const paramDemo = signal({ lastArgs: '—', calls: 0 });
+
+    const state = {
+      counts,
+      product,
+      paramDemo,
+    };
+
+    // ── FEATURE (v1.3.0): ثبت custom event modifier ──
+    registerEventModifier('debug', (event, modifiers, element) => {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      console.log(`[debug modifier ${time}] event.type=${event.type} element=<${element.tagName.toLowerCase()}> modifiers=[${modifiers.join(',')}]`);
+      // return true برای ادامه‌ی اجرای اکشن
+      return true;
+    });
+
+    // ── Flag برای once ──
+    let onceFired = false;
+
+    // ── Log زنده ──
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const ms = String(new Date().getMilliseconds()).padStart(3, '0');
+      const line = document.createElement('div');
+      line.textContent = `[${time}.${ms}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 80) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // helper برای increment یک کلید از counts
+    function bump(state, key) {
+      const c = state.counts.get();
+      state.counts.set({ ...c, [key]: c[key] + 1 });
+    }
+
+    // ── ثبت Action ها ──
+    Zen.action('basicClick', ({ state }) => {
+      bump(state, 'basicClick');
+      logEvent('basicClick', 'default click event');
+    });
+
+    Zen.action('explicitClick', ({ state }) => {
+      bump(state, 'explicitClick');
+      logEvent('explicitClick', 'zen-action:click');
+    });
+
+    Zen.action('handleSubmit', ({ state, event }) => {
+      bump(state, 'handleSubmit');
+      const formData = new FormData(event.target);
+      const value = formData.values().next().value;
+      logEvent('handleSubmit', `submit.prevent fired (no reload). input="${value}"`);
+    });
+
+    Zen.action('outerClick', ({ state }) => {
+      bump(state, 'outerClick');
+      logEvent('outerClick', 'clicked on outer');
+    });
+
+    Zen.action('innerClick', ({ state }) => {
+      bump(state, 'innerClick');
+      logEvent('innerClick', '.stop prevented outer from firing');
+    });
+
+    Zen.action('onEnter', ({ state, event }) => {
+      bump(state, 'onEnter');
+      logEvent('onEnter', `key="${event.key}"  input="${event.target.value}"`);
+    });
+
+    Zen.action('onShiftEnter', ({ state, event }) => {
+      bump(state, 'onShiftEnter');
+      logEvent('onShiftEnter', `key="${event.key}"  shiftKey=${event.shiftKey}`);
+    });
+
+    Zen.action('onCtrlClick', ({ state, event }) => {
+      bump(state, 'onCtrlClick');
+      logEvent('onCtrlClick', `ctrlKey=${event.ctrlKey}  metaKey=${event.metaKey}`);
+    });
+
+    Zen.action('onSelfClick', ({ state, event, element }) => {
+      // manual .self implementation — فریم‌ورک این modifier را silent نادیده می‌گیرد
+      if (event.target !== element) {
+        logEvent('onSelfClick (SKIPPED)', `target.tagName=${event.target.tagName} !== element.tagName=${element.tagName}`);
+        return;
+      }
+      bump(state, 'onSelfClick');
+      logEvent('onSelfClick', 'clicked on the .self element itself ✓');
+    });
+
+    Zen.action('onOnce', ({ state }) => {
+      // manual .once implementation
+      if (onceFired) {
+        logEvent('onOnce (SKIPPED)', 'already fired once');
+        return;
+      }
+      onceFired = true;
+      bump(state, 'onOnce');
+      logEvent('onOnce', 'first & only invocation ✓');
+    });
+
+    Zen.action('onInput', ({ state, event }) => {
+      bump(state, 'onInput');
+      logEvent('onInput', `value="${event.target.value}"`);
+    });
+
+    Zen.action('onChange', ({ state, event }) => {
+      bump(state, 'onChange');
+      logEvent('onChange', `final value="${event.target.value}"`);
+    });
+
+    Zen.action('onKeyup', ({ state, event }) => {
+      bump(state, 'onKeyup');
+      logEvent('onKeyup', `key="${event.key}"`);
+    });
+
+    Zen.action('clearLog', ({ state }) => {
+      eventLogEl.innerHTML = '';
+      logCount = 0;
+      onceFired = false; // reset once flag
+      // reset all counters
+      state.counts.set({
+        basicClick: 0, explicitClick: 0, handleSubmit: 0,
+        onEnter: 0, onShiftEnter: 0, onCtrlClick: 0,
+        onSelfClick: 0, onOnce: 0,
+        onInput: 0, onChange: 0, onKeyup: 0,
+        outerClick: 0, innerClick: 0,
+      });
+      logEvent('clearLog', 'log and counters reset');
+    });
+
+    // ═══════════════ v1.3.0: Parameterized Actions ═══════════════
+    // FEATURE (v1.3.0): actionهایی که آرگومان می‌گیرند. ctx.args شامل
+    // آرگومان‌های ارزیابی‌شده با Expression Engine است.
+
+    Zen.action('addToList', ({ state, args }) => {
+      const [name, price] = args;
+      state.paramDemo.set({
+        lastArgs: JSON.stringify(args),
+        calls: state.paramDemo.get().calls + 1,
+      });
+      logEvent('addToList', `args=[name=${JSON.stringify(name)}, price=${price}]`);
+    });
+
+    Zen.action('selectProduct', ({ state, args }) => {
+      const [product] = args;
+      state.paramDemo.set({
+        lastArgs: JSON.stringify(args),
+        calls: state.paramDemo.get().calls + 1,
+      });
+      logEvent('selectProduct', `args=[product=${JSON.stringify(product)}]`);
+    });
+
+    Zen.action('updateQuantity', ({ state, args }) => {
+      const [id, qty] = args;
+      state.paramDemo.set({
+        lastArgs: JSON.stringify(args),
+        calls: state.paramDemo.get().calls + 1,
+      });
+      logEvent('updateQuantity', `args=[id=${id}, qty=${qty}]`);
+    });
+
+    // FEATURE (v1.3.0): namespace support — نام می‌تواند شامل . باشد.
+    Zen.action('namespace.test', ({ state, args }) => {
+      state.paramDemo.set({
+        lastArgs: JSON.stringify(args),
+        calls: state.paramDemo.get().calls + 1,
+      });
+      logEvent('namespace.test', `args=${JSON.stringify(args)}`);
+    });
+
+    // FEATURE (v1.3.0): action با metadata برای DevTools.
+    Zen.action('cart.save', ({ state }) => {
+      logEvent('cart.save', 'cart saved (action with metadata)');
+    }, {
+      description: 'ذخیره سبد خرید',
+      category: 'cart',
+      permissions: ['cart:write'],
+    });
+
+    Zen.action('admin.delete', ({ state }) => {
+      logEvent('admin.delete', 'admin delete (action with metadata)');
+    }, {
+      description: 'حذف کاربر توسط ادمین',
+      category: 'admin',
+      permissions: ['admin:delete'],
+      deprecated: false,
+    });
+
+    // FEATURE (v1.3.0): debug action — برای تست .debug modifier
+    Zen.action('debugClick', ({ state }) => {
+      bump(state, 'basicClick'); // reuse basicClick counter for simplicity
+      logEvent('debugClick', 'fired after .debug modifier ran');
+    });
+
+    // FEATURE (v1.3.0): listAllActions — نمایش لیست actions با متادیتا
+    Zen.action('listAllActions', ({ state }) => {
+      const metaLogEl = document.getElementById('metaLog');
+      metaLogEl.innerHTML = '';
+      const all = Zen.action.list();
+      // Sort by name for readability
+      all.sort((a, b) => a.name.localeCompare(b.name));
+      for (const { name, metadata } of all) {
+        const line = document.createElement('div');
+        const meta = metadata ? `  → { ${Object.entries(metadata).map(([k,v]) => `${k}: ${JSON.stringify(v)}`).join(', ')} }` : '';
+        line.textContent = `${name}${meta}`;
+        metaLogEl.appendChild(line);
+      }
+      logEvent('listAllActions', `listed ${all.length} actions`);
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Zenith v1.3.0 started. Try the buttons and inputs above!');
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<h2>🏠 صفحه اصلی</h2>
+<p>سلام! به یک اپلیکیشن SPA خوش آمدید که با فریم‌ورک <strong>Zenith</strong> ساخته شده.</p>
+<p>برای دیدن صفحات دیگر، روی لینک‌های ناوبری بالا کلیک کنید.</p>
+
+<h3>ویژگی‌های این روتر:</h3>
+<ul>
+  <li><strong>SPA Navigation:</strong> URL عوض می‌شود، صفحه رفرش نمی‌شود (<code>history.pushState</code>).</li>
+  <li><strong>Lazy Loading:</strong> صفحات فقط زمانی لود می‌شوند که به آن‌ها ناوبری شود.</li>
+  <li><strong>Route Cache:</strong> صفحات fetch شده ۵ دقیقه در حافظه نگه داشته می‌شوند.</li>
+  <li><strong>Prefetch:</strong> روی لینک‌ها hover کنید تا صفحه پیش‌فرچ شود.</li>
+  <li><strong>Route Params:</strong> با <code>$route.params.id</code> به پارامترهای URL دسترسی داشته باشید.</li>
+  <li><strong>Declarative Data Fetching:</strong> با <code>zen-fetch</code> به‌صورت Declarative داده بگیرید.</li>
+</ul>
+
+<h3>کد تعریف مسیرها:</h3>
+<pre style="background:#0a0e1f; padding:10px; border-radius:6px; font-size:0.8rem; direction:ltr; text-align:left; overflow-x:auto; color:#c9d1d9;">&lt;zen-router&gt;
+  &lt;zen-route path="/"          src="/pages/home.html"&gt;&lt;/zen-route&gt;
+  &lt;zen-route path="/about"     src="/pages/about.html"&gt;&lt;/zen-route&gt;
+  &lt;zen-route path="/users"     src="/pages/users.html"&gt;&lt;/zen-route&gt;
+  &lt;zen-route path="/users/:id" src="/pages/user.html"&gt;&lt;/zen-route&gt;
+  &lt;zen-route path="**"         src="/pages/404.html"&gt;&lt;/zen-route&gt;
+&lt;/zen-router&gt;</pre>

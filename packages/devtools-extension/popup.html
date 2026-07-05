@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zenith DevTools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 450px;
+      min-height: 500px;
+      max-height: 600px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .header h1 { font-size: 1rem; color: #60a5fa; }
+    .header .version { font-size: 0.7rem; color: #64748b; }
+    .tabs {
+      display: flex;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .tab {
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: #e2e8f0; }
+    .tab.active {
+      color: #60a5fa;
+      border-bottom-color: #3b82f6;
+    }
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Status */
+    .status-bar {
+      padding: 4px 12px;
+      font-size: 0.7rem;
+      color: #64748b;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+    }
+    .status-bar.connected { color: #4ade80; }
+    .status-bar.disconnected { color: #ef4444; }
+
+    /* Signal Inspector */
+    .signal-item {
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      background: #1e293b;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      font-size: 0.78rem;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+    }
+    .signal-item:hover { border-color: #3b82f6; }
+    .signal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .signal-id { color: #a78bfa; font-weight: 600; }
+    .signal-name { color: #60a5fa; }
+    .signal-count {
+      background: #334155;
+      color: #fbbf24;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.65rem;
+    }
+    .signal-value {
+      color: #4ade80;
+      word-break: break-all;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+
+    /* Timeline */
+    .timeline-item {
+      padding: 4px 10px;
+      margin-bottom: 2px;
+      background: #1e293b;
+      border-radius: 4px;
+      border-right: 3px solid #3b82f6;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+    }
+    .timeline-time { color: #64748b; font-size: 0.65rem; }
+    .timeline-change { color: #e2e8f0; }
+    .timeline-old { color: #ef4444; text-decoration: line-through; }
+    .timeline-new { color: #4ade80; }
+
+    /* Component Tree */
+    .tree-node {
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .tree-node:hover { background: #1e293b; }
+    .tree-node.selected { background: #1e3a5f; }
+    .tree-tag { color: #60a5fa; }
+    .tree-attr { color: #a78bfa; }
+    .tree-text { color: #94a3b8; }
+    .tree-children { margin-right: 12px; border-right: 1px solid #334155; }
+
+    /* Effect Viewer */
+    .effect-item {
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      background: #1e293b;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+    .effect-id { color: #a78bfa; font-weight: 600; }
+    .effect-deps { color: #60a5fa; }
+    .effect-status { font-size: 0.65rem; padding: 1px 6px; border-radius: 3px; }
+    .effect-status.active { background: #166534; color: #4ade80; }
+    .effect-status.disposed { background: #7f1d1d; color: #ef4444; }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 6px;
+      padding: 6px 8px;
+      background: #1e293b;
+      border-top: 1px solid #334155;
+    }
+    .btn {
+      padding: 4px 12px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn.danger { background: #ef4444; }
+    .btn.danger:hover { background: #dc2626; }
+    .empty { color: #64748b; font-style: italic; padding: 12px; text-align: center; font-size: 0.8rem; }
+
+    /* Graph tab */
+    .graph-panel {
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .graph-panel p {
+      color: #94a3b8;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .graph-panel .btn { padding: 8px 16px; font-size: 0.85rem; }
+    .graph-status {
+      margin-top: 10px;
+      font-size: 0.7rem;
+      color: #fbbf24;
+      min-height: 1em;
+    }
+
+    /* FEATURE (v1.0.0): v1.0 panels */
+    .stat-card {
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      background: #1e293b;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      font-size: 0.78rem;
+    }
+    .stat-card .stat-label {
+      color: #94a3b8;
+      font-size: 0.7rem;
+      margin-bottom: 4px;
+    }
+    .stat-card .stat-value {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #60a5fa;
+      font-family: ui-monospace, monospace;
+    }
+    .stat-card .stat-detail {
+      color: #64748b;
+      font-size: 0.68rem;
+      margin-top: 2px;
+    }
+    .badge-static {
+      background: #166534;
+      color: #4ade80;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+    .badge-destroyed {
+      background: #7f1d1d;
+      color: #ef4444;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+    .cache-bar {
+      height: 8px;
+      background: #334155;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .cache-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4ade80, #22d3ee);
+      transition: width 0.3s;
+    }
+    .resource-item {
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      background: #1e293b;
+      border-radius: 6px;
+      border: 1px solid #7f1d1d;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+    .resource-name { color: #ef4444; font-weight: 600; }
+    .resource-url { color: #64748b; font-size: 0.68rem; }
+    .resource-time { color: #64748b; font-size: 0.65rem; }
+    .ssr-store-item {
+      padding: 4px 10px;
+      margin-bottom: 2px;
+      background: #1e293b;
+      border-radius: 4px;
+      border-right: 3px solid #fbbf24;
+      font-size: 0.72rem;
+      font-family: ui-monospace, monospace;
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🚀 Zenith DevTools</h1>
+    <span class="version" id="version">v1.0.0</span>
+  </div>
+
+  <div class="status-bar" id="status-bar">در حال بررسی...</div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="signals">Signals</div>
+    <div class="tab" data-tab="timeline">Timeline</div>
+    <div class="tab" data-tab="components">Components</div>
+    <div class="tab" data-tab="effects">Effects</div>
+    <div class="tab" data-tab="v1">⚡ v1.0</div>
+    <div class="tab" data-tab="graph">📊 Graph</div>
+  </div>
+
+  <div class="tab-content">
+    <!-- Signal Inspector -->
+    <div class="panel active" id="panel-signals">
+      <div class="empty" id="signals-empty">در حال بارگذاری...</div>
+      <div id="signals-list"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="panel" id="panel-timeline">
+      <div class="empty" id="timeline-empty">در حال بارگذاری...</div>
+      <div id="timeline-list"></div>
+    </div>
+
+    <!-- Component Tree -->
+    <div class="panel" id="panel-components">
+      <div class="empty" id="components-empty">در حال بارگذاری...</div>
+      <div id="components-tree"></div>
+    </div>
+
+    <!-- Effect Viewer -->
+    <div class="panel" id="panel-effects">
+      <div class="empty" id="effects-empty">در حال بارگذاری...</div>
+      <div id="effects-list"></div>
+    </div>
+
+    <!-- FEATURE (v1.0.0): v1.0 Features Panel -->
+    <div class="panel" id="panel-v1">
+      <!-- zen-static Fast Path -->
+      <div class="stat-card">
+        <div class="stat-label">⚡ zen-static Fast Path</div>
+        <div class="stat-value" id="static-count">0</div>
+        <div class="stat-detail" id="static-detail">لیست‌های فقط‌خواندنی با fast path</div>
+      </div>
+      <div id="static-list"></div>
+
+      <!-- Resource Destroyed -->
+      <div class="stat-card" style="margin-top: 8px;">
+        <div class="stat-label">🗑️ Resource های Destroyed</div>
+        <div class="stat-value" id="destroyed-count" style="color: #ef4444;">0</div>
+        <div class="stat-detail" id="destroyed-detail">Resource های teardown شده</div>
+      </div>
+      <div id="destroyed-list"></div>
+
+      <!-- compileExpression Cache -->
+      <div class="stat-card" style="margin-top: 8px;">
+        <div class="stat-label">📦 Cache آمار compileExpression</div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div>
+            <div class="stat-value" id="cache-hits" style="font-size: 1rem;">0</div>
+            <div class="stat-detail">hits</div>
+          </div>
+          <div>
+            <div class="stat-value" id="cache-misses" style="font-size: 1rem; color: #ef4444;">0</div>
+            <div class="stat-detail">misses</div>
+          </div>
+          <div style="flex: 1;">
+            <div class="stat-detail" id="cache-ratio">Hit Ratio: —</div>
+            <div class="cache-bar">
+              <div class="cache-bar-fill" id="cache-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stat-detail" id="cache-size" style="margin-top: 4px;">Unique expressions: 0</div>
+      </div>
+
+      <!-- SSR Stores -->
+      <div class="stat-card" style="margin-top: 8px;">
+        <div class="stat-label">🌐 SSR Stores فعال (AsyncLocalStorage)</div>
+        <div class="stat-value" id="ssr-count" style="color: #fbbf24;">0</div>
+        <div class="stat-detail" id="ssr-detail">درخواست‌های SSR concurrent</div>
+      </div>
+      <div id="ssr-list"></div>
+    </div>
+
+    <!-- Dependency Graph Viewer -->
+    <div class="panel" id="panel-graph">
+      <div class="graph-panel">
+        <p>
+          نمایش گراف وابستگی‌های Reactivity (Signal → Effect → Directive → DOM)
+          در یک Viewer تعاملی مبتنی بر SVG. روی دکمه کلیک کنید تا گراف زنده‌ی
+          این صفحه در یک تب جدید باز شود.
+        </p>
+        <button class="btn" id="open-graph">📊 Open Graph Viewer</button>
+        <div class="graph-status" id="graph-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="refresh">↻ Refresh</button>
+    <button class="btn danger" id="clear">Clear All</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

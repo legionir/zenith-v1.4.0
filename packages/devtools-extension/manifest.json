@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Zenith DevTools",
+  "version": "1.4.0",
+  "description": "Developer tools for Zenith Framework \u2014 Signal Inspector, Timeline, Components, Effects, v1.0 Features (zen-static, Resource.destroy, cache stats, SSR stores), Graph Viewer.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "devtools_page": "devtools.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "notifications"
+  ],
+  // BUG-DEVTEXT-08 / IMP-DEVTEXT-05:
+  // <all_urls> برای DevTools extension ضروری است چون برنامه‌های Zenith
+  // می‌توانند روی هر دامنه‌ای (localhost, staging, production) اجرا شوند.
+  // ولی ما فقط پروتکل‌های http/https را پشتیبانی می‌کنیم (نه file://, data:, etc).
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ]
+}

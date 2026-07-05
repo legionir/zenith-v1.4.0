@@ -1,0 +1,181 @@
+{
+  "Zenith Component": {
+    "prefix": "zcomp",
+    "body": [
+      "<zen-component name=\"${1:app-${2:name}}\">",
+      "  <template>",
+      "    <div class=\"${2:name}\">",
+      "      <h3>${2:name}</h3>",
+      "      <slot></slot>",
+      "      <slot name=\"actions\"></slot>",
+      "    </div>",
+      "  </template>",
+      "</zen-component>"
+    ],
+    "description": "Create a Zenith component definition"
+  },
+  "Zenith zen-text": {
+    "prefix": "ztext",
+    "body": [
+      "<span zen-text=\"\\$${1:variable}\"></span>"
+    ],
+    "description": "zen-text directive — reactive text rendering"
+  },
+  "Zenith zen-if": {
+    "prefix": "zif",
+    "body": [
+      "<div zen-if=\"\\$${1:condition}\">",
+      "  $0",
+      "</div>"
+    ],
+    "description": "zen-if directive — conditional rendering"
+  },
+  "Zenith zen-for": {
+    "prefix": "zfor",
+    "body": [
+      "<li zen-for=\"${1:item} in \\$${2:items}\" zen-key=\"${1:item}.id\">",
+      "  <span zen-text=\"\\$${1:item}.${3:name}\"></span>",
+      "</li>"
+    ],
+    "description": "zen-for directive — list rendering with keyed diffing"
+  },
+  "Zenith zen-model": {
+    "prefix": "zmodel",
+    "body": [
+      "<input type=\"${1:text}\" zen-model=\"\\$${2:user}.${3:name}\" placeholder=\"${4:Enter value}\">"
+    ],
+    "description": "zen-model directive — two-way binding"
+  },
+  "Zenith zen-bind": {
+    "prefix": "zbind",
+    "body": [
+      "zen-bind:${1:disabled}=\"\\$${2:isProcessing}\""
+    ],
+    "description": "zen-bind directive — one-way attribute binding"
+  },
+  "Zenith zen-action": {
+    "prefix": "zaction",
+    "body": [
+      "<button zen-action=\"${1:actionName}\">${2:Button Text}</button>"
+    ],
+    "description": "zen-action directive — event handler"
+  },
+  "Zenith zen-action with modifier": {
+    "prefix": "zaction-mod",
+    "body": [
+      "<button zen-action:${1:click}.${2:prevent}=\"${3:actionName}\">${4:Button Text}</button>"
+    ],
+    "description": "zen-action with modifier (prevent, stop, enter, etc.)"
+  },
+  "Zenith zen-fetch": {
+    "prefix": "zfetch",
+    "body": [
+      "<div zen-fetch=\"'${1:/api/}' + \\$${2:id}\" zen-state=\"${3:data}\">",
+      "  <div zen-if=\"\\$${3:data}.loading\">Loading...</div>",
+      "  <div zen-if=\"\\$${3:data}.error\">Error: <span zen-text=\"\\$${3:data}.error\"></span></div>",
+      "  <div zen-if=\"!\\$${3:data}.loading && !\\$${3:data}.error\">",
+      "    $0",
+      "  </div>",
+      "</div>"
+    ],
+    "description": "zen-fetch directive — declarative data fetching"
+  },
+  "Zenith zen-link": {
+    "prefix": "zlink",
+    "body": [
+      "<a zen-link=\"${1:/path}\">${2:Link Text}</a>"
+    ],
+    "description": "zen-link directive — SPA navigation"
+  },
+  "Zenith zen-router": {
+    "prefix": "zrouter",
+    "body": [
+      "<zen-router>",
+      "  <zen-route path=\"${1:/}\" src=\"${2:/pages/home.html}\"></zen-route>",
+      "  <zen-route path=\"**\" src=\"${3:/pages/404.html}\"></zen-route>",
+      "</zen-router>"
+    ],
+    "description": "zen-router — SPA router with routes"
+  },
+  "Zenith zen-resource": {
+    "prefix": "zresource",
+    "body": [
+      "<div zen-resource=\"'${1:/api/users}'\" zen-state=\"${2:users}\">",
+      "  <div zen-if=\"\\$${2:users}.loading\">Loading...</div>",
+      "  <div zen-for=\"item in \\$${2:users}.data\" zen-key=\"item.id\">",
+      "    <span zen-text=\"\\$item.name\"></span>",
+      "  </div>",
+      "</div>"
+    ],
+    "description": "zen-resource directive — CRUD resource"
+  },
+  "Zenith zen-permission": {
+    "prefix": "zperm",
+    "body": [
+      "<div zen-permission=\"${1:users:edit}\">",
+      "  $0",
+      "  <template zen-fallback>",
+      "    <p>Access denied</p>",
+      "  </template>",
+      "</div>"
+    ],
+    "description": "zen-permission directive — permission-based rendering"
+  },
+  "Zenith zen-role": {
+    "prefix": "zrole",
+    "body": [
+      "<div zen-role=\"${1:admin}\">",
+      "  $0",
+      "</div>"
+    ],
+    "description": "zen-role directive — role-based rendering"
+  },
+  "Zenith zen-error": {
+    "prefix": "zerror",
+    "body": [
+      "<div zen-error>",
+      "  $0",
+      "  <template zen-fallback>",
+      "    <p style=\"color: red;\">Something went wrong</p>",
+      "  </template>",
+      "</div>"
+    ],
+    "description": "zen-error directive — error boundary"
+  },
+  "Zenith zen-validate": {
+    "prefix": "zvalidate",
+    "body": [
+      "<input zen-model=\"\\$${1:form}.${2:email}\" zen-validate=\"${3:required,email}\" placeholder=\"${4:Email}\">"
+    ],
+    "description": "zen-validate directive — form validation"
+  },
+  "Zenith Page Template": {
+    "prefix": "zpage",
+    "body": [
+      "<!-- ${1:PageName} -->",
+      "<div class=\"page page-${2:name}\">",
+      "  <h1>${1:PageName}</h1>",
+      "  $0",
+      "</div>"
+    ],
+    "description": "Zenith page template"
+  },
+  "Zenith Main Script": {
+    "prefix": "zmain",
+    "body": [
+      "import { signal } from '@zenith/state';",
+      "import { Zen } from '@zenith/runtime';",
+      "",
+      "const state = {",
+      "  ${1:count}: signal(${2:0}),",
+      "};",
+      "",
+      "Zen.action('${3:increment}', ({ state }) => {",
+      "  state.${1:count}.set(state.${1:count}.get() + 1);",
+      "});",
+      "",
+      "Zen.start(document.getElementById('app')!, state);"
+    ],
+    "description": "Zenith main.ts boilerplate"
+  }
+}

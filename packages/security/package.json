@@ -1,0 +1,49 @@
+{
+  "name": "@zenith/security",
+  "version": "1.4.0",
+  "description": "Zenith framework — HTML Sanitizer and Security Layer (Phase 9). Protects against XSS, prototype pollution, and dangerous protocols.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./shared": {
+      "types": "./dist/security-constants.d.ts",
+      "import": "./dist/security-constants.js",
+      "require": "./dist/security-constants.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx test/sanitizer-test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "security",
+    "sanitizer",
+    "xss",
+    "html",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0",
+    "jsdom": "^25.0.0"
+  }
+}

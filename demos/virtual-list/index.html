@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Virtual List</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin: 8px 0; }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .alert-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    /* virtual list container */
+    .vlist-container {
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      height: 320px;
+      background: var(--bg-secondary);
+      overflow: hidden;
+      position: relative;
+    }
+    .vlist-row {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 12px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+      box-sizing: border-box;
+    }
+    .vlist-row .idx {
+      width: 50px;
+      color: var(--text-muted);
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      direction: ltr;
+    }
+    .vlist-row .name {
+      flex: 1;
+      color: var(--text-primary);
+    }
+    .vlist-row .description {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .vlist-row.alt { background: rgba(99, 102, 241, 0.05); }
+    .vlist-row .badge-tall {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+    }
+    .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: var(--bg-primary); }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar .fill {
+      height: 100%;
+      background: var(--gradient);
+      transition: width 0.1s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>📊 <span class="gradient">Virtual List</span></h1>
+    <p class="subtitle">اسکرول مجازی برای ۱۰٬۰۰۰+ آیتم — فقط ~۲۰ آیتم در DOM — با static و dynamic heights</p>
+    <div class="badges">
+      <span class="badge">zen-virtual-list</span>
+      <span class="badge">10K items</span>
+      <span class="badge">static-heights</span>
+      <span class="badge">dynamic-heights</span>
+      <span class="badge">ResizeObserver</span>
+      <span class="badge">binary-search</span>
+      <span class="badge">scroll-to-index</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── ۱. Static heights ──── -->
+      <div class="card">
+        <h2>۱. Static Heights — ۱۰٬۰۰۰ آیتم، هر کدام ۴۰px</h2>
+        <p class="desc">
+          ارتفاع ثابت: فقط <code>zen-item-height="40"</code> کافی است. 
+          با این حال، فقط ~۲۰ آیتم به‌علاوه‌ی buffer در DOM رندر می‌شوند (به‌جای ۱۰٬۰۰۰).
+          در ابزار Developer مرورگر، تعداد نودهای DOM را بررسی کنید.
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <span class="stat">total: <strong>10000</strong></span>
+          <span class="stat">item height: <strong>40px</strong></span>
+          <span class="stat">visible: <strong id="staticVisible">—</strong></span>
+          <span class="stat">rendered: <strong id="staticRendered">—</strong></span>
+        </div>
+        <div class="vlist-container scrollbar-thin" id="staticList" zen-virtual-list="$items" zen-item-height="40" zen-buffer="5">
+          <template>
+            <div class="vlist-row" style="height:40px;" zen-bind:class="{ alt: $index % 2 === 1 }">
+              <span class="idx">#<span zen-text="$index"></span></span>
+              <span class="name" zen-text="$item.name"></span>
+              <span style="color: var(--text-muted); font-size: 0.78rem;" zen-text="'قیمت: ' + $item.price + ' تومان'"></span>
+            </div>
+          </template>
+        </div>
+        <pre>&lt;div zen-virtual-list="$items" zen-item-height="40" zen-buffer="5"&gt;
+  &lt;template&gt;
+    &lt;div class="vlist-row" style="height:40px;"&gt;
+      &lt;span zen-text="$index"&gt;&lt;/span&gt;
+      &lt;span zen-text="$item.name"&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۲. Dynamic heights ──── -->
+      <div class="card">
+        <h2>۲. Dynamic Heights — ارتفاع متغیر با ResizeObserver</h2>
+        <p class="desc">
+          با <code>zen-dynamic-heights="true"</code> ارتفاع هر آیتم توسط ResizeObserver اندازه‌گیری می‌شود.
+          برخی آیتم‌ها توضیحات بلند دارند (هر ۷ آیتم یکبار) و برخی فقط یک خط. 
+          موقعیت هر آیتم با <strong>prefix sum</strong> و <strong>binary search</strong> محاسبه می‌شود.
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <span class="stat">total: <strong>10000</strong></span>
+          <span class="stat">item height (est.): <strong>60px</strong></span>
+          <span class="stat">visible: <strong id="dynVisible">—</strong></span>
+          <span class="stat">rendered: <strong id="dynRendered">—</strong></span>
+        </div>
+        <div class="vlist-container scrollbar-thin" id="dynamicList" zen-virtual-list="$items" zen-dynamic-heights="true" zen-item-height="60" zen-buffer="5">
+          <template>
+            <div class="vlist-row" style="padding: 8px 12px;" zen-bind:class="{ alt: $index % 2 === 1 }">
+              <span class="idx">#<span zen-text="$index"></span></span>
+              <div style="flex: 1;">
+                <div class="name" zen-text="$item.name"></div>
+                <div class="description" zen-if="$item.description" zen-text="$item.description"></div>
+              </div>
+              <span class="badge-tall" zen-if="$item.description">tall</span>
+              <span class="badge-tall" zen-if="!$item.description">short</span>
+            </div>
+          </template>
+        </div>
+        <pre>&lt;div zen-virtual-list="$items"
+     zen-dynamic-heights="true"
+     zen-item-height="60"  &lt;!-- ارتفاع تخمینی اولیه --&gt;
+     zen-buffer="5"&gt;
+  &lt;template&gt;
+    &lt;div class="vlist-row"&gt;
+      &lt;span zen-text="$item.name"&gt;&lt;/span&gt;
+      &lt;p zen-if="$item.description" zen-text="$item.description"&gt;&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۳. Scroll to index ──── -->
+      <div class="card">
+        <h2>۳. Scroll to Index — پرش به موقعیت دلخواه</h2>
+        <p class="desc">با کلیک روی دکمه، به آیتم مورد نظر در لیست static پرش کنید.</p>
+        <div class="row">
+          <div class="field" style="width: 200px; margin-bottom: 0;">
+            <input type="number" placeholder="مثلاً ۵۰۰۰" zen-model="$scrollTarget" min="0" max="9999">
+          </div>
+          <button class="primary" zen-action="scrollToIndex">پرش به آیتم</button>
+          <button zen-action="scrollToStart">پرش به ابتدا</button>
+          <button zen-action="scrollToEnd">پرش به انتها</button>
+        </div>
+      </div>
+
+      <!-- ──── ۴. Stats ──── -->
+      <div class="card">
+        <h2>۴. آمار زنده — اسکرول و DOM</h2>
+        <p class="desc">این آمار به‌صورت زنده با اسکرول کردن آپدیت می‌شود.</p>
+        <div class="row" style="margin-bottom: 8px;">
+          <span class="stat">total items: <strong>10000</strong></span>
+          <span class="stat">static: visible = <strong id="staticVisible2">—</strong></span>
+          <span class="stat">dynamic: visible = <strong id="dynVisible2">—</strong></span>
+        </div>
+        <div class="row">
+          <span class="stat">static: scroll % = <strong id="staticPercent">0%</strong></span>
+          <span class="stat">dynamic: scroll % = <strong id="dynPercent">0%</strong></span>
+          <span class="stat">DOM nodes (static) = <strong id="domNodes">—</strong></span>
+        </div>
+        <div class="progress-bar"><div class="fill" id="staticProgress" style="width:0%"></div></div>
+        <div class="progress-bar"><div class="fill" id="dynProgress" style="width:0%; background: linear-gradient(135deg, #f59e0b, #ec4899);"></div></div>
+      </div>
+
+      <!-- ──── ۵. Comparison ──── -->
+      <div class="card">
+        <h2>۵. مقایسه — بدون Virtual List</h2>
+        <p class="desc">
+          برای مقایسه، می‌توانید همان ۱۰٬۰۰۰ آیتم را بدون virtual-list رندر کنید.
+          این کار <strong>بسیار کندتر</strong> است (هم در رندر اولیه و هم در اسکرول).
+          در DevTools، تعداد DOM nodes و memory usage را مقایسه کنید.
+        </p>
+        <div class="alert alert-warning">
+          ⚠️ هشدار: این کار ممکن است چند ثانیه طول بکشد و مرورگر را کند کند.
+        </div>
+        <div class="row">
+          <button class="danger" zen-action="loadNonVirtual">رندر ۱۰٬۰۰۰ آیتم بدون virtual-list</button>
+          <button zen-action="clearNonVirtual">پاک‌سازی</button>
+        </div>
+        <div id="nonVirtualContainer" style="margin-top: 12px; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: var(--bg-secondary);"></div>
+      </div>
+
+      <!-- ──── Log ──── -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>zen-virtual-list</code> با فقط رندر کردن visible items (~۲۰ به‌جای ۱۰٬۰۰۰) عملکرد را به‌شدت بهبود می‌بخشد.
+          با <code>zen-item-height</code> برای ارتفاع ثابت و <code>zen-dynamic-heights="true"</code> برای ارتفاع متغیر (با ResizeObserver و binary search) کار می‌کند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { evaluateExpression } from '@zenith/expressions';
+    import { processVirtualList } from '@zenith/virtual-list';
+
+    // ═══════════════════════════════════════════════════
+    // ۱. ساخت ۱۰٬۰۰۰ آیتم
+    // ═══════════════════════════════════════════════════
+    const items = Array.from({ length: 10000 }, (_, i) => ({
+      id: i,
+      name: `آیتم ${i + 1}`,
+      price: (i + 1) * 100,
+      description: i % 7 === 0
+        ? 'این آیتم توضیحات بلندی دارد که باعث می‌شود ارتفاع آن بیشتر از سایر آیتم‌ها باشد. این برای تست dynamic heights است.'
+        : null,
+    }));
+
+    // ═══════════════════════════════════════════════════
+    // ۲. State
+    // ═══════════════════════════════════════════════════
+    const itemsSignal = signal(items);
+    const scrollTarget = signal(5000);
+
+    const state = {
+      items: itemsSignal,
+      scrollTarget,
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۳. Log زنده
+    // ═══════════════════════════════════════════════════
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 60) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ۴. Actions — scroll, non-virtual comparison
+    // ═══════════════════════════════════════════════════
+    Zen.action('scrollToIndex', ({ state }) => {
+      const idx = Number(state.scrollTarget.get());
+      if (isNaN(idx) || idx < 0 || idx >= items.length) {
+        logEvent('scroll:error', `invalid index: ${idx}`);
+        return;
+      }
+      const staticList = document.getElementById('staticList');
+      const target = idx * 40;  // 40px per item
+      staticList.scrollTo({ top: target, behavior: 'smooth' });
+      logEvent('scroll:to', `index=${idx}, top=${target}px`);
+    });
+
+    Zen.action('scrollToStart', () => {
+      const staticList = document.getElementById('staticList');
+      staticList.scrollTo({ top: 0, behavior: 'smooth' });
+      logEvent('scroll:start', 'top=0');
+    });
+
+    Zen.action('scrollToEnd', () => {
+      const staticList = document.getElementById('staticList');
+      const max = (items.length - 1) * 40;
+      staticList.scrollTo({ top: max, behavior: 'smooth' });
+      logEvent('scroll:end', `top=${max}px`);
+    });
+
+    Zen.action('loadNonVirtual', () => {
+      const container = document.getElementById('nonVirtualContainer');
+      logEvent('non-virtual:start', 'rendering 10000 items without virtual-list...');
+      const t0 = performance.now();
+      // استفاده از DocumentFragment برای کارایی بهتر
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < items.length; i++) {
+        const row = document.createElement('div');
+        row.style.padding = '4px 8px';
+        row.style.borderBottom = '1px solid rgba(99,102,241,0.1)';
+        row.style.height = '40px';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        if (i % 2 === 1) row.style.background = 'rgba(99,102,241,0.05)';
+        const idx = document.createElement('span');
+        idx.style.width = '50px';
+        idx.style.color = 'var(--text-muted)';
+        idx.style.fontFamily = 'ui-monospace, monospace';
+        idx.style.fontSize = '0.78rem';
+        idx.textContent = `#${i}`;
+        const name = document.createElement('span');
+        name.style.flex = '1';
+        name.textContent = items[i].name;
+        row.appendChild(idx);
+        row.appendChild(name);
+        frag.appendChild(row);
+      }
+      container.innerHTML = '';
+      container.appendChild(frag);
+      const t1 = performance.now();
+      logEvent('non-virtual:done', `rendered in ${(t1 - t0).toFixed(1)}ms`);
+    });
+
+    Zen.action('clearNonVirtual', () => {
+      const container = document.getElementById('nonVirtualContainer');
+      container.innerHTML = '';
+      logEvent('non-virtual:cleared', 'container emptied');
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۵. شروع فریم‌ورک
+    // ═══════════════════════════════════════════════════
+    Zen.start(document.getElementById('app'), state);
+
+    // ═══════════════════════════════════════════════════
+    // ۶. ساخت context به‌صورت دستی (مشابه createContext در runtime)
+    //    و سیم‌کشی دستی zen-virtual-list
+    // ═══════════════════════════════════════════════════
+    function buildContext(stateObj) {
+      const ctx = {};
+      for (const key in stateObj) {
+        const item = stateObj[key];
+        if (item && typeof item === 'object' && typeof item.get === 'function' && typeof item.set === 'function') {
+          Object.defineProperty(ctx, `$${key}`, {
+            get: () => item.get(),
+            enumerable: true,
+            configurable: true,
+          });
+        } else {
+          ctx[`$${key}`] = item;
+        }
+      }
+      return ctx;
+    }
+
+    const vlistContext = buildContext(state);
+    const vlistDisposes = [];
+
+    // ── پیاده‌سازی processChildren برای zen-virtual-list ──
+    // این تابع هر نود (و فرزندانش) را walk می‌کند و دایرکتیوهای zen-text،
+    // zen-bind:* و zen-if را فعال می‌کند. مشابه walker اصلی runtime اما ساده‌شده.
+    function simpleProcessNode(el, context, disposes) {
+      // zen-if (ابتدا چک شود چون ممکن است عنصر را پنهان کند)
+      if (el.hasAttribute && el.hasAttribute('zen-if')) {
+        const expr = el.getAttribute('zen-if');
+        el.removeAttribute('zen-if');
+        disposes.push(effect(() => {
+          try {
+            const v = evaluateExpression(expr, context);
+            el.style.display = v ? '' : 'none';
+          } catch (err) {
+            el.style.display = 'none';
+          }
+        }));
+      }
+
+      // zen-text
+      if (el.hasAttribute && el.hasAttribute('zen-text')) {
+        const expr = el.getAttribute('zen-text');
+        el.removeAttribute('zen-text');
+        disposes.push(effect(() => {
+          try {
+            const v = evaluateExpression(expr, context);
+            el.textContent = v === null || v === undefined ? '' : String(v);
+          } catch (err) {
+            el.textContent = '';
+          }
+        }));
+      }
+
+      // zen-bind:* (class با object syntax، data-*، و attribute های معمولی)
+      if (el.attributes) {
+        for (const attr of Array.from(el.attributes)) {
+          if (attr.name.startsWith('zen-bind:')) {
+            const attrName = attr.name.slice('zen-bind:'.length);
+            const expr = attr.value;
+            // حذف zen-bind:* چون در غیر این صورت در clone بعدی هم باقی می‌ماند
+            // (در virtual-list، template کلون می‌شود پس این مهم است)
+            // اما اینجا فقط effect می‌سازیم و attribute را نگه می‌داریم تا در clone بعدی هم باشد.
+            disposes.push(effect(() => {
+              try {
+                const v = evaluateExpression(expr, context);
+                if (attrName === 'class' && typeof v === 'object' && v !== null) {
+                  for (const cls in v) {
+                    if (v[cls]) el.classList.add(cls);
+                    else el.classList.remove(cls);
+                  }
+                } else if (v === null || v === undefined || v === false) {
+                  el.removeAttribute(attrName);
+                } else {
+                  el.setAttribute(attrName, String(v));
+                }
+              } catch (err) {
+                // ignore
+              }
+            }));
+          }
+        }
+      }
+
+      // walk فرزندان
+      if (el.children) {
+        for (const child of Array.from(el.children)) {
+          simpleProcessNode(child, context, disposes);
+        }
+      }
+    }
+
+    function simpleProcessChildren(node, context, disposes) {
+      simpleProcessNode(node, context, disposes);
+    }
+
+    // ── سیم‌کشی هر دو virtual-list ──
+    const staticListEl = document.getElementById('staticList');
+    const dynamicListEl = document.getElementById('dynamicList');
+
+    processVirtualList(
+      staticListEl,
+      '$items',
+      vlistContext,
+      simpleProcessChildren,
+      vlistDisposes,
+    );
+
+    processVirtualList(
+      dynamicListEl,
+      '$items',
+      vlistContext,
+      simpleProcessChildren,
+      vlistDisposes,
+    );
+
+    // ═══════════════════════════════════════════════════
+    // ۷. Stats: آپدیت زنده‌ی آمار با اسکرول
+    // ═══════════════════════════════════════════════════
+    const staticVisibleEl = document.getElementById('staticVisible');
+    const staticRenderedEl = document.getElementById('staticRendered');
+    const dynVisibleEl = document.getElementById('dynVisible');
+    const dynRenderedEl = document.getElementById('dynRendered');
+    const staticVisible2El = document.getElementById('staticVisible2');
+    const dynVisible2El = document.getElementById('dynVisible2');
+    const staticPercentEl = document.getElementById('staticPercent');
+    const dynPercentEl = document.getElementById('dynPercent');
+    const domNodesEl = document.getElementById('domNodes');
+    const staticProgressEl = document.getElementById('staticProgress');
+    const dynProgressEl = document.getElementById('dynProgress');
+
+    function updateStats() {
+      // static list
+      const stEl = staticListEl;
+      const stScrollTop = stEl.scrollTop;
+      const stScrollHeight = stEl.scrollHeight - stEl.clientHeight;
+      const stPercent = stScrollHeight > 0 ? (stScrollTop / stScrollHeight) * 100 : 0;
+      const stVisible = Math.ceil(stEl.clientHeight / 40);
+      const stRendered = stEl.querySelectorAll('[data-zen-vlist-idx]').length;
+
+      staticVisibleEl.textContent = String(stVisible);
+      staticRenderedEl.textContent = String(stRendered);
+      staticVisible2El.textContent = String(stVisible);
+      staticPercentEl.textContent = stPercent.toFixed(1) + '%';
+      staticProgressEl.style.width = stPercent + '%';
+
+      // dynamic list
+      const dyEl = dynamicListEl;
+      const dyScrollTop = dyEl.scrollTop;
+      const dyScrollHeight = dyEl.scrollHeight - dyEl.clientHeight;
+      const dyPercent = dyScrollHeight > 0 ? (dyScrollTop / dyScrollHeight) * 100 : 0;
+      const dyRendered = dyEl.querySelectorAll('[data-zen-vlist-idx]').length;
+
+      // برای dynamic، تعداد visible تقریبی است (بر اساس ارتفاع متوسط)
+      const dyVisible = Math.ceil(dyEl.clientHeight / 60);
+      dynVisibleEl.textContent = String(dyVisible);
+      dynRenderedEl.textContent = String(dyRendered);
+      dynVisible2El.textContent = String(dyVisible);
+      dynPercentEl.textContent = dyPercent.toFixed(1) + '%';
+      dynProgressEl.style.width = dyPercent + '%';
+
+      // DOM nodes count (در container static)
+      domNodesEl.textContent = String(stRendered);
+    }
+
+    // اسکرول listener برای هر دو لیست
+    staticListEl.addEventListener('scroll', () => requestAnimationFrame(updateStats), { passive: true });
+    dynamicListEl.addEventListener('scroll', () => requestAnimationFrame(updateStats), { passive: true });
+
+    // آپدیت اولیه + ResizeObserver
+    requestAnimationFrame(updateStats);
+    setInterval(updateStats, 250);  // برای dynamic heights که تغییر می‌کنند
+
+    // ═══════════════════════════════════════════════════
+    // ۸. Init log
+    // ═══════════════════════════════════════════════════
+    logEvent('init', `Virtual list demo started. ${items.length} items loaded. Only ~20 rendered at once.`);
+  </script>
+</body>
+</html>

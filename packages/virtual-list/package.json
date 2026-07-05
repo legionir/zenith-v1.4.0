@@ -1,0 +1,17 @@
+{
+  "name": "@zenith/virtual-list",
+  "version": "1.4.0",
+  "description": "Zenith framework — Virtual List for rendering 10000+ items efficiently (Phase 5 Critical).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "src", "README.md"],
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc --noEmit" },
+  "keywords": ["zenith", "virtual", "list", "scroll", "performance"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "dependencies": { "@zenith/state": "1.0.0", "@zenith/expressions": "1.0.0" },
+  "devDependencies": { "typescript": "^5.4.0" }
+}

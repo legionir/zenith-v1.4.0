@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Store (Pinia-like)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    input { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .counter { font-size: 2.6rem; font-weight: 800; color: var(--accent-light); font-variant-numeric: tabular-nums; margin: 8px 0; direction: ltr; display: inline-block; min-width: 90px; text-align: center; background: rgba(99, 102, 241, 0.1); border-radius: 10px; padding: 4px 22px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+    .store-panel { border: 1px solid var(--border-strong); border-radius: 10px; padding: 14px; }
+    .store-panel h3 { color: var(--accent-light); font-size: 1rem; margin-bottom: 8px; }
+    .store-panel.user { border-color: rgba(236, 72, 153, 0.4); }
+    .store-panel.user h3 { color: #f472b6; }
+    .meta { font-size: 0.75rem; color: var(--text-muted); font-family: ui-monospace, monospace; direction: ltr; }
+    .even-yes { color: var(--success); font-weight: 700; }
+    .even-no { color: var(--warning); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🏪 <span class="gradient">Store (Pinia-like)</span></h1>
+    <p class="subtitle">Stores سراسری با Deep Reactivity، Getters، Actions، <code>$patch</code> و <code>$reset</code></p>
+    <div class="badges">
+      <span class="badge">defineStore</span>
+      <span class="badge">deep-proxy</span>
+      <span class="badge">getters</span>
+      <span class="badge">actions</span>
+      <span class="badge">$patch</span>
+      <span class="badge">$reset</span>
+      <span class="badge">async-actions</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ۱. Counter store — state, getters, actions -->
+      <div class="card">
+        <h2>۱. Counter Store — State, Getters, Actions</h2>
+        <p class="desc">
+          یک Store با <code>defineStore('counter', &#123; state, getters, actions &#125;)</code> تعریف می‌شود.
+          State با Deep Proxy در بر می‌گیرد — پس mutations تو در تو هم reactive هستند.
+          Getters به‌صورت Computed محاسبه می‌شوند و با تغییر State به‌روز می‌شوند.
+        </p>
+
+        <div class="store-panel">
+          <h3>Counter Store</h3>
+          <div class="row">
+            <span class="stat">state.count = <strong zen-text="$counter.state.count"></strong></span>
+            <span class="stat">state.history.length = <strong zen-text="$counter.state.history.length"></strong></span>
+          </div>
+          <div class="counter" zen-text="$counter.state.count"></div>
+          <div class="row">
+            <button class="primary" zen-action="inc">+ ۱</button>
+            <button zen-action="dec">− ۱</button>
+            <button zen-action="incBy5">+ ۵</button>
+            <button zen-action="asyncInc">+ ۱ (async, 500ms)</button>
+            <button class="danger" zen-action="resetCounter">$reset</button>
+          </div>
+          <div class="row" style="margin-top: 14px;">
+            <span class="stat">getter doubled = <strong zen-text="$counter.doubled.get()"></strong></span>
+            <span class="stat">getter squared = <strong zen-text="$counter.squared.get()"></strong></span>
+            <span class="stat">getter isEven = <strong zen-bind:class="{ 'even-yes': $counter.isEven.get(), 'even-no': !$counter.isEven.get() }" zen-text="$counter.isEven.get()"></strong></span>
+            <span class="stat">getter historyLast = <strong zen-text="$counter.historyLast.get()"></strong></span>
+          </div>
+          <pre>const useCounterStore = defineStore('counter', {
+  state: () =&gt; ({ count: 0, history: [] }),
+  getters: {
+    doubled:    (s) =&gt; s.count * 2,
+    squared:    (s) =&gt; s.count * s.count,
+    isEven:     (s) =&gt; s.count % 2 === 0,
+    historyLast:(s) =&gt; s.history.at(-1) ?? '—',
+  },
+  actions: {
+    inc() { this.state.count++; this.state.history.push('+1'); },
+    dec() { this.state.count--; this.state.history.push('-1'); },
+    incBy(n) { this.state.count += n; this.state.history.push(`+${n}`); },
+    async asyncInc() {
+      await new Promise(r =&gt; setTimeout(r, 500));
+      this.state.count++;
+      this.state.history.push('async +1');
+    },
+  },
+});</pre>
+        </div>
+      </div>
+
+      <!-- ۲. Deep reactivity -->
+      <div class="card">
+        <h2>۲. Deep Reactivity — Mutation تو در تو</h2>
+        <p class="desc">
+          State یک Store می‌تواند Object تو در تو داشته باشد.
+          با Deep Proxy، تغییر یک پراپرتی عمیق (مثل <code>state.user.preferences.theme = 'dark'</code>) هم reactive است.
+        </p>
+        <div class="store-panel">
+          <h3>User Store — Deep Mutation</h3>
+          <div class="row" style="margin-bottom: 10px;">
+            <span class="stat">user.name = <strong zen-text="$userStore.state.name"></strong></span>
+            <span class="stat">user.age = <strong zen-text="$userStore.state.age"></strong></span>
+            <span class="stat">user.preferences.theme = <strong zen-text="$userStore.state.preferences.theme"></strong></span>
+            <span class="stat">user.preferences.notifications = <strong zen-text="$userStore.state.preferences.notifications"></strong></span>
+          </div>
+          <div class="row">
+            <button zen-action="toggleTheme">تغییر theme</button>
+            <button zen-action="toggleNotifications">تغییر notifications</button>
+            <button zen-action="renameUser">تغییر نام</button>
+            <button class="danger" zen-action="resetUserStore">$reset</button>
+          </div>
+          <p class="desc" style="margin-top: 10px;">
+            امتحان کنید: روی «تغییر theme» کلیک کنید. مقدار <code>user.preferences.theme</code> بین <code>'light'</code> و <code>'dark'</code> تغییر می‌کند.
+            این یک mutation تو در تو (عمق ۲) است که به‌صورت reactive در DOM منعکس می‌شود.
+          </p>
+          <pre>// داخل Action:
+toggleTheme() {
+  this.state.preferences.theme =
+    this.state.preferences.theme === 'light' ? 'dark' : 'light';
+  // ↑ این یک mutation عمیق است — Deep Proxy آن را detect می‌کند.</pre>
+        </div>
+      </div>
+
+      <!-- ۳. $patch -->
+      <div class="card">
+        <h2>۳. <code>$patch</code> — اعمال Partial Update</h2>
+        <p class="desc">
+          متد <code>$patch(partial)</code> یک آبجکت partial را روی State اعمال می‌کند.
+          برای به‌روزرسانی چند فیلد به‌طور همزمان مفید است.
+        </p>
+        <div class="row">
+          <button class="primary" zen-action="patchUser">$patch(&#123; name, age &#125;)</button>
+          <button zen-action="patchPreferences">$patch(&#123; preferences &#125;)</button>
+        </div>
+        <pre>// در Action:
+patchUser() {
+  userStore.$patch({
+    name: 'زهرا احمدی',
+    age: 30,
+  });
+}
+// حتی nested objects هم کار می‌کنند:
+patchPreferences() {
+  userStore.$patch({
+    preferences: { theme: 'dark', notifications: false },
+  });
+}</pre>
+      </div>
+
+      <!-- ۴. Multiple stores -->
+      <div class="card">
+        <h2>۴. Multiple Stores — مستقل از هم</h2>
+        <p class="desc">
+          هر Store با ID یکتای خودش در Registry ذخیره می‌شود. تغییر در یک Store روی دیگری اثری ندارد.
+          در اینجا Counter و User دو Store جدا هستند.
+        </p>
+        <div class="grid2">
+          <div class="store-panel">
+            <h3>Counter Store</h3>
+            <div class="counter" zen-text="$counter.state.count"></div>
+            <div class="row">
+              <button class="primary" zen-action="inc">+ ۱</button>
+              <button zen-action="dec">− ۱</button>
+            </div>
+            <p class="meta">id: 'counter'</p>
+          </div>
+          <div class="store-panel user">
+            <h3>User Store</h3>
+            <div class="row" style="margin-bottom: 8px;">
+              <span class="stat">name = <strong zen-text="$userStore.state.name"></strong></span>
+              <span class="stat">age = <strong zen-text="$userStore.state.age"></strong></span>
+            </div>
+            <div class="row">
+              <button class="primary" zen-action="renameUser">rename</button>
+              <button zen-action="incUserAge">age + ۱</button>
+            </div>
+            <p class="meta">id: 'user'</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ۵. Async actions -->
+      <div class="card">
+        <h2>۵. Async Actions — شبیه‌سازی API Call</h2>
+        <p class="desc">
+          Action ها می‌توانند async باشند. مثلاً برای fetch از سرور و به‌روزرسانی State پس از پاسخ.
+          در اینجا <code>asyncInc</code> با 500ms تاخیر، count را زیاد می‌کند.
+        </p>
+        <div class="row">
+          <button class="primary" zen-action="asyncInc">async inc (500ms)</button>
+          <button zen-action="fetchProfile">async fetchProfile (800ms)</button>
+        </div>
+        <p class="desc" style="margin-top: 10px;">
+          getter <code>historyLast</code> آخرین آیتم history را نشان می‌دهد:
+          <strong style="color: var(--accent-light);" zen-text="$counter.historyLast.get()"></strong>
+        </p>
+        <pre>actions: {
+  async asyncInc() {
+    await new Promise(r =&gt; setTimeout(r, 500));
+    this.state.count++;  // mutation پس از await
+    this.state.history.push('async +1');
+  },
+  async fetchProfile() {
+    this.state.loading = true;
+    const res = await fetch('/api/profile');
+    const data = await res.json();
+    this.state.name = data.name;  // mutation
+    this.state.loading = false;
+  },
+}</pre>
+      </div>
+
+      <!-- ۶. Live state dump -->
+      <div class="card">
+        <h2>۶. Dump زنده‌ی State هر دو Store</h2>
+        <p class="desc">این JSON هر بار که State یکی از Storeها تغییر کند، به‌روز می‌شود.</p>
+        <pre id="storeDump" style="min-height: 140px;"></pre>
+      </div>
+
+      <!-- Log -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>defineStore</code> یک Store سراسری با Deep Reactivity می‌سازد.
+          State با Proxy در بر می‌گیرد — mutation هر سطحی reactive است.
+          Getters به‌صورت Computed محاسبه می‌شوند (با <code>.get()</code> خوانده می‌شوند).
+          Actions می‌توانند async باشند و از <code>this.state</code> برای mutation استفاده کنند.
+          <code>$patch</code> برای partial update، <code>$reset</code> برای بازگشت به initial state.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { defineStore } from '@zenith/store';
+
+    // ═══════════════════════════════════════════════════
+    // تعریف Counter Store
+    // ═══════════════════════════════════════════════════
+    const useCounterStore = defineStore('counter', {
+      state: () => ({
+        count: 0,
+        history: [],
+      }),
+      getters: {
+        doubled:     (s) => s.count * 2,
+        squared:     (s) => s.count * s.count,
+        isEven:      (s) => s.count % 2 === 0,
+        historyLast: (s) => s.history.length > 0 ? s.history[s.history.length - 1] : '—',
+      },
+      actions: {
+        inc() {
+          this.state.count++;
+          this.state.history.push('+1');
+        },
+        dec() {
+          this.state.count--;
+          this.state.history.push('-1');
+        },
+        incBy(n) {
+          this.state.count += n;
+          this.state.history.push(`+${n}`);
+        },
+        async asyncInc() {
+          await new Promise(r => setTimeout(r, 500));
+          this.state.count++;
+          this.state.history.push('async +1');
+        },
+      },
+    });
+
+    // ═══════════════════════════════════════════════════
+    // تعریف User Store (با state تو در تو برای تست Deep Reactivity)
+    // ═══════════════════════════════════════════════════
+    const useUserStore = defineStore('user', {
+      state: () => ({
+        name: 'علی احمدی',
+        age: 25,
+        loading: false,
+        preferences: {
+          theme: 'light',
+          notifications: true,
+        },
+      }),
+      getters: {
+        fullName: (s) => s.name,
+        isAdult:  (s) => s.age >= 18,
+        isDark:   (s) => s.preferences.theme === 'dark',
+      },
+      actions: {
+        rename(name) { this.state.name = name; },
+        toggleTheme() {
+          this.state.preferences.theme =
+            this.state.preferences.theme === 'light' ? 'dark' : 'light';
+        },
+        toggleNotifications() {
+          this.state.preferences.notifications = !this.state.preferences.notifications;
+        },
+        async fetchProfile() {
+          this.state.loading = true;
+          await new Promise(r => setTimeout(r, 800));
+          this.state.name = 'محمد رضایی (fetched)';
+          this.state.age = 30;
+          this.state.loading = false;
+        },
+      },
+    });
+
+    // ── ساخت instance ها ──
+    const counterStore = useCounterStore();
+    const userStore    = useUserStore();
+
+    // ── State ──
+    // Store ها به‌صورت مستقیم در State قرار می‌گیرند (نه به‌صورت Signal).
+    // در Expression Engine با $counter و $userStore در دسترس هستند.
+    const state = {
+      counter: counterStore,
+      userStore: userStore,
+    };
+
+    // ── Log زنده ──
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 60) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // Actions — Counter
+    // ═══════════════════════════════════════════════════
+    Zen.action('inc', () => {
+      counterStore.inc();
+      logEvent('counter.inc', `count → ${counterStore.state.count}`);
+    });
+    Zen.action('dec', () => {
+      counterStore.dec();
+      logEvent('counter.dec', `count → ${counterStore.state.count}`);
+    });
+    Zen.action('incBy5', () => {
+      counterStore.incBy(5);
+      logEvent('counter.incBy(5)', `count → ${counterStore.state.count}`);
+    });
+    Zen.action('asyncInc', async () => {
+      logEvent('counter.asyncInc', 'started — awaiting 500ms...');
+      await counterStore.asyncInc();
+      logEvent('counter.asyncInc', `done — count → ${counterStore.state.count}`);
+    });
+    Zen.action('resetCounter', () => {
+      counterStore.$reset();
+      logEvent('counter.$reset', 'state restored to initial');
+    });
+
+    // ═══════════════════════════════════════════════════
+    // Actions — User
+    // ═══════════════════════════════════════════════════
+    Zen.action('toggleTheme', () => {
+      userStore.toggleTheme();
+      logEvent('user.toggleTheme', `theme → ${userStore.state.preferences.theme}`);
+    });
+    Zen.action('toggleNotifications', () => {
+      userStore.toggleNotifications();
+      logEvent('user.toggleNotifications', `notifications → ${userStore.state.preferences.notifications}`);
+    });
+    Zen.action('renameUser', () => {
+      const names = ['علی احمدی', 'زهرا کریمی', 'محمد حسینی', 'فاطمه نوری'];
+      const newName = names[Math.floor(Math.random() * names.length)];
+      userStore.rename(newName);
+      logEvent('user.rename', `name → "${newName}"`);
+    });
+    Zen.action('incUserAge', () => {
+      userStore.state.age++;
+      logEvent('user.state.age++', `age → ${userStore.state.age}`);
+    });
+    Zen.action('resetUserStore', () => {
+      userStore.$reset();
+      logEvent('user.$reset', 'state restored to initial');
+    });
+    Zen.action('patchUser', () => {
+      userStore.$patch({ name: 'زهرا احمدی', age: 30 });
+      logEvent('user.$patch', `{ name: 'زهرا احمدی', age: 30 }`);
+    });
+    Zen.action('patchPreferences', () => {
+      userStore.$patch({
+        preferences: {
+          theme: userStore.state.preferences.theme === 'light' ? 'dark' : 'light',
+          notifications: !userStore.state.preferences.notifications,
+        },
+      });
+      logEvent('user.$patch', `{ preferences: {...} } (nested)`);
+    });
+    Zen.action('fetchProfile', async () => {
+      logEvent('user.fetchProfile', 'started — awaiting 800ms...');
+      await userStore.fetchProfile();
+      logEvent('user.fetchProfile', `done — name → "${userStore.state.name}"`);
+    });
+
+    // ═══════════════════════════════════════════════════
+    // Effect: dump زنده‌ی State
+    // این effect وابسته به versionSignal هر دو Store است.
+    // هر بار که State یکی از آن‌ها تغییر کند، re-run می‌شود.
+    // ═══════════════════════════════════════════════════
+    const storeDumpEl = document.getElementById('storeDump');
+    effect(() => {
+      // خواندن state از هر دو Store — این رد dependency را فعال می‌کند.
+      const c = counterStore.state;
+      const u = userStore.state;
+      const dump = {
+        counter: {
+          count: c.count,
+          history: c.history,
+        },
+        user: {
+          name: u.name,
+          age: u.age,
+          loading: u.loading,
+          preferences: { ...u.preferences },
+        },
+      };
+      storeDumpEl.textContent = JSON.stringify(dump, null, 2);
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Zenith Store demo started. 2 stores: counter, user.');
+  </script>
+</body>
+</html>

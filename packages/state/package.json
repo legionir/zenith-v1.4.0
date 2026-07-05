@@ -1,0 +1,48 @@
+{
+  "name": "@zenith/state",
+  "version": "1.4.0",
+  "description": "Zenith framework — Reactive state engine (Phase 1 + 7). DOM-free, environment-agnostic. Uses Microtask Scheduler for automatic batching.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx test/test.ts && tsx test/test-priority-wiring.ts && tsx test/test-weakref-registry.ts",
+    "test:node": "node --experimental-strip-types test/test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "reactivity",
+    "state",
+    "signal",
+    "effect",
+    "computed",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zenith/scheduler": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
+}

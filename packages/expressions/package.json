@@ -1,0 +1,47 @@
+{
+  "name": "@zenith/expressions",
+  "version": "1.4.0",
+  "description": "Zenith framework — Safe expression evaluator (Phase 2). No eval(), sandboxed, cacheable, AST-based.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx test/test.ts",
+    "demo": "tsx test/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "expressions",
+    "evaluator",
+    "parser",
+    "ast",
+    "lexer",
+    "template-engine",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0",
+    "@zenith/state": "1.0.0"
+  }
+}

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zenith App - Phase 7 (Scheduler)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.15rem; margin: 1rem 0 0.5rem; }
+    .subtitle { color: #6b7280; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    button {
+      padding: 10px 18px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fff;
+      transition: all 0.15s ease;
+    }
+    button:hover { background: #f3f4f6; }
+    button.primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    button.primary:hover { background: #2563eb; }
+    .counter {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #3b82f6;
+      font-variant-numeric: tabular-nums;
+      margin: 16px 0;
+    }
+    #log {
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      background: #fff;
+      border-radius: 6px;
+      margin-top: 16px;
+    }
+    #log .entry { padding: 2px 0; }
+    #log .info { color: #6b7280; }
+    #log .success { color: #16a34a; font-weight: 600; }
+    #log .warn { color: #d97706; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #dbeafe;
+      color: #1e40af;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .stat {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-right: 8px;
+      font-size: 0.9rem;
+    }
+    .stat strong { color: #3b82f6; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <h1>🚀 Zenith Framework — Phase 7</h1>
+  <p class="subtitle">
+    <span class="badge">Scheduler</span> + Microtask Batching + flushSync.
+    ۱۰۰ تغییر State → فقط ۱ بار DOM Update.
+  </p>
+
+  <div id="app">
+    <h2>۱) شمارنده با Scheduler</h2>
+    <p>
+      این شمارنده با Scheduler کار می‌کند. اگر روی «حلقه ۱۰۰ تایی» کلیک کنید،
+      State ۱۰۰ بار تغییر می‌کند اما DOM فقط ۱ بار (با مقدار نهایی ۱۰۰) آپدیت می‌شود.
+    </p>
+    <div class="counter"><span zen-text="$count"></span></div>
+
+    <div class="toolbar">
+      <button class="primary" zen-action="increment">+ ۱</button>
+      <button zen-action="fastLoop">حلقه ۱۰۰ تایی</button>
+      <button zen-action="multiSet">۳ set همزمان</button>
+      <button zen-action="reset">ریست</button>
+    </div>
+
+    <div>
+      <span class="stat">Effect runs: <strong id="effectRuns">0</strong></span>
+      <span class="stat">DOM updates: <strong id="domUpdates">0</strong></span>
+      <span class="stat">Current value: <strong id="currentValue">0</strong></span>
+    </div>
+
+    <h2>۲) لاگ Scheduler</h2>
+    <div id="log"></div>
+  </div>
+
+  <script type="module">
+    import { signal } from './packages/state/src/index.ts';
+    import { Zen } from './packages/runtime/src/index.ts';
+    import { hasPendingEffects, pendingEffectCount } from './packages/scheduler/src/index.ts';
+
+    // ─────────────────────────────────────────────
+    // ۱. تعریف State
+    // ─────────────────────────────────────────────
+    const count = signal(0);
+    const state = { count };
+
+    // ─────────────────────────────────────────────
+    // ۲. شمارش Effect runs و DOM updates
+    // ─────────────────────────────────────────────
+    let effectRuns = 0;
+    let domUpdates = 0;
+
+    // استفاده از MutationObserver برای شمارش DOM updates روی counter.
+    const counterEl = document.querySelector('.counter');
+    const observer = new MutationObserver(() => {
+      domUpdates++;
+      updateStats();
+      log(`DOM updated → value: ${count.get()}`, 'success');
+    });
+    observer.observe(counterEl, { childList: true, characterData: true, subtree: true });
+
+    function updateStats() {
+      document.getElementById('effectRuns').textContent = effectRuns;
+      document.getElementById('domUpdates').textContent = domUpdates;
+      document.getElementById('currentValue').textContent = count.get();
+    }
+
+    function log(msg, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `entry ${type}`;
+      const time = new Date().toISOString().substring(11, 23);
+      entry.textContent = `[${time}] ${msg}`;
+      const logEl = document.getElementById('log');
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ─────────────────────────────────────────────
+    // ۳. ثبت Action ها
+    // ─────────────────────────────────────────────
+    Zen.action('increment', ({ state }) => {
+      state.count.set(state.count.get() + 1);
+    });
+
+    Zen.action('fastLoop', ({ state }) => {
+      log('Starting 100 synchronous state changes...', 'warn');
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+
+      // ۱۰۰ تغییر State به صورت Synchronous
+      // بدون Scheduler، Effect (و DOM) ۱۰۰ بار آپدیت می‌شد!
+      for (let i = 1; i <= 100; i++) {
+        state.count.set(i);
+      }
+
+      log(`Loop finished. count = ${state.count.get()}`, 'info');
+      log('Check stats above — DOM should have updated only once!', 'success');
+
+      // flushSync به‌طور خودکار توسط Event Handler فراخوانی شده است.
+      // در اینجا count باید ۱۰۰ باشد.
+    });
+
+    Zen.action('multiSet', ({ state }) => {
+      log('Setting count to 1, 2, 3 in one function...', 'warn');
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+
+      state.count.set(1);
+      state.count.set(2);
+      state.count.set(3);
+
+      log(`After 3 sets, count = ${state.count.get()}`, 'success');
+      log('DOM should have updated only once with value 3.', 'info');
+    });
+
+    Zen.action('reset', ({ state }) => {
+      state.count.set(0);
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+      log('Reset to 0.', 'info');
+    });
+
+    // ─────────────────────────────────────────────
+    // ۴. شروع فریم‌ورک
+    // ─────────────────────────────────────────────
+    Zen.start(document.getElementById('app'), state);
+
+    // update stats initially
+    updateStats();
+    log('Framework started. Try the buttons above!', 'info');
+    log('Without Scheduler, "حلقه ۱۰۰ تایی" would cause 100 DOM updates.', 'warn');
+    log('With Scheduler, only 1 DOM update happens (with final value 100).', 'success');
+  </script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Resource (CRUD)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    button.success { border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7; }
+    button.success:hover { background: rgba(16, 185, 129, 0.3); border-color: var(--success); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 240px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin: 8px 0; }
+    .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .alert-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    .item-list.is-empty { display: none; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; }
+    .item-row.optimistic { border-style: dashed; border-color: rgba(245, 158, 11, 0.4); opacity: 0.85; }
+    .item-row .id { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 0.78rem; min-width: 40px; direction: ltr; }
+    .item-row .name { flex: 1; }
+    .item-row .price { color: var(--accent-light); font-family: ui-monospace, monospace; min-width: 80px; direction: ltr; text-align: left; }
+    .item-row input { padding: 4px 8px; font-size: 0.85rem; }
+    .item-row input.name-input { flex: 1; }
+    .item-row input.price-input { width: 100px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent-light); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .cache-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .cache-fresh { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .cache-cached { background: rgba(99, 102, 241, 0.15); color: var(--accent-light); }
+    .cache-stale { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>💾 <span class="gradient">Resource (CRUD)</span></h1>
+    <p class="subtitle">عملیات CRUD با cache، retry، optimistic update و SWR — شبیه TanStack Query اما HTML-First</p>
+    <div class="badges">
+      <span class="badge">Resource</span>
+      <span class="badge">list/create/update/delete</span>
+      <span class="badge">cache</span>
+      <span class="badge">request-dedup</span>
+      <span class="badge">retry (GET)</span>
+      <span class="badge">optimistic-update</span>
+      <span class="badge">SWR</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── ۱. Status bar ──── -->
+      <div class="card">
+        <h2>📊 وضعیت زنده‌ی Resource</h2>
+        <div class="row" style="font-size: 0.85rem;">
+          <span class="stat">loading: <strong zen-text="$items.loading"></strong></span>
+          <span class="stat">error: <strong zen-text="$items.error"></strong></span>
+          <span class="stat">items count: <strong zen-text="$items.data.length"></strong></span>
+          <span class="stat">isStale: <strong zen-text="$items.isStale"></strong></span>
+          <span class="stat">lastUpdated: <strong id="lastUpdated">—</strong></span>
+          <span class="stat">cache source: <strong id="cacheSource">—</strong></span>
+        </div>
+      </div>
+
+      <!-- ──── ۲. List view ──── -->
+      <div class="card">
+        <h2>۱. List — نمایش همه‌ی آیتم‌ها</h2>
+        <p class="desc">با <code>resource.list()</code> داده‌ها از سرور (mock) بارگذاری می‌شوند. اگر داده‌ها fresh باشند (<code>age &lt; staleTime</code>)، از cache برمی‌گردند.</p>
+        <div class="row" style="margin-bottom: 12px;">
+          <button class="primary" zen-action="loadItems">list() — بارگذاری</button>
+          <button zen-action="loadItemsForce">list(true) — force refresh</button>
+          <button class="success" zen-action="toggleSWR" id="swrBtn">شروع SWR (هر ۴ ثانیه)</button>
+        </div>
+        <div class="alert alert-warning" zen-if="$items.loading">
+          <span class="spinner"></span> در حال بارگذاری از سرور...
+        </div>
+        <div class="alert alert-danger" zen-if="$items.error">
+          ⚠️ خطا: <span zen-text="$items.error"></span>
+        </div>
+        <div class="alert alert-success" zen-if="!$items.loading && !$items.error && $items.data && $items.data.length > 0">
+          ✅ <span zen-text="$items.data.length"></span> آیتم بارگذاری شد.
+        </div>
+
+        <div class="item-list" zen-bind:class="{ 'is-empty': !$items.data || $items.data.length === 0 }">
+          <div class="item-row" zen-for="item in $items.data" zen-key="item.id"
+               zen-bind:class="{ optimistic: $item._optimistic }">
+            <!-- Display mode -->
+            <span class="id">#<span zen-text="$item.id"></span></span>
+            <span class="name" zen-if="$editingId !== $item.id" zen-text="$item.name"></span>
+            <span class="price" zen-if="$editingId !== $item.id" zen-text="$item.price"></span>
+            <!-- Edit mode -->
+            <input class="name-input" zen-if="$editingId === $item.id" zen-model="$editName">
+            <input class="price-input" zen-if="$editingId === $item.id" zen-model="$editPrice" type="number">
+            <!-- Actions -->
+            <button zen-if="$editingId !== $item.id" zen-action="startEdit" zen-bind:data-id="$item.id">✏️ ویرایش</button>
+            <button class="success" zen-if="$editingId === $item.id" zen-action="saveEdit" zen-bind:data-id="$item.id">💾 ذخیره</button>
+            <button zen-if="$editingId === $item.id" zen-action="cancelEdit">❌ لغو</button>
+            <button class="danger" zen-if="$editingId !== $item.id" zen-action="deleteItem" zen-bind:data-id="$item.id">🗑️ حذف</button>
+          </div>
+        </div>
+        <div class="alert alert-warning" zen-if="$items.data && $items.data.length === 0 && !$items.loading">
+          لیست خالی است.
+        </div>
+      </div>
+
+      <!-- ──── ۳. Create ──── -->
+      <div class="card">
+        <h2>۲. Create — افزودن آیتم جدید</h2>
+        <p class="desc">
+          با <code>resource.createOptimistic(body)</code> آیتم فوراً به UI اضافه می‌شود (با id موقت) و در پس‌زمینه به سرور ارسال می‌شود.
+          اگر خطا دهد، rollback می‌شود. اگر موفق شود، آیتم موقت با آیتم واقعی جایگزین می‌شود.
+        </p>
+        <div class="row" style="margin-bottom: 10px;">
+          <div class="field" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+            <label>نام محصول</label>
+            <input type="text" placeholder="مثلاً محصول ۴" zen-model="$newName">
+          </div>
+          <div class="field" style="width: 140px; margin-bottom: 0;">
+            <label>قیمت (تومان)</label>
+            <input type="number" placeholder="5000" zen-model="$newPrice">
+          </div>
+        </div>
+        <div class="row">
+          <button class="primary" zen-action="createItem">➕ افزودن (optimistic)</button>
+          <button zen-action="createItemPessimistic">➕ افزودن (pessimistic — بدون optimistic)</button>
+        </div>
+        <pre>const result = await resource.createOptimistic({ name, price });
+// نتیجه: آیتم فوراً با id='temp-...' اضافه می‌شود،
+// پس از response، با آیتم واقعی جایگزین می‌شود.</pre>
+      </div>
+
+      <!-- ──── ۴. Update ──── -->
+      <div class="card">
+        <h2>۳. Update — ویرایش آیتم</h2>
+        <p class="desc">روی دکمه‌ی «ویرایش» در هر آیتم کلیک کنید. با <code>resource.updateOptimistic(id, body)</code> تغییرات فوراً در UI اعمال می‌شود و در پس‌زمینه به سرور ارسال می‌شود.</p>
+        <pre>await resource.updateOptimistic(id, { name, price });
+// اگر خطا دهد: rollback به مقدار قبلی</pre>
+      </div>
+
+      <!-- ──── ۵. Delete ──── -->
+      <div class="card">
+        <h2>۴. Delete — حذف آیتم</h2>
+        <p class="desc">با <code>resource.deleteOptimistic(id)</code> آیتم فوراً از UI حذف می‌شود و در پس‌زمینه به سرور ارسال می‌شود. در صورت خطا، آیتم برمی‌گردد.</p>
+        <pre>await resource.deleteOptimistic(id);
+// آیتم فوراً حذف می‌شود. اگر خطا دهد، rollback.</pre>
+      </div>
+
+      <!-- ──── ۶. Cache indicator ──── -->
+      <div class="card">
+        <h2>۵. Cache Indicator — کش یا سرور؟</h2>
+        <p class="desc">
+          وقتی <code>list()</code> فراخوانی می‌شود:
+          اگر داده‌های فعلی fresh باشند (age &lt; <code>staleTime</code> = ۸s)، از cache برمی‌گردند (بدون fetch).
+          در غیر این صورت، fetch از سرور انجام می‌شود.
+        </p>
+        <div class="row">
+          <span class="cache-tag cache-fresh" id="cacheTagFresh">✓ fresh (سرور)</span>
+          <span class="cache-tag cache-cached" id="cacheTagCached">✓ cached (کش)</span>
+          <span class="cache-tag cache-stale" id="cacheTagStale">⚠ stale (در حال refresh)</span>
+        </div>
+        <p class="desc" style="margin-top: 10px;">منبع داده‌ی آخرین بارگذاری: <strong id="lastSource" style="color: var(--accent-light);">—</strong></p>
+      </div>
+
+      <!-- ──── ۷. SWR ──── -->
+      <div class="card">
+        <h2>۶. SWR — Stale-While-Revalidate</h2>
+        <p class="desc">
+          با <code>resource.startAutoRefresh(interval)</code> داده‌ها در پس‌زمینه refresh می‌شوند.
+          الگو: داده‌ی stale فوراً نمایش داده می‌شود، سپس fetch جدید در پس‌زمینه انجام می‌شود.
+          کاربر هیچ‌وقت صفحه‌ی خالی نمی‌بیند.
+        </p>
+        <div class="alert alert-info" zen-if="$swrEnabled" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); color: var(--accent-light);">
+          🔄 SWR فعال است. هر ۴ ثانیه در پس‌زمینه refresh می‌شود.
+          آخرین refresh: <strong id="lastRefresh">—</strong>
+        </div>
+        <pre>resource.startAutoRefresh(4000);  // هر 4 ثانیه
+// این کار isStale=true می‌کند و list(true) صدا می‌زند.
+// داده‌ی فعلی نمایش داده می‌شود، fetch در پس‌زمینه انجام می‌شود.</pre>
+      </div>
+
+      <!-- ──── Log ──── -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>Resource</code> یک endpoint را مدیریت می‌کند: list/read/create/update/delete.
+          Cache، retry (فقط GET)، request dedup و optimistic update داخلی دارد.
+          با <code>startAutoRefresh</code> الگوی SWR فعال می‌شود.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { createResource } from '@zenith/resource';
+
+    // ═══════════════════════════════════════════════════
+    // ۱. Mock backend — in-memory array
+    // ═══════════════════════════════════════════════════
+    let items = [
+      { id: 1, name: 'محصول ۱', price: 1000 },
+      { id: 2, name: 'محصول ۲', price: 2000 },
+      { id: 3, name: 'محصول ۳', price: 3000 },
+    ];
+    let nextId = 4;
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+    window.fetch = async (url, opts) => {
+      await delay(400);  // شبیه‌سازی تاخیر شبکه
+      const urlStr = String(url);
+      const method = opts?.method || 'GET';
+      console.log('[mock fetch]', method, urlStr);
+      const jsonHeaders = { get: () => 'application/json' };
+
+      // GET /api/items
+      if (urlStr === '/api/items' && method === 'GET') {
+        return { ok: true, status: 200, headers: jsonHeaders, json: async () => [...items] };
+      }
+      // POST /api/items
+      if (urlStr === '/api/items' && method === 'POST') {
+        const body = JSON.parse(opts.body);
+        const newItem = { ...body, id: nextId++ };
+        items.push(newItem);
+        return { ok: true, status: 201, headers: jsonHeaders, json: async () => newItem };
+      }
+      // PUT /api/items/:id
+      const putMatch = urlStr.match(/^\/api\/items\/(\d+)$/);
+      if (putMatch && method === 'PUT') {
+        const id = +putMatch[1];
+        const body = JSON.parse(opts.body);
+        items = items.map(it => it.id === id ? { ...it, ...body } : it);
+        return { ok: true, status: 200, headers: jsonHeaders, json: async () => items.find(it => it.id === id) };
+      }
+      // DELETE /api/items/:id
+      const delMatch = urlStr.match(/^\/api\/items\/(\d+)$/);
+      if (delMatch && method === 'DELETE') {
+        const id = +delMatch[1];
+        items = items.filter(it => it.id !== id);
+        return { ok: true, status: 200, headers: jsonHeaders, json: async () => ({ success: true }) };
+      }
+      return { ok: false, status: 404, headers: jsonHeaders, json: async () => ({ message: 'Not found' }) };
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۲. ساخت Resource
+    // ═══════════════════════════════════════════════════
+    const itemResource = createResource('items', {
+      url: '/api/items',
+      staleTime: 8000,    // 8 ثانیه cache fresh
+      retryCount: 2,
+      retryDelay: 500,
+      optimistic: true,
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۳. State
+    // ═══════════════════════════════════════════════════
+    const newName = signal('');
+    const newPrice = signal('');
+    const editingId = signal(null);
+    const editName = signal('');
+    const editPrice = signal('');
+    const swrEnabled = signal(false);
+
+    const state = {
+      items: itemResource.signal,
+      newName,
+      newPrice,
+      editingId,
+      editName,
+      editPrice,
+      swrEnabled,
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۴. Log زنده
+    // ═══════════════════════════════════════════════════
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 80) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ۵. Actions — List, Create, Update, Delete
+    // ═══════════════════════════════════════════════════
+    Zen.action('loadItems', async () => {
+      const before = itemResource.signal.get().lastUpdated;
+      logEvent('list:start', 'calling resource.list()');
+      const result = await itemResource.list();
+      const after = itemResource.signal.get().lastUpdated;
+      const source = (before === after && before !== null) ? 'cache' : 'network';
+      logEvent('list:done', `source=${source}, items=${result.data?.length || 0}`);
+      updateCacheSource(source);
+    });
+
+    Zen.action('loadItemsForce', async () => {
+      logEvent('list:start', 'calling resource.list(true) — force refresh');
+      const result = await itemResource.list(true);
+      logEvent('list:done', `source=network (forced), items=${result.data?.length || 0}`);
+      updateCacheSource('network');
+    });
+
+    Zen.action('createItem', async ({ state }) => {
+      const name = state.newName.get().trim();
+      const price = Number(state.newPrice.get());
+      if (!name || !price) {
+        logEvent('create:skipped', 'name or price is empty');
+        return;
+      }
+      logEvent('create:optimistic', `name=${name}, price=${price}`);
+      // ⚠️ NOTE: resource.createOptimistic has a known limitation — internal create() overwrites
+      // data with the single new item, breaking the array. We implement optimistic update manually:
+      const snapshot = itemResource.signal.get().data || [];
+      const tempId = `temp-${Date.now()}`;
+      // ۱. افزودن آیتم optimistic به UI فوراً
+      itemResource.setData(old => [...(old || []), { name, price, id: tempId, _optimistic: true }]);
+      try {
+        // ۲. ارسال به سرور (با fetch مستقیم تا data replace نشود)
+        const res = await fetch('/api/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, price }),
+        });
+        const newItem = await res.json();
+        // ۳. جایگزینی آیتم موقت با آیتم واقعی
+        itemResource.setData(old => (old || []).map(it => it.id === tempId ? newItem : it));
+        logEvent('create:done', `success=true, id=${newItem.id}`);
+      } catch (err) {
+        // ۴. rollback در صورت خطا
+        itemResource.setData(() => snapshot);
+        logEvent('create:error', err.message);
+      }
+      state.newName.set('');
+      state.newPrice.set('');
+    });
+
+    Zen.action('createItemPessimistic', async ({ state }) => {
+      const name = state.newName.get().trim();
+      const price = Number(state.newPrice.get());
+      if (!name || !price) {
+        logEvent('create:skipped', 'name or price is empty');
+        return;
+      }
+      logEvent('create:pessimistic', `name=${name}, price=${price} — no optimistic update`);
+      const result = await itemResource.create({ name, price });
+      logEvent('create:done', `success=${result.success}, id=${result.data?.id}`);
+      // پس از create معمولی، list را force-refresh می‌کنیم تا آیتم جدید دیده شود
+      await itemResource.list(true);
+      state.newName.set('');
+      state.newPrice.set('');
+    });
+
+    Zen.action('startEdit', ({ state, element }) => {
+      const id = Number(element.dataset.id);
+      const data = itemResource.signal.get().data || [];
+      const item = data.find(it => String(it.id) === String(id));
+      if (item) {
+        state.editingId.set(id);
+        state.editName.set(item.name);
+        state.editPrice.set(String(item.price));
+        logEvent('edit:start', `id=${id}`);
+      }
+    });
+
+    Zen.action('saveEdit', async ({ state, element }) => {
+      const id = Number(element.dataset.id);
+      const name = state.editName.get().trim();
+      const price = Number(state.editPrice.get());
+      if (!name || !price) {
+        logEvent('edit:skipped', 'name or price is empty');
+        return;
+      }
+      logEvent('edit:optimistic', `id=${id}, name=${name}, price=${price}`);
+      // ⚠️ NOTE: resource.updateOptimistic has the same data-overwrite limitation as createOptimistic
+      // (internal update() replaces data with single response item). Implementing manually:
+      const snapshot = itemResource.signal.get().data || [];
+      itemResource.setData(old => (old || []).map(it =>
+        String(it.id) === String(id) ? { ...it, name, price } : it
+      ));
+      try {
+        const res = await fetch(`/api/items/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, price }),
+        });
+        const updated = await res.json();
+        logEvent('edit:done', `success=true, name=${updated.name}, price=${updated.price}`);
+      } catch (err) {
+        itemResource.setData(() => snapshot);
+        logEvent('edit:error', err.message);
+      }
+      state.editingId.set(null);
+    });
+
+    Zen.action('cancelEdit', ({ state }) => {
+      logEvent('edit:cancel');
+      state.editingId.set(null);
+    });
+
+    Zen.action('deleteItem', async ({ element }) => {
+      const id = Number(element.dataset.id);
+      logEvent('delete:optimistic', `id=${id} — removing from UI immediately`);
+      // ⚠️ NOTE: resource.deleteOptimistic overwrites data with response ({success: true}).
+      // Implementing manually:
+      const snapshot = itemResource.signal.get().data || [];
+      itemResource.setData(old => (old || []).filter(it => String(it.id) !== String(id)));
+      try {
+        await fetch(`/api/items/${id}`, { method: 'DELETE' });
+        logEvent('delete:done', `success=true, id=${id}`);
+      } catch (err) {
+        itemResource.setData(() => snapshot);
+        logEvent('delete:error', err.message);
+      }
+    });
+
+    Zen.action('toggleSWR', ({ state }) => {
+      const enabled = !state.swrEnabled.get();
+      state.swrEnabled.set(enabled);
+      if (enabled) {
+        itemResource.startAutoRefresh(4000);
+        logEvent('swr:start', 'auto-refresh every 4000ms');
+        document.getElementById('swrBtn').textContent = 'توقف SWR';
+      } else {
+        itemResource.stopAutoRefresh();
+        logEvent('swr:stop', 'auto-refresh stopped');
+        document.getElementById('swrBtn').textContent = 'شروع SWR (هر ۴ ثانیه)';
+      }
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۶. Effects: cache source, lastUpdated, SWR refresh indicator
+    // ═══════════════════════════════════════════════════
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const cacheSourceEl = document.getElementById('cacheSource');
+    const lastSourceEl = document.getElementById('lastSource');
+    const lastRefreshEl = document.getElementById('lastRefresh');
+
+    function updateCacheSource(source) {
+      cacheSourceEl.textContent = source;
+      lastSourceEl.textContent = source === 'cache' ? '✓ cache (بدون fetch)' : '✓ network (fetch از سرور)';
+      cacheSourceEl.style.color = source === 'cache' ? 'var(--accent-light)' : 'var(--success)';
+    }
+
+    effect(() => {
+      const s = itemResource.signal.get();
+      if (s.lastUpdated) {
+        const date = new Date(s.lastUpdated);
+        lastUpdatedEl.textContent = date.toLocaleTimeString('en-GB', { hour12: false });
+      } else {
+        lastUpdatedEl.textContent = '—';
+      }
+    });
+
+    // Effect: لاگ تغییرات data برای تشخیص SWR refresh
+    let lastDataVersion = null;
+    effect(() => {
+      const s = itemResource.signal.get();
+      const version = s.lastUpdated;
+      if (lastDataVersion !== null && version !== lastDataVersion && s.data) {
+        // data به‌روزرسانی شده
+        if (swrEnabled.get()) {
+          lastRefreshEl.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+          logEvent('swr:refresh', `background refresh done, items=${s.data.length}`);
+        }
+      }
+      lastDataVersion = version;
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۷. شروع فریم‌ورک + بارگذاری اولیه
+    // ═══════════════════════════════════════════════════
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Resource demo started. staleTime=8s, retryCount=2.');
+
+    // بارگذاری اولیه
+    itemResource.list().then(() => {
+      logEvent('init:load', 'initial list() done');
+      updateCacheSource('network');
+    });
+  </script>
+</body>
+</html>

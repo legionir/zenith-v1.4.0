@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zenith SPA - Phase 8</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.2rem; margin: 1rem 0 0.5rem; }
+    .subtitle { color: #6b7280; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .nav {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 24px;
+    }
+    .nav a {
+      color: #3b82f6;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .nav a:hover { background: #dbeafe; }
+    .nav a.active { background: #3b82f6; color: white; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #dbeafe;
+      color: #1e40af;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+    .route-info {
+      padding: 8px 14px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      font-family: ui-monospace, monospace;
+      color: #6b7280;
+    }
+    .loading { color: #6b7280; padding: 20px; text-align: center; }
+    .error { color: #ef4444; padding: 20px; background: #fef2f2; border-radius: 6px; }
+    .product-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      background: #fff;
+    }
+    .product-card h2 { margin-top: 0; }
+    .product-price {
+      color: #16a34a;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Zenith Framework — Phase 8</h1>
+  <p class="subtitle">
+    <span class="badge">zen-router</span> + <span class="badge">zen-fetch</span> + <span class="badge">zen-link</span>
+    SPA بدون Build Step.
+  </p>
+
+  <div id="app">
+    <!-- اطلاعات مسیر فعلی -->
+    <div class="route-info">
+      Path: <span zen-text="$route.path"></span>
+      <span zen-if="$route.params.id"> · Param id: <span zen-text="$route.params.id"></span></span>
+    </div>
+
+    <!-- نوار ناوبری -->
+    <nav class="nav">
+      <a zen-link="/">صفحه اصلی</a>
+      <a zen-link="/products/101">محصول ۱۰۱</a>
+      <a zen-link="/products/202">محصول ۲۰۲</a>
+      <a zen-link="/nonexistent">صفحه ناموجود</a>
+    </nav>
+
+    <!-- اوتلت روتر -->
+    <zen-router>
+      <zen-route path="/" src="/pages/home.html"></zen-route>
+      <zen-route path="/products/:id" src="/pages/product.html"></zen-route>
+      <zen-route path="**" src="/pages/404.html"></zen-route>
+    </zen-router>
+  </div>
+
+  <script type="module">
+    import { Zen } from './packages/runtime/src/index.ts';
+
+    // شروع فریم‌ورک
+    Zen.start(document.getElementById('app'), {});
+
+    console.log('💡 نکات:');
+    console.log('   1. با کلیک روی لینک‌ها، URL عوض می‌شود اما صفحه رفرش نمی‌شود.');
+    console.log('   2. صفحات به‌صورت lazy از /pages/ لود می‌شوند.');
+    console.log('   3. در صفحه‌ی محصول، zen-fetch از /api/products/<id> داده می‌گیرد.');
+    console.log('   4. $route.params.id در Expressionها قابل دسترسی است.');
+  </script>
+</body>
+</html>

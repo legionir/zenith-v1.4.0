@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — i18n & Persian Helpers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 180px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .fa-num { font-size: 1.6rem; font-weight: 700; color: var(--accent-light); font-variant-numeric: tabular-nums; display: inline-block; padding: 4px 14px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; min-width: 60px; text-align: center; }
+    .clock { font-size: 2.6rem; font-weight: 800; color: var(--accent-light); font-variant-numeric: tabular-nums; direction: ltr; text-align: center; padding: 14px; background: var(--gradient); border-radius: 12px; color: white; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25); letter-spacing: 2px; }
+    .clock-date { font-size: 1rem; color: var(--text-secondary); text-align: center; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .clock-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .clock-box { padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; text-align: center; }
+    .clock-box .label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .clock-box .val { font-size: 1rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .convert-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+    .convert-grid .lhs { color: var(--text-secondary); font-family: ui-monospace, monospace; direction: ltr; font-size: 0.85rem; }
+    .convert-grid .rhs { color: var(--accent-light); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🌐 <span class="gradient">i18n & Persian Helpers</span></h1>
+    <p class="subtitle">اعداد فارسی، تاریخ شمسی (جلالی)، فرمت‌بندی عدد و قیمت — همه در Expression Engine</p>
+    <div class="badges">
+      <span class="badge">toPersianNums</span>
+      <span class="badge">toJalali</span>
+      <span class="badge">formatNumber</span>
+      <span class="badge">formatPrice</span>
+      <span class="badge">live-clock</span>
+      <span class="badge">expressions</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ۱. Persian numbers -->
+      <div class="card">
+        <h2>۱. تبدیل اعداد به فارسی — <code>toPersianNums()</code></h2>
+        <p class="desc">
+          تابع <code>toPersianNums(n)</code> ارقام انگلیسی را به فارسی تبدیل می‌کند. ورودی می‌تواند عدد یا رشته باشد.
+          این تابع به‌صورت مستقیم از State در دسترس Expression Engine قرار گرفته — پس می‌توان در <code>zen-text</code> استفاده کرد.
+        </p>
+        <div class="convert-grid" style="margin-bottom: 12px;">
+          <span class="lhs">toPersianNums(123)</span>
+          <span class="rhs" zen-text="$toPersianNums(123)"></span>
+          <span class="lhs">toPersianNums(9876543210)</span>
+          <span class="rhs" zen-text="$toPersianNums(9876543210)"></span>
+          <span class="lhs">toPersianNums($count)</span>
+          <span class="rhs" zen-text="$toPersianNums($count)"></span>
+          <span class="lhs">toPersianNums(1399 + 1)</span>
+          <span class="rhs" zen-text="$toPersianNums(1399 + 1)"></span>
+        </div>
+        <div class="row">
+          <button zen-action="incCount">count + ۱</button>
+          <button zen-action="decCount">count − ۱</button>
+          <button zen-action="resetCount">ریست count</button>
+        </div>
+        <p style="margin-top: 8px;">مقدار count به‌صورت زنده فارسی می‌شود: <span class="fa-num" zen-text="$toPersianNums($count)"></span></p>
+        <pre>import { toPersianNums } from '@zenith/i18n';
+toPersianNums(123);           // "۱۲۳"
+toPersianNums('price: 999');  // "price: ۹۹۹"
+
+// در State قرار می‌دهیم تا در Expression Engine در دسترس باشد:
+const state = { toPersianNums, count: signal(123) };
+
+// در HTML:
+&lt;span zen-text="$toPersianNums($count)"&gt;&lt;/span&gt;</pre>
+      </div>
+
+      <!-- ۲. Jalali calendar -->
+      <div class="card">
+        <h2>۲. تاریخ شمسی — <code>toJalali()</code></h2>
+        <p class="desc">
+          تابع <code>toJalali(date)</code> یک <code>Date</code> میلادی را به رشته‌ی <code>YYYY/MM/DD</code> شمسی تبدیل می‌کند.
+          از تقویم جلالی استفاده می‌شود (الگوریتم استاندارد).
+        </p>
+        <div class="convert-grid">
+          <span class="lhs">toJalali(new Date())</span>
+          <span class="rhs" zen-text="$toJalali($now)"></span>
+          <span class="lhs">toJalali(new Date('2024-03-20'))</span>
+          <span class="rhs" zen-text="$toJalali($farvardin1)"></span>
+          <span class="lhs">toJalali(new Date('1979-04-01'))</span>
+          <span class="rhs" zen-text="$toJalali($revolutionDay)"></span>
+          <span class="lhs">toJalali(new Date('2025-01-01'))</span>
+          <span class="rhs" zen-text="$toJalali($newYear2025)"></span>
+        </div>
+        <pre>import { toJalali } from '@zenith/i18n';
+toJalali(new Date());                    // امروز به شمسی
+toJalali(new Date('2024-03-20'));        // "۱۴۰۳/۰۱/۰۱" (نوروز)
+toJalali(new Date('1979-04-01'));        // "۱۳۵۸/۰۱/۱۳" (انقلاب)</pre>
+      </div>
+
+      <!-- ۳. Format number with separators -->
+      <div class="card">
+        <h2>۳. فرمت عدد با جداکننده‌ی هزارگان — <code>formatNumber()</code></h2>
+        <p class="desc">
+          تابع <code>formatNumber(n)</code> عدد را با جداکننده‌ی فارسی <code>٬</code> (U+066C) قالب‌بندی می‌کند و ارقام را فارسی می‌کند.
+        </p>
+        <div class="convert-grid" style="margin-bottom: 12px;">
+          <span class="lhs">formatNumber(1234567)</span>
+          <span class="rhs" zen-text="$formatNumber(1234567)"></span>
+          <span class="lhs">formatNumber(9876543210)</span>
+          <span class="rhs" zen-text="$formatNumber(9876543210)"></span>
+          <span class="lhs">formatNumber(0)</span>
+          <span class="rhs" zen-text="$formatNumber(0)"></span>
+          <span class="lhs">formatNumber($price)</span>
+          <span class="rhs" zen-text="$formatNumber($price)"></span>
+        </div>
+        <div class="row">
+          <button zen-action="bumpPrice">price + ۱۰۰٬۰۰۰</button>
+          <button zen-action="resetPrice">ریست price</button>
+        </div>
+        <pre>formatNumber(1234567);    // "۱٬۲۳۴٬۵۶۷"
+formatNumber(0);          // "۰"
+formatNumber($price);     // reactive — با تغییر price آپدیت می‌شود</pre>
+      </div>
+
+      <!-- ۴. Format price -->
+      <div class="card">
+        <h2>۴. فرمت قیمت به تومان — <code>formatPrice()</code></h2>
+        <p class="desc">
+          تابع <code>formatPrice(n)</code> مانند <code>formatNumber</code> است اما <code>" تومان"</code> به انتهای آن اضافه می‌شود.
+          مناسب برای نمایش قیمت در فروشگاه‌های اینترنتی ایرانی.
+        </p>
+        <div class="convert-grid" style="margin-bottom: 12px;">
+          <span class="lhs">formatPrice(1500000)</span>
+          <span class="rhs" zen-text="$formatPrice(1500000)"></span>
+          <span class="lhs">formatPrice($price)</span>
+          <span class="rhs" zen-text="$formatPrice($price)"></span>
+          <span class="lhs">formatPrice(98000000)</span>
+          <span class="rhs" zen-text="$formatPrice(98000000)"></span>
+        </div>
+        <p style="margin-top: 10px; padding: 12px; background: rgba(99,102,241,0.08); border-radius: 8px; text-align: center;">
+          قیمت فعلی محصول: <strong style="color: var(--accent-light); font-size: 1.1rem;" zen-text="$formatPrice($price)"></strong>
+        </p>
+        <pre>formatPrice(1500000);   // "۱٬۵۰۰٬۰۰۰ تومان"
+formatPrice($price);    // reactive</pre>
+      </div>
+
+      <!-- ۵. Live clock -->
+      <div class="card">
+        <h2>۵. ساعت زنده — با <code>setInterval</code> و Signal</h2>
+        <p class="desc">
+          یک Signal به نام <code>now</code> هر ثانیه با <code>new Date()</code> آپدیت می‌شود.
+          تمام Expressionهای وابسته (ساعت، تاریخ میلادی، تاریخ شمسی) به‌صورت خودکار آپدیت می‌شوند.
+        </p>
+        <div class="clock" zen-text="$toPersianNums($clockTime($now))"></div>
+        <div class="clock-row">
+          <div class="clock-box">
+            <div class="label">📅 شمسی (جلالی)</div>
+            <div class="val" zen-text="$toJalali($now)"></div>
+          </div>
+          <div class="clock-box">
+            <div class="label">📅 میلادی</div>
+            <div class="val" zen-text="$gregorianDate($now)"></div>
+          </div>
+        </div>
+        <p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-secondary);">
+          ثانیه‌ها را ببینید! این یعنی Signal هر ثانیه set می‌شود و تمام DOM وابسته در یک flush آپدیت می‌شود.
+        </p>
+        <pre>const now = signal(new Date());
+
+setInterval(() =&gt; now.set(new Date()), 1000);
+
+// در HTML:
+&lt;div class="clock" zen-text="$toPersianNums($clockTime($now))"&gt;&lt;/div&gt;
+&lt;div zen-text="$toJalali($now)"&gt;&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ۶. Integration with zen-text -->
+      <div class="card">
+        <h2>۶. Integration با Expression Engine</h2>
+        <p class="desc">
+          همه‌ی توابع i18n می‌توانند داخل هر Expression استفاده شوند — با اپراتورها، توابع دیگر و Conditions ترکیب شوند.
+          در این مثال، یک فرض فروشگاهی با تعداد و قیمت واحد داریم؛ قیمت کل با <code>formatPrice</code> نمایش داده می‌شود.
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <span class="stat">تعداد: <strong zen-text="$toPersianNums($qty)"></strong></span>
+          <span class="stat">قیمت واحد: <strong zen-text="$formatPrice($unitPrice)"></strong></span>
+        </div>
+        <div class="row" style="margin-bottom: 12px;">
+          <button zen-action="incQty">تعداد + ۱</button>
+          <button zen-action="decQty">تعداد − ۱</button>
+        </div>
+        <p style="padding: 14px; background: var(--bg-secondary); border-radius: 8px; border-right: 4px solid var(--accent);">
+          جمع کل: <strong style="color: var(--accent-light); font-size: 1.2rem;" zen-text="$formatPrice($qty * $unitPrice)"></strong>
+        </p>
+        <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+          شرط: <code zen-text="$qty > 10 ? 'تخفیف عمده‌فروشی!' : 'قیمت عادی'"></code>
+        </p>
+        <pre>&lt;!-- ترکیب Expression + i18n --&gt;
+&lt;span zen-text="$formatPrice($qty * $unitPrice)"&gt;&lt;/span&gt;
+&lt;span zen-text="$qty &gt; 10 ? 'تخفیف عمده‌فروشی!' : 'قیمت عادی'"&gt;&lt;/span&gt;</pre>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          پکیج <code>@zenith/i18n</code> توابع کمکی برای فارسی‌سازی فراهم می‌کند: <code>toPersianNums</code>، <code>toJalali</code>، <code>formatNumber</code>، <code>formatPrice</code>.
+          این توابع را در State قرار می‌دهیم تا در Expression Engine با پیشوند <code>$</code> در دسترس باشند.
+          چون Signalها reactive هستند، ترکیب با <code>setInterval</code> یک ساعت زنده می‌سازد.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { toPersianNums, toJalali, formatNumber, formatPrice } from '@zenith/i18n';
+
+    // ── State ──
+    const count   = signal(123);
+    const price   = signal(1500000);
+    const now     = signal(new Date());
+    const qty     = signal(3);
+    const unitPrice = signal(250000);
+
+    // تاریخ‌های ثابت برای دمو
+    const farvardin1     = new Date('2024-03-20');   // نوروز ۱۴۰۳
+    const revolutionDay  = new Date('1979-04-01');   // انقلاب ۱۳۵۸
+    const newYear2025    = new Date('2025-01-01');
+
+    // ── helper: ساخت رشته‌ی ساعت HH:MM:SS از یک Date ──
+    // (این تابع هم در State قرار می‌گیرد تا در Expression استفاده شود)
+    function clockTime(date) {
+      const d = date instanceof Date ? date : new Date(date);
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      const s = String(d.getSeconds()).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    // ── helper: تاریخ میلادی قالب‌بندی‌شده ──
+    function gregorianDate(date) {
+      const d = date instanceof Date ? date : new Date(date);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${day}`;
+    }
+
+    const state = {
+      count,
+      price,
+      now,
+      qty,
+      unitPrice,
+      farvardin1,
+      revolutionDay,
+      newYear2025,
+      // توابع i18n به‌عنوان Service در Context قرار می‌گیرند (با پیشوند $).
+      toPersianNums,
+      toJalali,
+      formatNumber,
+      formatPrice,
+      clockTime,
+      gregorianDate,
+    };
+
+    // ── ساعت زنده: هر ثانیه now را آپدیت کن ──
+    setInterval(() => {
+      now.set(new Date());
+    }, 1000);
+
+    // ── یک effect برای نمایش ساعت در Console (برای دیباگ) ──
+    // (این effect وابسته به now است و هر ثانیه re-run می‌شود)
+    // فعلاً comment شده تا log پر نشود.
+    // effect(() => {
+    //   console.log('clock tick:', toPersianNums(clockTime(now.get())));
+    // });
+
+    // ── Actions ──
+    Zen.action('incCount', ({ state }) => {
+      state.count.set(state.count.get() + 1);
+    });
+    Zen.action('decCount', ({ state }) => {
+      state.count.set(state.count.get() - 1);
+    });
+    Zen.action('resetCount', ({ state }) => {
+      state.count.set(123);
+    });
+
+    Zen.action('bumpPrice', ({ state }) => {
+      state.price.set(state.price.get() + 100000);
+    });
+    Zen.action('resetPrice', ({ state }) => {
+      state.price.set(1500000);
+    });
+
+    Zen.action('incQty', ({ state }) => {
+      state.qty.set(state.qty.get() + 1);
+    });
+    Zen.action('decQty', ({ state }) => {
+      const q = state.qty.get();
+      if (q > 1) state.qty.set(q - 1);
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+  </script>
+</body>
+</html>

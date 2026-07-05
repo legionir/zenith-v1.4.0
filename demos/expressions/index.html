@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Expression Engine</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    /* modern dark UI matching the main index.html */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input, textarea { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    textarea { font-family: ui-monospace, monospace; direction: ltr; min-height: 70px; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .result { padding: 8px 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; color: #6ee7b7; font-family: ui-monospace, monospace; direction: ltr; text-align: left; margin-top: 8px; min-height: 38px; word-break: break-all; }
+    .result.error { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+    .hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🧮 <span class="gradient">Expression Engine</span></h1>
+    <p class="subtitle">موتور Lexer/Parser/Evaluator سفارشی — بدون <code>eval()</code> و بدون <code>new Function()</code></p>
+    <div class="badges">
+      <span class="badge">lexer</span>
+      <span class="badge">parser</span>
+      <span class="badge">evaluator</span>
+      <span class="badge">no-eval</span>
+      <span class="badge">template-literals</span>
+      <span class="badge">arrow-functions</span>
+      <span class="badge">optional-chaining</span>
+      <span class="badge">nullish-coalescing</span>
+    </div>
+
+    <div id="app">
+      <!-- ۱. Arithmetic -->
+      <div class="card">
+        <h2>۱. حساب پایه (Operator Precedence)</h2>
+        <p class="desc">اولویت عملگرها رعایت می‌شود: ضرب قبل از جمع.</p>
+        <div class="row">
+          <span class="stat"><code>2 + 3 * 4</code> = <strong zen-text="2 + 3 * 4"></strong></span>
+          <span class="stat"><code>(2 + 3) * 4</code> = <strong zen-text="(2 + 3) * 4"></strong></span>
+          <span class="stat"><code>10 % 3</code> = <strong zen-text="10 % 3"></strong></span>
+          <span class="stat"><code>2 ** ?</code> — اما</span>
+        </div>
+        <p class="hint">نکته: عملگر <code>**</code> (توان) پشتیبانی نمی‌شود — می‌توانید از <code>Math.pow</code> یا ضرب مستقیم استفاده کنید.</p>
+      </div>
+
+      <!-- ۲. String concatenation -->
+      <div class="card">
+        <h2>۲. الحاق رشته‌ها</h2>
+        <p class="desc">عملگر <code>+</code> هم برای عدد و هم برای رشته کار می‌کند (مثل جاوااسکریپت).</p>
+        <div class="row">
+          <span class="stat"><code>'سلام' + ' ' + $name</code> = <strong zen-text="'سلام' + ' ' + $name"></strong></span>
+          <span class="stat"><code>$name + ' ' + 'محمدی'</code> = <strong zen-text="$name + ' ' + 'محمدی'"></strong></span>
+        </div>
+      </div>
+
+      <!-- ۳. Comparison & logical -->
+      <div class="card">
+        <h2>۳. مقایسه و منطق</h2>
+        <p class="desc">عملگرهای <code>&gt; &lt; &gt;= &lt;= == === != !==</code> و <code>&amp;&amp; ||</code> با short-circuit evaluation.</p>
+        <div class="row">
+          <span class="stat"><code>$age &gt; 18</code> = <strong zen-text="$age > 18"></strong></span>
+          <span class="stat"><code>$age &gt; 18 &amp;&amp; $age &lt; 65</code> = <strong zen-text="$age > 18 && $age < 65"></strong></span>
+          <span class="stat"><code>$age &gt;= 18 || $isActive</code> = <strong zen-text="$age >= 18 || $isActive"></strong></span>
+          <span class="stat"><code>$age === 25</code> = <strong zen-text="$age === 25"></strong></span>
+        </div>
+      </div>
+
+      <!-- ۴. Ternary -->
+      <div class="card">
+        <h2>۴. عملگر سه‌تایی (Ternary)</h2>
+        <p class="desc">شرط کوتاه: <code>test ? valueIfTrue : valueIfFalse</code></p>
+        <div class="row">
+          <span class="stat"><code>$age &gt;= 18 ? 'بزرگسال' : 'کودک'</code> = <strong zen-text="$age >= 18 ? 'بزرگسال' : 'کودک'"></strong></span>
+          <span class="stat"><code>$isActive ? 'فعال' : 'غیرفعال'</code> = <strong zen-text="$isActive ? 'فعال' : 'غیرفعال'"></strong></span>
+        </div>
+      </div>
+
+      <!-- ۵. Nullish coalescing -->
+      <div class="card">
+        <h2>۵. Nullish Coalescing (<code>??</code>)</h2>
+        <p class="desc">وقتی مقدار سمت چپ <code>null</code> یا <code>undefined</code> باشد، مقدار سمت راست برگردانده می‌شود. تفاوت با <code>||</code>: رشته‌ی خالی یا 0 با <code>??</code> معتبرند.</p>
+        <div class="row">
+          <span class="stat"><code>$user.nickname ?? $user.name</code> = <strong zen-text="$user.nickname ?? $user.name"></strong></span>
+          <span class="stat"><code>$user.missing ?? 'پیش‌فرض'</code> = <strong zen-text="$user.missing ?? 'پیش‌فرض'"></strong></span>
+        </div>
+        <p class="hint">در این دمو، <code>user.nickname</code> برابر <code>null</code> است پس <code>user.name</code> برمی‌گردد.</p>
+      </div>
+
+      <!-- ۶. Optional chaining -->
+      <div class="card">
+        <h2>۶. Optional Chaining (<code>?.</code>)</h2>
+        <p class="desc">دسترسی امن به پراپرتی‌های تو در تو. اگر هر کدام <code>null</code>/<code>undefined</code> باشد، کل عبارت <code>undefined</code> می‌شود (بدون خطا).</p>
+        <div class="row">
+          <span class="stat"><code>$user?.address?.city</code> = <strong zen-text="$user?.address?.city ?? 'نامشخص'"></strong></span>
+          <span class="stat"><code>$user?.missing?.deep</code> = <strong zen-text="$user?.missing?.deep ?? 'نامشخص'"></strong></span>
+        </div>
+        <p class="hint">نکته: در این فریم‌ورک، <code>.</code> و <code>?.</code> رفتار یکسان دارند — evaluator همیشه null-safe است.</p>
+      </div>
+
+      <!-- ۷. Method calls -->
+      <div class="card">
+        <h2>۷. فراخوانی متد (Method Call)</h2>
+        <p class="desc"><code>thisArg</code> به‌درستی تنظیم می‌شود تا متدهای داخلی شیء کار کنند.</p>
+        <div class="row">
+          <span class="stat"><code>$user.name.toUpperCase()</code> = <strong zen-text="$user.name.toUpperCase()"></strong></span>
+          <span class="stat"><code>$user.name.length</code> = <strong zen-text="$user.name.length"></strong></span>
+        </div>
+      </div>
+
+      <!-- ۸. Array literal & methods -->
+      <div class="card">
+        <h2>۸. آرایه‌ها و Arrow Functions</h2>
+        <p class="desc">آرایه‌های literal، <code>.length</code>، و متدهای <code>.map</code>، <code>.filter</code> با arrow functions.</p>
+        <div class="row">
+          <span class="stat"><code>[1, 2, 3].length</code> = <strong zen-text="[1, 2, 3].length"></strong></span>
+          <span class="stat"><code>[1,2,3].map(x =&gt; x * 2)</code> = <strong id="mapResult"></strong></span>
+          <span class="stat"><code>[1,2,3].filter(x =&gt; x &gt; 1)</code> = <strong id="filterResult"></strong></span>
+        </div>
+        <pre>zen-text="[1, 2, 3].length"           → 3
+zen-text="[1,2,3].map(x =&gt; x * 2)"      → [2, 4, 6]
+zen-text="[1,2,3].filter(x =&gt; x &gt; 1)"  → [2, 3]</pre>
+      </div>
+
+      <!-- ۹. Object literal in zen-bind -->
+      <div class="card">
+        <h2>۹. Object Literal در zen-bind:class</h2>
+        <p class="desc">برای کلاس‌های شرطی، یک Object literal می‌دهیم که کلیدها = نام کلاس و مقدارها = bool.</p>
+        <div class="row" style="margin-bottom: 12px;">
+          <button zen-action="toggleActive">تغییر وضعیت isActive</button>
+          <span class="stat">isActive = <strong zen-text="$isActive"></strong></span>
+        </div>
+        <div zen-bind:class="{ active: $isActive, inactive: !$isActive }" style="padding: 16px; border-radius: 8px; border: 1px dashed var(--border-strong); text-align: center;">
+          این عنصر با <code>zen-bind:class="{ active: $isActive, inactive: !$isActive }"</code> کنترل می‌شود.
+        </div>
+        <style>
+          .active { background: rgba(16, 185, 129, 0.15) !important; border-color: rgba(16, 185, 129, 0.5) !important; color: #6ee7b7; }
+          .inactive { background: rgba(100, 116, 139, 0.15) !important; border-color: rgba(100, 116, 139, 0.5) !important; color: #94a3b8; }
+        </style>
+      </div>
+
+      <!-- ۱۰. Template literals -->
+      <div class="card">
+        <h2>۱۰. Template Literals (Backtick)</h2>
+        <p class="desc">رشته‌های قالب با <code>${...}</code> برای interpolation. lexer این عبارت را به <code>string + identifier + string</code> تبدیل می‌کند.</p>
+        <div class="row">
+          <span class="stat"><code>`سلام ${$name}!`</code> = <strong zen-text="`سلام ${$name}!`"></strong></span>
+          <span class="stat"><code>`سن: ${$age}`</code> = <strong zen-text="`سن: ${$age}`"></strong></span>
+        </div>
+      </div>
+
+      <!-- ۱۱. Interactive playground -->
+      <div class="card">
+        <h2>۱۱. زمین بازی تعاملی</h2>
+        <p class="desc">یک Expression تایپ کنید و نتیجه را ببینید. متغیرهای موجود: <code>$name</code>, <code>$age</code>, <code>$isActive</code>, <code>$user</code>.</p>
+        <div class="field">
+          <label for="exprInput">Expression</label>
+          <textarea id="exprInput" rows="2" spellcheck="false">$age >= 18 ? `${$name} بزرگسال است` : `${$name} کودک است`</textarea>
+        </div>
+        <div class="row" style="margin-bottom: 8px;">
+          <button class="primary" id="evalBtn">ارزیابی کن</button>
+          <button id="clearBtn">پاک کردن</button>
+        </div>
+        <div class="result" id="evalResult">(نتیجه اینجا نمایش داده می‌شود)</div>
+        <p class="hint">نکته: برای نمایش آرایه‌ها و آبجکت‌ها از <code>JSON.stringify</code> استفاده می‌کنیم. توابع به‌صورت <code>[Function]</code> نمایش داده می‌شوند.</p>
+
+        <p style="margin-top: 14px; color: var(--text-secondary); font-size: 0.85rem;">مثال‌های آماده:</p>
+        <div class="row" id="examplesRow">
+          <button class="example-btn" data-expr="2 + 3 * 4">2 + 3 * 4</button>
+          <button class="example-btn" data-expr="$user.name.toUpperCase()">upper</button>
+          <button class="example-btn" data-expr="$user?.address?.city ?? 'نامشخص'">opt chain</button>
+          <button class="example-btn" data-expr="[1,2,3].map(x => x * 2)">map</button>
+          <button class="example-btn" data-expr="`سلام ${$name}!`">template</button>
+          <button class="example-btn" data-expr="$user.nickname ?? $user.name">nullish</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          موتور Expression کاملاً مستقل از <code>eval</code> نوشته شده است — Lexer، Parser، Validator و Evaluator اختصاصی.
+          این یعنی: امنیت در برابر Code Injection، امکان Static Analysis، و عملکرد بالاتر از <code>eval</code> (بدون compile cost در runtime).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { evaluateExpression } from '@zenith/expressions';
+    import { Zen } from '@zenith/runtime';
+
+    // ── تعریف State ──
+    const name     = signal('علی');
+    const age      = signal(25);
+    const isActive = signal(true);
+    const user     = signal({
+      name: 'Ali',
+      nickname: null,        // null → برای تست ??
+      address: { city: 'تهران' },
+    });
+
+    const state = { name, age, isActive, user };
+
+    // ── شروع فریم‌ورک روی #app ──
+    Zen.start(document.getElementById('app'), state);
+
+    // ── نمایش نتایج array.map و array.filter به‌صورت دستی ──
+    // (zen-text این را به‌صورت "1,2,3" رندر می‌کند ولی ما JSON می‌خواهیم)
+    effect(() => {
+      const arr = evaluateExpression('[1,2,3].map(x => x * 2)', {
+        $name: name.get(), $age: age.get(), $isActive: isActive.get(), $user: user.get(),
+      });
+      const el = document.getElementById('mapResult');
+      if (el) el.textContent = JSON.stringify(arr);
+    });
+    effect(() => {
+      const arr = evaluateExpression('[1,2,3].filter(x => x > 1)', {
+        $name: name.get(), $age: age.get(), $isActive: isActive.get(), $user: user.get(),
+      });
+      const el = document.getElementById('filterResult');
+      if (el) el.textContent = JSON.stringify(arr);
+    });
+
+    // ── ثبت Action ها ──
+    Zen.action('toggleActive', ({ state }) => {
+      state.isActive.set(!state.isActive.get());
+    });
+
+    // ── زمین بازی تعاملی ──
+    const exprInput = document.getElementById('exprInput');
+    const evalBtn = document.getElementById('evalBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const evalResult = document.getElementById('evalResult');
+
+    function buildContext() {
+      // ساخت Context شبیه آنچه فریم‌ورک می‌سازد (با $ prefix)
+      return {
+        $name: name.get(),
+        $age: age.get(),
+        $isActive: isActive.get(),
+        $user: user.get(),
+      };
+    }
+
+    function formatResult(value) {
+      if (value === undefined) return 'undefined';
+      if (value === null) return 'null';
+      if (typeof value === 'function') return '[Function]';
+      if (typeof value === 'string') return JSON.stringify(value);
+      try { return JSON.stringify(value); } catch { return String(value); }
+    }
+
+    function doEval() {
+      const expr = exprInput.value;
+      try {
+        const ctx = buildContext();
+        const result = evaluateExpression(expr, ctx);
+        evalResult.textContent = '→ ' + formatResult(result);
+        evalResult.classList.remove('error');
+      } catch (err) {
+        evalResult.textContent = '✗ ' + err.message;
+        evalResult.classList.add('error');
+      }
+    }
+
+    evalBtn.addEventListener('click', doEval);
+    clearBtn.addEventListener('click', () => {
+      exprInput.value = '';
+      evalResult.textContent = '(نتیجه اینجا نمایش داده می‌شود)';
+      evalResult.classList.remove('error');
+    });
+
+    // Ctrl/Cmd + Enter برای ارزیابی
+    exprInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        doEval();
+      }
+    });
+
+    // دکمه‌های مثال آماده
+    document.querySelectorAll('.example-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        exprInput.value = btn.dataset.expr;
+        doEval();
+      });
+    });
+
+    // ارزیابی اولیه
+    doEval();
+  </script>
+</body>
+</html>

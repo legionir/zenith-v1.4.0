@@ -1,0 +1,48 @@
+{
+  "name": "@zenith/ssr",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 Server-Side Rendering (Phase 11). Render-to-string with hydration support.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "ssr",
+    "server",
+    "rendering",
+    "hydration"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zenith/runtime": "1.0.0",
+    "@zenith/scheduler": "1.0.0",
+    "@zenith/router": "1.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "peerDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

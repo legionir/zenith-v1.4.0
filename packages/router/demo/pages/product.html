@@ -1,0 +1,24 @@
+<!-- این فایل به‌صورت lazy لود می‌شود -->
+<div zen-fetch="`/api/products/${$route.params.id}`" zen-state="product">
+  <!-- Loading state -->
+  <div class="loading" zen-if="$product.loading">
+    <p>⏳ در حال بارگذاری اطلاعات محصول...</p>
+  </div>
+
+  <!-- Error state -->
+  <div class="error" zen-if="$product.error">
+    <p>❌ خطا: <span zen-text="$product.error"></span></p>
+  </div>
+
+  <!-- Success state -->
+  <div class="product-card" zen-if="!$product.loading && !$product.error">
+    <h2>📦 <span zen-text="$product.data.name"></span></h2>
+    <p>کد محصول: <strong><span zen-text="$product.data.id"></span></strong></p>
+    <p>قیمت: <span class="product-price"><span zen-text="$product.data.price"></span> تومان</span></p>
+    <p>توضیحات: <span zen-text="$product.data.description"></span></p>
+
+    <p style="margin-top: 20px; font-size: 0.85rem; color: #6b7280;">
+      💡 این داده‌ها از <code>/api/products/<span zen-text="$route.params.id"></span></code> fetch شده‌اند.
+    </p>
+  </div>
+</div>

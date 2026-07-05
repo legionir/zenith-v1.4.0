@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — دایرکتیوهای DOM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .counter { font-size: 2.2rem; font-weight: 700; color: var(--accent-light); font-variant-numeric: tabular-nums; margin: 8px 0; direction: ltr; display: inline-block; min-width: 60px; text-align: center; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .status { padding: 10px 14px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; }
+    .status.active { background: rgba(16, 185, 129, 0.12); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status.idle { background: rgba(245, 158, 11, 0.12); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🎨 <span class="gradient">دایرکتیوهای DOM</span></h1>
+    <p class="subtitle">دایرکتیوهای اصلی Zenith برای رندر، اتصال دوطرفه، شرط و اتصال attribute</p>
+    <div class="badges">
+      <span class="badge">zen-text</span>
+      <span class="badge">zen-model</span>
+      <span class="badge">zen-if</span>
+      <span class="badge">zen-bind</span>
+    </div>
+
+    <div id="app">
+      <!-- ۱. zen-text -->
+      <div class="card">
+        <h2>۱. zen-text: رندر متن واکنش‌گرا</h2>
+        <p class="desc">
+          ساده‌ترین دایرکتیو. مقدار یک Expression را به‌صورت <code>textContent</code> درون عنصر قرار می‌دهد.
+          هر بار که Signal تغییر کند، متن به‌صورت خودکار آپدیت می‌شود.
+        </p>
+        <p style="font-size: 1.05rem;">
+          سلام <strong zen-text="$user.name"></strong>! سن شما:
+          <strong zen-text="$user.age"></strong> سال است.
+        </p>
+        <pre>&lt;p&gt;سلام &lt;span <strong>zen-text="$user.name"</strong>&gt;&lt;/span&gt;! سن: &lt;span <strong>zen-text="$user.age"</strong>&gt;&lt;/span&gt;&lt;/p&gt;</pre>
+      </div>
+
+      <!-- ۲. zen-model (two-way binding) -->
+      <div class="card">
+        <h2>۲. zen-model: اتصال دوطرفه (Two-way Binding)</h2>
+        <p class="desc">
+          با <code>zen-model</code>، ورودی کاربر به‌طور خودکار به Signal نوشته می‌شود و بالعکس.
+          این همان کاری که در فریم‌ورک‌های دیگر با <code>v-model</code> یا <code>ngModel</code> انجام می‌دهید.
+        </p>
+        <div class="row" style="margin-bottom: 10px;">
+          <input type="text" zen-model="$user.name" placeholder="نام خود را وارد کنید" style="flex:1; min-width: 200px;">
+          <input type="number" zen-model="$user.age" placeholder="سن" style="width: 100px;">
+        </div>
+        <p>نام شما: <strong zen-text="$user.name"></strong> — سن: <strong zen-text="$user.age"></strong></p>
+        <pre>&lt;input type="text" <strong>zen-model="$user.name"</strong>&gt;
+&lt;input type="number" <strong>zen-model="$user.age"</strong>&gt;</pre>
+      </div>
+
+      <!-- ۳. zen-if (conditional rendering) -->
+      <div class="card">
+        <h2>۳. zen-if: رندر شرطی (Counter)</h2>
+        <p class="desc">
+          <code>zen-if</code> یک Expression منطقی می‌گیرد. وقتی <code>true</code> باشد، عنصر رندر می‌شود؛
+          وقتی <code>false</code> باشد، از DOM حذف می‌شود (نه فقط <code>display:none</code>).
+        </p>
+        <div class="row" style="margin-bottom: 8px;">
+          <button zen-action="decrement">−</button>
+          <span class="counter"><span zen-text="$count"></span></span>
+          <button zen-action="increment">+</button>
+        </div>
+        <div class="status active" zen-if="$count > 5">
+          ✓ شمارنده بیشتر از ۵ است!
+        </div>
+        <div class="status idle" zen-if="$count &lt;= 5">
+          شمارنده ۵ یا کمتر است.
+        </div>
+        <pre>&lt;div <strong>zen-if="$count &gt; 5"</strong>&gt;بیشتر از ۵&lt;/div&gt;
+&lt;div <strong>zen-if="$count &lt;= 5"</strong>&gt;۵ یا کمتر&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ۴. zen-bind (attribute binding) -->
+      <div class="card">
+        <h2>۴. zen-bind: اتصال Attribute</h2>
+        <p class="desc">
+          <code>zen-bind:attr</code> یک attribute را به Expression متصل می‌کند. برای class می‌توان از
+          سینتکس آبجکت استفاده کرد: <code>{ className: condition }</code>.
+        </p>
+        <div class="row" style="margin-bottom: 8px;">
+          <button zen-bind:disabled="$isProcessing" zen-bind:class="{ primary: !$isProcessing }">
+            <span zen-if="$isProcessing">⏳ در حال پردازش...</span>
+            <span zen-if="!$isProcessing">کلیک کنید</span>
+          </button>
+          <button zen-action="toggleProcessing">تغییر وضعیت</button>
+        </div>
+        <p style="margin-top: 10px; font-size: 0.88rem; color: var(--text-secondary);">
+          وضعیت پردازش: <span class="stat"><strong zen-text="$isProcessing"></strong></span>
+        </p>
+        <pre>&lt;button
+  <strong>zen-bind:disabled="$isProcessing"</strong>
+  <strong>zen-bind:class="{ primary: !$isProcessing }"</strong>&gt;
+  &lt;span zen-if="$isProcessing"&gt;در حال پردازش...&lt;/span&gt;
+  &lt;span zen-if="!$isProcessing"&gt;کلیک کنید&lt;/span&gt;
+&lt;/button&gt;</pre>
+      </div>
+
+      <!-- خلاصه -->
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          این چهار دایرکتیو پایه‌ی ساخت برنامه‌های واکنش‌گرا با Zenith هستند:
+          <code>zen-text</code> برای متن، <code>zen-model</code> برای ورودی، <code>zen-if</code> برای شرط،
+          <code>zen-bind</code> برای attribute. همه‌ی این‌ها به‌صورت خودکار با Signalها همگام می‌شوند —
+          هیچ کد دستی برای آپدیت DOM لازم نیست.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+
+    // ── تعریف State ──
+    const state = {
+      count: signal(0),
+      user: signal({ name: 'علی', age: 25 }),
+      isProcessing: signal(false),
+    };
+
+    // ── ثبت Action ها ──
+    Zen.action('increment', ({ state }) => {
+      state.count.set(state.count.get() + 1);
+    });
+
+    Zen.action('decrement', ({ state }) => {
+      state.count.set(state.count.get() - 1);
+    });
+
+    Zen.action('toggleProcessing', ({ state }) => {
+      state.isProcessing.set(!state.isProcessing.get());
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+  </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — روتر SPA</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    /* nav */
+    .nav { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .nav a { color: var(--text-secondary); cursor: pointer; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 0.88rem; transition: all 0.15s; font-family: inherit; }
+    .nav a:hover { background: var(--accent); color: white; }
+    .route-info { padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px; font-size: 0.82rem; font-family: ui-monospace, monospace; color: var(--text-secondary); direction: ltr; text-align: left; }
+    .route-info strong { color: var(--accent-light); }
+    /* the zen-router outlet area is styled by .card below to match the dark UI */
+    .router-outlet { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; min-height: 200px; backdrop-filter: blur(10px); }
+    .router-outlet h2 { font-size: 1.3rem; margin-bottom: 12px; color: var(--accent-light); }
+    .router-outlet h3 { font-size: 1.05rem; margin: 16px 0 8px; color: var(--accent-light); }
+    .router-outlet p { color: var(--text-primary); margin-bottom: 10px; }
+    .router-outlet ul { margin: 8px 1.5em; color: var(--text-secondary); }
+    .router-outlet a { color: var(--accent-light); cursor: pointer; }
+    .router-outlet code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    /* loading/error states inside the outlet */
+    .zen-router-loading { color: var(--text-secondary); padding: 32px; text-align: center; font-size: 0.9rem; }
+    .zen-router-error { color: var(--danger); padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; }
+    .loading { color: var(--text-secondary); padding: 16px; text-align: center; }
+    .error { color: var(--danger); padding: 16px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; }
+    .user-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .user-card .meta { color: var(--text-secondary); font-size: 0.85rem; }
+    .user-card a { color: var(--accent-light); cursor: pointer; text-decoration: none; font-size: 0.85rem; }
+    .user-card a:hover { text-decoration: underline; }
+    .user-detail-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .user-detail-row:last-child { border-bottom: none; }
+    .user-detail-row .label { color: var(--text-secondary); font-size: 0.85rem; min-width: 100px; }
+    .user-detail-row .value { color: var(--text-primary); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🛣️ <span class="gradient">روتر SPA</span></h1>
+    <p class="subtitle">مسیریابی SPA با zen-link و zen-route — lazy loading، prefetch روی hover، و route params</p>
+    <div class="badges">
+      <span class="badge">zen-link</span>
+      <span class="badge">zen-route</span>
+      <span class="badge">lazy-loading</span>
+      <span class="badge">prefetch</span>
+    </div>
+
+    <div id="app">
+      <!-- Route info bar -->
+      <div class="route-info">
+        <strong>$route.path</strong> = "<span zen-text="$route.path"></span>"
+        <span zen-if="$route.params.id">  ·  <strong>$route.params.id</strong> = "<span zen-text="$route.params.id"></span>"</span>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="nav">
+        <a zen-link="/">خانه</a>
+        <a zen-link="/about">درباره</a>
+        <a zen-link="/users">کاربران</a>
+        <a zen-link="/users/1">کاربر ۱</a>
+        <a zen-link="/users/2">کاربر ۲</a>
+        <a zen-link="/users/3">کاربر ۳</a>
+        <a zen-link="/nonexistent">صفحه ناموجود</a>
+      </nav>
+
+      <!-- Route outlet -->
+      <div class="router-outlet">
+        <zen-router>
+          <zen-route path="/"        src="/demos/router/pages/home.html"></zen-route>
+          <zen-route path="/about"   src="/demos/router/pages/about.html"></zen-route>
+          <zen-route path="/users"   src="/demos/router/pages/users.html"></zen-route>
+          <zen-route path="/users/:id" src="/demos/router/pages/user.html"></zen-route>
+          <zen-route path="**"       src="/demos/router/pages/404.html"></zen-route>
+        </zen-router>
+      </div>
+
+      <!-- Tip card -->
+      <div class="card" style="margin-top: 16px;">
+        <h2>💡 نکات</h2>
+        <ul style="margin: 0 1.5em; color: var(--text-secondary); font-size: 0.88rem;">
+          <li>با کلیک روی لینک‌ها، URL عوض می‌شود اما صفحه رفرش نمی‌شود (pushState).</li>
+          <li>صفحات به‌صورت <strong>lazy</strong> از <code>/pages/</code> لود می‌شوند و در حافظه cache می‌شوند.</li>
+          <li>روی هر لینک <strong>hover</strong> کنید تا صفحه‌اش پیش‌فرچ (prefetch) شود.</li>
+          <li>در صفحه‌ی کاربر، <code>zen-fetch</code> از <code>api/users/&lt;id&gt;.json</code> داده می‌گیرد.</li>
+          <li><code>$route.params.id</code> در Expressionها قابل دسترسی است.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { Zen, routeSignal, findMatchingRoute } from '@zenith/runtime';
+
+    Zen.start(document.getElementById('app'), {});
+
+    // ── اگر مسیر فعلی (URL pathname) با هیچ route ای تطبیق نکرد،
+    //    به‌صورت خودکار به "/" ناوبری کن تا صفحه‌ی اصلی نمایش داده شود.
+    //    این برای زمانی است که دمو از یک subpath (مثل /demos/router/index.html) سرو می‌شود.
+    const routes = [
+      { path: '/' },
+      { path: '/about' },
+      { path: '/users' },
+      { path: '/users/:id' },
+    ];
+    const initialPath = routeSignal.get().path;
+    if (!findMatchingRoute(routes, initialPath)) {
+      // دمو از subpath (مثل /demos/router/index.html) سرو می‌شود؛
+      // چون هیچ route ای با آن تطبیق نمی‌کند، به "/" ناوبری می‌کنیم تا صفحه‌ی اصلی نمایش داده شود.
+      Zen.navigate('/');
+    }
+
+    console.log('💡 Zenith SPA Router ready.');
+    console.log('   1. با کلیک روی لینک‌ها، URL عوض می‌شود اما صفحه رفرش نمی‌شود.');
+    console.log('   2. صفحات به‌صورت lazy از /pages/ لود می‌شوند.');
+    console.log('   3. در صفحه‌ی کاربر، zen-fetch از api/users/<id> داده می‌گیرد.');
+    console.log('   4. $route.params.id در Expressionها قابل دسترسی است.');
+    console.log('   5. hover روی zen-link، صفحه را prefetch می‌کند.');
+  </script>
+</body>
+</html>

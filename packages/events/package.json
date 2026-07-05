@@ -1,0 +1,49 @@
+{
+  "name": "@zenith/events",
+  "version": "1.4.0",
+  "description": "Zenith framework — Event Delegation engine (Phase 4). A single delegated listener per event type on document, with modifier parsing (prevent, stop, enter, escape, ...).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/events-test.ts"
+  },
+  "keywords": [
+    "zenith",
+    "events",
+    "delegation",
+    "modifiers",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zenith/actions": "1.0.0",
+    "@zenith/router": "1.0.0",
+    "@zenith/scheduler": "1.0.0",
+    "@zenith/expressions": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "jsdom": "^25.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

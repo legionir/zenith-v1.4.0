@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Form Validation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    input, select, textarea { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    input.invalid, select.invalid { border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+    input.valid, select.valid { border-color: var(--success); background: rgba(16, 185, 129, 0.05); }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 4px; }
+    .field .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
+    .field-error { color: var(--danger); font-size: 0.78rem; margin-top: 4px; display: block; }
+    .field-ok { color: var(--success); font-size: 0.78rem; margin-top: 4px; display: block; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 220px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    .stat.success strong { color: var(--success); }
+    .stat.danger strong { color: var(--danger); }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .rules-pill { display: inline-block; padding: 2px 8px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 0.72rem; color: var(--text-secondary); font-family: ui-monospace, monospace; direction: ltr; margin: 1px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>📝 <span class="gradient">Form Validation</span></h1>
+    <p class="subtitle">اعتبارسنجی Sync/Async، Cross-field، Rules از پیش ساخته‌شده — با FormStore API</p>
+    <div class="badges">
+      <span class="badge">FormStore</span>
+      <span class="badge">required</span>
+      <span class="badge">email</span>
+      <span class="badge">min/max</span>
+      <span class="badge">equalsField</span>
+      <span class="badge">async-validation</span>
+      <span class="badge">live-feedback</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── Status bar ──── -->
+      <div class="card">
+        <h2>📊 وضعیت زنده‌ی فرم</h2>
+        <div class="row" style="font-size: 0.85rem;">
+          <span class="stat" zen-bind:class="{ success: $form.valid, danger: !$form.valid }">
+            valid: <strong zen-text="$form.valid"></strong>
+          </span>
+          <span class="stat">dirty: <strong zen-text="$form.dirty"></strong></span>
+          <span class="stat">submitting: <strong zen-text="$form.submitting"></strong></span>
+          <span class="stat">submitted: <strong zen-text="$form.submitted"></strong></span>
+          <span class="stat" zen-if="$form.formError">formError: <strong zen-text="$form.formError"></strong></span>
+        </div>
+      </div>
+
+      <!-- ──── ۱. Basic form ──── -->
+      <div class="card">
+        <h2>۱. فرم ثبت‌نام — اعتبارسنجی زنده</h2>
+        <p class="desc">
+          فرم زیر با <code>FormStore</code> ساخته شده. هر فیلد rules خاص خودش را دارد.
+          با تایپ کردن، validation همزمان اجرا می‌شود؛ خطا فقط وقتی نمایش داده می‌شود که فیلد <code>touched</code> باشد.
+        </p>
+
+        <form zen-action:submit.prevent="onSubmit">
+          <div class="form-grid">
+            <!-- نام -->
+            <div class="field">
+              <label>نام *</label>
+              <input type="text"
+                     name="name"
+                     placeholder="مثلا علی"
+                     zen-action:input="onNameInput"
+                     zen-bind:class="{ invalid: !$form.fields.name.validation.valid && $form.fields.name.touched, valid: $form.fields.name.validation.valid && $form.fields.name.touched }">
+              <span class="field-error" zen-if="!$form.fields.name.validation.valid && $form.fields.name.touched" zen-text="$form.fields.name.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">min:3</span><span class="rules-pill">max:30</span></div>
+            </div>
+
+            <!-- ایمیل -->
+            <div class="field">
+              <label>ایمیل *</label>
+              <input type="email"
+                     name="email"
+                     placeholder="example@domain.com"
+                     zen-action:input="onEmailInput"
+                     zen-bind:class="{ invalid: !$form.fields.email.validation.valid && $form.fields.email.touched, valid: $form.fields.email.validation.valid && $form.fields.email.touched }">
+              <span class="field-error" zen-if="!$form.fields.email.validation.valid && $form.fields.email.touched" zen-text="$form.fields.email.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">email</span></div>
+            </div>
+
+            <!-- سن -->
+            <div class="field">
+              <label>سن *</label>
+              <input type="number"
+                     name="age"
+                     placeholder="18"
+                     zen-action:input="onAgeInput"
+                     zen-bind:class="{ invalid: !$form.fields.age.validation.valid && $form.fields.age.touched, valid: $form.fields.age.validation.valid && $form.fields.age.touched }">
+              <span class="field-error" zen-if="!$form.fields.age.validation.valid && $form.fields.age.touched" zen-text="$form.fields.age.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">number</span><span class="rules-pill">min:18</span><span class="rules-pill">max:120</span></div>
+            </div>
+
+            <!-- وب‌سایت (اختیاری) -->
+            <div class="field">
+              <label>وب‌سایت (اختیاری)</label>
+              <input type="text"
+                     name="website"
+                     placeholder="https://example.com"
+                     zen-action:input="onWebsiteInput"
+                     zen-bind:class="{ invalid: !$form.fields.website.validation.valid && $form.fields.website.touched, valid: $form.fields.website.validation.valid && $form.fields.website.touched }">
+              <span class="field-error" zen-if="!$form.fields.website.validation.valid && $form.fields.website.touched" zen-text="$form.fields.website.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">url</span></div>
+            </div>
+
+            <!-- رمز عبور -->
+            <div class="field">
+              <label>رمز عبور *</label>
+              <input type="password"
+                     name="password"
+                     placeholder="حداقل ۸ کاراکتر"
+                     zen-action:input="onPasswordInput"
+                     zen-bind:class="{ invalid: !$form.fields.password.validation.valid && $form.fields.password.touched, valid: $form.fields.password.validation.valid && $form.fields.password.touched }">
+              <span class="field-error" zen-if="!$form.fields.password.validation.valid && $form.fields.password.touched" zen-text="$form.fields.password.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">min:8</span></div>
+            </div>
+
+            <!-- تکرار رمز عبور (Cross-field) -->
+            <div class="field">
+              <label>تکرار رمز عبور *</label>
+              <input type="password"
+                     name="passwordConfirm"
+                     placeholder="مثل رمز قبلی"
+                     zen-action:input="onPasswordConfirmInput"
+                     zen-bind:class="{ invalid: !$form.fields.passwordConfirm.validation.valid && $form.fields.passwordConfirm.touched, valid: $form.fields.passwordConfirm.validation.valid && $form.fields.passwordConfirm.touched }">
+              <span class="field-error" zen-if="!$form.fields.passwordConfirm.validation.valid && $form.fields.passwordConfirm.touched" zen-text="$form.fields.passwordConfirm.validation.error"></span>
+              <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">equalsField:password</span></div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: 16px;">
+            <button type="submit" class="primary" zen-bind:disabled="!$form.valid">ثبت‌نام</button>
+            <button type="button" zen-action:click="onReset">ریست فرم</button>
+            <button type="button" zen-action:click="onFillSample">پر کردن نمونه</button>
+          </div>
+        </form>
+        <pre>const form = new FormStore({
+  name:             { initial: '', rules: 'required,min:3,max:30' },
+  email:            { initial: '', rules: 'required,email' },
+  age:              { initial: '', rules: 'required,number,min:18,max:120' },
+  website:          { initial: '', rules: 'url' },
+  password:         { initial: '', rules: 'required,min:8' },
+  passwordConfirm:  { initial: '', rules: 'required,equalsField:password' },
+});
+
+// در State قرار می‌دهیم تا در Expression Engine در دسترس باشد:
+const state = { form: form.signal };</pre>
+      </div>
+
+      <!-- ──── ۲. Cross-field validation explanation ──── -->
+      <div class="card">
+        <h2>۲. Cross-field Validation — <code>equalsField</code></h2>
+        <p class="desc">
+          فیلد «تکرار رمز عبور» با rule <code>equalsField:password</code> چک می‌کند که با «رمز عبور» برابر باشد.
+          وقتی رمز عبور را تغییر می‌دهید، FormStore به‌صورت خودکار passwordConfirm را دوباره اعتبارسنجی می‌کند (داخل <code>_updateField</code>).
+        </p>
+        <p style="padding: 12px; background: rgba(99, 102, 241, 0.06); border-radius: 8px; font-size: 0.88rem;">
+          امتحان کنید: رمز عبور را وارد کنید، تکرار را مطابقت دهید، سپس رمز عبور را تغییر دهید — خطای «مقادیر مطابقت ندارند» روی تکرار ظاهر می‌شود.
+        </p>
+        <pre>// در Action handler:
+Zen.action('onPasswordInput', ({ state, event }) =&gt; {
+  state.form.setValueAndTouch('password', event.target.value);
+});
+// FormStore خودش cross-field را re-validate می‌کند.</pre>
+      </div>
+
+      <!-- ───ـ ۳. Submit handler ──── -->
+      <div class="card">
+        <h2>۳. Submit Handler — فقط وقتی معتبر</h2>
+        <p class="desc">
+          متد <code>form.submit(handler)</code> اول همه فیلدها را touch می‌کند، sync validation را اجرا می‌کند، سپس async validation را.
+          اگر همه معتبر باشند، handler را با values فراخوانی می‌کند. در غیر این صورت، handler اجرا نمی‌شود و خطاها نمایش داده می‌شوند.
+        </p>
+        <pre>const ok = await form.submit(async (values) =&gt; {
+  console.log('Form submitted:', values);
+  // فراخوانی API...
+  await api.register(values);
+});
+if (!ok) console.log('Form invalid — submission skipped.');</pre>
+      </div>
+
+      <!-- ──── ۴. Async validation ──── -->
+      <div class="card">
+        <h2>۴. Async Validation — بررسی نام کاربری یکتا</h2>
+        <p class="desc">
+          با <code>defineAsyncRule</code> می‌توان rule های async تعریف کرد (مثل بررسی uniqueness از سرور).
+          FormStore این rule ها را با debounce 300ms اجرا می‌کند. در حین اجرا، <code>validating</code> فیلد true می‌شود.
+        </p>
+        <div class="field">
+          <label>نام کاربری (async — یکتایی بررسی می‌شود)</label>
+          <input type="text"
+                 name="username"
+                 placeholder="ali / mohammad / reza (این‌ها قبلاً گرفته شده‌اند)"
+                 zen-action:input="onUsernameInput"
+                 zen-bind:class="{ invalid: !$form.fields.username.validation.valid && $form.fields.username.touched, valid: $form.fields.username.validation.valid && $form.fields.username.touched }">
+          <span class="field-error" zen-if="!$form.fields.username.validation.valid && $form.fields.username.touched" zen-text="$form.fields.username.validation.error"></span>
+          <span class="field-ok" zen-if="$form.fields.username.validating">⏳ در حال بررسی...</span>
+          <div class="hint">rules: <span class="rules-pill">required</span><span class="rules-pill">min:3</span><span class="rules-pill">usernameUnique (async)</span></div>
+        </div>
+        <pre>defineAsyncRule('usernameUnique', async (value) =&gt; {
+  // شبیه‌سازی call به سرور
+  await new Promise(r =&gt; setTimeout(r, 400));
+  const taken = ['ali', 'mohammad', 'reza', 'admin'];
+  // مقایسه‌ی case-insensitive:
+  const lower = String(value).toLowerCase();
+  return taken.some(t =&gt; t.toLowerCase() === lower)
+    ? { valid: false, error: 'این نام کاربری قبلاً گرفته شده', rule: 'usernameUnique' }
+    : { valid: true, error: null };
+});</pre>
+      </div>
+
+      <!-- ──── ۵. Validation rules reference ──── -->
+      <div class="card">
+        <h2>۵. مرجع Rule های Built-in</h2>
+        <p class="desc">این rule ها به‌صورت پیش‌فرض در دسترس هستند. با ویرگول از هم جدا می‌شوند: <code>"required,email,min:8"</code>.</p>
+        <div class="row" style="font-size: 0.82rem;">
+          <span class="rules-pill">required</span>
+          <span class="rules-pill">email</span>
+          <span class="rules-pill">url</span>
+          <span class="rules-pill">min:N</span>
+          <span class="rules-pill">max:N</span>
+          <span class="rules-pill">pattern:regex</span>
+          <span class="rules-pill">equals:value</span>
+          <span class="rules-pill">equalsField:name</span>
+          <span class="rules-pill">number</span>
+          <span class="rules-pill">integer</span>
+          <span class="rules-pill">positive</span>
+          <span class="rules-pill">negative</span>
+          <span class="rules-pill">date</span>
+          <span class="rules-pill">phone</span>
+          <span class="rules-pill">creditCard</span>
+        </div>
+        <p class="desc" style="margin-top: 10px;">
+          برای Rule های سفارشی: <code>defineRule('myRule', (value, allValues, param) =&gt; ({valid, error, rule}))</code>.
+          برای Rule های async: <code>defineAsyncRule('myAsyncRule', async (value, allValues, param) =&gt; ...)</code>.
+        </p>
+      </div>
+
+      <!-- ──── ۶. Form values & errors live view ──── -->
+      <div class="card">
+        <h2>۶. Values و Errors به‌صورت زنده</h2>
+        <p class="desc">در حین تایپ، مقادیر و خطاهای فرم را ببینید. این JSON از <code>form.signal.get()</code> خوانده می‌شود.</p>
+        <pre id="formDump" style="min-height: 120px;"></pre>
+      </div>
+
+      <!-- ──── Log ──── -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>FormStore</code> با <code>signal</code> یکپارچه است — تغییرات به‌صورت reactive در DOM منعکس می‌شوند.
+          Rule های built-in، custom rules، async rules و cross-field validation همگی پشتیبانی می‌شوند.
+          متد <code>submit()</code> فقط در صورت معتبر بودن فرم، handler را اجرا می‌کند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { FormStore, defineAsyncRule } from '@zenith/form';
+
+    // ── تعریف async rule برای username یکتا ──
+    // شبیه‌سازی call به سرور که 400ms طول می‌کشد.
+    defineAsyncRule('usernameUnique', async (value) => {
+      await new Promise(r => setTimeout(r, 400));
+      const taken = ['ali', 'mohammad', 'reza', 'admin', 'sara'];
+      // BUG FIX (v0.4.0): مقایسه‌ی case-insensitive — 'Ali' و 'ali' یکسان محسوب می‌شوند.
+      const lower = String(value).toLowerCase();
+      return taken.some(t => t.toLowerCase() === lower)
+        ? { valid: false, error: 'این نام کاربری قبلاً گرفته شده', rule: 'usernameUnique' }
+        : { valid: true, error: null };
+    });
+
+    // ── ساخت FormStore ──
+    const form = new FormStore({
+      name:             { initial: '', rules: 'required,min:3,max:30' },
+      email:            { initial: '', rules: 'required,email' },
+      age:              { initial: '', rules: 'required,number,min:18,max:120' },
+      website:          { initial: '', rules: 'url' },
+      password:         { initial: '', rules: 'required,min:8' },
+      passwordConfirm:  { initial: '', rules: 'required,equalsField:password' },
+      username:         { initial: '', rules: 'required,min:3,usernameUnique' },
+    });
+
+    // ── State: فقط signal فرم ──
+    // form.signal یک Signal است که در State قرار می‌گیرد.
+    // در Expression Engine با $form در دسترس است.
+    const state = { form: form.signal };
+
+    // ── Log زنده ──
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 80) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ── Action ها برای هر فیلد ──
+    // هر input یک action جدا دارد تا نام فیلد مشخص باشد.
+    // این الگو از zen-model مستقیم استفاده نمی‌کند چون می‌خواهیم
+    // validation همزمان با تایپ اجرا شود.
+    // نکته: state.form یک Signal است (form.signal) — متدهای FormStore
+    // روی خود form تعریف شده‌اند، نه روی signal.
+    function bindFieldInput(name, type = 'text') {
+      Zen.action(`on${name[0].toUpperCase() + name.slice(1)}Input`, ({ event }) => {
+        let value = event.target.value;
+        // برای input از نوع number، مقدار را به Number تبدیل می‌کنیم
+        // تا rule های min/max به‌صورت عددی عمل کنند (نه به‌صورت طول رشته).
+        if (type === 'number') {
+          value = value === '' ? '' : Number(value);
+        }
+        form.setValueAndTouch(name, value);
+      });
+    }
+    bindFieldInput('name');
+    bindFieldInput('email');
+    bindFieldInput('age', 'number');
+    bindFieldInput('website');
+    bindFieldInput('password');
+    bindFieldInput('passwordConfirm');
+    bindFieldInput('username');
+
+    // ── Submit handler ──
+    Zen.action('onSubmit', async ({ state }) => {
+      logEvent('submit', 'form.submit() called — running validation...');
+      const ok = await form.submit(async (values) => {
+        logEvent('submit:handler', `values = ${JSON.stringify(values)}`);
+        // شبیه‌سازی API call
+        await new Promise(r => setTimeout(r, 500));
+        logEvent('submit:handler', 'API call succeeded ✓');
+      });
+      if (ok) {
+        logEvent('submit', '✅ form submitted successfully');
+      } else {
+        logEvent('submit', '❌ form invalid — submission skipped');
+      }
+    });
+
+    // ── Reset ──
+    Zen.action('onReset', ({ state, event }) => {
+      form.reset();
+      // پاک کردن input های HTML (چون zen-model استفاده نکردیم)
+      const formEl = event.target.closest('form');
+      if (formEl) formEl.reset();
+      logEvent('reset', 'form.reset() + DOM inputs cleared');
+    });
+
+    // ── پر کردن نمونه ──
+    Zen.action('onFillSample', ({ event }) => {
+      // age به‌صورت number (نه string) تا rule های min/max عددی کار کنند.
+      const sample = {
+        name: 'علی رضایی',
+        email: 'ali@example.com',
+        age: 28,
+        website: 'https://ali.example.com',
+        password: 'securePass123',
+        passwordConfirm: 'securePass123',
+        username: 'ali_rezaei',
+      };
+      for (const [k, v] of Object.entries(sample)) {
+        form.setValueAndTouch(k, v);
+      }
+      // آپدیت کردن DOM inputs
+      const formEl = event.target.closest('form');
+      if (formEl) {
+        for (const [k, v] of Object.entries(sample)) {
+          const input = formEl.querySelector(`input[name="${k}"], [data-field="${k}"]`);
+          if (input) input.value = v;
+        }
+      }
+      logEvent('fillSample', 'sample data filled');
+    });
+
+    // ── Effect: dump زنده‌ی فرم ──
+    // این effect وابسته به form.signal است و هر بار که فرم تغییر می‌کند، re-run می‌شود.
+    const formDumpEl = document.getElementById('formDump');
+    effect(() => {
+      const s = form.signal.get();
+      const dump = {
+        valid: s.valid,
+        dirty: s.dirty,
+        submitting: s.submitting,
+        fields: {},
+      };
+      for (const [k, f] of Object.entries(s.fields)) {
+        dump.fields[k] = {
+          value: f.value,
+          valid: f.validation.valid,
+          error: f.validation.error,
+          touched: f.touched,
+          dirty: f.dirty,
+          validating: f.validating,
+        };
+      }
+      formDumpEl.textContent = JSON.stringify(dump, null, 2);
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Zenith Form demo started. 7 fields registered.');
+  </script>
+</body>
+</html>

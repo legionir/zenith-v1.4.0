@@ -1,0 +1,27 @@
+{
+  "name": "@zenith/transition",
+  "version": "1.4.0",
+  "description": "Zenith framework — Transition/Animation system (Phase 11). Enter/leave animations for zen-if and zen-for with CSS class hooks.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["zenith", "transition", "animation", "css", "framework"],
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

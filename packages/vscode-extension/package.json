@@ -1,0 +1,107 @@
+{
+  "name": "zenith-vscode",
+  "displayName": "Zenith Framework",
+  "description": "Language support for Zenith HTML-First Framework — directives, expressions, autocomplete, validation.",
+  "version": "1.4.0",
+  "publisher": "zenith",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
+  "icon": "icons/icon.png",
+  "activationEvents": [
+    "onLanguage:html",
+    "onLanguage:zenith-html",
+    "onCommand:zenith.createComponent",
+    "onCommand:zenith.createPage"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "zenith-html",
+        "aliases": [
+          "Zenith HTML"
+        ],
+        "extensions": [
+          ".html"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zenith-html",
+        "scopeName": "text.html.zenith",
+        "path": "./syntaxes/zenith-html.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "html",
+        "path": "./snippets/zenith-snippets.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "zenith.createComponent",
+        "title": "Zenith: Create Component"
+      },
+      {
+        "command": "zenith.createPage",
+        "title": "Zenith: Create Page"
+      },
+      {
+        "command": "zenith.createAction",
+        "title": "Zenith: Create Action"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "zenith.createComponent"
+        },
+        {
+          "command": "zenith.createPage"
+        },
+        {
+          "command": "zenith.createAction"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Zenith",
+      "properties": {
+        "zenith.expressionPrefix": {
+          "type": "string",
+          "default": "$",
+          "description": "Prefix for state variables in expressions (default: $)"
+        },
+        "zenith.validateExpressions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate expression syntax in zen-* attributes"
+        },
+        "zenith.enableAutocomplete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable autocomplete for zen-* directives"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  }
+}

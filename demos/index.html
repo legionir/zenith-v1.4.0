@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — فهرست دموها</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 24px; line-height: 1.7;
+    }
+    body::before {
+      content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.12), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.10), transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+    .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+    a.back-home {
+      color: var(--text-secondary); text-decoration: none; display: inline-block;
+      margin-bottom: 20px; font-size: 0.9rem; padding: 6px 14px;
+      border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s;
+    }
+    a.back-home:hover { color: var(--accent-light); border-color: var(--accent); background: rgba(99,102,241,0.08); }
+    h1 { font-size: 2.2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 28px; font-size: 0.95rem; }
+    .demos-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;
+    }
+    .demo-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 22px; text-decoration: none; color: inherit; transition: all 0.3s;
+      position: relative; overflow: hidden; backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .demo-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--gradient); opacity: 0; transition: opacity 0.3s;
+    }
+    .demo-card:hover {
+      border-color: var(--accent); transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(99, 102, 241, 0.2);
+    }
+    .demo-card:hover::before { opacity: 1; }
+    .demo-card .icon { font-size: 1.8rem; margin-bottom: 4px; }
+    .demo-card h4 { font-size: 1.08rem; font-weight: 700; margin-bottom: 4px; }
+    .demo-card p { color: var(--text-secondary); font-size: 0.85rem; flex-grow: 1; }
+    .demo-card .badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+    .demo-card .badges span {
+      padding: 2px 8px; background: rgba(99, 102, 241, 0.12); color: var(--accent-light);
+      border-radius: 4px; font-size: 0.72rem; font-family: ui-monospace, monospace; direction: ltr;
+    }
+    .footer {
+      margin-top: 40px; padding: 20px 0; border-top: 1px solid var(--border);
+      text-align: center; color: var(--text-muted); font-size: 0.82rem;
+    }
+    .footer a { color: var(--accent-light); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/index.html" class="back-home">→ بازگشت به صفحه اصلی</a>
+    <h1>🎮 <span class="gradient">فهرست دموها</span></h1>
+    <p class="subtitle">۲۰+ دموی تعاملی — هرکدام یک قابلیت یا پکیج را نشان می‌دهد</p>
+
+    <div class="demos-grid">
+      <a href="state/index.html" class="demo-card">
+        <div class="icon">⚡</div>
+        <h4>Signal & Reactivity</h4>
+        <p>Signal، effect، computed. قلب reactivity فریم‌ورک.</p>
+        <div class="badges"><span>state</span><span>effect</span><span>computed</span></div>
+      </a>
+      <a href="expressions/index.html" class="demo-card">
+        <div class="icon">🧮</div>
+        <h4>Expression Engine</h4>
+        <p>Lexer/Parser/Evaluator بدون eval. template literals، arrow functions.</p>
+        <div class="badges"><span>expressions</span><span>no-eval</span></div>
+      </a>
+      <a href="runtime/index.html" class="demo-card">
+        <div class="icon">🎨</div>
+        <h4>DOM Directives</h4>
+        <p>zen-text, zen-if, zen-for, zen-model, zen-bind در یک صفحه.</p>
+        <div class="badges"><span>runtime</span><span>directives</span></div>
+      </a>
+      <a href="scheduler/index.html" class="demo-card">
+        <div class="icon">📦</div>
+        <h4>Scheduler & Batching</h4>
+        <p>automatic batching، priority queue (urgent/normal/idle).</p>
+        <div class="badges"><span>scheduler</span><span>batching</span></div>
+      </a>
+      <a href="events/index.html" class="demo-card">
+        <div class="icon">🖱️</div>
+        <h4>Events & Modifiers</h4>
+        <p>Event delegation با prevent, stop, enter, shift, ctrl, self.</p>
+        <div class="badges"><span>events</span><span>delegation</span></div>
+      </a>
+      <a href="components/index.html" class="demo-card">
+        <div class="icon">🧩</div>
+        <h4>Components</h4>
+        <p>Light DOM components با Props و Slots.</p>
+        <div class="badges"><span>components</span><span>slots</span></div>
+      </a>
+      <a href="router/index.html" class="demo-card">
+        <div class="icon">🛣️</div>
+        <h4>Router (SPA)</h4>
+        <p>SPA routing با lazy loading، prefetch، route cache.</p>
+        <div class="badges"><span>router</span><span>lazy</span><span>prefetch</span></div>
+      </a>
+      <a href="security/index.html" class="demo-card">
+        <div class="icon">🔒</div>
+        <h4>Security & Sanitizer</h4>
+        <p>HTML sanitizer با ۱۴ تگ ممنوع، XSS attack prevention.</p>
+        <div class="badges"><span>security</span><span>XSS</span></div>
+      </a>
+      <a href="i18n/index.html" class="demo-card">
+        <div class="icon">🌐</div>
+        <h4>i18n & Persian</h4>
+        <p>اعداد فارسی، تاریخ شمسی، فرمت قیمت تومان.</p>
+        <div class="badges"><span>i18n</span><span>Jalali</span></div>
+      </a>
+      <a href="form/index.html" class="demo-card">
+        <div class="icon">📝</div>
+        <h4>Form Validation</h4>
+        <p>Sync/async validation، cross-field، schema adapter.</p>
+        <div class="badges"><span>form</span><span>validation</span></div>
+      </a>
+      <a href="form-v2/index.html" class="demo-card">
+        <div class="icon">📝</div>
+        <h4>Form Validation v2</h4>
+        <p>Async validators، nested validation، lifecycle hooks.</p>
+        <div class="badges"><span>form-v2</span><span>async</span><span>lifecycle</span></div>
+      </a>
+      <a href="store/index.html" class="demo-card">
+        <div class="icon">🏪</div>
+        <h4>Store (Pinia-like)</h4>
+        <p>Global stores با deep reactivity، getters، actions.</p>
+        <div class="badges"><span>store</span><span>deep-proxy</span></div>
+      </a>
+      <a href="auth/index.html" class="demo-card">
+        <div class="icon">🔐</div>
+        <h4>Auth Flow</h4>
+        <p>Login، token refresh، persistence، route guards.</p>
+        <div class="badges"><span>auth</span><span>JWT</span></div>
+      </a>
+      <a href="permission/index.html" class="demo-card">
+        <div class="icon">👥</div>
+        <h4>Permission (RBAC)</h4>
+        <p>Role-based access، super-admin، any:/all: expressions.</p>
+        <div class="badges"><span>permission</span><span>RBAC</span></div>
+      </a>
+      <a href="resource/index.html" class="demo-card">
+        <div class="icon">💾</div>
+        <h4>Resource (CRUD)</h4>
+        <p>Cache، retry، optimistic updates، SWR، mutation queue.</p>
+        <div class="badges"><span>resource</span><span>SWR</span></div>
+      </a>
+      <a href="virtual-list/index.html" class="demo-card">
+        <div class="icon">📊</div>
+        <h4>Virtual List</h4>
+        <p>10000+ آیتم با static و dynamic heights (ResizeObserver).</p>
+        <div class="badges"><span>virtual-list</span><span>10K items</span></div>
+      </a>
+      <a href="transition/index.html" class="demo-card">
+        <div class="icon">✨</div>
+        <h4>Transitions</h4>
+        <p>CSS transitions هنگام enter/leave با fallback.</p>
+        <div class="badges"><span>transition</span><span>CSS</span></div>
+      </a>
+      <a href="error-boundary/index.html" class="demo-card">
+        <div class="icon">🛡️</div>
+        <h4>Error Boundary</h4>
+        <p>خطاهای runtime را catch می‌کند و fallback رندر می‌کند.</p>
+        <div class="badges"><span>error-boundary</span><span>fallback</span></div>
+      </a>
+      <a href="suspense/index.html" class="demo-card">
+        <div class="icon">🔄</div>
+        <h4>Suspense</h4>
+        <p>Loading/error/timeout با fallback slot — HTML-First.</p>
+        <div class="badges"><span>suspense</span><span>loading</span></div>
+      </a>
+      <a href="integration/index.html" class="demo-card">
+        <div class="icon">🔗</div>
+        <h4>Integration</h4>
+        <p>دموی جامع با ترکیب چند پکیج در یک سناریوی واقعی.</p>
+        <div class="badges"><span>integration</span><span>full-stack</span></div>
+      </a>
+    </div>
+
+    <div class="footer">
+      <p>Zenith Framework v7.0 — <a href="/index.html">بازگشت به صفحه اصلی</a></p>
+    </div>
+  </div>
+</body>
+</html>

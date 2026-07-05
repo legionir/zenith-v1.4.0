@@ -1,0 +1,41 @@
+{
+  "name": "@zenith/scheduler",
+  "version": "1.4.0",
+  "description": "Zenith framework — Microtask-based Effect Scheduler (Phase 7). Automatically batches multiple Signal updates into a single DOM update via queueMicrotask.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/test-priority.ts"
+  },
+  "keywords": [
+    "zenith",
+    "scheduler",
+    "batch",
+    "microtask",
+    "performance",
+    "framework"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
