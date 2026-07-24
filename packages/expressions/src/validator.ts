@@ -24,7 +24,7 @@ import { FORBIDDEN_PROPERTIES } from './security-constants';
 /**
  * لیست Identifierهای ممنوعه.
  *
- * اگر کاربری در Expression بنویسد `window.location.href` یا `eval(...)`،
+ * اگر کاربری در Expression بنویسد `window.location.href`، `eval(...)`، یا `Function(...)`،
  * این لیست بلاکش می‌کند.
  *
  * نکته‌ی امنیتی مهم (v0.4.0 — fuzzing finding):
@@ -98,10 +98,10 @@ export function validate(node: ASTNode): void {
     // ───────────────────────────────────────────────
     case 'Identifier':
       if (FORBIDDEN_IDENTIFIERS.includes(node.name)) {
-        throw new Error(
-          `Security Alert: Access to '${node.name}' is forbidden. ` +
-            `This is a restricted global identifier.`,
-        );
+        const msg = node.name === 'eval' || node.name === 'Function'
+          ? `Security Alert: Dynamic code execution via '${node.name}' is strictly forbidden.`
+          : `Security Alert: Access to '${node.name}' is forbidden.`;
+        throw new Error(msg + ` This is a restricted global identifier.`);
       }
       break;
 

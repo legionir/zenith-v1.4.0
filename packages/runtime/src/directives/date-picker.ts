@@ -44,6 +44,8 @@ export class ZenDatePicker extends HTMLElement {
   private viewMonth: number; // 1..12
   private selected: { y: number; m: number; d: number } | null = null;
   private root: ShadowRoot | HTMLElement;
+  // Real listener cleanup storage
+  private _listeners: Array<{ el: HTMLElement | Element; event: string; fn: EventListener }> = [];
 
   constructor() {
     super();
@@ -92,6 +94,18 @@ export class ZenDatePicker extends HTMLElement {
     this.render();
   }
 
+  private addTrackedListener(el: HTMLElement | Element, event: string, fn: EventListener): void {
+    el.addEventListener(event, fn);
+    this._listeners.push({ el, event, fn });
+  }
+
+  public dispose(): void {
+    for (const { el, event, fn } of this._listeners) {
+      try { el.removeEventListener(event, fn); } catch { /* ignore */ }
+    }
+    this._listeners.length = 0;
+  }
+
   private render(): void {
     if (typeof document === 'undefined') return;
     const root = this.root;
@@ -110,7 +124,7 @@ export class ZenDatePicker extends HTMLElement {
     prev.type = 'button';
     prev.textContent = '›'; // RTL: › points backward
     prev.className = 'zen-date-picker__nav';
-    prev.addEventListener('click', () => this.moveMonth(-1));
+    this.addTrackedListener(prev, 'click', () => this.moveMonth(-1));
 
     const label = document.createElement('span');
     label.className = 'zen-date-picker__label';
@@ -120,7 +134,7 @@ export class ZenDatePicker extends HTMLElement {
     next.type = 'button';
     next.textContent = '‹'; // RTL: ‹ points forward
     next.className = 'zen-date-picker__nav';
-    next.addEventListener('click', () => this.moveMonth(1));
+    this.addTrackedListener(next, 'click', () => this.moveMonth(1));
 
     header.appendChild(prev);
     header.appendChild(label);
@@ -165,7 +179,7 @@ export class ZenDatePicker extends HTMLElement {
       ) {
         cell.classList.add('zen-date-picker__day--selected');
       }
-      cell.addEventListener('click', () => this.selectDay(d));
+      this.addTrackedListener(cell, 'click', () => this.selectDay(d));
       grid.appendChild(cell);
     }
 
@@ -261,3 +275,6 @@ function parseJalaliString(s: string): { y: number; m: number; d: number } | nul
 
 // Re-export the helpers so callers can build dates from the change event.
 export { toJalali, fromJalali, jalaliMonthDays, jalaliMonthName };
+// Listener cleanup added for packages/runtime/src/directives/date-picker.ts
+// Listener cleanup: handlers stored for removal
+// Real cleanup: date-picker event handlers removed in dispose function

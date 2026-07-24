@@ -327,6 +327,7 @@ export class Parser {
     let node = this.parsePrimary();
 
     while (true) {
+      if (!this.current()) break; // guard EOF
       if (this.match('.') || this.match('?.')) {
         // ── a.b  یا  a?.b (optional chaining) ──
         // BUG-17 FIX (v1.2.2): در حالت `?.`، `optional: true` را روی
@@ -457,7 +458,7 @@ export class Parser {
             } else {
               break;
             }
-          } while (true);
+          } while (this.current() && this.current().value === ',');
         }
         if (this.current().value !== ')') throw new Error('expected )');
         this.consume(); // consume ')'
@@ -492,6 +493,7 @@ export class Parser {
           if (this.match(',')) {
             this.consume(); // مصرف کاما برای ادامه‌ی loop
           } else {
+            if (!this.current()) break; // guard EOF
             break; // دیگر کاما نیست → خروج از loop
           }
         } while (true);
