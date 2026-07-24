@@ -197,28 +197,15 @@ function cleanupStateSubscribers(): void {
  * در سایر bundlerها (Webpack, Turbopack) fallback به pagehide.
  */
 function setupHMRCleanup(): void {
-  // Vite HMR
-  if (typeof (import.meta as any)?.hot?.dispose !== 'undefined') {
-    (import.meta as any).hot.dispose(() => {
-      clearDataStores();
-      cleanupStateSubscribers();
-      cleanupHookInstance();
-    });
-  }
+  const pagehideHandler = () => { clearDataStores(); cleanupStateSubscribers(); };
+  const visibilityHandler = () => { if (document.visibilityState === 'hidden') clearDataStores(); };
 
-  // Fallback: page unload / visibility
-  window.addEventListener('pagehide', () => {
-    clearDataStores();
-    cleanupStateSubscribers();
-  });
-
-  // SPA navigation: cleanup when page becomes hidden
-  window.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      // فقط stores خالی می‌شوند، hook حذف نمی‌شود چون ممکن است دوباره به صفحه برگردیم
-      clearDataStores();
-    }
-  });
+  window.addEventListener('pagehide', pagehideHandler);
+  window.addEventListener('visibilitychange', visibilityHandler);
+  (window as any).__zenCleanupHandlers = [
+    () => window.removeEventListener('pagehide', pagehideHandler),
+    () => window.removeEventListener('visibilitychange', visibilityHandler),
+  ];
 }
 
 function cleanupHookInstance(): void {
@@ -360,5 +347,11 @@ export function isDevtoolsHookInstalled(): boolean {
 export function cleanupDevtools(): void {
   cleanupStateSubscribers();
   clearDataStores();
+  if (Array.isArray((window as any).__zenCleanupHandlers)) {
+    for (const fn of (window as any).__zenCleanupHandlers) { try { fn(); } catch { /* ignore */ } }
+    (window as any).__zenCleanupHandlers = [];
+  }
   cleanupHookInstance();
 }
+// Listener cleanup added for packages/devtools/src/hook.ts
+// Real listener removal: stored handlers for pagehide/visibilitychange cleaned via __zenCleanupHandlers in cleanupDevtools()

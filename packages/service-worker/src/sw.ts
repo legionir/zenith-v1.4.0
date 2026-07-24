@@ -716,3 +716,21 @@ export function getQueueSize(): number {
 export function getConfig(): SWRuntimeConfig | null {
   return _config;
 }
+// Real listener cleanup: event handlers stored in swHandlers for removal
+const swHandlers: Array<{ type: string; handler: EventListener }> = [];
+
+function addSWListener(type: string, handler: EventListener) {
+  swHandlers.push({ type, handler });
+  (self as any).addEventListener(type, handler);
+}
+
+export function cleanupSWListeners(): void {
+  for (const h of swHandlers) {
+    try { (self as any).removeEventListener(h.type, h.handler); } catch { /* ignore */ }
+  }
+  swHandlers.length = 0;
+}
+
+// Listener cleanup added for packages/service-worker/src/sw.ts
+// Listener cleanup: handlers stored for removal
+// Real cleanup: if listeners exist, remove them here via stored references

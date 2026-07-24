@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد مدیریتی Zenith</title>
+</head>
+<body>
+  <header>
+    <h1>داشبورد مدیریتی</h1>
+    <nav>
+      <a zen-link="/">صفحه اصلی</a>
+      <a zen-link="/users">کاربران</a>
+      <a zen-link="/orders">سفارش‌ها</a>
+      <a zen-link="/stats">آمار</a>
+    </nav>
+    <div zen-if="$auth.user">
+      مدیر: <span zen-text="$auth.user.name"></span>
+      <button zen-action="authLogout">خروج</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="stats">
+      <h2>آمار سیستم</h2>
+      <div zen-resource="'/api/admin/stats'" zen-state="stats">
+        <div zen-if="$stats.loading">در حال بارگذاری...</div>
+        <div zen-if="$stats.error">خطا: <span zen-text="$stats.error"></span></div>
+        <div zen-if="!$stats.loading && !$stats.error">
+          <p>کاربران: <span zen-text="$stats.data.users"></span></p>
+          <p>سفارش‌ها: <span zen-text="$stats.data.orders"></span></p>
+          <p>درآمد: <span zen-text="$stats.data.revenue"></span> تومان</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="users">
+      <h2>مدیریت کاربران</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>ایمیل</th>
+            <th>نقش</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr zen-for="user in $users.data" zen-key="user.id">
+            <td zen-text="$user.name"></td>
+            <td zen-text="$user.email"></td>
+            <td zen-text="$user.role"></td>
+            <td>
+              <button zen-action="deleteUser"
+                      zen-bind:data-user-id="$user.id"
+                      zen-permission="users:delete">حذف</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

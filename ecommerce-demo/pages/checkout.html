@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>تکمیل سفارش</title></head>
+<body>
+  <h2>تکمیل سفارش</h2>
+  <form zen-action:submit.prevent="checkout">
+    <input name="address" placeholder="آدرس" zen-validate="required">
+    <input name="phone" placeholder="تلفن" zen-validate="required,min:10">
+    <button type="submit">ثبت سفارش</button>
+  </form>
+  <div zen-if="$checkout.status === 'success'">سفارش ثبت شد!</div>
+  <div zen-if="$checkout.status === 'pending'">در حال پردازش...</div>
+</body>
+</html>
