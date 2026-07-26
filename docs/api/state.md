@@ -63,6 +63,12 @@ const user = signal({ name: 'Ali' }, {
 const readOnlyCount = computed(() => count.get());
 ```
 
+### استنتاج خودکار نوع
+```typescript
+const count = signal(0); // Signal<number>
+count.set('hello'); // ❌ خطای TypeScript: string به number قابل تخصیص نیست
+```
+
 ### موارد خاص
 - اگر مقدار جدید با قدیمی برابر باشد (بر اساس `equals`)، هیچ اطلاع‌رسانی انجام نمی‌شود و افکت‌ها دوباره اجرا نمی‌شوند.
 - متد `set` هم مقدار مستقیم می‌گیرد هم تابعی که مقدار قبلی را دریافت می‌کند و جدید را برمی‌گرداند.
@@ -187,6 +193,12 @@ firstName.set('Sara');
 // fullName.get() اکنون "Sara Rezaei" است
 ```
 
+### کامپوتد فقط خواندنی
+```typescript
+const double = computed(() => count.get() * 2); // ReadonlySignal<number>
+double.set(10); // ❌ خطای TypeScript: set در ReadonlySignal وجود ندارد
+```
+
 ### موارد خاص
 - کامپوتدها **تنبل (lazy)** هستند: محاسبه فقط وقتی انجام می‌شود که کسی `get()` کند یا یک افکت به آن وابسته باشد.
 - کامپوتدها فقط خواندنی هستند؛ فراخوانی `set()` خطای TypeScript می‌دهد.
@@ -236,6 +248,20 @@ function testComponent() {
 
   // استفاده از root.data
 } // خروج از بلوک → root به طور خودکار پاک می‌شود
+
+// افکت با پاکسازی خودکار در createRoot
+const root = createRoot((dispose) => {
+  const count = signal(0);
+  effect(() => {
+    const timer = setInterval(() => {
+      count.set(c => c + 1);
+    }, 1000);
+    onCleanup(() => clearInterval(timer)); // خودکار پاک می‌شود
+  });
+  return { count, dispose };
+});
+
+root.dispose(); // پاکسازی کامل همه چیز یکجا
 ```
 
 ### موارد خاص
