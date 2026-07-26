@@ -92,9 +92,20 @@ let routeAsyncLocalStorage: any = null;
 try {
   const proc = (globalThis as any).process;
   // بررسی اینکه در Node.js هستیم (نه مرورگر)
-  if (proc?.versions?.node && typeof proc.getBuiltinModule === 'function') {
-    const { AsyncLocalStorage } = proc.getBuiltinModule('node:async_hooks');
-    routeAsyncLocalStorage = new AsyncLocalStorage();
+  if (proc?.versions?.node) {
+    if (typeof proc.getBuiltinModule === 'function') {
+      const { AsyncLocalStorage } = proc.getBuiltinModule('node:async_hooks');
+      routeAsyncLocalStorage = new AsyncLocalStorage();
+    } else {
+      // Node < 18.19 / < 20.6: بدون getBuiltinModule نمی‌توان sync به
+      // async_hooks رسید. اجرا ادامه می‌یابد اما رندرهای همزمان SSR
+      // یک routeSignal مشترک خواهند داشت.
+      console.warn(
+        '[@zenith/router] process.getBuiltinModule is unavailable (Node < 18.19). ' +
+          'Falling back to a shared route signal — concurrent SSR renders will not be isolated. ' +
+          'Upgrade to Node 18.19+ or 20.6+ for per-request isolation.',
+      );
+    }
   }
 } catch {
   // در محیط‌هایی که node:async_hooks در دسترس نیست (مرورگر)،

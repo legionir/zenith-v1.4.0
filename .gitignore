@@ -10,6 +10,9 @@ packages/*/out/
 # TypeScript incremental build state
 *.tsbuildinfo
 
+# Collected build artifacts (scripts/collect-artifacts.mjs)
+artifacts/
+
 # Logs
 *.log
 npm-debug.log*
