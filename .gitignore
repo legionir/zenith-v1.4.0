@@ -5,6 +5,10 @@ packages/*/node_modules/
 # Build outputs
 dist/
 packages/*/dist/
+packages/*/out/
+
+# TypeScript incremental build state
+*.tsbuildinfo
 
 # Logs
 *.log

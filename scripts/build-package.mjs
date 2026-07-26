@@ -1,7 +1,24 @@
 import { build } from 'esbuild';
-import { existsSync, rmSync, mkdirSync } from 'fs';
+import { existsSync, rmSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { spawnSync } from 'child_process';
+
+/**
+ * Packages that run on a Node.js host rather than in the browser.
+ *
+ * These import Node builtins (`node:fs`, `node:async_hooks`, ...) either
+ * directly or through a dependency, so they must be bundled with
+ * `platform: 'node'`. With the default `platform: 'neutral'` esbuild does not
+ * know about Node builtins and fails to resolve them.
+ *
+ * Browser/isomorphic packages intentionally stay on `neutral` so their output
+ * remains portable across runtimes.
+ */
+const NODE_PLATFORM_PACKAGES = new Set([
+  'cli',
+  'ssr',
+  'vite-plugin',
+]);
 
 /**
  * Build a single package with dual ESM + CJS output + TypeScript declarations.
@@ -23,30 +40,58 @@ export async function buildPackage(pkgName) {
 
   console.log(`🔨 Building @zenith/${pkgName}...`);
 
-  // ESM Build
-  await build({
+  const platform = NODE_PLATFORM_PACKAGES.has(pkgName) ? 'node' : 'neutral';
+
+  // Peer dependencies are provided by the consumer and must never be bundled.
+  // Without this, e.g. @zenith/ssr inlines the whole of jsdom (~3 MB) and
+  // defeats its own "is jsdom installed?" runtime check.
+  const pkgJsonPath = join(pkgPath, 'package.json');
+  const peerDeps = existsSync(pkgJsonPath)
+    ? Object.keys(JSON.parse(readFileSync(pkgJsonPath, 'utf8')).peerDependencies ?? {})
+    : [];
+
+  const sharedOptions = {
     entryPoints: [srcPath],
-    outfile: join(outDir, 'index.js'),
-    format: 'esm',
-    platform: 'neutral',
+    platform,
     bundle: true,
     sourcemap: true,
     minify: true,
     target: 'es2022',
-    external: ['@zenith/*'],
+    external: ['@zenith/*', ...peerDeps],
+  };
+
+  // ESM Build
+  //
+  // Bundling CJS dependencies (e.g. commander) into ESM makes esbuild emit a
+  // `require` shim that throws "Dynamic require of X is not supported" at
+  // runtime. Recreating a real `require` via createRequire fixes those calls.
+  await build({
+    ...sharedOptions,
+    outfile: join(outDir, 'index.js'),
+    format: 'esm',
+    ...(platform === 'node'
+      ? {
+          banner: {
+            js: [
+              "import { createRequire as __zenithCreateRequire } from 'node:module';",
+              'const require = __zenithCreateRequire(import.meta.url);',
+            ].join('\n'),
+          },
+        }
+      : {}),
   });
 
   // CommonJS Build
+  //
+  // `import.meta` does not exist in CJS; esbuild would replace it with an
+  // empty object and warn. Bundler-specific features guarded by
+  // `import.meta.hot` (Vite HMR) are inherently ESM-only, so define it as
+  // undefined here — the guards then fall through to their non-HMR paths.
   await build({
-    entryPoints: [srcPath],
+    ...sharedOptions,
     outfile: join(outDir, 'index.cjs'),
     format: 'cjs',
-    platform: 'neutral',
-    bundle: true,
-    sourcemap: true,
-    minify: true,
-    target: 'es2022',
-    external: ['@zenith/*'],
+    define: { 'import.meta': 'undefined' },
   });
 
   // Type declarations via tsc
