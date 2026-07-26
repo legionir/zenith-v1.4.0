@@ -101,8 +101,17 @@ export async function buildPackage(pkgName) {
       stdio: 'pipe',
       shell: true,
     });
-    if (result.status !== 0 && result.stderr) {
-      // Some packages may not have declaration emit configured; that's ok
+    if (result.status !== 0) {
+      // Fail loudly. This used to be swallowed, which let type errors and
+      // missing .d.ts files ship while the build still reported success.
+      const details = [result.stdout?.toString(), result.stderr?.toString()]
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+      throw new Error(
+        `tsc failed to emit declarations for @zenith/${pkgName}` +
+          (details ? `:\n${details}` : ''),
+      );
     }
   }
 

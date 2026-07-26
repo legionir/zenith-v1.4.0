@@ -9,9 +9,8 @@
  *   - Programmatic API + HTML directive
  */
 
-import { signal, computed, effect } from '@zenith/state';
-import type { Signal, ReadonlySignal } from '@zenith/state';
-import { onCleanup } from '@zenith/state';
+import { signal, computed } from '@zenith/state';
+import type { ReadonlySignal } from '@zenith/state';
 
 // ============================================================
 // Types & Interfaces

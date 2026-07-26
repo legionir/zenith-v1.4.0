@@ -7,7 +7,7 @@
  * Compatible with Vitest, Jest, Bun test and other modern test runners.
  */
 
-import { signal, effect, computed, createRoot, onCleanup } from '@zenith/state';
+import { signal, effect, computed, createRoot } from '@zenith/state';
 import type { Signal, ReadonlySignal } from '@zenith/state';
 import { flushSync, nextTick } from '@zenith/scheduler';
 

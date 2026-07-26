@@ -29,7 +29,7 @@
 
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { resourceDestroyedError, resourceHttpError, type ZenithError } from '@zenith/errors';
+import { resourceDestroyedError } from '@zenith/errors';
 
 /**
  * وضعیت یک Resource.

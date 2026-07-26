@@ -10,14 +10,15 @@
  */
 
 import { signal } from '@zenith/state';
-import type { Signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
 
 // ============================================================
 // Types & Interfaces
 // ============================================================
 
-export interface HttpRequestOptions extends RequestInit {
+// `cache` is redefined below as a Zenith CacheConfig object, which conflicts
+// with the RequestCache string union in RequestInit, so it is omitted here.
+export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
   /** Base URL prepended to relative paths */
   baseURL?: string;
   /** Request timeout in ms (0 = no timeout) */
@@ -231,8 +232,19 @@ export async function request<T = any>(
     timeoutId = setTimeout(() => abortController.abort(), config.timeout);
   }
 
+  // Strip Zenith-specific options; `fetch` only understands RequestInit.
+  const {
+    baseURL: _baseURL,
+    timeout: _timeout,
+    retry: _retry,
+    cache: _cache,
+    tags: _tags,
+    skipInterceptors: _skipInterceptors,
+    ...fetchInit
+  } = config as HttpRequestOptions & Record<string, unknown>;
+
   try {
-    const response = await fetch(fullUrl, config);
+    const response = await fetch(fullUrl, fetchInit as RequestInit);
 
     // Handle HTTP errors
     if (!response.ok) {

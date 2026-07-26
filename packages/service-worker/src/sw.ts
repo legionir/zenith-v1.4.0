@@ -612,37 +612,10 @@ async function loadQueue(): Promise<QueuedMutation[]> {
   });
 }
 
-/**
- * FEATURE (v0.5.0): ذخیره‌ی کلِ صف در IndexedDB (clear + put همه).
- *
- * این تابع برای بازنویسیِ کلِ صف بعد از پردازشِ sync استفاده می‌شود. سطرهای باقی‌مانده
- * با کلیدِ `id` موجودشان `put` می‌شوند (upsert) تا autoIncrement counter به هم نخورد.
- */
-async function saveQueue(queue: QueuedMutation[]): Promise<void> {
-  const db = await openSyncDB();
-  if (!db) return;
-  return new Promise<void>((resolve) => {
-    try {
-      const tx = db.transaction(SYNC_STORE, 'readwrite');
-      const store = tx.objectStore(SYNC_STORE);
-      store.clear();
-      for (const m of queue) {
-        store.put(m);
-      }
-      tx.oncomplete = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
-        resolve();
-      };
-      tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
-        resolve();
-      };
-    } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
-      resolve();
-    }
-  });
-}
+// NOTE: a `saveQueue(remaining)` helper used to rewrite the whole queue here.
+// It was removed in v1.2.7 because clear()+put() silently dropped mutations
+// enqueued concurrently during the retry loop; see processSyncQueue, which now
+// deletes each mutation individually via removeFromQueue().
 
 /**
  * FEATURE (v0.5.0): اضافه کردنِ یک mutation به IndexedDB.

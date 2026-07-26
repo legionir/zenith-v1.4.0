@@ -345,7 +345,14 @@ function processIfChain(
   ifExpr: string,
   context: Record<string, any>,
   state: Record<string, any>,
-  walk: typeof walk,
+  // Explicit signature: `typeof walk` here refers to this parameter, not the
+  // outer function, which makes the annotation circular (TS2502).
+  walk: (
+    node: Node,
+    context: Record<string, any>,
+    state: Record<string, any>,
+    disposes: (() => void)[],
+  ) => void,
 ): () => void {
   // جمع‌آوری زنجیره
   const chain: Array<{ el: HTMLElement; expr: string | null }> = [

@@ -258,7 +258,8 @@ function skipServerComponents(root: HTMLElement): number {
   const usedClose = new Set<Comment>();
 
   for (let i = 0; i < comments.length; i++) {
-    const open = comments[i];
+    // Loop bounds guarantee these indices exist.
+    const open = comments[i]!;
     const openText = open.data || '';
     if (!openText.startsWith(SC_OPEN_PREFIX)) continue;
 
@@ -267,7 +268,7 @@ function skipServerComponents(root: HTMLElement): number {
     // پیدا کردن close متناظر.
     let close: Comment | null = null;
     for (let j = i + 1; j < comments.length; j++) {
-      const c = comments[j];
+      const c = comments[j]!;
       if (usedClose.has(c)) continue;
       const ct = c.data || '';
       if (ct.startsWith(SC_CLOSE_PREFIX)) {

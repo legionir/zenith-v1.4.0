@@ -47,6 +47,10 @@
     { "path": "./packages/dependency-graph" },
     { "path": "./packages/vite-plugin" },
     { "path": "./packages/data-table" },
-    { "path": "./packages/cli" }
+    { "path": "./packages/cli" },
+    { "path": "./packages/http" },
+    { "path": "./packages/notifications" },
+    { "path": "./packages/testing" },
+    { "path": "./packages/vscode-extension" }
   ]
 }
