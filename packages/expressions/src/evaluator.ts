@@ -22,7 +22,7 @@ import { variableNotDefinedError, securityError } from '@zenith/errors';
 // stay in sync. Previously the evaluator had its own FORBIDDEN_PROPERTIES_RT
 // that drifted from the validator's list (the validator was missing
 // __defineGetter__/__defineSetter__/__lookupGetter__/__lookupSetter__).
-import { FORBIDDEN_PROPERTIES } from './security-constants';
+import { FORBIDDEN_PROPERTIES, isForbiddenIdentifier } from './security-constants';
 
 // FIX (v1.2.9): BUG-02 — Move OBJECT_PROTO_BUILTINS to module level.
 // Previously this Set was created inside the `case 'Identifier':` block,
@@ -129,6 +129,12 @@ export function evaluate(node: ASTNode, context: object): any {
       // Applies to BOTH computed (`a[expr]`) and non-computed (`a.constructor`) access.
       if (typeof property === 'string' && FORBIDDEN_PROPERTIES_RT.includes(property)) {
         // FEATURE (v1.0.0): پیام خطای امنیتی بهبودیافته با راهنمای رفع.
+        throw securityError('ZEN-002', property, true);
+      }
+
+      // SECURITY (v1.4.0): additional runtime guard for forbidden identifiers
+      // used as dynamic property keys — blocks cases like `$obj[eval]` or `$obj[Function]`.
+      if (typeof property === 'string' && isForbiddenIdentifier(property)) {
         throw securityError('ZEN-002', property, true);
       }
 

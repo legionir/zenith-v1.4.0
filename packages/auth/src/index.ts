@@ -10,3 +10,29 @@ export {
   type AuthEvent,
   type AuthEventListener,
 } from './auth';
+
+// FEATURE (v1.4.0): Functional Auth API
+export {
+  configureAuth,
+  getAuthConfig,
+  initAuth,
+  login,
+  logout,
+  register,
+  refreshToken,
+  fetchCurrentUser,
+  hasRole,
+  hasAnyRole,
+  hasAllRoles,
+  hasPermission,
+  hasAnyPermission,
+  canActivateRoute,
+  auth,
+  type User,
+  type AuthTokens,
+  type FunctionalAuthState,
+  type LoginCredentials,
+  type RegisterData,
+  type FunctionalAuthConfig,
+  type RouteGuard,
+} from './auth';

@@ -3,25 +3,37 @@
   "version": "1.4.0",
   "description": "Zenith framework — Dependency Graph extractor (Phase 12). Extracts signal dependencies from expressions for optimization and debugging.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["zenith", "dependency", "graph", "optimization", "compiler"],
+  "keywords": [
+    "zenith",
+    "dependency",
+    "graph",
+    "optimization",
+    "compiler"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@zenith/expressions": "1.0.0"
+    "@zenith/expressions": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

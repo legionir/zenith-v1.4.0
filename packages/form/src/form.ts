@@ -9,8 +9,54 @@
 //   - Dynamic fields (addField, removeField for non-array)
 //   - Batch validation (validate all at once)
 //   - Async submit handler
+//   - Simple reactive form API (v1.4.0)
 
-import { signal, type Signal } from '@zenith/state';
+import { signal, effect, type Signal } from '@zenith/state';
+
+/**
+ * Form validation rule.
+ */
+export interface ValidationRule {
+  validate: (value: any) => boolean | string | Promise<boolean | string>;
+  message?: string;
+}
+
+/**
+ * Simple reactive form options.
+ */
+export interface FormOptions<T extends Record<string, any>> {
+  initialValues?: T;
+  validation?: Partial<Record<keyof T, ValidationRule | ValidationRule[]>>;
+  onSubmit?: (values: T) => void | Promise<void>;
+}
+
+/**
+ * Create a simple reactive form.
+ *
+ * @example
+ * const form = createForm({
+ *   initialValues: { username: '', password: '' },
+ *   validation: {
+ *     username: { validate: v => v.length > 3, message: 'Min 4 chars' }
+ *   }
+ * });
+ */
+export function createReactiveForm<T extends Record<string, any>>(options: FormOptions<T>) {
+  const values = signal<T>(options.initialValues || ({} as T));
+  const errors = signal<Record<string, string>>({});
+  const submitting = signal(false);
+
+  async function startSubmit() {
+    submitting.set(true);
+    errors.set({});
+  }
+
+  async function endSubmit() {
+    submitting.set(false);
+  }
+
+  return { values, errors, submitting, startSubmit, endSubmit };
+}
 import { validateField, validateFieldAsync, validateForm, validateFormAsync, type FieldValidation, type FormValidation } from './validator';
 
 export interface FormFieldState {
@@ -446,4 +492,427 @@ export class FormStore {
 
 export function createForm(fields: Record<string, { initial: any; rules?: string }>): FormStore {
   return new FormStore(fields);
+}
+
+// ============================================================
+// FEATURE (v1.4.0): Advanced Reactive Form API
+// ============================================================
+
+import { computed, type ReadonlySignal, onCleanup } from '@zenith/state';
+
+export type ValidationResult = boolean | string | Promise<boolean | string>;
+export type Validator<T = any> = (value: T, formValues: any) => ValidationResult;
+
+export interface FieldState<T = any> {
+  value: Signal<T>;
+  error: Signal<string | null>;
+  touched: Signal<boolean>;
+  dirty: Signal<boolean>;
+  validating: Signal<boolean>;
+}
+
+export interface FormState<T> {
+  values: Signal<T>;
+  errors: Signal<Record<string, string | null>>;
+  formError: Signal<string | null>;
+  submitting: Signal<boolean>;
+  validating: Signal<boolean>;
+  touched: ReadonlySignal<boolean>;
+  dirty: ReadonlySignal<boolean>;
+  valid: ReadonlySignal<boolean>;
+}
+
+export interface AdvancedFormOptions<T extends Record<string, any>> {
+  initialValues: T;
+  validate?: Partial<Record<keyof T, Validator | Validator[]>>;
+  validateForm?: (values: T) => ValidationResult;
+  schema?: {
+    parse: (values: any) => any;
+    safeParse: (values: any) => { success: boolean; error?: any; data?: any };
+  };
+  onSubmit?: (values: T) => void | Promise<void>;
+  autoSave?: {
+    enabled: boolean;
+    interval?: number;
+    handler: (values: T) => void | Promise<void>;
+  };
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+}
+
+export interface AdvancedFormApi<T extends Record<string, any>> extends FormState<T> {
+  field: <K extends keyof T>(name: K) => FieldState<T[K]>;
+  nested: <K = any>(path: string) => FieldState<K>;
+  array: <K = any>(path: string) => FieldArrayApi<K>;
+  setFieldValue: (name: string, value: any) => void;
+  setFieldError: (name: string, error: string | null) => void;
+  setFieldTouched: (name: string, touched?: boolean) => void;
+  validate: () => Promise<boolean>;
+  validateField: (name: string) => Promise<string | null>;
+  reset: (values?: T) => void;
+  submit: () => Promise<void>;
+  startSubmit: () => void;
+  endSubmit: () => void;
+}
+
+export interface FieldArrayApi<T> {
+  items: Signal<T[]>;
+  push: (item: T) => void;
+  insert: (index: number, item: T) => void;
+  remove: (index: number) => void;
+  move: (from: number, to: number) => void;
+  swap: (indexA: number, indexB: number) => void;
+  clear: () => void;
+  length: ReadonlySignal<number>;
+}
+
+/**
+ * Create a fully-featured reactive form with nested fields, arrays,
+ * schema validation, async validators, auto-save, and dirty/touched tracking.
+ */
+export function createAdvancedForm<T extends Record<string, any>>(
+  options: AdvancedFormOptions<T>
+): AdvancedFormApi<T> {
+  const {
+    initialValues,
+    validate,
+    validateForm: formValidator,
+    schema,
+    onSubmit,
+    autoSave,
+    validateOnChange = true,
+    validateOnBlur = false
+  } = options;
+
+  const values = signal<T>({ ...initialValues });
+  const errors = signal<Record<string, string | null>>({});
+  const formError = signal<string | null>(null);
+  const submitting = signal(false);
+  const validating = signal(false);
+  const touchedFields = signal<Record<string, boolean>>({});
+  const dirtyFields = signal<Record<string, boolean>>({});
+
+  const touched = computed(() => Object.values(touchedFields.get()).some(Boolean));
+  const dirty = computed(() => Object.values(dirtyFields.get()).some(Boolean));
+  const valid = computed(() => {
+    const err = errors.get();
+    return Object.values(err).every(e => e === null || e === undefined);
+  });
+
+  // Auto-save setup
+  let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  if (autoSave?.enabled) {
+    effect(() => {
+      const current = values.get();
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(async () => {
+        try {
+          await autoSave.handler(current);
+        } catch {
+          formError.set('Auto-save failed');
+        }
+      }, autoSave.interval || 2000);
+    });
+
+    onCleanup(() => {
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    });
+  }
+
+  async function validateField(name: string): Promise<string | null> {
+    const currentValues = values.get();
+    const fieldValue = (currentValues as any)[name];
+
+    if (schema) {
+      const result = schema.safeParse(currentValues);
+      if (!result.success && result.error) {
+        const fieldError = result.error.errors?.find(
+          (e: any) => e.path?.[0] === name
+        );
+        if (fieldError) {
+          const msg = fieldError.message || 'Invalid value';
+          setFieldError(name, msg);
+          return msg;
+        }
+      }
+    }
+
+    const fieldValidators = validate?.[name as keyof T];
+    if (fieldValidators) {
+      const validators = Array.isArray(fieldValidators) ? fieldValidators : [fieldValidators];
+      for (const validator of validators) {
+        const result = await validator(fieldValue, currentValues);
+        if (result === false) {
+          const msg = 'Invalid value';
+          setFieldError(name, msg);
+          return msg;
+        }
+        if (typeof result === 'string') {
+          setFieldError(name, result);
+          return result;
+        }
+      }
+    }
+
+    setFieldError(name, null);
+    return null;
+  }
+
+  async function validateAll(): Promise<boolean> {
+    validating.set(true);
+    const fieldNames = Object.keys({ ...initialValues, ...values.get() });
+    const results = await Promise.all(fieldNames.map(validateField));
+
+    if (formValidator) {
+      const formResult = await formValidator(values.get());
+      if (formResult === false || typeof formResult === 'string') {
+        formError.set(typeof formResult === 'string' ? formResult : 'Form is invalid');
+        validating.set(false);
+        return false;
+      }
+    }
+
+    validating.set(false);
+    formError.set(null);
+    return results.every(r => r === null);
+  }
+
+  function setFieldValue(name: string, value: any) {
+    const current = values.get();
+    const updated = { ...current, [name]: value };
+    values.set(updated);
+
+    const initial = (initialValues as any)[name];
+    const isDirty = JSON.stringify(value) !== JSON.stringify(initial);
+    dirtyFields.set({ ...dirtyFields.get(), [name]: isDirty });
+
+    if (validateOnChange && !validateOnBlur) {
+      validateField(name);
+    }
+  }
+
+  function setFieldError(name: string, error: string | null) {
+    errors.set({ ...errors.get(), [name]: error });
+  }
+
+  function setFieldTouched(name: string, isTouched = true) {
+    touchedFields.set({ ...touchedFields.get(), [name]: isTouched });
+    if (validateOnBlur && isTouched) {
+      validateField(name);
+    }
+  }
+
+  function getField<K extends keyof T>(name: K): FieldState<T[K]> {
+    const nameStr = String(name);
+    return {
+      value: computed(() => values.get()[name]) as unknown as Signal<T[K]>,
+      error: computed(() => errors.get()[nameStr] || null) as unknown as Signal<string | null>,
+      touched: computed(() => !!touchedFields.get()[nameStr]) as unknown as Signal<boolean>,
+      dirty: computed(() => !!dirtyFields.get()[nameStr]) as unknown as Signal<boolean>,
+      validating
+    };
+  }
+
+  function getNested<K = any>(path: string): FieldState<K> {
+    const getNestedValue = (obj: any, p: string): any => {
+      return p.split('.').reduce((acc, key) => acc?.[key], obj);
+    };
+
+    return {
+      value: computed(() => getNestedValue(values.get(), path)) as unknown as Signal<K>,
+      error: computed(() => errors.get()[path] || null) as unknown as Signal<string | null>,
+      touched: computed(() => !!touchedFields.get()[path]) as unknown as Signal<boolean>,
+      dirty: computed(() => !!dirtyFields.get()[path]) as unknown as Signal<boolean>,
+      validating
+    };
+  }
+
+  function getFieldArray<K = any>(path: string): FieldArrayApi<K> {
+    const getArray = (): K[] => {
+      const v = values.get() as any;
+      return v[path] || [];
+    };
+
+    const setArray = (newArr: K[]) => {
+      values.set({ ...values.get(), [path]: newArr });
+      dirtyFields.set({ ...dirtyFields.get(), [path]: true });
+    };
+
+    const items = computed(getArray) as unknown as Signal<K[]>;
+    const length = computed(() => getArray().length);
+
+    return {
+      items,
+      length,
+      push: (item) => setArray([...getArray(), item]),
+      insert: (index, item) => {
+        const arr = [...getArray()];
+        arr.splice(index, 0, item);
+        setArray(arr);
+      },
+      remove: (index) => {
+        const arr = [...getArray()];
+        arr.splice(index, 1);
+        setArray(arr);
+      },
+      move: (from, to) => {
+        const arr = [...getArray()];
+        const [item] = arr.splice(from, 1);
+        arr.splice(to, 0, item);
+        setArray(arr);
+      },
+      swap: (a, b) => {
+        const arr = [...getArray()];
+        [arr[a], arr[b]] = [arr[b], arr[a]];
+        setArray(arr);
+      },
+      clear: () => setArray([])
+    };
+  }
+
+  async function submit() {
+    const isValid = await validateAll();
+    if (!isValid) return;
+
+    submitting.set(true);
+    formError.set(null);
+
+    try {
+      await onSubmit?.(values.get());
+    } catch (e) {
+      formError.set(e instanceof Error ? e.message : 'Submission failed');
+      throw e;
+    } finally {
+      submitting.set(false);
+    }
+  }
+
+  function reset(newValues?: T) {
+    values.set(newValues ? { ...newValues } : { ...initialValues });
+    errors.set({});
+    formError.set(null);
+    touchedFields.set({});
+    dirtyFields.set({});
+  }
+
+  return {
+    values,
+    errors,
+    formError,
+    submitting,
+    validating,
+    touched,
+    dirty,
+    valid,
+    field: getField,
+    nested: getNested,
+    array: getFieldArray,
+    setFieldValue,
+    setFieldError,
+    setFieldTouched,
+    validate: validateAll,
+    validateField,
+    reset,
+    submit,
+    startSubmit: () => submitting.set(true),
+    endSubmit: () => submitting.set(false)
+  };
+}
+
+// ============================================================
+// Multi-Step Wizard Form Support
+// ============================================================
+
+export interface WizardStep {
+  id: string;
+  title: string;
+  fields: string[];
+  validate?: () => Promise<boolean>;
+}
+
+export interface WizardFormApi<T extends Record<string, any>> extends AdvancedFormApi<T> {
+  currentStep: Signal<number>;
+  steps: Signal<WizardStep[]>;
+  canGoNext: Signal<boolean>;
+  canGoBack: ReadonlySignal<boolean>;
+  next: () => Promise<void>;
+  previous: () => void;
+  goToStep: (index: number) => void;
+  isStepComplete: (index: number) => boolean;
+}
+
+/**
+ * Create a multi-step wizard form.
+ */
+export function createWizardForm<T extends Record<string, any>>(
+  options: AdvancedFormOptions<T> & { steps: WizardStep[] }
+): WizardFormApi<T> {
+  const form = createAdvancedForm(options);
+  const currentStep = signal(0);
+  const steps = signal(options.steps);
+  const completedSteps = signal<Set<number>>(new Set());
+
+  const canGoBack = computed(() => currentStep.get() > 0);
+
+  // canGoNext is a regular signal updated by an effect (not async computed)
+  const canGoNext = signal(false);
+  effect(() => {
+    const stepIndex = currentStep.get();
+    const step = steps.get()[stepIndex];
+    if (!step) {
+      canGoNext.set(false);
+      return;
+    }
+    // Validate current step fields synchronously (async validation would need Promise)
+    const errs = form.errors.get();
+    const allValid = step.fields.every(f => !errs[f]);
+    canGoNext.set(allValid);
+  });
+
+  async function next() {
+    const stepIndex = currentStep.get();
+    const step = steps.get()[stepIndex];
+    if (!step) return;
+
+    // Validate step fields
+    const results = await Promise.all(step.fields.map(f => form.validateField(f)));
+    if (!results.every(r => r === null)) return;
+
+    completedSteps.get().add(stepIndex);
+    completedSteps.set(new Set(completedSteps.get()));
+
+    if (stepIndex < steps.get().length - 1) {
+      currentStep.set(stepIndex + 1);
+    } else {
+      await form.submit();
+    }
+  }
+
+  function previous() {
+    if (currentStep.get() > 0) {
+      currentStep.set(currentStep.get() - 1);
+    }
+  }
+
+  function goToStep(index: number) {
+    if (index >= 0 && index < steps.get().length) {
+      currentStep.set(index);
+    }
+  }
+
+  function isStepComplete(index: number): boolean {
+    return completedSteps.get().has(index);
+  }
+
+  return {
+    ...form,
+    currentStep,
+    steps,
+    canGoNext,
+    canGoBack,
+    next,
+    previous,
+    goToStep,
+    isStepComplete
+  };
 }
