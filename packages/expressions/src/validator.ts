@@ -19,10 +19,13 @@ import { ASTNode } from './parser';
 // validator and evaluator stay in sync. Previously the validator only
 // blocked [constructor, __proto__, prototype] while the evaluator blocked
 // a larger list — leaving holes for __lookupGetter__/__lookupSetter__ etc.
-import { FORBIDDEN_PROPERTIES } from './security-constants';
+import {
+  FORBIDDEN_PROPERTIES,
+  isForbiddenIdentifier,
+} from './security-constants';
 
 /**
- * لیست Identifierهای ممنوعه.
+ * لیست Identifierهای ممنوعه (legacy alias — kept for compatibility).
  *
  * اگر کاربری در Expression بنویسد `window.location.href` یا `eval(...)`،
  * این لیست بلاکش می‌کند.
@@ -36,32 +39,6 @@ import { FORBIDDEN_PROPERTIES } from './security-constants';
  *   Object.prototype). بدون این بلاک، expression تک‌توکنی `constructor` به
  *   کاربر ارجاع به `Object` (constructor function) می‌دهد که یک sandbox escape است.
  */
-const FORBIDDEN_IDENTIFIERS = [
-  // Browser/Node globals
-  'window',
-  'document',
-  'globalThis',
-  'self',
-  'top',
-  'parent',
-  'frames',
-  // Code Execution
-  'eval',
-  'Function',
-  'setTimeout',
-  'setInterval',
-  // Reflection / Metaprogramming
-  'Proxy',
-  'Reflect',
-  // Function internals
-  'arguments',
-  'caller',
-  'callee',
-  // Prototype Pollution — also blocked as standalone Identifiers (v0.4.0 fuzzing fix)
-  'constructor',
-  '__proto__',
-  'prototype',
-];
 
 /**
  * لیست پراپرتی‌های ممنوعه در MemberExpression.
@@ -97,7 +74,7 @@ export function validate(node: ASTNode): void {
     // Identifier: بررسی نام متغیر در Context
     // ───────────────────────────────────────────────
     case 'Identifier':
-      if (FORBIDDEN_IDENTIFIERS.includes(node.name)) {
+      if (isForbiddenIdentifier(node.name)) {
         throw new Error(
           `Security Alert: Access to '${node.name}' is forbidden. ` +
             `This is a restricted global identifier.`,
@@ -209,7 +186,7 @@ export function validate(node: ASTNode): void {
         // با shadowing یک global ممنوعه (مثل constructor، globalThis، self، ...)
         // از sandbox فرار کند. مثلاً `(constructor) => constructor.constructor('...')()`
         // می‌توانست به Function constructor دسترسی پیدا کند.
-        if (FORBIDDEN_IDENTIFIERS.includes(p.name)) {
+        if (isForbiddenIdentifier(p.name)) {
           throw new Error(`Security Alert: Arrow function parameter "${p.name}" shadows a forbidden global.`);
         }
       });

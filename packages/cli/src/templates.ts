@@ -98,7 +98,7 @@ document.addEventListener('click', (e) => {
   if (actionName && typeof actionName === 'string') {
     const actions = (window as any).__ZENITH_ACTIONS__;
     if (actions && !actions[actionName]) {
-      console.warn(\`[Zenith] Action "\${actionName}" is not registered. ` +
+      console.warn(\`[Zenith] Action "\${actionName}" is not registered. \` +
         \`Define it with: Zen.action('\${actionName}', handler)\`);
     }
   }
@@ -619,8 +619,8 @@ document.addEventListener('click', (e) => {
   if (actionName && typeof actionName === 'string') {
     const actions = (window as any).__ZENITH_ACTIONS__;
     if (actions && !actions[actionName]) {
-      console.warn(`[Zenith] Action "${actionName}" is not registered. ` +
-        `Define it with: Zen.action('${actionName}', handler)`);
+      console.warn(\`[Zenith] Action "\${actionName}" is not registered. \` +
+        \`Define it with: Zen.action('\${actionName}', handler)\`);
     }
   }
 }, true);

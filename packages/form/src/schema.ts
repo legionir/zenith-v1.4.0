@@ -99,8 +99,10 @@ export function fromZod(
     // __zod__ به rules هر فیلد append می‌شود تا cross-field Zod validation واقعاً
     // اجرا شود.
     for (const name of Object.keys(config)) {
-      const existingRules = config[name].rules;
-      config[name].rules = existingRules ? `${existingRules},__zod__` : '__zod__';
+      const field = config[name];
+      if (!field) continue;
+      const existingRules = field.rules;
+      field.rules = existingRules ? `${existingRules},__zod__` : '__zod__';
     }
 
     return createForm(config);

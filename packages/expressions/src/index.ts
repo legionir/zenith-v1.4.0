@@ -133,3 +133,26 @@ export type { Token } from './lexer';
  * Parser سطح پایین — در حالت عادی نباید مستقیماً استفاده شود.
  */
 export { Parser } from './parser';
+
+// ── Security exports ──
+export {
+  FORBIDDEN_PROPERTIES,
+  FORBIDDEN_IDENTIFIERS,
+  isForbiddenIdentifier,
+  sanitizeExpression,
+} from './security-constants';
+
+// ── Type Checking exports ──
+export {
+  inferType,
+  isAssignableTo,
+  validateType,
+  createTypeContext,
+  assertType,
+  TypeGuards,
+} from './type-check';
+export type {
+  ExpressionType,
+  TypeCheckResult,
+  TypeContext,
+} from './type-check';

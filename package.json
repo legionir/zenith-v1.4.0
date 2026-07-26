@@ -1,1 +1,25 @@
-{}
+{
+  "private": true,
+  "name": "zenith-monorepo",
+  "version": "1.4.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "node scripts/build-all.mjs",
+    "build:types": "node scripts/build-types.mjs",
+    "test": "node scripts/test-all.mjs",
+    "lint": "echo 'Lint not configured yet'",
+    "typecheck": "node scripts/typecheck-all.mjs",
+    "release": "node scripts/release.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

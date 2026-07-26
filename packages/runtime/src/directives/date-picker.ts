@@ -243,7 +243,11 @@ function pad2(n: number): string {
 }
 
 function parseJalaliToday(): { y: number; m: number; d: number } {
-  const [y, m, d] = parseJalaliParts(new Date());
+  // parseJalaliParts returns null for invalid dates; `new Date()` is always
+  // valid, but the null branch keeps this total instead of throwing.
+  const parts = parseJalaliParts(new Date());
+  if (!parts) return { y: 0, m: 0, d: 0 };
+  const [y, m, d] = parts;
   return { y, m, d };
 }
 

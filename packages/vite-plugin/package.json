@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — Vite Plugin for HMR and DevTools auto-injection (Phase 10).",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {
@@ -40,8 +39,8 @@
     "vite": "^5.0.0 || ^6.0.0"
   },
   "dependencies": {
-    "@zenith/compiler": "1.0.0",
-    "@zenith/expressions": "1.0.0"
+    "@zenith/compiler": "1.4.0",
+    "@zenith/expressions": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

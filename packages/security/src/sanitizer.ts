@@ -67,10 +67,67 @@ const FORBIDDEN_TAGS = new Set([
 ]);
 
 /**
+ * تگ‌های مجاز برای `sanitizeHTMLWithOptions`.
+ *
+ * برخلاف `sanitizeHTML` که مدل denylist دارد (هرچه در FORBIDDEN_TAGS نباشد
+ * مجاز است)، نسخه‌ی options-based از مدل allowlist استفاده می‌کند:
+ * `cleanNodeWithOptions` هر تگی را که در این مجموعه نباشد حذف می‌کند.
+ *
+ * این فهرست عمداً محافظه‌کارانه است و فقط عناصر محتوایی بی‌خطر HTML را
+ * شامل می‌شود. برای افزودن تگ‌های بیشتر از `options.allowTags` استفاده کنید.
+ */
+const ALLOWED_TAGS = new Set([
+  // ریشه و بخش‌بندی
+  'BODY', 'DIV', 'SPAN', 'SECTION', 'ARTICLE', 'ASIDE', 'HEADER', 'FOOTER',
+  'MAIN', 'NAV', 'FIGURE', 'FIGCAPTION',
+  // متن
+  'P', 'BR', 'HR', 'PRE', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  // درون‌خطی
+  'A', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'SMALL', 'SUB', 'SUP', 'MARK',
+  'CODE', 'KBD', 'SAMP', 'VAR', 'ABBR', 'CITE', 'Q', 'TIME', 'BDI', 'BDO',
+  'WBR', 'DEL', 'INS',
+  // فهرست‌ها
+  'UL', 'OL', 'LI', 'DL', 'DT', 'DD',
+  // جدول
+  'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'TD', 'TH', 'CAPTION',
+  'COL', 'COLGROUP',
+  // رسانه (اتریبیوت‌ها جداگانه توسط isAttributeDangerous پالایش می‌شوند)
+  'IMG', 'PICTURE', 'SOURCE', 'AUDIO', 'VIDEO', 'TRACK',
+]);
+
+/**
  * اتریبیوت‌هایی که با on شروع می‌شوند (onclick, onerror, onload, …).
  *
  * این regex case-insensitive است تا ONCLICK هم بلاک شود.
  */
+/**
+ * Minimal ambient typings for the Trusted Types API.
+ *
+ * Trusted Types is a browser standard but is not part of the default
+ * TypeScript `lib.dom` typings, so the shapes this module relies on are
+ * declared locally rather than pulling in an extra @types dependency.
+ */
+interface TrustedTypePolicy {
+  createHTML(input: string): string;
+  createScriptURL(input: string): string;
+}
+
+interface TrustedTypePolicyFactory {
+  createPolicy(
+    name: string,
+    rules: {
+      createHTML?: (input: string) => string;
+      createScriptURL?: (input: string) => string;
+    },
+  ): TrustedTypePolicy;
+}
+
+declare global {
+  interface Window {
+    trustedTypes?: TrustedTypePolicyFactory;
+  }
+}
+
 const EVENT_ATTR_REGEX = /^on/i;
 
 /**
@@ -256,7 +313,7 @@ function isAttributeDangerous(attrName: string, attrValue: string, el?: Element)
         // trailing descriptor (everything after the first whitespace) before
         // handing the URL to hasDangerousProtocol so whitespace inside the
         // URL itself isn't double-handled.
-        const urlPart = candidate.trim().split(/\s+/)[0];
+        const urlPart = candidate.trim().split(/\s+/)[0] ?? '';
         if (hasDangerousProtocol(urlPart)) {
           return true;
         }

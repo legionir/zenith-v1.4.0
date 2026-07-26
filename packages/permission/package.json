@@ -3,15 +3,44 @@
   "version": "1.4.0",
   "description": "Zenith framework — Authorization runtime (Phase 4). RBAC + permission-based access control with zen-permission and zen-role directives.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "src", "README.md"],
-  "scripts": { "build": "tsc -p tsconfig.json", "test": "tsx test/permission-test.ts", "typecheck": "tsc --noEmit" },
-  "keywords": ["zenith", "permission", "authorization", "rbac", "roles", "guard"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx test/permission-test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "permission",
+    "authorization",
+    "rbac",
+    "roles",
+    "guard"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
-  "dependencies": { "@zenith/state": "1.0.0" },
-  "devDependencies": { "typescript": "^5.4.0", "tsx": "^4.7.0", "@types/node": "^20.11.0", "@zenith/scheduler": "1.0.0" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zenith/state": "1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0",
+    "@zenith/scheduler": "1.4.0"
+  }
 }
