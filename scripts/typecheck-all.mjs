@@ -1,12 +1,10 @@
-import { readdirSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { spawnSync } from 'child_process';
+import { getPackageOrder } from './package-order.mjs';
 
 const packagesDir = './packages';
-const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name)
-  .filter(name => existsSync(join(packagesDir, name, 'package.json')));
+const pkgDirs = getPackageOrder();
 
 let failed = 0;
 
@@ -17,7 +15,10 @@ for (const dir of pkgDirs) {
   }
 
   console.log(`🔍 Type-checking @zenith/${dir}...`);
-  const result = spawnSync('npx', ['tsc', '--noEmit', '-p', tsconfigPath], {
+  // Declarations are needed by downstream workspace packages because their
+  // package `types` entries point at dist/. This is intentionally not
+  // --noEmit: CI type-checks before the bundling step on a clean checkout.
+  const result = spawnSync('npx', ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly'], {
     stdio: 'inherit',
     shell: true,
   });

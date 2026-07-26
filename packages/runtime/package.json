@@ -36,21 +36,24 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/state": "1.4.0",
-    "@zenith/expressions": "1.4.0",
     "@zenith/actions": "1.4.0",
-    "@zenith/events": "1.4.0",
+    "@zenith/auth": "1.4.0",
     "@zenith/components": "1.4.0",
-    "@zenith/scheduler": "1.4.0",
-    "@zenith/router": "1.4.0",
     "@zenith/data": "1.4.0",
-    "@zenith/security": "1.4.0",
     "@zenith/devtools": "1.4.0",
     "@zenith/error-boundary": "1.4.0",
-    "@zenith/transition": "1.4.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/events": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/i18n": "1.4.0",
+    "@zenith/notifications": "1.4.0",
     "@zenith/resource": "1.4.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/state": "1.4.0",
     "@zenith/suspense": "1.4.0",
-    "@zenith/auth": "1.4.0"
+    "@zenith/transition": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
@@ -60,7 +63,6 @@
     "jsdom": "^24.0.0",
     "@zenith/permission": "1.4.0",
     "@zenith/store": "1.4.0",
-    "@zenith/form": "1.4.0",
-    "@zenith/i18n": "1.4.0"
+    "@zenith/form": "1.4.0"
   }
 }
