@@ -20,6 +20,7 @@
 
 import { Parser, ASTNode } from './parser';
 import { validate } from './validator';
+import { sanitizeExpression } from './security-constants';
 
 /**
  * حداکثر تعداد Expressionهای Cache شده.
@@ -56,20 +57,23 @@ const cache = new Map<string, ASTNode>();
  * @throws Error در صورت شکست syntax یا validation.
  */
 export function compile(expression: string): ASTNode {
+  // Sanitize expression before any processing
+  const safeExpression = sanitizeExpression(expression);
+
   // ── ۱. Cache Hit: فقط به آخر منتقلش کن (LRU touch) ──
-  if (cache.has(expression)) {
+  if (cache.has(safeExpression)) {
     cacheHits++;
-    const ast = cache.get(expression)!;
+    const ast = cache.get(safeExpression)!;
     // حذف و اضافه‌ی مجدد برای به‌روزرسانی ترتیب
-    cache.delete(expression);
-    cache.set(expression, ast);
+    cache.delete(safeExpression);
+    cache.set(safeExpression, ast);
     return ast;
   }
 
   cacheMisses++;
 
   // ── ۲. Cache Miss: parse و validate ──
-  const parser = new Parser(expression);
+  const parser = new Parser(safeExpression);
   const ast = parser.parse();
 
   // اعتبارسنجی امنیتی (اگر شکست بخورد، cache نمی‌شود)
@@ -83,7 +87,7 @@ export function compile(expression: string): ASTNode {
       cache.delete(oldestKey);
     }
   }
-  cache.set(expression, ast);
+  cache.set(safeExpression, ast);
 
   return ast;
 }
