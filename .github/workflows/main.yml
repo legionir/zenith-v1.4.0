@@ -1,0 +1,112 @@
+name: CI
+
+# Build on every change: pushes to any branch, and pull requests.
+# `workflow_dispatch` allows running it by hand from the Actions tab.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the previous run, except on the
+# default branch where every commit keeps its own artifacts.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/v104' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Lowest supported version (package.json engines: >=18) and current LTS.
+        node: ['18', '22']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # `npm ci` needs a lockfile that matches package.json exactly. It also
+      # guards against the malformed-lockfile class of bug that used to break
+      # installs in this repo.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      # build-package.mjs fails hard on tsc errors, so this also verifies
+      # that every package emits its .d.ts files.
+      - name: Build all packages
+        run: npm run build
+
+      - name: Collect bundles
+        run: node scripts/collect-artifacts.mjs artifacts
+
+      - name: Summarise bundles
+        run: |
+          {
+            echo "### Bundles (Node ${{ matrix.node }})"
+            echo
+            node -e '
+              const m = require("./artifacts/manifest.json");
+              const mb = (m.totalBytes / 1024 / 1024).toFixed(2);
+              console.log(`**${m.packageCount} packages** · ${mb} MB · v${m.version}`);
+              console.log();
+              console.log("| Package | Size | ESM | CJS | Types |");
+              console.log("|---|--:|:-:|:-:|:-:|");
+              const tick = (v) => (v ? "yes" : "-");
+              for (const p of [...m.packages].sort((a, b) => b.bytes - a.bytes)) {
+                const kb = `${Math.round(p.bytes / 1024)} KB`;
+                console.log(`| \`${p.name}\` | ${kb} | ${tick(p.entries.esm)} | ${tick(p.entries.cjs)} | ${tick(p.entries.types)} |`);
+              }
+            '
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Bundles land under artifacts/packages/<name>/dist/ plus a
+      # manifest.json index. Download them from the run's Artifacts section.
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenith-bundles-node${{ matrix.node }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+  # Publishing a tarball per tag is handled separately so it runs once,
+  # not once per Node version in the matrix.
+  release:
+    name: Attach bundles to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download bundles
+        uses: actions/download-artifact@v4
+        with:
+          name: zenith-bundles-node22
+          path: artifacts
+
+      - name: Create tarball
+        run: tar -czf "zenith-bundles-${GITHUB_REF_NAME}.tar.gz" -C artifacts .
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: zenith-bundles-*.tar.gz
