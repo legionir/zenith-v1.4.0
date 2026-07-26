@@ -27,12 +27,11 @@ export { computed, Computed } from './computed';
 export { createRoot } from './root';
 export { batch } from './batch';
 
-// ── Bug Fix #2: Re-export Priority type از scheduler ──
+// ── Bug Fix #2: Re-export Priority از scheduler ──
 // این به کاربران اجازه می‌دهد priority را به effect() پاس دهند:
-//   import { effect } from '@zenith/state';
-//   import type { Priority } from '@zenith/state';
-//   effect(() => updateDOM(), 'urgent');
-export type { Priority } from '@zenith/scheduler';
+//   import { effect, Priority } from '@zenith/state';
+//   effect(() => updateDOM(), Priority.urgent);
+export { Priority } from '@zenith/scheduler';
 
 // ── فاز ۱۰: State Registry (برای DevTools) ──
 export {

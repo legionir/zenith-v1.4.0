@@ -37,7 +37,7 @@ import {
   onCleanup,
   type Owner,
 } from './context';
-import type { Priority } from '@zenith/scheduler';
+import { Priority, setEffectDisposal } from '@zenith/scheduler';
 
 /**
  * IMP-07 (v1.3.0): Global error handler برای Effectها.
@@ -75,7 +75,7 @@ export type EffectFn = () => void | (() => void);
  * Options for effect creation.
  */
 export type EffectOptions = {
-  priority?: Priority;
+  priority?: Priority | string;
   owner?: Owner | null;
 };
 
@@ -101,7 +101,7 @@ const effectPriorityMap = new WeakMap<Function, Priority>();
  *
  * این الگو مشابه Vue's setCurrentScope است.
  */
-let currentDefaultPriority: Priority = 'normal';
+let currentDefaultPriority: Priority = Priority.normal;
 
 /**
  * تنظیم اولویت پیش‌فرض برای Effectهای جدید.
@@ -118,9 +118,21 @@ let currentDefaultPriority: Priority = 'normal';
  * @param priority اولویت پیش‌فرض جدید.
  * @returns اولویت قبلی (برای restore کردن).
  */
-export function setCurrentPriority(priority: Priority): Priority {
+export function setCurrentPriority(priority: Priority | string): Priority {
   const old = currentDefaultPriority;
-  currentDefaultPriority = priority;
+  // Normalize string priorities for backward compatibility
+  if (typeof priority === 'string') {
+    const map: Record<string, Priority> = {
+      urgent: Priority.urgent,
+      high: Priority.high,
+      normal: Priority.normal,
+      low: Priority.low,
+      idle: Priority.idle,
+    };
+    currentDefaultPriority = map[priority] ?? Priority.normal;
+  } else {
+    currentDefaultPriority = priority;
+  }
   return old;
 }
 
@@ -151,10 +163,22 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
   let actualPriority: Priority;
   let ownerOption: Owner | null = null;
 
+  const normalizePriority = (p: Priority | string): Priority => {
+    if (typeof p === 'number') return p;
+    const map: Record<string, Priority> = {
+      urgent: Priority.urgent,
+      high: Priority.high,
+      normal: Priority.normal,
+      low: Priority.low,
+      idle: Priority.idle,
+    };
+    return map[p] ?? Priority.normal;
+  };
+
   if (typeof options === 'string') {
-    actualPriority = options;
+    actualPriority = normalizePriority(options);
   } else {
-    actualPriority = options?.priority ?? currentDefaultPriority;
+    actualPriority = options?.priority ? normalizePriority(options.priority) : currentDefaultPriority;
     ownerOption = options?.owner ?? null;
   }
 
@@ -231,6 +255,9 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
   // را با اولویت درست صدا بزند.
   effectPriorityMap.set(runEffect, actualPriority);
 
+  // Register disposal callback with scheduler so disposed effects are skipped
+  setEffectDisposal(runEffect, () => owner.disposed);
+
   // ── اجرای اولیه برای ثبت وابستگی‌ها ──
   runEffect();
 
@@ -257,7 +284,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
  * @internal این تابع فقط برای استفاده‌ی داخلی signal.ts است.
  */
 export function getEffectPriority(effectFn: Function): Priority {
-  return effectPriorityMap.get(effectFn) ?? 'normal';
+  return effectPriorityMap.get(effectFn) ?? Priority.normal;
 }
 
 /**
