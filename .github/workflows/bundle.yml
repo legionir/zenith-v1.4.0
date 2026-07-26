@@ -1,0 +1,39 @@
+name: Build browser bundle
+
+on:
+  push:
+    branches:
+      - v104
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    name: Create standalone browser bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build browser bundle
+        run: node scripts/build-browser-bundle.mjs
+
+      - name: Publish bundle branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: bundles
+          publish_dir: ./browser-bundles
+          force_orphan: true
