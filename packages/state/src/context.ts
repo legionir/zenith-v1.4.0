@@ -124,6 +124,7 @@ export function setOwner(owner: Owner | null): void {
  * (via AsyncLocalStorage) را برمی‌گرداند.
  */
 export interface EffectContext {
+  owner: Owner | null;
   activeEffect: Function | null;
   activeCleanupRegistration: ((cleanup: () => void) => void) | null;
 }
@@ -152,6 +153,7 @@ export function setEffectContextStore(provider: (() => EffectContext | null) | n
  * Fallback ماژول-level برای محیط‌های بدون provider (مثل client-side).
  */
 const moduleLevelContext: EffectContext = {
+  owner: null,
   activeEffect: null,
   activeCleanupRegistration: null,
 };
