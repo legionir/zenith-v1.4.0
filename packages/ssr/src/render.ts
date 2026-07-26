@@ -33,6 +33,32 @@ import { domAls, type DOMGlobals } from './dom-context';
 // در هر call، EffectContext مخصوص همان async context را برمی‌گرداند.
 import { setEffectContextStore, type EffectContext } from '@zenith/state';
 
+/**
+ * Serialize state for server-to-client transfer.
+ * Strips functions and other non-serializable values.
+ */
+export function serializeState(state: Record<string, any>): string {
+  return JSON.stringify(state, (_, value) => {
+    if (typeof value === 'function') return undefined;
+    return value;
+  });
+}
+
+/**
+ * Inject serialized state into HTML output.
+ */
+export function injectState(html: string, state: string): string {
+  const script = `<script id="zenith-state" type="application/json">${state}</script>`;
+  return html.replace('</head>', `${script}</head>`);
+}
+
+/**
+ * Validate hydration consistency between client and server state.
+ */
+export function validateHydration(clientState: any, serverState: any): boolean {
+  return JSON.stringify(clientState) === JSON.stringify(serverState);
+}
+
 export interface SSRResult { html: string; state: string; route?: string; }
 
 // SEC FIX (v1.2.6): SEC-A1 — safeScriptValue helper.

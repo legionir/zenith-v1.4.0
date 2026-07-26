@@ -258,6 +258,15 @@ export interface ZenStartOptions {
    * @default document
    */
   delegationRoot?: Document | ShadowRoot | HTMLElement;
+  /**
+   * SSR hydration options.
+   */
+  ssr?: {
+    /** Whether to preload server state from injected script tag. @default true */
+    preloadState?: boolean;
+    /** Whether to validate hydration consistency. @default false */
+    validateHydration?: boolean;
+  };
 }
 
 export const Zen = {
@@ -279,7 +288,7 @@ export const Zen = {
    * @param state آبجکت State شامل Signalها و Services.
    * @param options گزینه‌های اختیاری (v1.0.0).
    */
-  start(root: HTMLElement, state: Record<string, any>, options?: ZenStartOptions): void {
+  start(root: HTMLElement, state: Record<string, any> = {}, options?: ZenStartOptions): void {
     Zen.perf.mark('zen.start');
     // IMP-RUNT-06: Enhanced error message with helpful debugging hints
     if (!root) {
@@ -311,6 +320,25 @@ export const Zen = {
       const existingDisposes = (root as any).__zenithDisposes as (() => void)[] | undefined;
       if (existingDisposes) {
         existingDisposes.forEach((d) => d());
+      }
+    }
+
+    // ── SSR: Merge server state if present ──
+    if (options?.ssr?.preloadState !== false && typeof document !== 'undefined') {
+      const el = document.getElementById('zenith-state');
+      if (el) {
+        try {
+          const serverState = JSON.parse(el.textContent || '{}');
+          if (options?.ssr?.validateHydration) {
+            console.assert(
+              JSON.stringify(state) === JSON.stringify(serverState),
+              '[Zenith] Hydration mismatch: client and server state differ'
+            );
+          }
+          Object.assign(state, serverState);
+        } catch {
+          // ignore parse errors
+        }
       }
     }
 

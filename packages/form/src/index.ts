@@ -1,8 +1,11 @@
 export {
   FormStore,
   createForm,
+  createReactiveForm,
   type FormStoreState,
   type FormFieldState,
+  type ValidationRule,
+  type FormOptions,
 } from './form';
 
 export {

@@ -9,8 +9,54 @@
 //   - Dynamic fields (addField, removeField for non-array)
 //   - Batch validation (validate all at once)
 //   - Async submit handler
+//   - Simple reactive form API (v1.4.0)
 
 import { signal, type Signal } from '@zenith/state';
+
+/**
+ * Form validation rule.
+ */
+export interface ValidationRule {
+  validate: (value: any) => boolean | string | Promise<boolean | string>;
+  message?: string;
+}
+
+/**
+ * Simple reactive form options.
+ */
+export interface FormOptions<T extends Record<string, any>> {
+  initialValues?: T;
+  validation?: Partial<Record<keyof T, ValidationRule | ValidationRule[]>>;
+  onSubmit?: (values: T) => void | Promise<void>;
+}
+
+/**
+ * Create a simple reactive form.
+ *
+ * @example
+ * const form = createForm({
+ *   initialValues: { username: '', password: '' },
+ *   validation: {
+ *     username: { validate: v => v.length > 3, message: 'Min 4 chars' }
+ *   }
+ * });
+ */
+export function createReactiveForm<T extends Record<string, any>>(options: FormOptions<T>) {
+  const values = signal<T>(options.initialValues || ({} as T));
+  const errors = signal<Record<string, string>>({});
+  const submitting = signal(false);
+
+  async function startSubmit() {
+    submitting.set(true);
+    errors.set({});
+  }
+
+  async function endSubmit() {
+    submitting.set(false);
+  }
+
+  return { values, errors, submitting, startSubmit, endSubmit };
+}
 import { validateField, validateFieldAsync, validateForm, validateFormAsync, type FieldValidation, type FormValidation } from './validator';
 
 export interface FormFieldState {
