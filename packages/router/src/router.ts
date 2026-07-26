@@ -39,6 +39,8 @@ export interface Route {
   lazy?: boolean;
   prefetch?: boolean;
   guard?: (params: Record<string, string>) => boolean | Promise<boolean>;
+  /** Arbitrary metadata for the route (e.g. auth guards, page title). */
+  meta?: Record<string, any>;
   children?: Route[];
 }
 

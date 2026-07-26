@@ -12,7 +12,11 @@ const packages = [
   'auth',
   'i18n',
   'ssr',
-  'devtools'
+  'devtools',
+  'testing',
+  'http',
+  'notifications',
+  'data-table'
 ];
 
 console.log('🚀 Building all Zenith packages...\n');

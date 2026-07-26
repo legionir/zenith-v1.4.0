@@ -8,7 +8,7 @@
 // این فایل باید بسیار کم‌حجم باشد و فقط exportها را شامل شود.
 // تمام منطق در فایل‌های داخلی (signal.ts, effect.ts, ...) قرار دارد.
 
-export { signal, Signal, untrack } from './signal';
+export { signal, Signal, untrack, type ReadonlySignal } from './signal';
 // BUG-22 FIX (v1.2.2): export setEffectContextStore و EffectContext برای SSR.
 // BUG-05 FIX (v1.3.0): Re-export از ./context برای شکستن circular dependency.
 export {

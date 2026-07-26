@@ -46,6 +46,7 @@
     { "path": "./packages/service-worker" },
     { "path": "./packages/dependency-graph" },
     { "path": "./packages/vite-plugin" },
+    { "path": "./packages/data-table" },
     { "path": "./packages/cli" }
   ]
 }

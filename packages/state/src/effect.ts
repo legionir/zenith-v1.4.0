@@ -177,11 +177,13 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
     return map[p] ?? Priority.normal;
   };
 
-  if (typeof options === 'string') {
+  if (typeof options === 'number' || typeof options === 'string') {
     actualPriority = normalizePriority(options);
+  } else if (options) {
+    actualPriority = options.priority ? normalizePriority(options.priority) : currentDefaultPriority;
+    ownerOption = options.owner ?? null;
   } else {
-    actualPriority = options?.priority ? normalizePriority(options.priority) : currentDefaultPriority;
-    ownerOption = options?.owner ?? null;
+    actualPriority = currentDefaultPriority;
   }
 
   // Create owner for this effect

@@ -349,7 +349,7 @@ export class DependencyGraph {
  * Hook.ts در زمان نصب، متدهای این کلاس را از طریق window.__ZENITH__
  * در دسترس قرار می‌دهد.
  */
-const graph = new DependencyGraph();
+export const graph = new DependencyGraph();
 
 /**
  * دریافت اسنپ‌شات فعلی گراف (برای DevTools).

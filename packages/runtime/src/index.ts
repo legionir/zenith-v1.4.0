@@ -10,14 +10,17 @@
 // در فاز ۴، Event Delegation به‌صورت خودکار در `Zen.start` فعال می‌شود.
 // `Zen.stop` هم به‌صورت متقارن، Listenerهای document را پاک می‌کند.
 
-import { processDOM, walkAndBind } from './walker';
+import { processDOM } from './walker';
 import { setRouteSignalProvider } from './context';
 import { initEventDelegation } from '@zenith/events';
 import { registerAction, unregisterAction, hasAction, clearActions, listActions, getActionMeta } from '@zenith/actions';
 import { loadComponents, clearComponents } from '@zenith/components';
 import { flushSync } from '@zenith/scheduler';
 import { navigate, routeSignal, cleanupRouter } from '@zenith/router';
-import { initDevTools } from '@zenith/devtools';
+import { initDevTools, exposeDevToolsAPI } from '@zenith/devtools';
+import { setStrictParity } from './parity-check';
+import { notificationsAPI } from '@zenith/notifications';
+import { auth, initAuth } from '@zenith/auth';
 // Bug Fix #1: resetResourceRegistry باید در Zen.stop فراخوانی شود تا
 // نشت حافظه‌ی resource در SPA (که در گزارش قبلی مطرح شد) برطرف شود.
 import { resetResourceRegistry } from '@zenith/resource';
@@ -273,9 +276,75 @@ export interface ZenStartOptions {
    * Global error handler callback.
    */
   onError?: ErrorHandler;
+  /**
+   * Enable strict runtime/compiler parity checking in development.
+   */
+  strictParity?: boolean;
 }
 
-export const Zen = {
+/**
+ * Runtime API interface (prevents circular `typeof Zen` inference issues).
+ */
+interface ZenApi {
+  onError: typeof onError;
+  getErrors: typeof getErrorHistory;
+  reportError: (message: string, options?: Partial<ZenithError>) => void;
+  notify: typeof notificationsAPI.notify;
+  toasts: typeof notificationsAPI.toasts;
+  alert: typeof notificationsAPI.alert;
+  confirm: typeof notificationsAPI.confirm;
+  auth: typeof auth;
+  start(root: HTMLElement, state?: Record<string, any>, options?: ZenStartOptions): void;
+  stop(root: HTMLElement): void;
+  action: ReturnType<typeof Object.assign<typeof registerAction, { register: typeof registerAction; unregister: typeof unregisterAction; has: typeof hasAction; clear: typeof clearActions; list: typeof listActions; getMeta: typeof getActionMeta }>>;
+  flushSync: () => void;
+  navigate: typeof navigate;
+  route: typeof routeSignal;
+  use(plugin: ZenithPlugin, options?: any): ZenApi;
+  plugins(): string[];
+  cloakCSS(): string;
+  __injectCloakStyle(): boolean;
+  __removeCloakStyle(): void;
+  perf: ZenPerf;
+}
+
+export const Zen: ZenApi = {
+  /**
+   * Register a global error handler.
+   * @example
+   * Zen.onError(err => {
+   *   Sentry.captureException(new Error(err.message));
+   * });
+   */
+  onError,
+
+  /**
+   * Get recent error history (up to 50 entries).
+   */
+  getErrors: getErrorHistory,
+
+  /**
+   * Emit a custom error through Zenith's error system.
+   */
+  reportError: (message: string, options: Partial<ZenithError> = {}) => {
+    emitError({
+      message,
+      category: options.category || 'runtime',
+      severity: options.severity || 'error',
+      recoverable: options.recoverable !== false,
+      ...options,
+    });
+  },
+
+  // ── Notification API ──
+  notify: notificationsAPI.notify,
+  toasts: notificationsAPI.toasts,
+  alert: notificationsAPI.alert,
+  confirm: notificationsAPI.confirm,
+
+  // ── Auth API (v1.4.0) ──
+  auth,
+
   /**
    * Register a global error handler.
    * @example
@@ -356,8 +425,16 @@ export const Zen = {
       }
     }
 
+    // Expose DevTools API on window (ZERO-COST: just a global object, no tracking until enable())
+    exposeDevToolsAPI();
+
     // Enable dev mode for rich error messages
     setDevMode(options?.devtools !== false);
+
+    // Enable strict parity checking if requested (dev mode only)
+    if (options?.strictParity) {
+      setStrictParity(true);
+    }
 
     // Register global error handler if provided
     if (options?.onError) {
@@ -428,7 +505,13 @@ export const Zen = {
     // `$route` در Context تعریف نمی‌شود.
     setRouteSignalProvider(() => routeSignal.get());
 
-    Signal.get());
+    // ── ۲.۵. راه‌اندازی Auth (v1.4.0) — fire-and-forget ──
+    // اگر توکن قبلاً ذخیره شده باشد، session را restore می‌کند.
+    try {
+      initAuth().catch(() => {});
+    } catch {
+      // ignore — auth init is best-effort
+    }
 
     // ── ۳. لود کردن تعاریف کامپوننت‌ها ──
     // این کار را قبل از هر چیز انجام می‌دهیم تا walker بتواند تگ‌های سفارشی
@@ -697,36 +780,14 @@ export const Zen = {
       return Zen;
     }
 
-    // IMP-RUNT-03: Atomic check-and-install with Promise-based locking
-    // to prevent race conditions when multiple callers try to install
-    // the same plugin concurrently (e.g., during parallel startup).
-    let lock = pluginInstallLocks.get(pluginName);
-    if (!lock) {
-      lock = (async () => {
-        try {
-          // Double-check after acquiring lock
-          if (pluginRegistry.has(pluginName)) return;
-
-          plugin.install(Zen, options);
-          pluginRegistry.set(pluginName, plugin);
-          if (isDevMode()) {
-            console.log(`🔌 Zenith plugin installed: ${pluginName}`);
-          }
-        } catch (err) {
-          console.error(`[Zenith] Plugin "${pluginName}" failed to install:`, err);
-          throw err;
-        } finally {
-          pluginInstallLocks.delete(pluginName);
-        }
-      })();
-      pluginInstallLocks.set(pluginName, lock);
-    }
-
-    // If already installing, wait for it to complete
     try {
-      await lock;
-    } catch {
-      // Error already logged in lock
+      plugin.install(Zen, options);
+      pluginRegistry.set(pluginName, plugin);
+      if (isDevMode()) {
+        console.log(`🔌 Zenith plugin installed: ${pluginName}`);
+      }
+    } catch (err) {
+      console.error(`[Zenith] Plugin "${pluginName}" failed to install:`, err);
     }
 
     return Zen; // برای chaining: Zen.use(a).use(b)
@@ -1160,3 +1221,43 @@ export {
   type ZenBindAttribute,
   type AllZenithAttributes,
 } from './attributes';
+
+/**
+ * FEATURE (v1.4.0): Re-export Runtime Parity Checker API.
+ *
+ * These utilities warn when runtime behavior diverges from compiled output.
+ */
+export {
+  setStrictParity,
+  isStrictParityEnabled,
+  reportParityDivergence,
+  assertParity,
+  clearParityWarnings,
+} from './parity-check';
+
+/**
+ * FEATURE (v1.4.0): Re-export Auth API.
+ */
+export {
+  auth,
+  configureAuth,
+  initAuth,
+  login,
+  logout,
+  register,
+  refreshToken,
+  fetchCurrentUser,
+  hasRole,
+  hasAnyRole,
+  hasAllRoles,
+  hasPermission,
+  hasAnyPermission,
+  canActivateRoute,
+  type User,
+  type AuthTokens,
+  type FunctionalAuthState,
+  type LoginCredentials,
+  type RegisterData,
+  type FunctionalAuthConfig,
+  type RouteGuard,
+} from '@zenith/auth';

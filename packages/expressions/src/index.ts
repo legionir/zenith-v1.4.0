@@ -141,3 +141,18 @@ export {
   isForbiddenIdentifier,
   sanitizeExpression,
 } from './security-constants';
+
+// ── Type Checking exports ──
+export {
+  inferType,
+  isAssignableTo,
+  validateType,
+  createTypeContext,
+  assertType,
+  TypeGuards,
+} from './type-check';
+export type {
+  ExpressionType,
+  TypeCheckResult,
+  TypeContext,
+} from './type-check';

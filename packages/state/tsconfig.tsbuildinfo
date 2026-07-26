@@ -1,0 +1,1 @@
+{"root":["./src/batch.ts","./src/computed.ts","./src/context.ts","./src/devtools.ts","./src/effect.ts","./src/error.ts","./src/index.ts","./src/registry.ts","./src/root.ts","./src/signal.ts"],"version":"5.9.3"}

@@ -1,0 +1,43 @@
+{
+  "name": "@zenith/testing",
+  "version": "1.4.0",
+  "description": "Zenith framework — Testing utilities for signals, effects, and components.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "testing",
+    "vitest",
+    "jest",
+    "unit-test"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@zenith/state": "1.4.0",
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/runtime": "1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

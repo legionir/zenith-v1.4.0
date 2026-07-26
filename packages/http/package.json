@@ -1,0 +1,41 @@
+{
+  "name": "@zenith/http",
+  "version": "1.4.0",
+  "description": "Zenith framework — Advanced HTTP integration with interceptors, retry, caching, and cancellation.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "http",
+    "fetch",
+    "api",
+    "rest"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@zenith/state": "1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

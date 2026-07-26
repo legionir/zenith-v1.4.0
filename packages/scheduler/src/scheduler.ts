@@ -61,6 +61,11 @@ const PRIORITY_STRING_MAP: Record<string, Priority> = {
 const PRIORITY_AGING_RATE = 0.5;
 
 /**
+ * حداقل زمان قبل از اعمال Aging (میلی‌ثانیه).
+ */
+const AGING_THRESHOLD = 1000;
+
+/**
  * حداکثر تعداد Effectهای مجاز در یک flush.
  */
 const MAX_FLUSH_ITERATIONS = 100;
@@ -122,7 +127,8 @@ const afterFlushCallbacks: Array<() => void> = [];
  */
 function getEffectivePriority(task: Task): number {
   const age = Date.now() - task.createdAt;
-  return Math.max(0, task.priority - Math.floor(age * PRIORITY_AGING_RATE / 1000));
+  if (age < AGING_THRESHOLD) return task.priority;
+  return Math.max(0, task.priority - Math.floor((age - AGING_THRESHOLD) * PRIORITY_AGING_RATE / 1000));
 }
 
 /**
@@ -372,3 +378,6 @@ export function getSchedulerHooks(): SchedulerHooks | null {
 export function scheduleMicrotask(fn: () => void): Promise<void> {
   return Promise.resolve().then(fn);
 }
+
+// Export threshold for testing and configuration
+export { AGING_THRESHOLD as schedulerAgingThreshold };

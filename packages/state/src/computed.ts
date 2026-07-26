@@ -15,7 +15,7 @@
 //   firstName.set('Reza');
 //   fullName.get(); // 'Reza Mohammadi'  ← به صورت خودکار آپدیت شد.
 
-import { Signal, signal } from './signal';
+import { Signal, signal, type ReadonlySignal } from './signal';
 import { effect } from './effect';
 import { createOwner, disposeOwner, getOwner } from './context';
 
@@ -110,11 +110,14 @@ export class Computed<T> {
 }
 
 /**
- * تابع کمکی برای ساخت Computed.
+ * Create a computed (derived) readonly signal with full type inference.
  *
  * @param computation تابع محاسبه‌کننده‌ی مقدار.
- * @returns یک Computed قابل استفاده.
+ * @returns یک Computed قابل استفاده (به‌صورت ReadonlySignal).
+ *
+ * @example
+ *   const double = computed(() => count.get() * 2); // ReadonlySignal<number>
  */
-export function computed<T>(computation: () => T): Computed<T> {
-  return new Computed(computation);
+export function computed<T>(computation: () => T): ReadonlySignal<T> {
+  return new Computed(computation) as unknown as ReadonlySignal<T>;
 }
