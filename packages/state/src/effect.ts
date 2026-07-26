@@ -38,6 +38,7 @@ import {
   type Owner,
 } from './context';
 import { Priority, setEffectDisposal } from '@zenith/scheduler';
+import { emitError } from './error';
 
 /**
  * IMP-07 (v1.3.0): Global error handler برای Effectها.
@@ -77,6 +78,7 @@ export type EffectFn = () => void | (() => void);
 export type EffectOptions = {
   priority?: Priority | string;
   owner?: Owner | null;
+  onError?: (err: Error) => void;
 };
 
 /**
@@ -226,6 +228,19 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
         try { cleanup(); } catch { /* ignore cleanup errors during error path */ }
       });
       cleanupQueue = [];
+
+      // Route through centralized error system
+      if (typeof options === 'object' && options?.onError) {
+        options.onError(err instanceof Error ? err : new Error(String(err)));
+      }
+      emitError({
+        message: err instanceof Error ? err.message : String(err),
+        category: 'reactivity',
+        severity: 'error',
+        recoverable: true,
+        stack: err instanceof Error ? err.stack : undefined,
+        context: { effectOwnerId: owner.id },
+      });
 
       // IMP-07: اگر global error handler تنظیم شده، خطا را به آن بده و
       // Effect را از گراف حذف کن (به جای throw کردن).

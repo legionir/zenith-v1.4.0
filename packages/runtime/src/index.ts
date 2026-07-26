@@ -21,6 +21,8 @@ import { initDevTools } from '@zenith/devtools';
 // Bug Fix #1: resetResourceRegistry باید در Zen.stop فراخوانی شود تا
 // نشت حافظه‌ی resource در SPA (که در گزارش قبلی مطرح شد) برطرف شود.
 import { resetResourceRegistry } from '@zenith/resource';
+import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
+import type { ZenithError, ErrorHandler } from '@zenith/state';
 
 /**
  * FEATURE (v0.6.0): شناسه‌ی یکتای تگ <style> تزریق‌شده برای ضد-FOUC.
@@ -267,9 +269,40 @@ export interface ZenStartOptions {
     /** Whether to validate hydration consistency. @default false */
     validateHydration?: boolean;
   };
+  /**
+   * Global error handler callback.
+   */
+  onError?: ErrorHandler;
 }
 
 export const Zen = {
+  /**
+   * Register a global error handler.
+   * @example
+   * Zen.onError(err => {
+   *   Sentry.captureException(new Error(err.message));
+   * });
+   */
+  onError,
+
+  /**
+   * Get recent error history (up to 50 entries).
+   */
+  getErrors: getErrorHistory,
+
+  /**
+   * Emit a custom error through Zenith's error system.
+   */
+  reportError: (message: string, options: Partial<ZenithError> = {}) => {
+    emitError({
+      message,
+      category: options.category || 'runtime',
+      severity: options.severity || 'error',
+      recoverable: options.recoverable !== false,
+      ...options,
+    });
+  },
+
   /**
    * شروع فریم‌ورک روی یک عنصر HTML.
    *
@@ -323,6 +356,14 @@ export const Zen = {
       }
     }
 
+    // Enable dev mode for rich error messages
+    setDevMode(options?.devtools !== false);
+
+    // Register global error handler if provided
+    if (options?.onError) {
+      onError(options.onError);
+    }
+
     // ── SSR: Merge server state if present ──
     if (options?.ssr?.preloadState !== false && typeof document !== 'undefined') {
       const el = document.getElementById('zenith-state');
@@ -330,10 +371,20 @@ export const Zen = {
         try {
           const serverState = JSON.parse(el.textContent || '{}');
           if (options?.ssr?.validateHydration) {
+            const match = JSON.stringify(state) === JSON.stringify(serverState);
             console.assert(
-              JSON.stringify(state) === JSON.stringify(serverState),
+              match,
               '[Zenith] Hydration mismatch: client and server state differ'
             );
+            if (!match) {
+              emitError({
+                message: 'Hydration mismatch: client and server state differ',
+                category: 'ssr',
+                    severity: 'warning',
+                recoverable: true,
+                hint: 'Ensure initial state on client matches what was serialized on server.',
+              });
+            }
           }
           Object.assign(state, serverState);
         } catch {

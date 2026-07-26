@@ -26,6 +26,8 @@ export { effect, getEffectPriority, setCurrentPriority, getCurrentPriority, onEf
 export { computed, Computed } from './computed';
 export { createRoot } from './root';
 export { batch } from './batch';
+export { onError, emitError, errorBoundary, getErrorHistory, clearErrorHistory, setDevMode, isDevMode } from './error';
+export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './error';
 
 // ── Bug Fix #2: Re-export Priority از scheduler ──
 // این به کاربران اجازه می‌دهد priority را به effect() پاس دهند:
