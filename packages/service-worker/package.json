@@ -3,30 +3,37 @@
   "version": "1.4.0",
   "description": "Zenith framework — Offline-first Service Worker with cache strategies (Phase 13). Zero-dep workbox-style SW: cache-first, network-first, stale-while-revalidate, network-only, cache-only.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./sw": {
-      "import": "./dist/sw.js"
-    },
-    "./strategies": {
-      "types": "./dist/strategies.d.ts",
-      "import": "./dist/strategies.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["zenith", "service-worker", "offline", "pwa", "cache", "sw", "framework"],
+  "keywords": [
+    "zenith",
+    "service-worker",
+    "offline",
+    "pwa",
+    "cache",
+    "sw",
+    "framework"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "typescript": "^5.4.0"
   }

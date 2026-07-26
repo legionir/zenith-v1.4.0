@@ -30,6 +30,49 @@
 
 import { signal, type Signal } from '@zenith/state';
 
+/**
+ * Route definition interface.
+ */
+export interface Route {
+  path: string;
+  component?: string | (() => Promise<any>);
+  lazy?: boolean;
+  prefetch?: boolean;
+  guard?: (params: Record<string, string>) => boolean | Promise<boolean>;
+  /** Arbitrary metadata for the route (e.g. auth guards, page title). */
+  meta?: Record<string, any>;
+  children?: Route[];
+}
+
+/**
+ * Current route information.
+ */
+export interface RouteContext {
+  path: string;
+  params: Record<string, string>;
+  query: Record<string, string>;
+  name?: string;
+}
+
+/**
+ * Define application routes.
+ */
+export function defineRoutes(routes: Route[]): Route[] {
+  return routes;
+}
+
+/**
+ * Get current route context.
+ */
+export function useRoute(): RouteContext {
+  const current = routeSignal.get();
+  return {
+    path: current.path,
+    params: current.params,
+    query: {},
+  };
+}
+
 // ── AsyncLocalStorage برای SSR concurrency safety ──
 // در Node.js موجود است. در مرورگر undefined است (که مشکلی نیست چون
 // مرورگر فقط یک client دارد).

@@ -3,15 +3,45 @@
   "version": "1.4.0",
   "description": "Zenith framework — Authentication runtime (Phase 4). Login/logout/token management/session persistence/auto-refresh.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "src", "README.md"],
-  "scripts": { "build": "tsc -p tsconfig.json", "test": "tsx test/auth-test.ts", "typecheck": "tsc --noEmit" },
-  "keywords": ["zenith", "auth", "authentication", "token", "session", "jwt"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx test/auth-test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "auth",
+    "authentication",
+    "token",
+    "session",
+    "jwt"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=18" },
-  "dependencies": { "@zenith/state": "1.0.0", "@zenith/scheduler": "1.0.0" },
-  "devDependencies": { "typescript": "^5.4.0", "tsx": "^4.7.0", "@types/node": "^20.11.0" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@zenith/state": "1.4.0",
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/http": "1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
 }

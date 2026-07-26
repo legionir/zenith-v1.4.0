@@ -37,6 +37,27 @@ export interface HydrationResult {
  * BUG FIX (BUG-09): این تابع حالا قبل از iteration، type validation انجام
  * می‌دهد تا از prototype pollution و خطاهای runtime جلوگیری شود.
  */
+/**
+ * Deserialize state from a JSON string.
+ */
+export function deserializeStateFromString(serialized: string): Record<string, any> {
+  try {
+    return JSON.parse(serialized);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Load preloaded state on client from the injected script tag.
+ */
+export function loadPreloadedState(): Record<string, any> | null {
+  if (typeof document === 'undefined') return null;
+  const el = document.getElementById('zenith-state');
+  if (!el) return null;
+  return deserializeStateFromString(el.textContent || '{}');
+}
+
 export function deserializeState(serializedState: Record<string, any>): Record<string, any> {
   const state: Record<string, any> = {};
 

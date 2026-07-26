@@ -31,7 +31,9 @@
 //     needed. The helpers themselves are safe to call from server code —
 //     they simply short-circuit.
 
-import { effect, type DisposeFn } from '@zenith/state';
+import { effect } from '@zenith/state';
+
+type DisposeFn = () => void;
 import { compileExpression } from '@zenith/expressions';
 import { sanitizeHTML, sanitizeHTMLTrusted } from '@zenith/security';
 

@@ -28,8 +28,17 @@
 
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با signal.ts.
-import { setActiveEffect, setActiveCleanupRegistration } from './context';
-import type { Priority } from '@zenith/scheduler';
+import {
+  setActiveEffect,
+  setActiveCleanupRegistration,
+  createOwner,
+  disposeOwner,
+  setOwner,
+  onCleanup,
+  type Owner,
+} from './context';
+import { Priority, setEffectDisposal } from '@zenith/scheduler';
+import { emitError } from './error';
 
 /**
  * IMP-07 (v1.3.0): Global error handler برای Effectها.
@@ -59,6 +68,20 @@ export function onEffectError(handler: ((err: unknown, effect: Function) => void
 type CleanupFn = () => void;
 
 /**
+ * نوع تابع Effect.
+ */
+export type EffectFn = () => void | (() => void);
+
+/**
+ * Options for effect creation.
+ */
+export type EffectOptions = {
+  priority?: Priority | string;
+  owner?: Owner | null;
+  onError?: (err: Error) => void;
+};
+
+/**
  * Metadata که به هر Effect function ضمیمه می‌شود.
  *
  * این metadata شامل priority است که توسط signal.set() خوانده می‌شود
@@ -80,7 +103,7 @@ const effectPriorityMap = new WeakMap<Function, Priority>();
  *
  * این الگو مشابه Vue's setCurrentScope است.
  */
-let currentDefaultPriority: Priority = 'normal';
+let currentDefaultPriority: Priority = Priority.normal;
 
 /**
  * تنظیم اولویت پیش‌فرض برای Effectهای جدید.
@@ -97,9 +120,21 @@ let currentDefaultPriority: Priority = 'normal';
  * @param priority اولویت پیش‌فرض جدید.
  * @returns اولویت قبلی (برای restore کردن).
  */
-export function setCurrentPriority(priority: Priority): Priority {
+export function setCurrentPriority(priority: Priority | string): Priority {
   const old = currentDefaultPriority;
-  currentDefaultPriority = priority;
+  // Normalize string priorities for backward compatibility
+  if (typeof priority === 'string') {
+    const map: Record<string, Priority> = {
+      urgent: Priority.urgent,
+      high: Priority.high,
+      normal: Priority.normal,
+      low: Priority.low,
+      idle: Priority.idle,
+    };
+    currentDefaultPriority = map[priority] ?? Priority.normal;
+  } else {
+    currentDefaultPriority = priority;
+  }
   return old;
 }
 
@@ -123,11 +158,38 @@ export function getCurrentPriority(): Priority {
  *                 'idle'   — analytics، logging، pre-render
  * @returns تابع Dispose برای پاکسازی کامل.
  */
-export function effect(fn: () => void, priority?: Priority): () => void {
+export function effect(fn: () => void, options?: Priority | EffectOptions): () => void {
   // اگر priority صریحاً مشخص نشده، از currentDefaultPriority استفاده کن.
   // این به event handlers اجازه می‌دهد با setCurrentPriority('urgent')
   // اولویت urgent را به همه‌ی Effectهای جدید اعمال کنند.
-  const actualPriority = priority ?? currentDefaultPriority;
+  let actualPriority: Priority;
+  let ownerOption: Owner | null = null;
+
+  const normalizePriority = (p: Priority | string): Priority => {
+    if (typeof p === 'number') return p;
+    const map: Record<string, Priority> = {
+      urgent: Priority.urgent,
+      high: Priority.high,
+      normal: Priority.normal,
+      low: Priority.low,
+      idle: Priority.idle,
+    };
+    return map[p] ?? Priority.normal;
+  };
+
+  if (typeof options === 'number' || typeof options === 'string') {
+    actualPriority = normalizePriority(options);
+  } else if (options) {
+    actualPriority = options.priority ? normalizePriority(options.priority) : currentDefaultPriority;
+    ownerOption = options.owner ?? null;
+  } else {
+    actualPriority = currentDefaultPriority;
+  }
+
+  // Create owner for this effect
+  const owner = createOwner(ownerOption);
+  setOwner(owner);
+
   /**
    * صف پاکسازی اختصاصی این Effect.
    */
@@ -137,6 +199,8 @@ export function effect(fn: () => void, priority?: Priority): () => void {
    * تابع داخلی که اجرای واقعی Effect را بر عهده دارد.
    */
   const runEffect = () => {
+    setOwner(owner);
+
     // ۱. پاکسازی وابستگی‌های قبلی
     cleanupQueue.forEach(cleanup => cleanup());
     cleanupQueue = [];
@@ -167,6 +231,19 @@ export function effect(fn: () => void, priority?: Priority): () => void {
       });
       cleanupQueue = [];
 
+      // Route through centralized error system
+      if (typeof options === 'object' && options?.onError) {
+        options.onError(err instanceof Error ? err : new Error(String(err)));
+      }
+      emitError({
+        message: err instanceof Error ? err.message : String(err),
+        category: 'reactivity',
+        severity: 'error',
+        recoverable: true,
+        stack: err instanceof Error ? err.stack : undefined,
+        context: { effectOwnerId: owner.id },
+      });
+
       // IMP-07: اگر global error handler تنظیم شده، خطا را به آن بده و
       // Effect را از گراف حذف کن (به جای throw کردن).
       if (globalEffectErrorHandler) {
@@ -183,10 +260,20 @@ export function effect(fn: () => void, priority?: Priority): () => void {
     }
   };
 
+  // Register effect's own cleanup in the owner tree
+  onCleanup(() => {
+    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue = [];
+    effectPriorityMap.delete(runEffect);
+  });
+
   // ── Bug Fix #2: ذخیره‌ی priority روی runEffect ──
   // این metadata توسط signal.set() خوانده می‌شود تا scheduleEffect
   // را با اولویت درست صدا بزند.
   effectPriorityMap.set(runEffect, actualPriority);
+
+  // Register disposal callback with scheduler so disposed effects are skipped
+  setEffectDisposal(runEffect, () => owner.disposed);
 
   // ── اجرای اولیه برای ثبت وابستگی‌ها ──
   runEffect();
@@ -195,9 +282,12 @@ export function effect(fn: () => void, priority?: Priority): () => void {
    * تابع Dispose.
    */
   return () => {
+    if (owner.disposed) return;
     cleanupQueue.forEach(cleanup => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
+    disposeOwner(owner);
+    setOwner(null);
   };
 }
 
@@ -211,7 +301,7 @@ export function effect(fn: () => void, priority?: Priority): () => void {
  * @internal این تابع فقط برای استفاده‌ی داخلی signal.ts است.
  */
 export function getEffectPriority(effectFn: Function): Priority {
-  return effectPriorityMap.get(effectFn) ?? 'normal';
+  return effectPriorityMap.get(effectFn) ?? Priority.normal;
 }
 
 /**
