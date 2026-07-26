@@ -19,6 +19,100 @@
 //   1. تعریف EffectContext و توابع مربوط به activeEffect
 //   2. تعریف activeCleanupRegistration و registerCleanup
 //   3. مدیریت provider mechanism برای SSR (setEffectContextStore)
+//   4. Owner Tree برای lifecycle management
+
+/**
+ * Owner interface for lifecycle management.
+ *
+ * هر Effect یا Computed یک Owner دارد که children و cleanup handlers
+ * آن را مدیریت می‌کند. این ساختار tree-based امکان dispose کردن
+ * گروهی از Effectها را فراهم می‌کند.
+ */
+export interface Owner {
+  id?: string;
+  parent?: Owner | null;
+  children: Set<Owner>;
+  cleanup: Set<() => void>;
+  disposed: boolean;
+}
+
+/**
+ * Global state برای Owner فعلی.
+ */
+let currentOwner: Owner | null = null;
+
+/**
+ * Create a new owner.
+ */
+export function createOwner(parent?: Owner | null): Owner {
+  const owner: Owner = {
+    parent: parent ?? currentOwner,
+    children: new Set(),
+    cleanup: new Set(),
+    disposed: false,
+  };
+
+  if (owner.parent) {
+    owner.parent.children.add(owner);
+  }
+
+  return owner;
+}
+
+/**
+ * Dispose an owner and all its children.
+ */
+export function disposeOwner(owner: Owner): void {
+  if (owner.disposed) return;
+
+  owner.disposed = true;
+
+  // Dispose all children first
+  for (const child of owner.children) {
+    disposeOwner(child);
+  }
+  owner.children.clear();
+
+  // Run all cleanup handlers
+  for (const fn of owner.cleanup) {
+    try {
+      fn();
+    } catch {
+      /* ignore cleanup errors */
+    }
+  }
+  owner.cleanup.clear();
+
+  // Remove from parent
+  if (owner.parent) {
+    owner.parent.children.delete(owner);
+  }
+
+  owner.parent = null;
+}
+
+/**
+ * Register a cleanup function for current owner.
+ */
+export function onCleanup(fn: () => void): void {
+  if (currentOwner) {
+    currentOwner.cleanup.add(fn);
+  }
+}
+
+/**
+ * Get current active owner.
+ */
+export function getOwner(): Owner | null {
+  return currentOwner;
+}
+
+/**
+ * Set current active owner.
+ */
+export function setOwner(owner: Owner | null): void {
+  currentOwner = owner;
+}
 
 /**
  * EffectContext شامل activeEffect و activeCleanupRegistration.

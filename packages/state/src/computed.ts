@@ -17,6 +17,7 @@
 
 import { Signal, signal } from './signal';
 import { effect } from './effect';
+import { createOwner, disposeOwner, getOwner } from './context';
 
 /**
  * کلاس Computed: یک Signal با مقدار مشتق‌شده.
@@ -35,6 +36,7 @@ export class Computed<T> {
   private _innerSignal: Signal<T | undefined>;
   private _cleanup: (() => void) | null = null;
   private _initialized = false;
+  private _owner: ReturnType<typeof createOwner>;
 
   constructor(private computation: () => T) {
     // BUG-03 FIX + IMP-01 (v1.3.0): Lazy initialization — computation() is
@@ -47,6 +49,7 @@ export class Computed<T> {
     // innerSignal starts with undefined as a placeholder. When get() is called
     // for the first time, _initialize() runs computation(), creates the real
     // innerSignal, and sets up the tracking effect.
+    this._owner = createOwner(getOwner());
     this._innerSignal = signal<T | undefined>(undefined);
   }
 
@@ -86,6 +89,8 @@ export class Computed<T> {
         this._value = newValue;
         this._innerSignal.set(newValue as T);
       }
+    }, {
+      owner: this._owner,
     });
 
     this._initialized = true;
@@ -99,6 +104,7 @@ export class Computed<T> {
       this._cleanup();
       this._cleanup = null;
     }
+    disposeOwner(this._owner);
     this._initialized = false;
   }
 }

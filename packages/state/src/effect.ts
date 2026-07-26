@@ -28,7 +28,15 @@
 
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با signal.ts.
-import { setActiveEffect, setActiveCleanupRegistration } from './context';
+import {
+  setActiveEffect,
+  setActiveCleanupRegistration,
+  createOwner,
+  disposeOwner,
+  setOwner,
+  onCleanup,
+  type Owner,
+} from './context';
 import type { Priority } from '@zenith/scheduler';
 
 /**
@@ -57,6 +65,19 @@ export function onEffectError(handler: ((err: unknown, effect: Function) => void
  * نوع تابع پاکسازی (Cleanup).
  */
 type CleanupFn = () => void;
+
+/**
+ * نوع تابع Effect.
+ */
+export type EffectFn = () => void | (() => void);
+
+/**
+ * Options for effect creation.
+ */
+export type EffectOptions = {
+  priority?: Priority;
+  owner?: Owner | null;
+};
 
 /**
  * Metadata که به هر Effect function ضمیمه می‌شود.
@@ -123,11 +144,24 @@ export function getCurrentPriority(): Priority {
  *                 'idle'   — analytics، logging، pre-render
  * @returns تابع Dispose برای پاکسازی کامل.
  */
-export function effect(fn: () => void, priority?: Priority): () => void {
+export function effect(fn: () => void, options?: Priority | EffectOptions): () => void {
   // اگر priority صریحاً مشخص نشده، از currentDefaultPriority استفاده کن.
   // این به event handlers اجازه می‌دهد با setCurrentPriority('urgent')
   // اولویت urgent را به همه‌ی Effectهای جدید اعمال کنند.
-  const actualPriority = priority ?? currentDefaultPriority;
+  let actualPriority: Priority;
+  let ownerOption: Owner | null = null;
+
+  if (typeof options === 'string') {
+    actualPriority = options;
+  } else {
+    actualPriority = options?.priority ?? currentDefaultPriority;
+    ownerOption = options?.owner ?? null;
+  }
+
+  // Create owner for this effect
+  const owner = createOwner(ownerOption);
+  setOwner(owner);
+
   /**
    * صف پاکسازی اختصاصی این Effect.
    */
@@ -137,6 +171,8 @@ export function effect(fn: () => void, priority?: Priority): () => void {
    * تابع داخلی که اجرای واقعی Effect را بر عهده دارد.
    */
   const runEffect = () => {
+    setOwner(owner);
+
     // ۱. پاکسازی وابستگی‌های قبلی
     cleanupQueue.forEach(cleanup => cleanup());
     cleanupQueue = [];
@@ -183,6 +219,13 @@ export function effect(fn: () => void, priority?: Priority): () => void {
     }
   };
 
+  // Register effect's own cleanup in the owner tree
+  onCleanup(() => {
+    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue = [];
+    effectPriorityMap.delete(runEffect);
+  });
+
   // ── Bug Fix #2: ذخیره‌ی priority روی runEffect ──
   // این metadata توسط signal.set() خوانده می‌شود تا scheduleEffect
   // را با اولویت درست صدا بزند.
@@ -195,9 +238,12 @@ export function effect(fn: () => void, priority?: Priority): () => void {
    * تابع Dispose.
    */
   return () => {
+    if (owner.disposed) return;
     cleanupQueue.forEach(cleanup => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
+    disposeOwner(owner);
+    setOwner(null);
   };
 }
 

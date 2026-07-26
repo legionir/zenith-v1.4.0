@@ -11,10 +11,20 @@
 export { signal, Signal, untrack } from './signal';
 // BUG-22 FIX (v1.2.2): export setEffectContextStore و EffectContext برای SSR.
 // BUG-05 FIX (v1.3.0): Re-export از ./context برای شکستن circular dependency.
-export { setEffectContextStore, type EffectContext } from './context';
+export {
+  setEffectContextStore,
+  type EffectContext,
+  createOwner,
+  disposeOwner,
+  getOwner,
+  setOwner,
+  onCleanup,
+  type Owner,
+} from './context';
 // IMP-07 (v1.3.0): export onEffectError برای Error Boundary.
-export { effect, getEffectPriority, setCurrentPriority, getCurrentPriority, onEffectError } from './effect';
+export { effect, getEffectPriority, setCurrentPriority, getCurrentPriority, onEffectError, type EffectFn, type EffectOptions } from './effect';
 export { computed, Computed } from './computed';
+export { createRoot } from './root';
 export { batch } from './batch';
 
 // ── Bug Fix #2: Re-export Priority type از scheduler ──
