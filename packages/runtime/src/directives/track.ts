@@ -59,7 +59,8 @@ export function configureAnalytics(handler: AnalyticsHandler | null): void {
 export function processTrack(
   el: HTMLElement,
   trackAttr: string,
-  context: Record<string, any>,
+  // Part of the directive signature; tracking payload comes from attributes.
+  _context: Record<string, any>,
 ): () => void {
   // Parse the attribute: "<trigger>:<eventName>" or just "<eventName>".
   let trigger = 'click';
@@ -94,7 +95,9 @@ export function processTrack(
     // or causing input/checkbox state changes to be visually delayed.
     // Wrapping in setTimeout(..., 0) lets the click event finish dispatching
     // first.
-    const onClick = (): void => setTimeout(() => fire(), 0);
+    const onClick = (): void => {
+      setTimeout(() => fire(), 0);
+    };
     el.addEventListener('click', onClick);
     return () => {
       el.removeEventListener('click', onClick);

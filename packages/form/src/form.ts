@@ -758,12 +758,18 @@ export function createAdvancedForm<T extends Record<string, any>>(
       move: (from, to) => {
         const arr = [...getArray()];
         const [item] = arr.splice(from, 1);
+        // splice(from, 1) yields nothing when `from` is out of range.
+        if (item === undefined) return;
         arr.splice(to, 0, item);
         setArray(arr);
       },
       swap: (a, b) => {
         const arr = [...getArray()];
-        [arr[a], arr[b]] = [arr[b], arr[a]];
+        const itemA = arr[a];
+        const itemB = arr[b];
+        if (itemA === undefined || itemB === undefined) return;
+        arr[a] = itemB;
+        arr[b] = itemA;
         setArray(arr);
       },
       clear: () => setArray([])

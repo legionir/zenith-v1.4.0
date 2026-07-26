@@ -214,8 +214,14 @@ export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Si
 /**
  * Type helper for readonly signals (e.g. computed values).
  * Omits the `set` method to prevent external mutation.
+ *
+ * Values produced by `computed()` own an internal effect, so they also expose
+ * `dispose()` for releasing it. It is declared optional because not every
+ * ReadonlySignal is a Computed.
  */
-export type ReadonlySignal<T> = Omit<Signal<T>, 'set'>;
+export type ReadonlySignal<T> = Omit<Signal<T>, 'set'> & {
+  dispose?(): void;
+};
 
 // FEATURE (v1.3.0): untrack() — execute a function without tracking dependencies.
 // All signal.get() calls inside fn() will NOT register subscriptions.

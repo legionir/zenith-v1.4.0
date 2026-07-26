@@ -346,33 +346,6 @@ export const Zen: ZenApi = {
   auth,
 
   /**
-   * Register a global error handler.
-   * @example
-   * Zen.onError(err => {
-   *   Sentry.captureException(new Error(err.message));
-   * });
-   */
-  onError,
-
-  /**
-   * Get recent error history (up to 50 entries).
-   */
-  getErrors: getErrorHistory,
-
-  /**
-   * Emit a custom error through Zenith's error system.
-   */
-  reportError: (message: string, options: Partial<ZenithError> = {}) => {
-    emitError({
-      message,
-      category: options.category || 'runtime',
-      severity: options.severity || 'error',
-      recoverable: options.recoverable !== false,
-      ...options,
-    });
-  },
-
-  /**
    * شروع فریم‌ورک روی یک عنصر HTML.
    *
    * این تابع:

@@ -169,11 +169,12 @@ function setEffectContextStoreOnce(): void {
     if (!store) return null;
     if (!store.effectContext) {
       store.effectContext = {
+        owner: null,
         activeEffect: null,
         activeCleanupRegistration: null,
       };
     }
-    return store.effectContext;
+    return store.effectContext ?? null;
   });
 }
 

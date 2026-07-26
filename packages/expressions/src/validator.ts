@@ -21,9 +21,7 @@ import { ASTNode } from './parser';
 // a larger list — leaving holes for __lookupGetter__/__lookupSetter__ etc.
 import {
   FORBIDDEN_PROPERTIES,
-  FORBIDDEN_IDENTIFIERS,
   isForbiddenIdentifier,
-  sanitizeExpression,
 } from './security-constants';
 
 /**

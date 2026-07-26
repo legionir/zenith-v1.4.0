@@ -77,21 +77,38 @@ export function useRoute(): RouteContext {
 // در Node.js موجود است. در مرورگر undefined است (که مشکلی نیست چون
 // مرورگر فقط یک client دارد).
 //
-// نکته: در ESM نمی‌توانیم از require() استفاده کنیم. پس از
-// createRequire(import.meta.url) استفاده می‌کنیم تا sync به
-// node:async_hooks دسترسی داشته باشیم.
+// نکته: این ماژول باید هم به ESM و هم به CJS باندل شود، بنابراین اینجا
+// نه می‌توانیم از top-level await استفاده کنیم (در CJS پشتیبانی نمی‌شود)
+// و نه از require() (در ESM موجود نیست).
+//
+// راه‌حل: `process.getBuiltinModule` (Node 18.19+/20.16+) که دسترسی
+// sync به ماژول‌های داخلی می‌دهد بدون آنکه bundler آن را به‌عنوان
+// وابستگی resolve کند. اگر در دسترس نباشد (مرورگر یا Node قدیمی‌تر)،
+// مقدار null می‌ماند و کد به browserRouteSignal برمی‌گردد.
+//
+// این مقداردهی باید sync باشد چون routeSignal.get/set و
+// runWithRouteSync هر دو API همزمان (sync) هستند.
 let routeAsyncLocalStorage: any = null;
 try {
+  const proc = (globalThis as any).process;
   // بررسی اینکه در Node.js هستیم (نه مرورگر)
-  if (typeof globalThis !== 'undefined' && (globalThis as any).process?.versions?.node) {
-    // در ESM، از createRequire برای sync require استفاده می‌کنیم
-    const { createRequire } = await import('node:module');
-    const nodeRequire = createRequire(import.meta.url);
-    const { AsyncLocalStorage } = nodeRequire('node:async_hooks');
-    routeAsyncLocalStorage = new AsyncLocalStorage();
+  if (proc?.versions?.node) {
+    if (typeof proc.getBuiltinModule === 'function') {
+      const { AsyncLocalStorage } = proc.getBuiltinModule('node:async_hooks');
+      routeAsyncLocalStorage = new AsyncLocalStorage();
+    } else {
+      // Node < 18.19 / < 20.6: بدون getBuiltinModule نمی‌توان sync به
+      // async_hooks رسید. اجرا ادامه می‌یابد اما رندرهای همزمان SSR
+      // یک routeSignal مشترک خواهند داشت.
+      console.warn(
+        '[@zenith/router] process.getBuiltinModule is unavailable (Node < 18.19). ' +
+          'Falling back to a shared route signal — concurrent SSR renders will not be isolated. ' +
+          'Upgrade to Node 18.19+ or 20.6+ for per-request isolation.',
+      );
+    }
   }
 } catch {
-  // در محیط‌هایی که node:module در دسترس نیست (مرورگر)،
+  // در محیط‌هایی که node:async_hooks در دسترس نیست (مرورگر)،
   // fallback به singleton استفاده می‌شود.
 }
 

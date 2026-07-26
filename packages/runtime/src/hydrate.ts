@@ -343,7 +343,8 @@ export function hydrateBindExpr(
 export function hydrateModel(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  // Part of the hydration signature; the model binding resolves from `state`.
+  _context: Record<string, any>,
   state: Record<string, any>,
 ): DisposeFn {
   // Resolve the target signal. `expr` typically starts with `$`.

@@ -43,7 +43,7 @@
 // این ماژول در محیط Node.js (SSR) بدون خطا load شود. متد render() در
 // محیط غیر‌browser کاری نمی‌کند و فقط یک warning چاپ می‌کند.
 
-import { signal, effect, computed, type Signal, type Computed } from '@zenith/state';
+import { signal, effect, computed, type Signal, type ReadonlySignal } from '@zenith/state';
 import { getResource, type Resource } from '@zenith/resource';
 import { Zen } from '@zenith/runtime';
 import { getAction } from '@zenith/actions';
@@ -138,12 +138,13 @@ export class CrudEngine {
   // FEATURE (v0.3.0): viewData و آمار pagination از روی resource.data و
   // stateهای ورودی محاسبه می‌شوند. هر بار که یکی از وابستگی‌ها تغییر کند،
   // این مقادیر به‌صورت خودکار به‌روزرسانی می‌شوند.
-  private viewData!: Computed<any[]>;
-  private totalItems!: Computed<number>;
-  private totalPages!: Computed<number>;
-  private startIdx!: Computed<number>;
-  private endIdx!: Computed<number>;
-  private currentViewPage!: Computed<number>;
+  // `computed()` returns ReadonlySignal, not the concrete Computed class.
+  private viewData!: ReadonlySignal<any[]>;
+  private totalItems!: ReadonlySignal<number>;
+  private totalPages!: ReadonlySignal<number>;
+  private startIdx!: ReadonlySignal<number>;
+  private endIdx!: ReadonlySignal<number>;
+  private currentViewPage!: ReadonlySignal<number>;
 
   // ── Cleanup ──
   private disposes: (() => void)[] = [];
@@ -415,7 +416,7 @@ export class CrudEngine {
    * افزودن یک `set` no-op به یک Computed تا توسط createContext به‌عنوان
    * Signal تشخیص داده شود.
    */
-  private markComputedAsSignalLike<T>(c: Computed<T>): void {
+  private markComputedAsSignalLike<T>(c: ReadonlySignal<T>): void {
     const obj = c as any;
     if (typeof obj.set !== 'function') {
       obj.set = function () {
@@ -428,7 +429,7 @@ export class CrudEngine {
    * Dispose تمام Computedها (پاکسازی effect داخلی آن‌ها).
    */
   private disposeComputeds(): void {
-    const list: Array<Computed<any> | undefined> = [
+    const list: Array<ReadonlySignal<any> | undefined> = [
       this.viewData,
       this.totalItems,
       this.totalPages,

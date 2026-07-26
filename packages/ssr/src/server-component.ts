@@ -417,7 +417,7 @@ function resolveStateExpression(expr: string, state: Record<string, any>): any {
   // بقیه‌ی segmentها: پیمایش path.
   for (let i = 1; i < segments.length; i++) {
     if (current == null) return undefined;
-    current = current[segments[i]];
+    current = current[segments[i]!];
     // unwrap signal در هر سطح.
     if (current != null && typeof current.get === 'function') {
       current = current.get();
@@ -463,7 +463,7 @@ async function singlePass(
   // tags به ترتیب document مرتب هستند (از کم به زیاد).
   let result = html;
   for (let i = tags.length - 1; i >= 0; i--) {
-    const tag = tags[i];
+    const tag = tags[i]!;
     const replacement = rendered[i];
     if (typeof replacement !== 'string') continue;
     result =
