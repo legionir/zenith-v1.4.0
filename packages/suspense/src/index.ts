@@ -1,1 +1,9 @@
-export { processSuspense, createSuspenseContext, type SuspenseState, type SuspenseContext } from './suspense';
+export {
+  processSuspense,
+  createSuspense,
+  createSuspenseContext,
+  type SuspenseController,
+  type SuspenseContext,
+  type SuspenseOptions,
+  type SuspenseState,
+} from './suspense';
