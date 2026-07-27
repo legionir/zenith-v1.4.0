@@ -37,13 +37,56 @@ const LEAVE_ACTIVE = 'zen-leave-active';
 
 export type TransitionDirection = 'enter' | 'leave';
 
+export interface TransitionClasses {
+  /** کلاس حالت آغاز ورود. */
+  enterFrom?: string;
+  /** کلاس فعال هنگام ورود. */
+  enterActive?: string;
+  /** کلاس حالت پایان ورود. */
+  enterTo?: string;
+  /** کلاس حالت آغاز خروج. */
+  leaveFrom?: string;
+  /** کلاس فعال هنگام خروج. */
+  leaveActive?: string;
+  /** کلاس حالت پایان خروج. */
+  leaveTo?: string;
+}
+
 export interface TransitionOptions {
   /** مدت زمان transition به میلی‌ثانیه (پیش‌فرض: 300) — فقط fallback. */
   duration?: number;
-  /** نام transition (مثل 'fade') */
+  /** نام transition (مثل 'fade'). در createTransition از آرگومان اول گرفته می‌شود. */
   name?: string;
-  /** callback بعد از پایان transition */
+  /** callback سازگاری برای پایان transitionهای قدیمی. */
   onComplete?: () => void;
+  /** جایگزین‌های اختیاری برای کلاس‌های پیش‌فرض zen-enter-* و zen-leave-*. */
+  classes?: TransitionClasses;
+  /** قبل از آغاز transition ورود فراخوانی می‌شود. */
+  onBeforeEnter?: (el: HTMLElement) => void;
+  /** بعد از تکمیل transition ورود فراخوانی می‌شود. */
+  onAfterEnter?: (el: HTMLElement) => void;
+  /** قبل از آغاز transition خروج فراخوانی می‌شود. */
+  onBeforeLeave?: (el: HTMLElement) => void;
+  /** بعد از تکمیل transition خروج فراخوانی می‌شود. */
+  onAfterLeave?: (el: HTMLElement) => void;
+}
+
+/** نتیجه اجرای یک transition قابل انتظار و قابل لغو. */
+export interface TransitionRun {
+  /** پس از اتمام طبیعی یا لغو transition resolve می‌شود. */
+  readonly finished: Promise<void>;
+  /** transition فعال را لغو و کلاس‌های موقت را پاکسازی می‌کند. */
+  cancel(): void;
+}
+
+/** کنترلر reusable برای اجرای transition روی عناصر متعدد. */
+export interface TransitionController {
+  /** اجرای transition ورود. */
+  enter(element: HTMLElement): TransitionRun;
+  /** اجرای transition خروج. */
+  leave(element: HTMLElement): TransitionRun;
+  /** لغو تمام transitionهای فعال و غیرقابل‌استفاده کردن کنترلر. */
+  dispose(): void;
 }
 
 /**
@@ -417,4 +460,144 @@ export function animateGroup(
       }, i * staggerDelay);
     });
   });
+}
+
+const DEFAULT_CLASSES: Required<TransitionClasses> = {
+  enterFrom: ENTER_FROM,
+  enterActive: ENTER_ACTIVE,
+  enterTo: ENTER_TO,
+  leaveFrom: LEAVE_FROM,
+  leaveActive: LEAVE_ACTIVE,
+  leaveTo: LEAVE_TO,
+};
+
+function classTokens(className: string): string[] {
+  return className.split(/\s+/).filter(Boolean);
+}
+
+function addClasses(el: HTMLElement, className: string): void {
+  el.classList.add(...classTokens(className));
+}
+
+function removeClasses(el: HTMLElement, className: string): void {
+  el.classList.remove(...classTokens(className));
+}
+
+/**
+ * ساخت یک کنترلر transition قابل استفاده مجدد.
+ *
+ * کنترلر عمداً از classهای CSS استفاده می‌کند، تا classهای سفارشی و CSS
+ * برنامه قابل پیش‌بینی باشند. `zenAnimate` برای animationهای WAAPI در دسترس
+ * است و مسئولیت متفاوتی دارد.
+ */
+export function createTransition(
+  name: string,
+  options: TransitionOptions = {},
+): TransitionController {
+  const classes: Required<TransitionClasses> = {
+    ...DEFAULT_CLASSES,
+    ...options.classes,
+  };
+  const activeRuns = new Map<HTMLElement, TransitionRun>();
+  const duration = options.duration ?? 300;
+  let disposed = false;
+
+  const createCompletedRun = (): TransitionRun => ({
+    finished: Promise.resolve(),
+    cancel: () => {},
+  });
+
+  function run(element: HTMLElement, direction: TransitionDirection): TransitionRun {
+    if (disposed) return createCompletedRun();
+
+    activeRuns.get(element)?.cancel();
+
+    if (direction === 'enter') options.onBeforeEnter?.(element);
+    else options.onBeforeLeave?.(element);
+
+    const from = direction === 'enter' ? classes.enterFrom : classes.leaveFrom;
+    const active = direction === 'enter' ? classes.enterActive : classes.leaveActive;
+    const to = direction === 'enter' ? classes.enterTo : classes.leaveTo;
+
+    let settled = false;
+    let resolveFinished!: () => void;
+    let raf1 = 0;
+    let raf2 = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const finish = (completed: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (raf1) cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+      if (timer) clearTimeout(timer);
+      element.removeEventListener('transitionend', onEnd);
+      element.removeEventListener('transitioncancel', onCancel);
+      element.removeEventListener('animationend', onEnd);
+      element.removeEventListener('animationcancel', onCancel);
+      removeClasses(element, from);
+      removeClasses(element, active);
+      removeClasses(element, to);
+      removeClasses(element, name);
+      activeRuns.delete(element);
+
+      if (completed) {
+        if (direction === 'enter') options.onAfterEnter?.(element);
+        else options.onAfterLeave?.(element);
+        options.onComplete?.();
+      }
+      resolveFinished();
+    };
+
+    const onEnd = (event: Event) => {
+      if (event.target === element) finish(true);
+    };
+    const onCancel = (event: Event) => {
+      if (event.target === element) finish(false);
+    };
+
+    const finished = new Promise<void>((resolve) => {
+      resolveFinished = resolve;
+    });
+
+    const transitionRun: TransitionRun = {
+      finished,
+      cancel: () => finish(false),
+    };
+    activeRuns.set(element, transitionRun);
+
+    addClasses(element, name);
+    addClasses(element, from);
+    addClasses(element, active);
+
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        if (settled) return;
+        // اطمینان از اعمال شدن state آغازین پیش از تغییر classها.
+        getComputedStyle(element).transform;
+        removeClasses(element, from);
+        addClasses(element, to);
+        element.addEventListener('transitionend', onEnd);
+        element.addEventListener('transitioncancel', onCancel);
+        element.addEventListener('animationend', onEnd);
+        element.addEventListener('animationcancel', onCancel);
+        timer = setTimeout(() => finish(true), duration + 50);
+      });
+    });
+
+    return transitionRun;
+  }
+
+  return {
+    enter: (element) => run(element, 'enter'),
+    leave: (element) => run(element, 'leave'),
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      for (const transitionRun of [...activeRuns.values()]) {
+        transitionRun.cancel();
+      }
+      activeRuns.clear();
+    },
+  };
 }
