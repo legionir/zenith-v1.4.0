@@ -35,6 +35,8 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@zenith/router": "1.4.0",
+    "@zenith/security": "1.4.0",
     "@zenith/state": "1.4.0"
   },
   "devDependencies": {

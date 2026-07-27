@@ -42,5 +42,8 @@
     "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
     "@zenith/state": "1.4.0"
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0"
   }
 }

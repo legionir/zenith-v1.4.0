@@ -38,7 +38,7 @@
 // 6. اگر error رخ دهد، fallback error نمایش داده می‌شود.
 // 7. Error boundary integration: خطاهای فرزندان به error-boundary گزارش می‌شوند.
 
-import { signal, effect, type Signal } from '@zenith/state';
+import { signal, effect, type ReadonlySignal, type Signal } from '@zenith/state';
 import { reportError } from '@zenith/error-boundary';
 
 /**
@@ -218,6 +218,164 @@ export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled
         timedOut: false,
         error: null,
       });
+    },
+  };
+}
+
+export interface SuspenseOptions {
+  /** حداکثر زمان انتظار به میلی‌ثانیه؛ صفر یا undefined یعنی بدون timeout. */
+  timeout?: number;
+  /** تأخیر پیش از نمایان شدن سیگنال loading، برای جلوگیری از flicker fallback. */
+  minDelay?: number;
+  /** زمانی که timeout رخ می‌دهد، یک‌بار برای هر cycle بارگذاری فراخوانی می‌شود. */
+  onTimeout?: () => void;
+}
+
+/**
+ * کنترلر برنامه‌نویسی‌شده برای ردیابی Promiseها.
+ *
+ * `signal` state کامل context را برای integrationهای پیشرفته ارائه می‌کند؛
+ * `loading` و `error` نسخه‌های ساده و فقط‌خواندنی آن برای UI هستند.
+ */
+export interface SuspenseController {
+  readonly signal: Signal<SuspenseState>;
+  readonly loading: ReadonlySignal<boolean>;
+  readonly error: ReadonlySignal<Error | null>;
+  /** Promise را تا زمان resolve/reject شدن به مرز suspense متصل می‌کند. */
+  track(promise: Promise<unknown>): void;
+  /** callback را پس از settled شدن همه Promiseهای ردیابی‌شده اجرا می‌کند. */
+  onReady(callback: () => void): () => void;
+  /** callback را برای خطای Promiseهای ردیابی‌شده ثبت می‌کند. */
+  onError(callback: (error: Error) => void): () => void;
+  /** timeout، error و state بارگذاری را برای retry پاک می‌کند. */
+  reset(): void;
+  /** listenerها و timerهای ساخته‌شده توسط کنترلر را پاکسازی می‌کند. */
+  dispose(): void;
+}
+
+function normalizeError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+/**
+ * یک کنترلر Suspense برای استفادهٔ برنامه‌نویسی‌شده می‌سازد.
+ *
+ * API قدیمی `createSuspenseContext` برای runtime directiveها حفظ شده است؛
+ * این wrapper برای ردیابی Promiseها، callbackها و state ساده‌تر طراحی شده.
+ */
+export function createSuspense(options: SuspenseOptions = {}): SuspenseController {
+  const context = createSuspenseContext(options.timeout ?? 0);
+  const loading = signal(false);
+  const error = signal<Error | null>(null);
+  const readyCallbacks = new Set<() => void>();
+  const errorCallbacks = new Set<(error: Error) => void>();
+  const minDelay = Math.max(0, options.minDelay ?? 0);
+  let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+  let timedOut = false;
+  let disposed = false;
+  let id = 0;
+
+  const notifyReady = () => {
+    for (const callback of [...readyCallbacks]) callback();
+  };
+  const notifyError = (nextError: Error) => {
+    for (const callback of [...errorCallbacks]) callback(nextError);
+  };
+
+  const disposeStateEffect = effect(() => {
+    const state = context.signal.get();
+
+    if (state.error) {
+      if (!error.get() || error.get()!.message !== state.error) {
+        const nextError = new Error(state.error);
+        error.set(nextError);
+        notifyError(nextError);
+      }
+    } else if (error.get() !== null) {
+      error.set(null);
+    }
+
+    if (state.timedOut) {
+      if (loadingTimer) {
+        clearTimeout(loadingTimer);
+        loadingTimer = null;
+      }
+      loading.set(false);
+      if (!timedOut) {
+        timedOut = true;
+        options.onTimeout?.();
+      }
+      return;
+    }
+
+    if (state.loading) {
+      if (minDelay === 0) {
+        loading.set(true);
+      } else if (!loadingTimer && !loading.get()) {
+        loadingTimer = setTimeout(() => {
+          loadingTimer = null;
+          if (!disposed && context.signal.get().loading) loading.set(true);
+        }, minDelay);
+      }
+      return;
+    }
+
+    if (loadingTimer) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
+    loading.set(false);
+    timedOut = false;
+  });
+
+  return {
+    signal: context.signal,
+    loading: loading as ReadonlySignal<boolean>,
+    error: error as ReadonlySignal<Error | null>,
+    track(promise) {
+      if (disposed) return;
+      const loadingId = `promise-${++id}`;
+      context.startLoading(loadingId);
+
+      Promise.resolve(promise).then(
+        () => {
+          if (disposed) return;
+          context.stopLoading(loadingId);
+          const state = context.signal.get();
+          if (!state.loading && !state.error && !state.timedOut) notifyReady();
+        },
+        (reason: unknown) => {
+          if (disposed) return;
+          const nextError = normalizeError(reason);
+          error.set(nextError);
+          context.reportError(nextError.message);
+          notifyError(nextError);
+        },
+      );
+    },
+    onReady(callback) {
+      readyCallbacks.add(callback);
+      return () => readyCallbacks.delete(callback);
+    },
+    onError(callback) {
+      errorCallbacks.add(callback);
+      return () => errorCallbacks.delete(callback);
+    },
+    reset() {
+      context.reset();
+      error.set(null);
+      timedOut = false;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (loadingTimer) clearTimeout(loadingTimer);
+      loadingTimer = null;
+      loading.set(false);
+      readyCallbacks.clear();
+      errorCallbacks.clear();
+      disposeStateEffect();
+      context.reset();
     },
   };
 }

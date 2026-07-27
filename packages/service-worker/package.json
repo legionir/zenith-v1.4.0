@@ -36,5 +36,8 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@zenith/runtime": "1.4.0"
   }
 }

@@ -40,7 +40,10 @@
   },
   "dependencies": {
     "@zenith/compiler": "1.4.0",
-    "@zenith/expressions": "1.4.0"
+    "@zenith/expressions": "1.4.0",
+    "@zenith/runtime": "1.4.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/state": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
