@@ -18,6 +18,8 @@
 import { type Signal, signal, type ReadonlySignal } from './signal';
 import { effect } from './effect';
 import { createOwner, disposeOwner, getOwner } from './context';
+// #187 FIX: همان brand قابل‌خواندن Signal (Computed متد set ندارد).
+import { ZENITH_READABLE } from './readable';
 
 /**
  * کلاس Computed: یک Signal با مقدار مشتق‌شده.
@@ -124,3 +126,7 @@ export class Computed<T> {
 export function computed<T>(computation: () => T): ReadonlySignal<T> {
   return new Computed(computation) as unknown as ReadonlySignal<T>;
 }
+
+// #187 FIX: Computed هم «readable» است (فقط get دارد) — brand شود تا
+// createContext آن را به‌جای اسنپ‌شات یک‌باره، به‌صورت getter واکنشی unwrap کند.
+(Computed.prototype as any)[ZENITH_READABLE] = true;

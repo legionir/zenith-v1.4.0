@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #69
+آخرین issue کامل: #187
 issue در حال انجام: —
-بعدی: موج ۱ (باگ/امنیت) — #7، #187 (کشف‌شده حین #69) و بقیهٔ لیست باز
+بعدی: باقی موج ۱ (#7، #10، #17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 37884888485 (#14)
 
@@ -54,5 +54,12 @@ issue در حال انجام: —
   resource/stateful/store/suspense/transition/virtual-list)؛
   تست scripts/test/root-readme.test.mjs (۷ مورد: جدول کامل، لینک‌های نسبی
   سالم، API واقعی quickstart). حین آزمون manual، باگ واقعی computed-in-template
-  کشف و به‌عنوان #187 گزارش شد (README فعلاً الگوی signal+effect را نشان می‌دهد).
+  کشف و به‌عنوان #187 گزارش شد (پس از رفع #187، README الگوی واقعی computed را دارد).
+- #187 انجام شد (موج ۱): brand `Symbol.for('zenith.readable')` روی
+  Signal/Computed در state (`readable.ts` + `isReadable`/`isWritable`)؛
+  createContext رانتایم و createContextForEval events هر readable را unwrap
+  می‌کنند (اسنپ‌شات computed حذف شد)؛ جاهای نوشتنی (zen-model/hydrate)
+  همچنان set لازم دارند؛ DEC-009؛ ۱۲ تست جدید (unit brand + context + jsdom
+  zen-text end-to-end) همه red-before-fix؛ README quickstart به `computed`
+  واقعی برگشت و دوباره با Playwright هدلس روی باندل راستی‌آزمایی شد (0→2→6).
 - typecheck/build از baseline سبز است (۳۴/۳۴).

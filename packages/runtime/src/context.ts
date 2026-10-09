@@ -23,7 +23,7 @@
 // این الگو به runtime اجازه می‌دهد بدون router هم کار کند (مثلاً در تست‌های
 // واحد یا اپلیکیشن‌های بدون routing).
 
-import { type Signal } from '@zenith/state';
+import { type Signal, isReadable, isWritable } from '@zenith/state';
 
 /**
  * Type of the route signal provider function.
@@ -58,21 +58,21 @@ export function setRouteSignalProvider(provider: RouteStateProvider | null): voi
 }
 
 /**
- * Type guard: بررسی اینکه یک مقدار یک Signal است یا نه.
+ * Type guard: بررسی اینکه یک مقدار یک Signal *نوشتنی* است یا نه.
  *
  * چرا از instanceof استفاده نمی‌کنیم؟
  *   - اگر چند instance از Signal در پکیج‌های مختلف وجود داشته باشد
  *     (مثلاً با Monorepoهایی که multiple builds دارند)،
  *     instanceof ممکن است false برگرداند.
  *   - Type guard بر اساس ساختار duck typing قابل اعتمادتر است.
+ *
+ * #187 NOTE: این guard عمداً «نوشتنی بودن» (get+set) را چک می‌کند — جای‌هایی
+ * مثل zen-model که واقعاً signal.set انجام می‌دهند نباید Computed (فقط get)
+ * را بپذیرند. برای صرفاً خواندن/unwrap در context، از `isReadable` استفاده
+ * می‌شود (پایین‌تر در createContext).
  */
 function isSignal(value: any): value is Signal<any> {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof value.get === 'function' &&
-    typeof value.set === 'function'
-  );
+  return isWritable(value) && typeof value.get === 'function';
 }
 
 /**
@@ -105,8 +105,11 @@ export function createContext(state: Record<string, any>): Record<string, any> {
     const contextKey = `$${key}`;
     const stateItem = state[key];
 
-    if (isSignal(stateItem)) {
-      // ── حالت ۱: Signal ──
+    if (isReadable(stateItem)) {
+      // ── حالت ۱: Signal / Computed (readable) ──
+      // #187 FIX: هر ظرف قابل‌خواندن (برنددار یا legacy get+set) با getter
+      // واکنشی unwrap می‌شود — قبلاً Computed (بدون set) به‌عنوان مقدار ساده
+      // اسنپ‌شات می‌شد و در template زنده update نمی‌شد.
       // با Object.defineProperty یک getter تعریف می‌کنیم.
       // هر بار که Expression به context.$user دسترسی پیدا کند:
       //   1) getter اجرا می‌شود

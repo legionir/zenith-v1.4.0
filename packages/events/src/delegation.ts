@@ -36,7 +36,7 @@ import { getAction } from '@zenith/actions';
 import { flushSync } from '@zenith/scheduler';
 import { navigate } from '@zenith/router';
 // Bug Fix #2: اولویت urgent برای event handlers.
-import { setCurrentPriority } from '@zenith/state';
+import { setCurrentPriority, isReadable } from '@zenith/state';
 // FIX (v1.2.7): Action errors now reported to error boundary so a
 // zen-error ancestor can show its fallback UI when an action throws.
 import { reportError } from '@zenith/error-boundary';
@@ -213,13 +213,9 @@ function createContextForEval(state: Record<string, any>): Record<string, any> {
   for (const key in state) {
     const ctxKey = key.startsWith('$') ? key : `$${key}`;
     const item = state[key];
-    if (
-      item !== null &&
-      typeof item === 'object' &&
-      typeof item.get === 'function' &&
-      typeof item.set === 'function'
-    ) {
-      // Signal: به getter تبدیل می‌شود تا در حین ارزیابی unwrap شود.
+    if (isReadable(item)) {
+      // Signal / Computed (#187: فقط get کافی است): به getter تبدیل می‌شود تا
+      // در حین ارزیابی unwrap شود.
       Object.defineProperty(context, ctxKey, {
         get: () => item.get(),
         enumerable: true,

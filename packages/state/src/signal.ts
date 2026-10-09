@@ -24,6 +24,9 @@ import { getEffectPriority } from './effect';
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با effect.ts.
 import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup } from './context';
+// #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
+// بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
+import { ZENITH_READABLE } from './readable';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -207,6 +210,10 @@ export class Signal<T> {
 export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Signal<T> {
   return new Signal(initialValue, options);
 }
+
+// #187 FIX: brand روی prototype — همهٔ instanceها (و subclassها) قابل‌تشخیص‌اند
+// بدون instanceof و صرف‌نظر از اینکه چند بیلد از state بارگذاری شده باشد.
+(Signal.prototype as any)[ZENITH_READABLE] = true;
 
 /**
  * Type helper for readonly signals (e.g. computed values).

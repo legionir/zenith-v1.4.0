@@ -51,12 +51,11 @@ npm ci && npm run build && npm run build:browser
     </div>
     <script type="module">
       // باندل مرورگری zenith-runtime.js تمام هسته‌ها (state/scheduler/…) را inline دارد.
-      import { Zen, signal, effect } from '@zenith/runtime';
+      import { Zen, signal, computed } from '@zenith/runtime';
 
       const name = signal('Zenith');
       const count = signal(0);
-      const double = signal(0);
-      effect(() => double.set(count.get() * 2));
+      const double = computed(() => count.get() * 2);
 
       Zen.action('inc', ({ state }) => state.count.set(state.count.get() + 1));
 
@@ -66,7 +65,7 @@ npm ci && npm run build && npm run build:browser
 </html>
 ```
 
-هر کلیک فقط گره‌های `<span>` وابسته را update می‌کند — نه کل درخت (این نمونه با Playwright هدلس روی باندل واقعی راستی‌آزمایی شده است). handlerها را با `Zen.action` ثبت کنید؛ `zen-action` فقط رجیستری اکشن‌ها را نگاه می‌کند. تا پیش از [#187](https://github.com/legionir/zenith-v1.4.0/issues/187) مقدار مشتق‌شده را با `signal + effect` بسازید (کلاس `Computed` فاقد `set` است و context آن را Signal نمی‌شمارد). برای مسیر project-محور: `npx @zenith/cli create my-app` (scaffold) و `@zenith/vite-plugin` برای HMR.
+هر کلیک فقط گره‌های `<span>` وابسته را update می‌کند — نه کل درخت (این نمونه با Playwright هدلس روی باندل واقعی راستی‌آزمایی شده است). handlerها را با `Zen.action` ثبت کنید؛ `zen-action` فقط رجیستری اکشن‌ها را نگاه می‌کند. برای مسیر project-محور: `npx @zenith/cli create my-app` (scaffold) و `@zenith/vite-plugin` برای HMR.
 
 نمونه‌های کامل‌تر: `demos/` (از جمله `ecommerce-demo/` و `dashboard/`) — توجه: دموها عمداً fixtureهای آموزشی XSS دارند؛ خارج از دامنهٔ امنیتی هستند ([SECURITY.md](SECURITY.md)).
 

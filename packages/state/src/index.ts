@@ -32,6 +32,8 @@ export {
   type EffectOptions,
 } from './effect';
 export { computed, Computed } from './computed';
+// #187 FIX: brand و type-guard برای مقادیر واکنش‌گرای قابل‌خواندن (Signal/Computed).
+export { isReadable, isWritable, ZENITH_READABLE, type Readable } from './readable';
 export { createRoot } from './root';
 export { batch } from './batch';
 export {

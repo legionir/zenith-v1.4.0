@@ -60,5 +60,7 @@ describe('root README.md (issue #69)', () => {
   it('quickstart signals use the real API (.get/.set, not callable)', () => {
     expect(readme).toMatch(/count\.get\(\)/);
     expect(readme).not.toMatch(/count\(\)/);
+    // #187 fixed: quickstart uses computed directly (no signal+effect workaround)
+    expect(readme).toMatch(/const double = computed\(\(\) => count\.get\(\) \* 2\);/);
   });
 });
