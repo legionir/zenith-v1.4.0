@@ -65,10 +65,7 @@ function normalizeFilePath(name: string): string {
 
 const program = new Command();
 
-program
-  .name('zenith')
-  .description('CLI for Zenith HTML-First Framework')
-  .version('0.1.0');
+program.name('zenith').description('CLI for Zenith HTML-First Framework').version('0.1.0');
 
 // ─────────────────────────────────────────────
 // دستور: create <project-name>
@@ -205,7 +202,9 @@ function generateComponent(name: string, customDir?: string): void {
   name = normalizeFilePath(name);
   // اعتبارسنجی نام.
   if (!/^[A-Z][a-zA-Z0-9]*$/.test(name)) {
-    console.error(`[ERROR] Invalid component name: "${name}". Must be PascalCase (e.g., UserCard).`);
+    console.error(
+      `[ERROR] Invalid component name: "${name}". Must be PascalCase (e.g., UserCard).`,
+    );
     process.exit(1);
   }
 
@@ -214,9 +213,7 @@ function generateComponent(name: string, customDir?: string): void {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  const fileName = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + '.html';
+  const fileName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() + '.html';
   const filePath = path.join(dir, fileName);
 
   if (fs.existsSync(filePath)) {
@@ -227,7 +224,9 @@ function generateComponent(name: string, customDir?: string): void {
   const content = componentTemplate(name);
   fs.writeFileSync(filePath, content, 'utf-8');
   console.log(`[OK] Component '${name}' created at: ${filePath}`);
-  console.log(`   Import it in your HTML: <link rel="import" href="${path.relative(process.cwd(), filePath)}">`);
+  console.log(
+    `   Import it in your HTML: <link rel="import" href="${path.relative(process.cwd(), filePath)}">`,
+  );
 }
 
 /**
@@ -247,9 +246,7 @@ function generatePage(name: string, customDir?: string): void {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  const fileName = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + '.html';
+  const fileName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() + '.html';
   const filePath = path.join(dir, fileName);
 
   if (fs.existsSync(filePath)) {
@@ -260,7 +257,9 @@ function generatePage(name: string, customDir?: string): void {
   const content = pageTemplate(name);
   fs.writeFileSync(filePath, content, 'utf-8');
   console.log(`[OK] Page '${name}' created at: ${filePath}`);
-  console.log(`   Add a route in your HTML: <zen-route path="/${name.toLowerCase()}" src="/pages/${fileName}"></zen-route>`);
+  console.log(
+    `   Add a route in your HTML: <zen-route path="/${name.toLowerCase()}" src="/pages/${fileName}"></zen-route>`,
+  );
 }
 
 /**
@@ -280,9 +279,7 @@ function generateAction(name: string, customDir?: string): void {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  const fileName = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase() + '.ts';
+  const fileName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() + '.ts';
   const filePath = path.join(dir, fileName);
 
   if (fs.existsSync(filePath)) {
@@ -345,10 +342,12 @@ program
   .option('--strict', 'Treat warnings as errors (for CI)')
   .option('--ci', 'CI mode (alias for --strict)')
   .option('--quiet', 'Only show summary, not individual findings')
-  .action((target: string | undefined, opts: { strict?: boolean; ci?: boolean; quiet?: boolean }) => {
-    const exitCode = runCheck(target || '.', opts);
-    process.exit(exitCode);
-  });
+  .action(
+    (target: string | undefined, opts: { strict?: boolean; ci?: boolean; quiet?: boolean }) => {
+      const exitCode = runCheck(target || '.', opts);
+      process.exit(exitCode);
+    },
+  );
 
 // ─────────────────────────────────────────────
 // دستور: lighthouse <path> — PWA audit
@@ -361,22 +360,33 @@ program
   .option('--min-score <score>', 'Minimum PWA score for CI (default: 90)', '90')
   .option('--chrome-path <path>', 'Path to Chrome/Chromium executable')
   .option('--verbose', 'Verbose output')
-  .action(async (target: string, opts: { port?: string; ci?: boolean; minScore?: string; chromePath?: string; verbose?: boolean }) => {
-    try {
-      const result = await runLighthouseAudit(target, {
-        port: opts.port ? parseInt(opts.port, 10) : 0,
-        ci: opts.ci,
-        minScore: opts.minScore ? parseInt(opts.minScore, 10) : 90,
-        chromePath: opts.chromePath,
-        verbose: opts.verbose,
-      });
-      printLighthouseResult(result);
-      process.exit(result.passed ? 0 : 1);
-    } catch (e) {
-      console.error(`[Zenith Lighthouse] Error: ${(e as Error).message}`);
-      process.exit(2);
-    }
-  });
+  .action(
+    async (
+      target: string,
+      opts: {
+        port?: string;
+        ci?: boolean;
+        minScore?: string;
+        chromePath?: string;
+        verbose?: boolean;
+      },
+    ) => {
+      try {
+        const result = await runLighthouseAudit(target, {
+          port: opts.port ? parseInt(opts.port, 10) : 0,
+          ci: opts.ci,
+          minScore: opts.minScore ? parseInt(opts.minScore, 10) : 90,
+          chromePath: opts.chromePath,
+          verbose: opts.verbose,
+        });
+        printLighthouseResult(result);
+        process.exit(result.passed ? 0 : 1);
+      } catch (e) {
+        console.error(`[Zenith Lighthouse] Error: ${(e as Error).message}`);
+        process.exit(2);
+      }
+    },
+  );
 
 // ─────────────────────────────────────────────
 // parse و اجرا

@@ -107,10 +107,14 @@ export function reportError(
 
   // در development mode، خطا را در console چاپ کن.
   if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false) {
-    console.error(`[Zenith] Error in ${source}:`, error instanceof Error ? error.message : String(error), {
-      expression: context?.expression,
-      element: context?.element,
-    });
+    console.error(
+      `[Zenith] Error in ${source}:`,
+      error instanceof Error ? error.message : String(error),
+      {
+        expression: context?.expression,
+        element: context?.element,
+      },
+    );
   }
 }
 

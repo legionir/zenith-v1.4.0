@@ -21,11 +21,11 @@ configureAuth({
     login: '/api/v1/auth/login',
     logout: '/api/v1/auth/logout',
     register: '/api/v1/auth/register',
-    me: '/api/v1/auth/me'
+    me: '/api/v1/auth/me',
   },
   loginRedirect: '/dashboard',
   logoutRedirect: '/',
-  loginPath: '/login'
+  loginPath: '/login',
 });
 
 // Initialize on app start (restores session from storage)
@@ -66,7 +66,7 @@ const auth = createAuth({
   meUrl: '/api/auth/me',
   tokenStorage: 'memory',
   autoRefresh: true,
-  refreshThreshold: 300
+  refreshThreshold: 300,
 });
 
 await auth.login({ email, password });
@@ -82,7 +82,7 @@ const result = await canActivateRoute({
   requiresAuth: true,
   roles: ['admin'],
   permissions: ['orders:view'],
-  redirectTo: '/login'
+  redirectTo: '/login',
 });
 
 if (!result.allowed) {
@@ -93,6 +93,7 @@ if (!result.allowed) {
 ## API Reference
 
 ### Functional API
+
 - `configureAuth(cfg)` — Configure auth endpoints and behavior
 - `initAuth()` — Initialize auth and restore session
 - `auth.login(credentials)` — Login user
@@ -108,6 +109,7 @@ if (!result.allowed) {
 - `canActivateRoute(guard)` — Check route guard
 
 ### Class-based API
+
 - `createAuth(config)` — Create Auth instance
 - `Auth.login(credentials)` — Login
 - `Auth.logout()` — Logout

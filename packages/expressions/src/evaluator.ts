@@ -14,7 +14,7 @@
 //     2) امکان Static Analysis فراهم شود.
 //     3) عملکرد بسیار بالاتر از eval باشد (بدون compile cost در runtime).
 
-import { ASTNode } from './parser';
+import { type ASTNode } from './parser';
 // FEATURE (v1.0.0): ادغام کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { variableNotDefinedError, securityError } from '@zenith/errors';
 // FIX (v1.2.8): P1-1 — Import the shared FORBIDDEN_PROPERTIES list from
@@ -29,10 +29,18 @@ import { FORBIDDEN_PROPERTIES, isForbiddenIdentifier } from './security-constant
 // meaning it was re-allocated on every single evaluate() call. In a page
 // with 1000 bindings, that's 1000 unnecessary Set allocations.
 const OBJECT_PROTO_BUILTINS = new Set([
-  'constructor', 'toString', 'hasOwnProperty', 'valueOf',
-  'isPrototypeOf', 'propertyIsEnumerable', 'toLocaleString',
-  '__proto__', '__defineGetter__', '__defineSetter__',
-  '__lookupGetter__', '__lookupSetter__',
+  'constructor',
+  'toString',
+  'hasOwnProperty',
+  'valueOf',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
+  '__proto__',
+  '__defineGetter__',
+  '__defineSetter__',
+  '__lookupGetter__',
+  '__lookupSetter__',
 ]);
 
 /**
@@ -97,7 +105,9 @@ export function evaluate(node: ASTNode, context: object): any {
       const isOwnProp = Object.prototype.hasOwnProperty.call(context, node.name);
       const isProtoBuiltin = OBJECT_PROTO_BUILTINS.has(node.name) && !isOwnProp;
       if (!isInContext || isProtoBuiltin) {
-        const availableVars = Object.keys(context).filter(k => k.startsWith('$') || !k.startsWith('__'));
+        const availableVars = Object.keys(context).filter(
+          (k) => k.startsWith('$') || !k.startsWith('__'),
+        );
         throw variableNotDefinedError(node.name, availableVars);
       }
       return (context as any)[node.name];
@@ -203,19 +213,32 @@ export function evaluate(node: ASTNode, context: object): any {
       const right = evaluate(node.right, context);
 
       switch (node.operator) {
-        case '+': return left + right;
-        case '-': return left - right;
-        case '*': return left * right;
-        case '/': return left / right;
-        case '%': return left % right;
-        case '==': return left == right;
-        case '===': return left === right;
-        case '!=': return left != right;
-        case '!==': return left !== right;
-        case '<': return left < right;
-        case '>': return left > right;
-        case '<=': return left <= right;
-        case '>=': return left >= right;
+        case '+':
+          return left + right;
+        case '-':
+          return left - right;
+        case '*':
+          return left * right;
+        case '/':
+          return left / right;
+        case '%':
+          return left % right;
+        case '==':
+          return left == right;
+        case '===':
+          return left === right;
+        case '!=':
+          return left != right;
+        case '!==':
+          return left !== right;
+        case '<':
+          return left < right;
+        case '>':
+          return left > right;
+        case '<=':
+          return left <= right;
+        case '>=':
+          return left >= right;
         default:
           throw new Error(`Unknown binary operator: '${node.operator}'`);
       }
@@ -230,7 +253,7 @@ export function evaluate(node: ASTNode, context: object): any {
     // ───────────────────────────────────────────────
     case 'NullishCoalescing': {
       const left = evaluate(node.left, context);
-      return (left === null || left === undefined) ? evaluate(node.right, context) : left;
+      return left === null || left === undefined ? evaluate(node.right, context) : left;
     }
 
     case 'LogicalExpression': {
@@ -284,13 +307,15 @@ export function evaluate(node: ASTNode, context: object): any {
     case 'ArrowFunction': {
       return (...args: any[]) => {
         const localCtx: Record<string, any> = Object.create(context);
-        node.params.forEach((p, i) => { localCtx[p.name] = args[i]; });
+        node.params.forEach((p, i) => {
+          localCtx[p.name] = args[i];
+        });
         return evaluate(node.body, localCtx);
       };
     }
 
     case 'ArrayExpression':
-      return node.elements.map(el => evaluate(el, context));
+      return node.elements.map((el) => evaluate(el, context));
 
     case 'ObjectExpression': {
       const result: Record<string, any> = {};

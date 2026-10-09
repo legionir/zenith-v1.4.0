@@ -142,8 +142,8 @@ export function processResourceView(
   if (!isResourceLike(resource)) {
     console.warn(
       `[zen-resource-view] Resource "${configAttr}" not found in context or is not a Resource. ` +
-      `Make sure you pass the Resource instance (from createResource) in your state, not its signal. ` +
-      `Example: Zen.start(app, { usersResource: createResource('users', {...}) });`,
+        `Make sure you pass the Resource instance (from createResource) in your state, not its signal. ` +
+        `Example: Zen.start(app, { usersResource: createResource('users', {...}) });`,
     );
     return () => {};
   }
@@ -155,10 +155,10 @@ export function processResourceView(
   if (!userTemplate) {
     console.warn(
       '[zen-resource-view] No <template> child found. ' +
-      'Provide a template for the success state:\n' +
-      '  <zen-resource-view config="$usersResource">\n' +
-      '    <template><div zen-text="$item.name"></div></template>\n' +
-      '  </zen-resource-view>',
+        'Provide a template for the success state:\n' +
+        '  <zen-resource-view config="$usersResource">\n' +
+        '    <template><div zen-text="$item.name"></div></template>\n' +
+        '  </zen-resource-view>',
     );
     return () => {};
   }
@@ -192,7 +192,9 @@ export function processResourceView(
    */
   function clearSlot(): void {
     if (slotDispose) {
-      try { slotDispose(); } catch (err) {
+      try {
+        slotDispose();
+      } catch (err) {
         console.error('[zen-resource-view] Error during slot dispose:', err);
       }
       slotDispose = null;
@@ -204,7 +206,9 @@ export function processResourceView(
    */
   function clearItems(): void {
     for (const item of itemsByKey.values()) {
-      try { item.dispose(); } catch (err) {
+      try {
+        item.dispose();
+      } catch (err) {
         console.error('[zen-resource-view] Error during item dispose:', err);
       }
       if (item.node.parentNode === el) {
@@ -301,7 +305,9 @@ export function processResourceView(
     // اگر data آرایه نبود (مثلاً یک شیء واحد)، آن را به آرایه‌ی تک‌عضوی تبدیل می‌کنیم.
     const arr: any[] = Array.isArray(data)
       ? data
-      : (data !== null && data !== undefined ? [data] : []);
+      : data !== null && data !== undefined
+        ? [data]
+        : [];
 
     const usedKeys = new Set<string>();
     let prevNode: Node | null = null;
@@ -379,7 +385,9 @@ export function processResourceView(
     // ─ـ پاکسازی آیتم‌های حذفشده ──
     for (const [key, item] of itemsByKey.entries()) {
       if (!usedKeys.has(key)) {
-        try { item.dispose(); } catch (err) {
+        try {
+          item.dispose();
+        } catch (err) {
           console.error('[zen-resource-view] Error during removed item dispose:', err);
         }
         if (item.node.parentNode === el) {
@@ -432,7 +440,9 @@ export function processResourceView(
   // ── ۷. تابع Dispose کل ──
   // این تابع توسط walker هنگام teardown کل اپ (Zen.stop) فراخوانی می‌شود.
   return () => {
-    try { disposeEffect(); } catch (err) {
+    try {
+      disposeEffect();
+    } catch (err) {
       console.error('[zen-resource-view] Error during effect dispose:', err);
     }
     clearSlot();

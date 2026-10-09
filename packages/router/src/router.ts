@@ -223,10 +223,7 @@ export const routeSignal: Signal<RouteState> = {
  * @param fn تابع که در context اجرا می‌شود.
  * @returns نتیجه‌ی fn.
  */
-export async function runWithRoute<T>(
-  initialPath: string,
-  fn: () => Promise<T> | T,
-): Promise<T> {
+export async function runWithRoute<T>(initialPath: string, fn: () => Promise<T> | T): Promise<T> {
   if (!routeAsyncLocalStorage) {
     // در مرورگر یا Node بدون AsyncLocalStorage، fallback به browserRouteSignal.
     // این فقط در تست‌های بدون Node environment رخ می‌دهد.
@@ -256,10 +253,7 @@ export async function runWithRoute<T>(
  *     // کد sync
  *   });
  */
-export function runWithRouteSync<T>(
-  initialPath: string,
-  fn: () => T,
-): T {
+export function runWithRouteSync<T>(initialPath: string, fn: () => T): T {
   if (!routeAsyncLocalStorage) {
     const oldPath = browserRouteSignal.get().path;
     browserRouteSignal.set({ path: initialPath, params: {} });
@@ -310,10 +304,7 @@ function normalizePath(urlPath: string): string {
   return urlPath.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
 }
 
-export function matchRoute(
-  pattern: string,
-  path: string,
-): Record<string, string> | null {
+export function matchRoute(pattern: string, path: string): Record<string, string> | null {
   // ── Wildcard `**` — با هر مسیری تطبیق می‌خورد ──
   if (pattern === '**') {
     return {};
@@ -385,7 +376,10 @@ export function findMatchingRoute<T extends { path: string }>(
 // URL and the current URL. To allow navigation, return true. To redirect,
 // return a string (the redirect target). To block navigation, return false
 // or a falsy value (other than true or a string).
-export type NavigationGuard = (to: string, from: string) => boolean | string | Promise<boolean | string>;
+export type NavigationGuard = (
+  to: string,
+  from: string,
+) => boolean | string | Promise<boolean | string>;
 
 const _guards: NavigationGuard[] = [];
 
@@ -430,9 +424,9 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
   const currentPath = window.location.pathname + window.location.search + window.location.hash;
   for (const guard of _guards) {
     const result = await guard(path, currentPath);
-    if (result === false) return;                                    // block
+    if (result === false) return; // block
     if (typeof result === 'string' && result !== path) {
-      return navigate(result, { ...options, replace: true });        // redirect (replace to avoid redirect loop in back-stack)
+      return navigate(result, { ...options, replace: true }); // redirect (replace to avoid redirect loop in back-stack)
     }
   }
 
@@ -569,7 +563,11 @@ export function cleanupRouter(): void {
   // handlers, link-click handlers, route cache, route definitions, etc.)
   // registered by outlet.ts via registerRouterCleanup().
   for (const cleanup of _routerCleanups) {
-    try { cleanup(); } catch { /* one bad cleanup must not break the rest */ }
+    try {
+      cleanup();
+    } catch {
+      /* one bad cleanup must not break the rest */
+    }
   }
   _routerCleanups.length = 0;
 

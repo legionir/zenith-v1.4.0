@@ -64,7 +64,12 @@ export function processHtml(
 
   const dispose = effect(() => {
     let value: any;
-    try { value = evalFn(context); } catch (err) { reportError(err as Error, 'expression', { expression: expr, element: el }); return; }
+    try {
+      value = evalFn(context);
+    } catch (err) {
+      reportError(err as Error, 'expression', { expression: expr, element: el });
+      return;
+    }
 
     // FEATURE (v1.0.0): Property Diffing
     if (!isFirstRun && prevValue === value) return;

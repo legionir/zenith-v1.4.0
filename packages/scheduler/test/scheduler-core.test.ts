@@ -18,7 +18,9 @@ beforeEach(() => clearScheduler());
 describe('queueing', () => {
   it('does not run scheduled tasks synchronously', () => {
     let ran = false;
-    scheduleEffect(() => { ran = true; });
+    scheduleEffect(() => {
+      ran = true;
+    });
     expect(ran).toBe(false);
     expect(hasPendingEffects()).toBe(true);
     flushSync();
@@ -64,7 +66,9 @@ describe('priority ordering', () => {
 
   it('accepts string priorities (legacy)', () => {
     let ran = false;
-    scheduleEffect(() => { ran = true; }, 'high' as any);
+    scheduleEffect(() => {
+      ran = true;
+    }, 'high' as any);
     flushSync();
     expect(ran).toBe(true);
   });
@@ -74,7 +78,13 @@ describe('disposal', () => {
   it('skips tasks whose disposed() returns true', () => {
     let disposed = false;
     let ran = false;
-    scheduleEffect(() => { ran = true; }, Priority.normal, () => disposed);
+    scheduleEffect(
+      () => {
+        ran = true;
+      },
+      Priority.normal,
+      () => disposed,
+    );
     disposed = true;
     flushSync();
     expect(ran).toBe(false);
@@ -84,8 +94,12 @@ describe('disposal', () => {
   it('a throwing task does not stop the rest of the queue', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     let secondRan = false;
-    scheduleEffect(() => { throw new Error('boom'); }, Priority.urgent);
-    scheduleEffect(() => { secondRan = true; }, Priority.normal);
+    scheduleEffect(() => {
+      throw new Error('boom');
+    }, Priority.urgent);
+    scheduleEffect(() => {
+      secondRan = true;
+    }, Priority.normal);
     flushSync();
     expect(secondRan).toBe(true);
     errSpy.mockRestore();
@@ -121,7 +135,9 @@ describe('runaway protection', () => {
     const selfResched = () => {
       selfId++;
       // different fn each time to bypass Map dedup → simulate infinite growth
-      scheduleEffect(() => { if (selfId < 1000) selfResched(); });
+      scheduleEffect(() => {
+        if (selfId < 1000) selfResched();
+      });
     };
     selfResched();
     flushSync();

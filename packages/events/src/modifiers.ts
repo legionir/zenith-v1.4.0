@@ -68,10 +68,7 @@ export function parseBinding(rawBinding: string): ParsedEventBinding {
  * @param modifiers لیست modifier ها.
  * @returns `true` اگر رویداد مجاز به اجرای اکشن است.
  */
-export function checkKeyboardModifiers(
-  event: KeyboardEvent,
-  modifiers: string[],
-): boolean {
+export function checkKeyboardModifiers(event: KeyboardEvent, modifiers: string[]): boolean {
   // ── ۱. کلیدهای اصلاحی (Shift/Ctrl/Alt/Meta) ──
   // این modifierها روی خود event flag دارند.
   if (modifiers.includes('shift') && !event.shiftKey) return false;
@@ -98,9 +95,7 @@ export function checkKeyboardModifiers(
   // اگر چند تا بودند (مثلاً enter + escape)، یکیشان کافی است (OR منطقی).
   const keyModifiers = modifiers.filter((m) => m in keyMap);
   if (keyModifiers.length > 0) {
-    const allowed = keyModifiers.some((m) =>
-      keyMap[m]!.includes(event.key),
-    );
+    const allowed = keyModifiers.some((m) => keyMap[m]!.includes(event.key));
     if (!allowed) return false;
   }
 
@@ -190,10 +185,7 @@ export const BUILTIN_MODIFIERS = new Set<string>([
  *                اگر `false` برگرداند، اکشن اجرا نمی‌شود.
  * @throws اگر نام خالی باشد، یک built-in باشد، یا handler تابع نباشد.
  */
-export function registerEventModifier(
-  name: string,
-  handler: EventModifierHandler,
-): void {
+export function registerEventModifier(name: string, handler: EventModifierHandler): void {
   if (typeof name !== 'string' || name.length === 0) {
     throw new Error(
       `[Zenith] Event modifier name must be a non-empty string. Received: ${String(name)}`,
@@ -201,7 +193,7 @@ export function registerEventModifier(
   }
   // امنیت: نام modifier فقط شامل حروف/اعداد/خط تیره باشد تا با parsing
   // modifier ها (`split('.')`) تداخل نداشته باشد.
-  if (!/^[a-zA-Z][a-zA-Z0-9\-]*$/.test(name)) {
+  if (!/^[a-zA-Z][a-zA-Z0-9-]*$/.test(name)) {
     throw new Error(
       `[Zenith] Invalid event modifier name "${name}". Names must start with a letter ` +
         `and may contain letters, digits, and hyphens.`,

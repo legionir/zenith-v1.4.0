@@ -69,5 +69,23 @@ Zen.start('#app', { count, double });
 - ✅ DevTools API استاندارد
 - ✅ ابزارهای تست‌پذیری حرفه‌ای
 
+## 🛠️ دستورهای توسعه / Development Commands
+
+از ریشهٔ مخزن (پس از `npm ci`) این دستورها در دسترس‌اند:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run build` | Build all workspace packages (esbuild + `tsc` declarations) |
+| `npm run typecheck` | Type-check every package (`scripts/typecheck-all.mjs`) |
+| `npm test` | Run the vitest suite (`packages/*/test/**/*.test.ts`) |
+| `npm run test:coverage` | Tests + v8 coverage with the ≥70% statements gate on core packages |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run lint` | ESLint 9 flat config (typed linting via `tsconfig.eslint.json`) |
+| `npm run lint:fix` | ESLint with autofix |
+| `npm run format` | Prettier write (HTML/Markdown excluded via `.prettierignore`) |
+| `npm run format:check` | Prettier check (CI-enforced) |
+
+CI (`.github/workflows/main.yml`) در هر پوش `lint`، `format:check`، `test:coverage` (with gate)، `typecheck` و `build` را اجرا می‌کند؛ جزئیات تصمیم در `docs/decisions/DEC-003-eslint-scope.md` و `DEC-002-vitest-runner.md`.
+
 ## 🤝 مشارکت
 برای گزارش باگ یا درخواست ویژگی از Issue Tracker استفاده کنید.

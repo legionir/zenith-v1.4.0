@@ -19,7 +19,7 @@ const loginForm = createForm({
   initialValues: {
     email: '',
     password: '',
-    remember: false
+    remember: false,
   },
   validate: {
     email: (value) => {
@@ -31,12 +31,12 @@ const loginForm = createForm({
       if (!value) return 'رمز عبور الزامی است';
       if (value.length < 8) return 'رمز عبور حداقل ۸ کاراکتر باشد';
       return true;
-    }
+    },
   },
   onSubmit: async (values) => {
     await api.login(values);
     window.location.href = '/dashboard';
-  }
+  },
 });
 
 // Template usage:
@@ -58,7 +58,7 @@ const signupWizard = createWizardForm({
     password: '',
     address: '',
     city: '',
-    interests: []
+    interests: [],
   },
   schema: z.object({
     name: z.string().min(2),
@@ -66,16 +66,16 @@ const signupWizard = createWizardForm({
     password: z.string().min(8),
     address: z.string().min(10),
     city: z.string(),
-    interests: z.array(z.string())
+    interests: z.array(z.string()),
   }),
   steps: [
     { id: 'account', title: 'اطلاعات حساب', fields: ['name', 'email', 'password'] },
     { id: 'address', title: 'آدرس', fields: ['address', 'city'] },
-    { id: 'preferences', title: 'علایق', fields: ['interests'] }
+    { id: 'preferences', title: 'علایق', fields: ['interests'] },
   ],
   onSubmit: async (values) => {
     await api.register(values);
-  }
+  },
 });
 ```
 
@@ -85,15 +85,15 @@ const signupWizard = createWizardForm({
 const orderForm = createForm({
   initialValues: {
     customer: '',
-    items: [{ name: '', quantity: 1, price: 0 }]
+    items: [{ name: '', quantity: 1, price: 0 }],
   },
   autoSave: {
     enabled: true,
     interval: 3000,
     handler: async (values) => {
       await api.saveDraft(values);
-    }
-  }
+    },
+  },
 });
 
 const items = orderForm.array('items');

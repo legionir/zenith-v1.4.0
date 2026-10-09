@@ -42,7 +42,12 @@ describe('evaluator: expression forms', () => {
   it('function calls resolve from context and bind this', () => {
     const ctx = {
       $add: (a: number, b: number) => a + b,
-      $obj: { v: 7, get() { return this.v; } },
+      $obj: {
+        v: 7,
+        get() {
+          return this.v;
+        },
+      },
     };
     expect(evaluateExpression('$add(2, 3)', ctx)).toBe(5);
     expect(evaluateExpression('$obj.get()', ctx)).toBe(7);

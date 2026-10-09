@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+artifacts
+*.tsbuildinfo
+package-lock.json
+docs
+demos
+ecommerce-demo
+dashboard
+benchmarks
+# HTML files (demos/security fixture pages) embed unbalanced markup/XSS
+# samples in inline scripts that Prettier's HTML parser cannot parse (#36).
+**/*.html
+*.min.js
+# Markdown reports (AUDIT/PLAN/…) are prose; formatting churn > value (#36).
+*.md

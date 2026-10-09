@@ -34,7 +34,9 @@ export function processErrorBoundary(
   disposes: (() => void)[],
 ): void {
   // ── ۱. پیدا کردن fallback template ──
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
 
   let fallbackContent = '<div style="color: red; padding: 8px;">⚠️ خطایی رخ داد</div>';
   if (fallbackTemplate) {
@@ -70,7 +72,9 @@ export function processErrorBoundary(
     if (errEl && el.contains(errEl)) {
       // Dispose children first so their effects/observers stop firing.
       for (const d of childDisposes) {
-        try { d(); } catch (err) {
+        try {
+          d();
+        } catch (err) {
           console.error('[Zenith Error Boundary] Error during dispose:', err);
         }
       }
@@ -84,7 +88,9 @@ export function processErrorBoundary(
   disposes.push(() => {
     unsubscribe();
     for (const d of childDisposes) {
-      try { d(); } catch (err) {
+      try {
+        d();
+      } catch (err) {
         console.error('[Zenith Error Boundary] Error during dispose:', err);
       }
     }

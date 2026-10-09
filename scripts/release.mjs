@@ -4,9 +4,9 @@ import { spawnSync } from 'child_process';
 
 const packagesDir = './packages';
 const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name)
-  .filter(name => existsSync(join(packagesDir, name, 'package.json')));
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name)
+  .filter((name) => existsSync(join(packagesDir, name, 'package.json')));
 
 console.log('📦 Publishing packages to npm...\n');
 

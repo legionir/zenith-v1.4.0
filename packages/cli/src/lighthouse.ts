@@ -17,9 +17,14 @@
 //   zenith lighthouse ./dist --port 8080    # پورت سفارشی
 //   zenith lighthouse ./dist --ci           # CI mode (exit 1 if score < 90)
 
-import fs from 'fs';
-import path from 'path';
-import { ChildProcess } from 'child_process';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import url from 'node:url';
+import { createRequire } from 'node:module';
+import { type ChildProcess } from 'node:child_process';
+
+const require = createRequire(import.meta.url);
 
 /**
  * گزینه‌های lighthouse audit.
@@ -62,10 +67,11 @@ export interface LighthouseResult {
 /**
  * راه‌اندازی یک static server ساده برای serve کردن پوشه.
  */
-function startStaticServer(rootDir: string, port: number): { process: ChildProcess; url: string; stop: () => void } {
+function startStaticServer(
+  rootDir: string,
+  port: number,
+): { process: ChildProcess; url: string; stop: () => void } {
   // استفاده از node http مستقیم برای سادگی
-  const http = require('node:http');
-  const url = require('node:url');
 
   const mimeTypes: Record<string, string> = {
     '.html': 'text/html',
@@ -85,7 +91,8 @@ function startStaticServer(rootDir: string, port: number): { process: ChildProce
   };
 
   const server = http.createServer((req: any, res: any) => {
-    let pathname = url.parse(req.url).pathname;
+    const parsedPathname = url.parse(req.url).pathname;
+    let pathname = parsedPathname === null ? '/' : parsedPathname;
     if (pathname === '/') pathname = '/index.html';
 
     // BUG-CLI-03 FIX: مسیریابی امن با path.resolve + path.sep (جلوگیری از directory traversal)
@@ -114,7 +121,11 @@ function startStaticServer(rootDir: string, port: number): { process: ChildProce
 
   return new Promise((resolve) => {
     server.listen(port, () => {
-      const actualPort = server.address().port;
+      const address = server.address();
+      if (address === null || typeof address === 'string') {
+        throw new Error('[Zenith Lighthouse] server address unavailable after listen');
+      }
+      const actualPort = address.port;
       resolve({
         process: server,
         url: `http://localhost:${actualPort}`,
@@ -137,9 +148,7 @@ async function runLighthouse(url: string, options: LighthouseOptions): Promise<a
     );
   }
 
-  const chromeFlags = options.chromePath
-    ? [`--chrome-path=${options.chromePath}`]
-    : [];
+  const chromeFlags = options.chromePath ? [`--chrome-path=${options.chromePath}`] : [];
 
   const flags = {
     onlyCategories: ['pwa', 'performance', 'accessibility', 'best-practices', 'seo'],
@@ -177,7 +186,7 @@ export async function runLighthouseAudit(
   if (!fs.existsSync(indexPath)) {
     throw new Error(
       `[Zenith Lighthouse] index.html not found in ${rootDir}. ` +
-      `Run 'npm run build' first to generate the dist folder.`,
+        `Run 'npm run build' first to generate the dist folder.`,
     );
   }
 
@@ -259,15 +268,27 @@ export function printLighthouseResult(result: LighthouseResult): void {
   console.log('');
   console.log(`${COLORS.bold}━━━ Lighthouse Audit Results ━━━${COLORS.reset}`);
   console.log('');
-  console.log(`  PWA:              ${scoreColor(result.pwaScore)}${result.pwaScore}${COLORS.reset}/100`);
-  console.log(`  Performance:      ${scoreColor(result.performanceScore)}${result.performanceScore}${COLORS.reset}/100`);
-  console.log(`  Accessibility:    ${scoreColor(result.accessibilityScore)}${result.accessibilityScore}${COLORS.reset}/100`);
-  console.log(`  Best Practices:   ${scoreColor(result.bestPracticesScore)}${result.bestPracticesScore}${COLORS.reset}/100`);
-  console.log(`  SEO:              ${scoreColor(result.seoScore)}${result.seoScore}${COLORS.reset}/100`);
+  console.log(
+    `  PWA:              ${scoreColor(result.pwaScore)}${result.pwaScore}${COLORS.reset}/100`,
+  );
+  console.log(
+    `  Performance:      ${scoreColor(result.performanceScore)}${result.performanceScore}${COLORS.reset}/100`,
+  );
+  console.log(
+    `  Accessibility:    ${scoreColor(result.accessibilityScore)}${result.accessibilityScore}${COLORS.reset}/100`,
+  );
+  console.log(
+    `  Best Practices:   ${scoreColor(result.bestPracticesScore)}${result.bestPracticesScore}${COLORS.reset}/100`,
+  );
+  console.log(
+    `  SEO:              ${scoreColor(result.seoScore)}${result.seoScore}${COLORS.reset}/100`,
+  );
   console.log('');
 
   if (result.failedAudits.length > 0) {
-    console.log(`${COLORS.bold}━━━ Failed PWA Audits (${result.failedAudits.length}) ━━━${COLORS.reset}`);
+    console.log(
+      `${COLORS.bold}━━━ Failed PWA Audits (${result.failedAudits.length}) ━━━${COLORS.reset}`,
+    );
     for (const audit of result.failedAudits) {
       console.log(`  ${COLORS.red}✗${COLORS.reset} ${audit.title}`);
       console.log(`    ${COLORS.gray}${audit.description}${COLORS.reset}`);

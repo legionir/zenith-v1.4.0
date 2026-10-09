@@ -16,13 +16,17 @@ describe('signal', () => {
   it('does not notify when value is unchanged (Object.is)', () => {
     const n = signal(1);
     let runs = 0;
-    effect(() => { n.get(); runs++; });
+    effect(() => {
+      n.get();
+      runs++;
+    });
     flushSync();
     expect(runs).toBe(1);
     n.set(1); // same
     flushSync();
     expect(runs).toBe(1);
-    n.set(NaN); n.set(NaN);
+    n.set(NaN);
+    n.set(NaN);
     flushSync();
     // first NaN != 1 triggers once, second NaN is Object.is-equal → no re-run
     expect(runs).toBe(2);
@@ -71,10 +75,15 @@ describe('effect', () => {
   it('dedupes multiple sets into one run (microtask batching)', () => {
     const n = signal(0);
     let runs = 0;
-    effect(() => { n.get(); runs++; });
+    effect(() => {
+      n.get();
+      runs++;
+    });
     flushSync();
     runs = 0;
-    n.set(1); n.set(2); n.set(3);
+    n.set(1);
+    n.set(2);
+    n.set(3);
     flushSync();
     expect(runs).toBe(1);
   });
@@ -82,7 +91,10 @@ describe('effect', () => {
   it('untrack avoids subscribing', () => {
     const n = signal(0);
     let runs = 0;
-    effect(() => { untrack(() => n.get()); runs++; });
+    effect(() => {
+      untrack(() => n.get());
+      runs++;
+    });
     flushSync();
     expect(runs).toBe(1);
     n.set(9);
@@ -95,8 +107,11 @@ describe('effect', () => {
     let cleanupRan = 0;
     let runs = 0;
     const dispose = effect(() => {
-      onCleanup(() => { cleanupRan++; });
-      n.get(); runs++;
+      onCleanup(() => {
+        cleanupRan++;
+      });
+      n.get();
+      runs++;
     });
     flushSync();
     expect(runs).toBe(1);
@@ -133,7 +148,10 @@ describe('createRoot', () => {
     let disposeFn!: () => void;
     createRoot((dispose) => {
       disposeFn = dispose;
-      effect(() => { n.get(); runs++; });
+      effect(() => {
+        n.get();
+        runs++;
+      });
     });
     flushSync();
     expect(runs).toBe(1);

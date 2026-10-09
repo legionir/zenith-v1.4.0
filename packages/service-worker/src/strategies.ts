@@ -69,10 +69,7 @@ function offlineResponse(request: Request, message: string): Response {
  * @param cacheName نام cache.
  * @returns Promise<Response>.
  */
-export async function cacheFirst(
-  request: Request,
-  cacheName: string,
-): Promise<Response> {
+export async function cacheFirst(request: Request, cacheName: string): Promise<Response> {
   // SECURITY (v0.5.0): POST guard — جلوگیری از تطبیقِ cache GET با درخواست POST.
   // `cache.match(request)` می‌تواند یک response مربوط به GET را برای POST هم match
   // کند که خطرناک است. mutationها مستقیماً به شبکه می‌روند (networkOnly fallback).
@@ -96,7 +93,7 @@ export async function cacheFirst(
     const response = await fetch(request);
     // فقط responseهای موفق و از نوع GET را کش کن (best practice).
     if (response.ok && request.method === 'GET') {
-      cache.put(request, response.clone());
+      void cache.put(request, response.clone());
     }
     return response;
   } catch (err) {
@@ -147,7 +144,7 @@ export async function networkFirst(
     const response = await fetch(request, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (response.ok && request.method === 'GET') {
-      cache.put(request, response.clone());
+      void cache.put(request, response.clone());
     }
     return response;
   } catch (err) {
@@ -174,10 +171,7 @@ export async function networkFirst(
  * @param request   درخواست.
  * @param cacheName نام cache.
  */
-export async function staleWhileRevalidate(
-  request: Request,
-  cacheName: string,
-): Promise<Response> {
+export async function staleWhileRevalidate(request: Request, cacheName: string): Promise<Response> {
   // SECURITY (v0.5.0): POST guard — جلوگیری از بازگشتِ cache GET برای درخواست POST.
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return fetch(request);
@@ -197,7 +191,9 @@ export async function staleWhileRevalidate(
   const revalidatePromise: Promise<Response> = fetch(request).then((response) => {
     if (response.ok && request.method === 'GET') {
       // NOTE: `cache.put` Promise برمی‌گرداند؛ به‌صورت fire-and-forget اجرا می‌شود.
-      cache.put(request, response.clone()).catch(() => { /* ignore */ });
+      cache.put(request, response.clone()).catch(() => {
+        /* ignore */
+      });
     }
     return response;
   });
@@ -205,7 +201,9 @@ export async function staleWhileRevalidate(
   if (cached) {
     // فوراً cache را برگردان؛ revalidation در پس‌زمینه در حال اجراست.
     // خطای احتمالی revalidate را swallow می‌کنیم تا unhandled rejection رخ ندهد.
-    revalidatePromise.catch(() => { /* ignore background revalidation errors */ });
+    revalidatePromise.catch(() => {
+      /* ignore background revalidation errors */
+    });
     return cached;
   }
 
@@ -243,10 +241,7 @@ export async function networkOnly(request: Request): Promise<Response> {
  * @param request   درخواست.
  * @param cacheName نام cache.
  */
-export async function cacheOnly(
-  request: Request,
-  cacheName: string,
-): Promise<Response> {
+export async function cacheOnly(request: Request, cacheName: string): Promise<Response> {
   const cacheStore = getCaches();
   if (!cacheStore) {
     return offlineResponse(request, 'Cache API unavailable (cacheOnly).');
@@ -303,7 +298,9 @@ export async function cacheThenNetwork(
     .then((response) => {
       if (response.ok && request.method === 'GET') {
         // به‌روزرسانی cache (fire-and-forget).
-        cache.put(request, response.clone()).catch(() => { /* ignore */ });
+        cache.put(request, response.clone()).catch(() => {
+          /* ignore */
+        });
         // notification به caller (برای refresh UI).
         if (typeof onUpdate === 'function') {
           try {
@@ -323,7 +320,9 @@ export async function cacheThenNetwork(
   if (cached) {
     // فوراً cache را برگردان؛ freshPromise در پس‌زمینه اجرا می‌شود.
     // خطای احتمالی freshPromise را swallow می‌کنیم تا unhandled rejection نباشد.
-    freshPromise.catch(() => { /* ignore background update errors */ });
+    freshPromise.catch(() => {
+      /* ignore background update errors */
+    });
     return cached;
   }
 

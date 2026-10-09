@@ -216,9 +216,7 @@ npm run dev
  */
 export function componentTemplate(name: string): string {
   // تبدیل نام به kebab-case (مثلا UserCard → user-card).
-  const kebabName = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .toLowerCase();
+  const kebabName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
   return `<zen-component name="${kebabName}">
   <template>
@@ -283,26 +281,40 @@ dist/
  */
 export function pwaManifestTemplate(projectName: string): string {
   const shortName = projectName.length > 12 ? projectName.substring(0, 12) : projectName;
-  return JSON.stringify({
-    name: projectName,
-    short_name: shortName,
-    description: `A Zenith PWA application: ${projectName}`,
-    start_url: '/',
-    display: 'standalone',
-    orientation: 'portrait',
-    background_color: '#ffffff',
-    theme_color: '#3b82f6',
-    dir: 'rtl',
-    lang: 'fa',
-    icons: [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-    ],
-    shortcuts: [
-      { name: 'Home', url: '/', icons: [{ src: '/icons/shortcut-home.png', sizes: '96x96' }] },
-    ],
-    categories: ['productivity', 'utilities'],
-  }, null, 2);
+  return JSON.stringify(
+    {
+      name: projectName,
+      short_name: shortName,
+      description: `A Zenith PWA application: ${projectName}`,
+      start_url: '/',
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: '#ffffff',
+      theme_color: '#3b82f6',
+      dir: 'rtl',
+      lang: 'fa',
+      icons: [
+        {
+          src: '/icons/icon-192.png',
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any maskable',
+        },
+        {
+          src: '/icons/icon-512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable',
+        },
+      ],
+      shortcuts: [
+        { name: 'Home', url: '/', icons: [{ src: '/icons/shortcut-home.png', sizes: '96x96' }] },
+      ],
+      categories: ['productivity', 'utilities'],
+    },
+    null,
+    2,
+  );
 }
 
 /**
@@ -696,4 +708,3 @@ Replace the placeholder icons in \`public/icons/\`:
 Use https://realfavicongenerator.net/ to generate all sizes from a single source image.
 `;
 }
-

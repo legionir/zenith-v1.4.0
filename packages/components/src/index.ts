@@ -93,8 +93,8 @@ export function loadComponents(root: HTMLElement): number {
     const lazySrc = def.getAttribute('src');
     if (lazySrc) {
       fetch(lazySrc)
-        .then(r => r.text())
-        .then(html => {
+        .then((r) => r.text())
+        .then((html) => {
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           const tpl = doc.querySelector('template');
@@ -104,7 +104,9 @@ export function loadComponents(root: HTMLElement): number {
             console.error(`[Zenith] Lazy component "${name}" from "${lazySrc}" has no <template>.`);
           }
         })
-        .catch(err => console.error(`[Zenith] Failed to load lazy component "${name}" from "${lazySrc}":`, err));
+        .catch((err) =>
+          console.error(`[Zenith] Failed to load lazy component "${name}" from "${lazySrc}":`, err),
+        );
       def.remove();
       count++;
       return; // skip the in-DOM template check below
@@ -169,13 +171,15 @@ export function preloadVisibleComponents(): void {
             try {
               // The loadComponent function from async-loader will handle
               // caching, dedup, and TTL.
-              import('./async-loader').then(({ loadComponent }) => {
+              void import('./async-loader').then(({ loadComponent }) => {
                 const src = entry.target.getAttribute('src') || componentName;
                 loadComponent(src).catch(() => {
                   // ignore — error already logged inside loadComponent
                 });
               });
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
           observer.unobserve(entry.target);
         }

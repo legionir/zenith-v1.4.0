@@ -21,9 +21,9 @@ try {
   if (isZenithError(err)) {
     console.error(err.toUserString());
     // ❌ [ZEN-001] Expression: متغیر «$usr» در context تعریف نشده است.
-    // 
+    //
     // 💡 پیشنهاد: آیا منظور شما «$user» بود؟ (اصلاح املا)
-    // 
+    //
     // 🔍 جزئیات: { "availableVariables": ["$user"], "suggestedVariable": "$user" }
   }
 }
@@ -31,18 +31,18 @@ try {
 
 ## کدهای خطا
 
-| Range | Category | Example Codes |
-|-------|----------|---------------|
+| Range              | Category               | Example Codes                                                |
+| ------------------ | ---------------------- | ------------------------------------------------------------ |
 | ZEN-001 to ZEN-099 | Expression / Validator | ZEN-001 (variable not defined), ZEN-002 (forbidden property) |
-| ZEN-100 to ZEN-199 | Runtime / Directive | ZEN-101 (zen-for no zen-key), ZEN-102 (invalid syntax) |
-| ZEN-200 to ZEN-299 | Resource | ZEN-201 (destroyed), ZEN-202 (HTTP error) |
-| ZEN-300 to ZEN-399 | SSR | ZEN-301 (jsdom required), ZEN-303 (ALS unavailable) |
-| ZEN-400 to ZEN-499 | Security | ZEN-401 (XSS blocked) |
-| ZEN-500 to ZEN-599 | Compiler | ZEN-501 (unknown directive) |
-| ZEN-600 to ZEN-699 | Router | ZEN-601 (route not found) |
-| ZEN-700 to ZEN-799 | Form | ZEN-701 (validation failed) |
-| ZEN-800 to ZEN-899 | Component | ZEN-801 (slot not found) |
-| ZEN-900 to ZEN-999 | Internal | ZEN-901 (unknown) |
+| ZEN-100 to ZEN-199 | Runtime / Directive    | ZEN-101 (zen-for no zen-key), ZEN-102 (invalid syntax)       |
+| ZEN-200 to ZEN-299 | Resource               | ZEN-201 (destroyed), ZEN-202 (HTTP error)                    |
+| ZEN-300 to ZEN-399 | SSR                    | ZEN-301 (jsdom required), ZEN-303 (ALS unavailable)          |
+| ZEN-400 to ZEN-499 | Security               | ZEN-401 (XSS blocked)                                        |
+| ZEN-500 to ZEN-599 | Compiler               | ZEN-501 (unknown directive)                                  |
+| ZEN-600 to ZEN-699 | Router                 | ZEN-601 (route not found)                                    |
+| ZEN-700 to ZEN-799 | Form                   | ZEN-701 (validation failed)                                  |
+| ZEN-800 to ZEN-899 | Component              | ZEN-801 (slot not found)                                     |
+| ZEN-900 to ZEN-999 | Internal               | ZEN-901 (unknown)                                            |
 
 ## API
 
@@ -52,13 +52,13 @@ try {
 
 ```typescript
 class ZenithError extends Error {
-  code: string;           // "ZEN-001"
+  code: string; // "ZEN-001"
   category: ErrorCategory; // "Expression"
-  suggestion?: string;    // راهنمای رفع
+  suggestion?: string; // راهنمای رفع
   details?: Record<string, unknown>; // جزئیات دیباگ
   context?: Record<string, unknown>; // context در زمان خطا
-  
-  toUserString(): string;  // فرمت کاربرپسند
+
+  toUserString(): string; // فرمت کاربرپسند
   toJSON(): Record<string, unknown>; // فرمت API
 }
 ```

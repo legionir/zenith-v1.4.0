@@ -38,7 +38,7 @@ registerServerComponent({
   render: ({ userId }) => {
     const user = db.getUser(userId);
     return `<div class="profile">${user.name}</div>`;
-  }
+  },
 });
 
 const html = `
@@ -53,9 +53,13 @@ const html = `
 ```typescript
 import { hydrate } from '@zenith/ssr';
 
-const dispose = hydrate('#app', {}, {
-  validateChecksum: true
-});
+const dispose = hydrate(
+  '#app',
+  {},
+  {
+    validateChecksum: true,
+  },
+);
 
 // Cleanup if needed
 dispose();

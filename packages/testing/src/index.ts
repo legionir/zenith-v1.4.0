@@ -11,11 +11,6 @@ export {
   expectSignal,
   createMockResource,
   render,
-  zenithMatchers
+  zenithMatchers,
 } from './testing';
-export type {
-  TestHarness,
-  TrackedEffect,
-  MockResource,
-  RenderResult
-} from './testing';
+export type { TestHarness, TrackedEffect, MockResource, RenderResult } from './testing';

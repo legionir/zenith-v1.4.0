@@ -59,7 +59,11 @@ export function validateHydration(clientState: any, serverState: any): boolean {
   return JSON.stringify(clientState) === JSON.stringify(serverState);
 }
 
-export interface SSRResult { html: string; state: string; route?: string; }
+export interface SSRResult {
+  html: string;
+  state: string;
+  route?: string;
+}
 
 // SEC FIX (v1.2.6): SEC-A1 — safeScriptValue helper.
 // Escapes characters that are dangerous when JSON is embedded in <script>:
@@ -93,7 +97,7 @@ export function calculateChecksum(content: string): string {
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash).toString(36);
@@ -217,7 +221,9 @@ export async function renderToString(
   html = await inlineServerComponents(html, state);
 
   let JSDOM: any;
-  try { JSDOM = (await import('jsdom')).JSDOM; } catch {
+  try {
+    JSDOM = (await import('jsdom')).JSDOM;
+  } catch {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با تشخیص محیط.
     throw ssrEnvironmentError('jsdom-missing');
   }
@@ -279,7 +285,9 @@ export async function renderToString(
       stateJson = safeScriptValue(JSON.stringify(s));
       // SEC FIX (v1.2.6): SEC-A1 — also reject unsafe routes at the source.
       if (!isRouteSafe(options.route)) {
-        throw new Error('[Zenith SSR] Refusing to render: route contains `</` which could break out of the hydration script.');
+        throw new Error(
+          '[Zenith SSR] Refusing to render: route contains `</` which could break out of the hydration script.',
+        );
       }
     }
 
@@ -322,7 +330,9 @@ export function generateHydrationScript(result: SSRResult, nonce?: string): stri
   if (result.route) {
     if (!isRouteSafe(result.route)) {
       // Drop the route entirely instead of emitting something that could break out.
-      console.error('[Zenith SSR] Refusing to embed unsafe route (contains `</`) in hydration script.');
+      console.error(
+        '[Zenith SSR] Refusing to embed unsafe route (contains `</`) in hydration script.',
+      );
     } else {
       routePart = `window.__ZENITH_ROUTE__=${safeScriptValue(JSON.stringify(result.route))};`;
     }
@@ -335,7 +345,10 @@ export function generateFullPage(result: SSRResult, head = '', nonce?: string): 
 }
 
 // ── Streaming SSR ──
-export interface StreamChunk { html: string; done: boolean; }
+export interface StreamChunk {
+  html: string;
+  done: boolean;
+}
 
 /**
  * BUG-SSR-06 FIX (v1.3.0): گزینه‌های streaming SSR با پشتیبانی AbortSignal.
@@ -382,10 +395,10 @@ export async function* renderToStream(
   // render تولید می‌شود (render گران است، اما serialize کردن state ارزان است).
   const stateJson = JSON.stringify(
     Object.fromEntries(
-      Object.entries(state).map(([k, v]) => [k, v && typeof v.get === 'function' ? v.get() : v])
-    )
-  // SEC FIX (v1.2.6): SEC-A1 — use safeScriptValue (escapes <, >, U+2028, U+2029)
-  // instead of only replacing `<`. Applied to state AND route below.
+      Object.entries(state).map(([k, v]) => [k, v && typeof v.get === 'function' ? v.get() : v]),
+    ),
+    // SEC FIX (v1.2.6): SEC-A1 — use safeScriptValue (escapes <, >, U+2028, U+2029)
+    // instead of only replacing `<`. Applied to state AND route below.
   );
   const safeStateJson = safeScriptValue(stateJson);
   // SEC FIX (v1.2.6): SEC-A1 — reject routes containing `</` before streaming.

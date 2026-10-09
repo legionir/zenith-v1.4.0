@@ -10,11 +10,20 @@
 import { effect } from '@zenith/state';
 import { routeSignal, findMatchingRoute, setRouteParams, registerRouterCleanup } from './router';
 
-interface RouteDefinition { path: string; src: string; }
-interface FetchResult { ok: boolean; html: string; status: number; }
+interface RouteDefinition {
+  path: string;
+  src: string;
+}
+interface FetchResult {
+  ok: boolean;
+  html: string;
+  status: number;
+}
 
 // ── Route Cache (BUG-RTR-04: Proper LRU) ──
-interface CacheEntry { html: string; }
+interface CacheEntry {
+  html: string;
+}
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -47,9 +56,13 @@ class LRUCache<V> {
     this._maxSize = maxSize;
   }
 
-  get size(): number { return this._map.size; }
+  get size(): number {
+    return this._map.size;
+  }
 
-  has(key: string): boolean { return this._map.has(key); }
+  has(key: string): boolean {
+    return this._map.has(key);
+  }
 
   get(key: string): V | undefined {
     if (!this._map.has(key)) return undefined;
@@ -142,14 +155,20 @@ async function fetchPageCached(src: string, signal?: AbortSignal): Promise<Fetch
       return { ok: true, html: cached.html, status: 200 };
     }
     // Stale — re-fetch in background, return cached for now.
-    fetchPage(src); // fire and forget — updates cache
+    void fetchPage(src); // fire and forget — updates cache
     return { ok: true, html: cached.html, status: 200 };
   }
   return fetchPage(src, signal);
 }
 
 function cleanupCurrentContent(el: HTMLElement, disposes: (() => void)[]): void {
-  for (const d of disposes) { try { d(); } catch (err) { console.error('[Zenith Router] Dispose error:', err); } }
+  for (const d of disposes) {
+    try {
+      d();
+    } catch (err) {
+      console.error('[Zenith Router] Dispose error:', err);
+    }
+  }
   disposes.length = 0;
   el.innerHTML = '';
 }
@@ -199,7 +218,10 @@ export function processRouter(
   parentDisposes: (() => void)[],
 ): void {
   const routes = readRouteDefinitions(el);
-  if (routes.length === 0) { console.warn('[Zenith Router] No routes found.'); return; }
+  if (routes.length === 0) {
+    console.warn('[Zenith Router] No routes found.');
+    return;
+  }
 
   // Register route srcs for prefetch
   for (const r of routes) {
@@ -239,7 +261,11 @@ export function processRouter(
     // FIX (v1.2.7): abort the previous in-flight fetch before starting a
     // new one. The signal is forwarded to fetchPageCached → fetchPage → fetch.
     if (currentAbort) {
-      try { currentAbort.abort(); } catch { /* ignore */ }
+      try {
+        currentAbort.abort();
+      } catch {
+        /* ignore */
+      }
     }
     currentAbort = new AbortController();
     const signal = currentAbort.signal;
@@ -257,7 +283,7 @@ export function processRouter(
       // BUG-RTR-04 (v1.3.0): Timestamp is stored separately in the LRU cache.
       const entryTime = routeCache.getTimestamp(route.src) ?? Date.now();
       if (Date.now() - entryTime > DEFAULT_STALE_TIME) {
-        (async () => {
+        void (async () => {
           const result = await fetchPage(route.src, signal);
           if (loadId !== currentLoadId) return;
           if (result.ok && result.html !== cached.html) {
@@ -275,7 +301,7 @@ export function processRouter(
     // Not cached — show loading
     el.innerHTML = '<div class="zen-router-loading">Loading...</div>';
 
-    (async () => {
+    void (async () => {
       const result = await fetchPageCached(route.src, signal);
       if (loadId !== currentLoadId) return;
       cleanupCurrentContent(el, currentDisposes);
@@ -293,7 +319,11 @@ export function processRouter(
   parentDisposes.push(() => {
     // FIX (v1.2.7): abort any in-flight fetch on teardown too.
     if (currentAbort) {
-      try { currentAbort.abort(); } catch { /* ignore */ }
+      try {
+        currentAbort.abort();
+      } catch {
+        /* ignore */
+      }
       currentAbort = null;
     }
     cleanupCurrentContent(el, currentDisposes);

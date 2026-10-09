@@ -16,18 +16,12 @@
   },
   "Zenith zen-text": {
     "prefix": "ztext",
-    "body": [
-      "<span zen-text=\"\\$${1:variable}\"></span>"
-    ],
+    "body": ["<span zen-text=\"\\$${1:variable}\"></span>"],
     "description": "zen-text directive — reactive text rendering"
   },
   "Zenith zen-if": {
     "prefix": "zif",
-    "body": [
-      "<div zen-if=\"\\$${1:condition}\">",
-      "  $0",
-      "</div>"
-    ],
+    "body": ["<div zen-if=\"\\$${1:condition}\">", "  $0", "</div>"],
     "description": "zen-if directive — conditional rendering"
   },
   "Zenith zen-for": {
@@ -48,16 +42,12 @@
   },
   "Zenith zen-bind": {
     "prefix": "zbind",
-    "body": [
-      "zen-bind:${1:disabled}=\"\\$${2:isProcessing}\""
-    ],
+    "body": ["zen-bind:${1:disabled}=\"\\$${2:isProcessing}\""],
     "description": "zen-bind directive — one-way attribute binding"
   },
   "Zenith zen-action": {
     "prefix": "zaction",
-    "body": [
-      "<button zen-action=\"${1:actionName}\">${2:Button Text}</button>"
-    ],
+    "body": ["<button zen-action=\"${1:actionName}\">${2:Button Text}</button>"],
     "description": "zen-action directive — event handler"
   },
   "Zenith zen-action with modifier": {
@@ -82,9 +72,7 @@
   },
   "Zenith zen-link": {
     "prefix": "zlink",
-    "body": [
-      "<a zen-link=\"${1:/path}\">${2:Link Text}</a>"
-    ],
+    "body": ["<a zen-link=\"${1:/path}\">${2:Link Text}</a>"],
     "description": "zen-link directive — SPA navigation"
   },
   "Zenith zen-router": {
@@ -123,11 +111,7 @@
   },
   "Zenith zen-role": {
     "prefix": "zrole",
-    "body": [
-      "<div zen-role=\"${1:admin}\">",
-      "  $0",
-      "</div>"
-    ],
+    "body": ["<div zen-role=\"${1:admin}\">", "  $0", "</div>"],
     "description": "zen-role directive — role-based rendering"
   },
   "Zenith zen-error": {

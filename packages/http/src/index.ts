@@ -13,9 +13,6 @@ export {
   addErrorInterceptor,
   clearCache,
   cancelRequest,
-  cancelAllRequests
+  cancelAllRequests,
 } from './http';
-export type {
-  HttpRequestOptions, HttpResponse, HttpError,
-  RetryConfig, CacheConfig
-} from './http';
+export type { HttpRequestOptions, HttpResponse, HttpError, RetryConfig, CacheConfig } from './http';

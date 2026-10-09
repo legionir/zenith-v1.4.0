@@ -6,10 +6,10 @@
 
 در فریم‌ورک‌های مدرن، شما عباراتی مثل `$user.name + ' ' + $user.age` را در HTML می‌نویسید و فریم‌ورک آن‌ها را ارزیابی می‌کند. دو راه برای این کار وجود دارد:
 
-| روش | مشکل |
-|---|---|
+| روش                         | مشکل                                                      |
+| --------------------------- | --------------------------------------------------------- |
 | `eval()` / `new Function()` | ⚠️ **خطرناک** (XSS، Code Injection) + کند + غیرقابل Cache |
-| **AST-based (این پکیج)** | ✅ ایمن + سریع + قابل Cache + قابل Static Analysis |
+| **AST-based (این پکیج)**    | ✅ ایمن + سریع + قابل Cache + قابل Static Analysis        |
 
 ## ویژگی‌ها
 
@@ -37,9 +37,9 @@ const context = {
   $currency: { format: (val) => `$${val.toFixed(2)}` },
 };
 
-evaluateExpression('$user.name', context);                  // 'Ali'
-evaluateExpression('$user.age > 18', context);             // true
-evaluateExpression('$currency.format(100)', context);      // '$100.00'
+evaluateExpression('$user.name', context); // 'Ali'
+evaluateExpression('$user.age > 18', context); // true
+evaluateExpression('$currency.format(100)', context); // '$100.00'
 evaluateExpression('$user.age > 18 ? "adult" : "minor"', context); // 'adult'
 ```
 
@@ -59,19 +59,19 @@ const v3 = evaluate(ast, ctx3);
 
 ## سینتکس پشتیبانی‌شده
 
-| نوع | مثال |
-|---|---|
-| Number | `42`, `3.14` |
-| String | `"hello"`, `'world'`, با escape: `"a\nb"` |
-| Identifier | `$user`, `count`, `_private` |
-| Member Access | `$user.name`, `$arr[0]`, `$obj["key"]` |
-| Function Call | `$fn(a, b)`, `$obj.method(x)` (با `this` صحیح) |
-| عملگرهای ریاضی | `+`, `-`, `*`, `/`, `%` |
+| نوع             | مثال                                           |
+| --------------- | ---------------------------------------------- |
+| Number          | `42`, `3.14`                                   |
+| String          | `"hello"`, `'world'`, با escape: `"a\nb"`      |
+| Identifier      | `$user`, `count`, `_private`                   |
+| Member Access   | `$user.name`, `$arr[0]`, `$obj["key"]`         |
+| Function Call   | `$fn(a, b)`, `$obj.method(x)` (با `this` صحیح) |
+| عملگرهای ریاضی  | `+`, `-`, `*`, `/`, `%`                        |
 | عملگرهای مقایسه | `==`, `===`, `!=`, `!==`, `<`, `>`, `<=`, `>=` |
-| عملگرهای منطقی | `&&`, `||`, `!` |
-| عملگر یکانی | `-x`, `!flag` |
-| عملگر سه‌تایی | `cond ? a : b` |
-| گروه‌بندی | `(a + b) * c` |
+| عملگرهای منطقی  | `&&`, `                                        |     | `, `!` |
+| عملگر یکانی     | `-x`, `!flag`                                  |
+| عملگر سه‌تایی   | `cond ? a : b`                                 |
+| گروه‌بندی       | `(a + b) * c`                                  |
 
 ## تست
 

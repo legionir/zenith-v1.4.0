@@ -15,7 +15,11 @@ import { createForm, type FormStore } from './form';
 
 export interface ZodSchema {
   // Minimal interface — فقط چه چیزی نیاز داریم.
-  safeParse(data: any): { success: boolean; data?: any; error?: { issues: Array<{ path: (string|number)[]; message: string }> } };
+  safeParse(data: any): {
+    success: boolean;
+    data?: any;
+    error?: { issues: Array<{ path: (string | number)[]; message: string }> };
+  };
 }
 
 /**
@@ -120,10 +124,7 @@ export function fromZod(
  * اعتبارسنجی کل فرم با Zod schema.
  * مفید برای cross-field validation که در قوانین ساده قابل بیان نیست.
  */
-export async function validateWithZod(
-  form: FormStore,
-  zodSchema: ZodSchema,
-): Promise<boolean> {
+export async function validateWithZod(form: FormStore, zodSchema: ZodSchema): Promise<boolean> {
   const values = form.getValues();
   const result = zodSchema.safeParse(values);
 
@@ -143,17 +144,20 @@ export async function validateWithZod(
 
 export interface JsonSchema {
   type?: string;
-  properties?: Record<string, {
-    type?: string;
-    format?: string;
-    minLength?: number;
-    maxLength?: number;
-    minimum?: number;
-    maximum?: number;
-    pattern?: string;
-    enum?: any[];
-    description?: string;
-  }>;
+  properties?: Record<
+    string,
+    {
+      type?: string;
+      format?: string;
+      minLength?: number;
+      maxLength?: number;
+      minimum?: number;
+      maximum?: number;
+      pattern?: string;
+      enum?: any[];
+      description?: string;
+    }
+  >;
   required?: string[];
 }
 

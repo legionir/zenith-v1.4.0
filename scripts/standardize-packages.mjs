@@ -3,10 +3,10 @@ import { join } from 'path';
 
 const packagesDir = './packages';
 const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name);
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name);
 
-const zenithPackages = new Set(pkgDirs.map(d => `@zenith/${d}`));
+const zenithPackages = new Set(pkgDirs.map((d) => `@zenith/${d}`));
 zenithPackages.add('zenith-vscode');
 
 for (const dir of pkgDirs) {
@@ -34,14 +34,14 @@ for (const dir of pkgDirs) {
       '.': {
         types: './dist/index.d.ts',
         import: './dist/index.js',
-        require: './dist/index.cjs'
-      }
+        require: './dist/index.cjs',
+      },
     };
     pkg.files = ['dist', 'README.md'];
     pkg.scripts = {
       ...pkg.scripts,
       build: 'tsc -p tsconfig.json',
-      typecheck: 'tsc --noEmit'
+      typecheck: 'tsc --noEmit',
     };
   }
 

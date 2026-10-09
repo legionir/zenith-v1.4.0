@@ -30,7 +30,11 @@
 // پیمایش، اگر به این تگ‌ها برسد، handler مربوطه را فراخوانی می‌کند.
 
 import type { ZenithPlugin } from '@zenith/runtime';
-import { registerCustomDirective, hasCustomDirective, unregisterCustomDirective } from '@zenith/runtime';
+import {
+  registerCustomDirective,
+  hasCustomDirective,
+  unregisterCustomDirective,
+} from '@zenith/runtime';
 import { processResourceView } from './resource-view';
 import { processActionButton } from './action-button';
 import { processAuthView } from './auth-view';

@@ -95,8 +95,7 @@ export type Store<S, G, A> = {
   $patch(partial: Partial<S>): void;
   /** __dispose__: پاکسازی computed signals. */
   __dispose__(): void;
-} & { [K in keyof G]: G[K] extends (s: any) => infer R ? R : never }
-  & { [K in keyof A]: A[K] };
+} & { [K in keyof G]: G[K] extends (s: any) => infer R ? R : never } & { [K in keyof A]: A[K] };
 
 /**
  * Registry از store ها.
@@ -117,8 +116,12 @@ function deepMerge<T>(target: T, source: Partial<T>, _depth = 0): T {
     const sVal = (source as any)[key];
     const tVal = (result as any)[key];
     if (
-      sVal !== null && typeof sVal === 'object' && !Array.isArray(sVal) &&
-      tVal !== null && typeof tVal === 'object' && !Array.isArray(tVal)
+      sVal !== null &&
+      typeof sVal === 'object' &&
+      !Array.isArray(sVal) &&
+      tVal !== null &&
+      typeof tVal === 'object' &&
+      !Array.isArray(tVal)
     ) {
       result[key] = deepMerge(tVal, sVal, _depth + 1);
     } else {
@@ -151,16 +154,30 @@ const _proxiedSet = new WeakSet<object>();
 // زمان ساخت proxy. هر فراخوانی سطح بالا یک visitingSet می‌سازد و آن را
 // به فراخوانی‌های بازگشتی پاس می‌دهد. اگر دوباره به همان آبجکت برسیم
 // (مثلاً obj.self = obj)، از stack overflow جلوگیری می‌کند.
-function createInPlaceDeepProxy<T>(obj: T, onMutation: () => void, _visitingSet?: WeakSet<object>): T {
+function createInPlaceDeepProxy<T>(
+  obj: T,
+  onMutation: () => void,
+  _visitingSet?: WeakSet<object>,
+): T {
   if (obj === null || typeof obj !== 'object') return obj;
 
   const visitingSet = _visitingSet || new WeakSet<object>();
-  if (visitingSet.has(obj)) return obj;  // circular → return as-is
+  if (visitingSet.has(obj)) return obj; // circular → return as-is
   visitingSet.add(obj);
 
   // Array ها: intercept mutating methods + set
   if (Array.isArray(obj)) {
-    const mutatingMethods = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin'];
+    const mutatingMethods = [
+      'push',
+      'pop',
+      'shift',
+      'unshift',
+      'splice',
+      'sort',
+      'reverse',
+      'fill',
+      'copyWithin',
+    ];
     return new Proxy(obj as any, {
       get(target: any, prop: string, receiver: any) {
         // mutating methods را intercept کن
@@ -198,9 +215,10 @@ function createInPlaceDeepProxy<T>(obj: T, onMutation: () => void, _visitingSet?
         return Reflect.get(target, prop, receiver);
       },
       set(target: any, prop: string, value: any) {
-        const wrapped = (value !== null && typeof value === 'object')
-          ? createInPlaceDeepProxy(value, onMutation, visitingSet)
-          : value;
+        const wrapped =
+          value !== null && typeof value === 'object'
+            ? createInPlaceDeepProxy(value, onMutation, visitingSet)
+            : value;
         if (wrapped !== null && typeof wrapped === 'object') _proxiedSet.add(wrapped);
         (target as any)[prop] = wrapped;
         onMutation();
@@ -217,9 +235,10 @@ function createInPlaceDeepProxy<T>(obj: T, onMutation: () => void, _visitingSet?
   // Object ها: intercept set + get (برای nested)
   return new Proxy(obj as any, {
     set(target: any, prop: string, value: any) {
-      const wrapped = (value !== null && typeof value === 'object')
-        ? createInPlaceDeepProxy(value, onMutation, visitingSet)
-        : value;
+      const wrapped =
+        value !== null && typeof value === 'object'
+          ? createInPlaceDeepProxy(value, onMutation, visitingSet)
+          : value;
       if (wrapped !== null && typeof wrapped === 'object') _proxiedSet.add(wrapped);
       (target as any)[prop] = wrapped;
       onMutation();
@@ -251,10 +270,11 @@ function createInPlaceDeepProxy<T>(obj: T, onMutation: () => void, _visitingSet?
  * @param def  تعریف store (state, getters, actions).
  * @returns تابع استفاده از store.
  */
-export function defineStore<S, G extends Record<string, (state: S) => any>, A extends Record<string, Function>>(
-  id: string,
-  def: StoreDefinition<S, G, A>,
-): () => Store<S, G, A> {
+export function defineStore<
+  S,
+  G extends Record<string, (state: S) => any>,
+  A extends Record<string, Function>,
+>(id: string, def: StoreDefinition<S, G, A>): () => Store<S, G, A> {
   return () => {
     // اگر قبلاً ساخته شده، همان را برگردان.
     if (storeRegistry.has(id)) {
@@ -360,15 +380,22 @@ export function defineStore<S, G extends Record<string, (state: S) => any>, A ex
         for (const key of Reflect.ownKeys(partial as any)) {
           const value = (partial as any)[key];
           const existing = (stateObj as any)[key];
-          if (existing && typeof existing === 'object' && !Array.isArray(existing)
-              && value && typeof value === 'object' && !Array.isArray(value)) {
+          if (
+            existing &&
+            typeof existing === 'object' &&
+            !Array.isArray(existing) &&
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value)
+          ) {
             // FIX (v1.2.9): Deep merge — recursively merge nested plain objects
             const merged = deepMerge(existing, value);
             (stateObj as any)[key] = createInPlaceDeepProxy(merged, triggerReactive);
           } else {
-            (stateObj as any)[key] = (value !== null && typeof value === 'object')
-              ? createInPlaceDeepProxy(value, triggerReactive)
-              : value;
+            (stateObj as any)[key] =
+              value !== null && typeof value === 'object'
+                ? createInPlaceDeepProxy(value, triggerReactive)
+                : value;
           }
         }
         stateSignal.set(stateObj);
@@ -384,7 +411,7 @@ export function defineStore<S, G extends Record<string, (state: S) => any>, A ex
     if (def.getters) {
       for (const [name, getter] of Object.entries(def.getters)) {
         const c = computed(() => {
-          versionSignal.get();  // track version برای reactivity
+          versionSignal.get(); // track version برای reactivity
           return (getter as Function)(stateObj);
         });
         store[name] = c;
@@ -421,7 +448,7 @@ export function defineStore<S, G extends Record<string, (state: S) => any>, A ex
       // FIX (v1.2.3): store را از storeRegistry حذف کن تا در صورت تعریف
       // مجدد با همان id، store قدیمی (که disposed شده) برنگردد.
       storeRegistry.delete(id);
-      computedDisposables.forEach(d => d());
+      computedDisposables.forEach((d) => d());
     };
 
     storeRegistry.set(id, store);

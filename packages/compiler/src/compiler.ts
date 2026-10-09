@@ -255,7 +255,9 @@ export async function compileTemplate(
   // Previously the compiler used dir.value.replace(/^\$/, '') to convert $user → ctx.$user,
   // which broke for complex expressions like !$show, $a > 0, $user.name + ' x'.
   // Now evalExpr (injected from @zenith/expressions.evaluateExpression) handles all expressions.
-  codeLines.push('function render(root, ctx, effect, signal, sanitizeHTML, state, processChildren, sanitizeHTMLTrusted, evalExpr) {');
+  codeLines.push(
+    'function render(root, ctx, effect, signal, sanitizeHTML, state, processChildren, sanitizeHTMLTrusted, evalExpr) {',
+  );
 
   let varCounter = 0;
 
@@ -281,7 +283,9 @@ export async function compileTemplate(
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
       codeLines.push(`    const v = evalExpr(dir.value, ctx);`);
-      codeLines.push(`    ${varName}.textContent = (v === null || v === undefined) ? '' : String(v);`);
+      codeLines.push(
+        `    ${varName}.textContent = (v === null || v === undefined) ? '' : String(v);`,
+      );
       codeLines.push(`  });`);
       return true;
     }
@@ -384,15 +388,27 @@ export async function compileTemplate(
         // بررسی اینکه آیا object syntax ساده است (فقط identifier: $signal)
         // اگر نه، به runtime بسپار
         const inner = value.slice(1, -1).trim();
-        const pairs = inner.split(',').map(p => p.trim()).filter(Boolean);
+        const pairs = inner
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
         let allSimple = true;
         const parsedPairs: Array<{ key: string; expr: string }> = [];
         for (const pair of pairs) {
           const colonIdx = pair.indexOf(':');
-          if (colonIdx === -1) { allSimple = false; break; }
-          const key = pair.slice(0, colonIdx).trim().replace(/^['"]|['"]$/g, '');
+          if (colonIdx === -1) {
+            allSimple = false;
+            break;
+          }
+          const key = pair
+            .slice(0, colonIdx)
+            .trim()
+            .replace(/^['"]|['"]$/g, '');
           const expr = pair.slice(colonIdx + 1).trim();
-          if (!key || !expr) { allSimple = false; break; }
+          if (!key || !expr) {
+            allSimple = false;
+            break;
+          }
           parsedPairs.push({ key, expr });
         }
         if (!allSimple || parsedPairs.length === 0) {
@@ -404,7 +420,9 @@ export async function compileTemplate(
         // تمام انواع expression را پشتیبانی می‌کند.
         codeLines.push(`  effect(() => {`);
         for (const { key, expr } of parsedPairs) {
-          codeLines.push(`    if (evalExpr(${JSON.stringify(expr)}, ctx)) ${varName}.classList.add(${JSON.stringify(key)});`);
+          codeLines.push(
+            `    if (evalExpr(${JSON.stringify(expr)}, ctx)) ${varName}.classList.add(${JSON.stringify(key)});`,
+          );
           codeLines.push(`    else ${varName}.classList.remove(${JSON.stringify(key)});`);
         }
         codeLines.push(`  });`);
@@ -441,16 +459,22 @@ export async function compileTemplate(
       // initial value (از ctx خوانده می‌شود — getter کار می‌کند).
       codeLines.push(`  effect(() => {`);
       codeLines.push(`    const v = ctx.$${fieldName};`);
-      codeLines.push(`    if (${varName}.value !== String(v ?? '')) ${varName}.value = String(v ?? '');`);
+      codeLines.push(
+        `    if (${varName}.value !== String(v ?? '')) ${varName}.value = String(v ?? '');`,
+      );
       codeLines.push(`  });`);
       // event listener for two-way binding — از state (Signal) برای set استفاده کن.
       codeLines.push(`  ${varName}.addEventListener('input', (e) => {`);
-      codeLines.push(`    if (state && state.${fieldName} && typeof state.${fieldName}.set === 'function') {`);
+      codeLines.push(
+        `    if (state && state.${fieldName} && typeof state.${fieldName}.set === 'function') {`,
+      );
       codeLines.push(`      state.${fieldName}.set(e.target.value);`);
       codeLines.push(`    } else if (state && state.${fieldName}) {`);
       codeLines.push(`      state.${fieldName} = e.target.value;`);
       codeLines.push(`    } else {`);
-      codeLines.push(`      console.warn('[Zenith Compiler] zen-model "${dir.value}": state not provided to render(). Two-way binding disabled.');`);
+      codeLines.push(
+        `      console.warn('[Zenith Compiler] zen-model "${dir.value}": state not provided to render(). Two-way binding disabled.');`,
+      );
       codeLines.push(`    }`);
       codeLines.push(`  });`);
       return true;
@@ -481,7 +505,9 @@ export async function compileTemplate(
       // با `ctx.$` که در expressionهای حاوی `$` به‌عنوان متغیر حلقه می‌شکست،
       // از evalExpr() برای ارزیابی list expression استفاده می‌کند.
       const forValue = dir.value.trim();
-      const forMatch = forValue.match(/^\s*\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*)\s*)?\)?\s+in\s+(.+)$/);
+      const forMatch = forValue.match(
+        /^\s*\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*)\s*)?\)?\s+in\s+(.+)$/,
+      );
       if (!forMatch) {
         return false; // malformed — fall back to runtime preservation
       }
@@ -491,7 +517,7 @@ export async function compileTemplate(
 
       // Find zen-key among sibling directives (zen-key is consumed by zen-for
       // and skipped in the directives loop — see compileNode).
-      const keyDir = allDirectives.find(d => d.name === 'zen-key');
+      const keyDir = allDirectives.find((d) => d.name === 'zen-key');
       const keyExprRaw = keyDir ? keyDir.value.trim() : '';
 
       // BUG-COMP-04 FIX: به‌جای replace ساده‌ی `$` → `ctx.$`، از evalExpr استفاده می‌کنیم
@@ -546,7 +572,9 @@ export async function compileTemplate(
       const templateInnerHTML = el.innerHTML;
       const needsInnerHTML = templateInnerHTML.length > 0;
 
-      codeLines.push(`  // zen-for compiled (v0.4.0): keyed diffing; child directives via processChildren`);
+      codeLines.push(
+        `  // zen-for compiled (v0.4.0): keyed diffing; child directives via processChildren`,
+      );
       codeLines.push(`  // FEATURE (v0.4.0): processChildren حالا یک تابع teardown برمی‌گرداند که`);
       codeLines.push(`  // در __entry.dispose ذخیره می‌شود و هنگام removal آیتم صدا زده می‌شود`);
       codeLines.push(`  // تا Effectهای فرزندان clone پاکسازی شوند (رفع نشت حافظه‌ی v0.3.0).`);
@@ -556,10 +584,14 @@ export async function compileTemplate(
       if (needsInnerHTML) {
         codeLines.push(`  ${tpl}.innerHTML = ${JSON.stringify(templateInnerHTML)};`);
       }
-      codeLines.push(`  const ${itemsMap} = new Map(); // key -> { node, itemSig, indexSig, dispose }`);
+      codeLines.push(
+        `  const ${itemsMap} = new Map(); // key -> { node, itemSig, indexSig, dispose }`,
+      );
       codeLines.push(`  effect(() => {`);
       codeLines.push(`    const __list = ${listExprJs};`);
-      codeLines.push(`    const __arr = Array.isArray(__list) ? __list : (__list == null ? [] : Array.from(__list));`);
+      codeLines.push(
+        `    const __arr = Array.isArray(__list) ? __list : (__list == null ? [] : Array.from(__list));`,
+      );
       codeLines.push(`    const __usedKeys = new Set();`);
       codeLines.push(`    let __prev = ${ph};`);
       codeLines.push(`    for (let __i = 0; __i < __arr.length; __i++) {`);
@@ -583,10 +615,16 @@ export async function compileTemplate(
       codeLines.push(`        // نگه می‌دارد. هنگام removal آیتم، این تابع صدا زده می‌شود.`);
       codeLines.push(`        let __dispose = null;`);
       codeLines.push(`        if (typeof processChildren === 'function') {`);
-      codeLines.push(`          try { __dispose = processChildren(__clone, __localState) || null; }`);
-      codeLines.push(`          catch (e) { console.error('[Zenith] processChildren failed for zen-for clone:', e); }`);
+      codeLines.push(
+        `          try { __dispose = processChildren(__clone, __localState) || null; }`,
+      );
+      codeLines.push(
+        `          catch (e) { console.error('[Zenith] processChildren failed for zen-for clone:', e); }`,
+      );
       codeLines.push(`        }`);
-      codeLines.push(`        __entry = { node: __clone, itemSig: __itemSig, indexSig: __indexSig, dispose: __dispose };`);
+      codeLines.push(
+        `        __entry = { node: __clone, itemSig: __itemSig, indexSig: __indexSig, dispose: __dispose };`,
+      );
       codeLines.push(`        ${itemsMap}.set(__key, __entry);`);
       codeLines.push(`      } else {`);
       codeLines.push(`        // Update existing item's signals — inner effects that depend on`);
@@ -601,12 +639,16 @@ export async function compileTemplate(
       codeLines.push(`    }`);
       codeLines.push(`    for (const [__k, __e] of ${itemsMap}) {`);
       codeLines.push(`      if (!__usedKeys.has(__k)) {`);
-      codeLines.push(`        // FEATURE (v0.4.0): dispose Effectهای فرزندان clone قبل از removeChild.`);
+      codeLines.push(
+        `        // FEATURE (v0.4.0): dispose Effectهای فرزندان clone قبل از removeChild.`,
+      );
       codeLines.push(`        // این نشت حافظه‌ی v0.3.0 را برطرف می‌کند — Effectهای فرزندان`);
       codeLines.push(`        // که توسط processChildren (walkAndBind) ایجاد شده بودند، حالا`);
       codeLines.push(`        // به‌درستی پاکسازی می‌شوند.`);
       codeLines.push(`        if (typeof __e.dispose === 'function') {`);
-      codeLines.push(`          try { __e.dispose(); } catch (e) { console.error('[Zenith] zen-for item dispose failed:', e); }`);
+      codeLines.push(
+        `          try { __e.dispose(); } catch (e) { console.error('[Zenith] zen-for item dispose failed:', e); }`,
+      );
       codeLines.push(`        }`);
       codeLines.push(`        __e.dispose = null;`);
       codeLines.push(`        if (__e.node.parentNode) __e.node.parentNode.removeChild(__e.node);`);
@@ -656,7 +698,8 @@ export async function compileTemplate(
     // BUG-COMP-08 FIX: غنی‌سازی پیام error با جزئیات بیشتر
     const valueDisplay = dir.value ? ` (value: "${dir.value}")` : '';
     const hint = getStrictHint(dir.name);
-    const warning = `[Zenith Compiler] Directive '${dir.raw}'${valueDisplay} is not compilable` +
+    const warning =
+      `[Zenith Compiler] Directive '${dir.raw}'${valueDisplay} is not compilable` +
       ` and will be processed by runtime walker at ${elementPath}.${hint}`;
     warnings.push(warning);
     if (options.strict) {
@@ -674,19 +717,25 @@ export async function compileTemplate(
     });
 
     // attribute اصلی را روی عنصر set کن تا runtime walker آن را ببیند
-    codeLines.push(`  ${varName}.setAttribute(${JSON.stringify(dir.raw)}, ${JSON.stringify(dir.value)});`);
+    codeLines.push(
+      `  ${varName}.setAttribute(${JSON.stringify(dir.raw)}, ${JSON.stringify(dir.value)});`,
+    );
     // علامت‌گذاری عنصر برای runtime walker
     codeLines.push(`  ${varName}.setAttribute('data-zenith-runtime', 'true');`);
   }
 
   function compileNode(node: Node, parentVar: string, path: string): void {
-    if (node.nodeType !== 1) { // ELEMENT_NODE
+    if (node.nodeType !== 1) {
+      // ELEMENT_NODE
       // Text node — اگر محتوای داینامیک دارد.
-      if (node.nodeType === 3) { // TEXT_NODE
+      if (node.nodeType === 3) {
+        // TEXT_NODE
         const text = node.textContent || '';
         if (text.trim()) {
           // static text
-          codeLines.push(`  ${parentVar}.appendChild(document.createTextNode(${JSON.stringify(text)}));`);
+          codeLines.push(
+            `  ${parentVar}.appendChild(document.createTextNode(${JSON.stringify(text)}));`,
+          );
         }
       }
       return;
@@ -708,14 +757,14 @@ export async function compileTemplate(
     }
 
     // بررسی zen-for — در صورت وجود، الگوریتم پردازش directiveها و فرزندان تغییر می‌کند.
-    const hasFor = info.directives.some(d => d.name === 'zen-for');
+    const hasFor = info.directives.some((d) => d.name === 'zen-for');
 
     // BUG-COMP-01 FIX (v1.3.0): بررسی جامع تداخل directiveهای ساختاری.
     // از ماتریس STRUCTURAL_CONFLICT_MATRIX استفاده می‌کند تا هر جفت
     // directive ناسازگار روی یک المنت را تشخیص دهد.
     const structuralNamesOnElement = info.directives
-      .filter(d => STRUCTURAL_DIRECTIVES.has(d.name))
-      .map(d => d.name);
+      .filter((d) => STRUCTURAL_DIRECTIVES.has(d.name))
+      .map((d) => d.name);
     const conflictPairs: string[] = [];
     for (const [a, b] of STRUCTURAL_CONFLICT_MATRIX) {
       if (structuralNamesOnElement.includes(a) && structuralNamesOnElement.includes(b)) {
@@ -725,8 +774,8 @@ export async function compileTemplate(
     if (conflictPairs.length > 0 && typeof console !== 'undefined' && console.warn) {
       console.warn(
         `[Zenith Compiler] Element <${tagName}> has conflicting structural directives: ` +
-        `${conflictPairs.join(', ')}. Only the first matching directive will be compiled; ` +
-        `others are preserved for runtime fallback.`
+          `${conflictPairs.join(', ')}. Only the first matching directive will be compiled; ` +
+          `others are preserved for runtime fallback.`,
       );
     }
 
@@ -741,12 +790,21 @@ export async function compileTemplate(
       // چون template هرگز به DOM اضافه نمی‌شود و effectها به فرزندان clone
       // متصل نمی‌شوند.
       if (hasFor && dir.name !== 'zen-for') {
-        codeLines.push(`  ${varName}.setAttribute(${JSON.stringify(dir.raw)}, ${JSON.stringify(dir.value)});`);
+        codeLines.push(
+          `  ${varName}.setAttribute(${JSON.stringify(dir.raw)}, ${JSON.stringify(dir.value)});`,
+        );
         continue;
       }
 
       // ابتدا تلاش کن directive را compile کن
-      const compiled = compileCompilableDirective(dir, varName, parentVar, elementPath, info.directives, el);
+      const compiled = compileCompilableDirective(
+        dir,
+        varName,
+        parentVar,
+        elementPath,
+        info.directives,
+        el,
+      );
 
       if (!compiled) {
         // BUG-COMP-07 FIX: بهبود مدیریت fallback زمانی که compileCompilableDirective
@@ -775,7 +833,8 @@ export async function compileTemplate(
         } else {
           // BUG-COMP-08 FIX: غنی‌سازی پیام برای directive ناشناخته
           const valueDisplay = dir.value ? ` (value: "${dir.value}")` : '';
-          const warning = `[Zenith Compiler] Unknown directive '${dir.raw}'${valueDisplay} at ${elementPath}. ` +
+          const warning =
+            `[Zenith Compiler] Unknown directive '${dir.raw}'${valueDisplay} at ${elementPath}. ` +
             `This directive is not recognized and will be preserved for runtime (may not work). ` +
             `Check the spelling or add it to the VALID_DIRECTIVES list.`;
           warnings.push(warning);
@@ -793,7 +852,7 @@ export async function compileTemplate(
     // اگر zen-if / zen-for نیست، عنصر را به parent اضافه کن.
     // برای zen-for، خود template به DOM اضافه نمی‌شود — فقط placeholder (comment)
     // و cloneها در زمان effect اضافه می‌شوند.
-    const hasIf = info.directives.some(d => d.name === 'zen-if');
+    const hasIf = info.directives.some((d) => d.name === 'zen-if');
     if (!hasIf && !hasFor) {
       codeLines.push(`  ${parentVar}.appendChild(${varName});`);
     }
@@ -861,7 +920,7 @@ function analyzeElement(el: Element): ElementInfo {
   }
 
   // آیا فرزندان (غیر از text) دارد؟
-  const hasChildren = children.some(c => c.nodeType === 1);
+  const hasChildren = children.some((c) => c.nodeType === 1);
 
   return {
     tag: el.tagName.toLowerCase(),
@@ -890,13 +949,15 @@ function createParser(): (html: string) => Document {
   const asyncParser = async (html: string) => {
     if (!JSDOMCtor) {
       if (!jsdomPromise) {
-        jsdomPromise = import('jsdom').then(mod => {
-          JSDOMCtor = mod.JSDOM || mod.default?.JSDOM;
-        }).catch(() => {
-          throw new Error(
-            '[Zenith Compiler] DOMParser or jsdom is required. Install jsdom: npm install jsdom',
-          );
-        });
+        jsdomPromise = import('jsdom')
+          .then((mod) => {
+            JSDOMCtor = mod.JSDOM || mod.default?.JSDOM;
+          })
+          .catch(() => {
+            throw new Error(
+              '[Zenith Compiler] DOMParser or jsdom is required. Install jsdom: npm install jsdom',
+            );
+          });
       }
       await jsdomPromise;
     }

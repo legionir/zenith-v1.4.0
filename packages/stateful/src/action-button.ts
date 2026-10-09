@@ -160,7 +160,7 @@ export function processActionButton(
     if (!actionFn) {
       console.warn(
         `[zen-action-button] Action "${actionName}" is not registered. ` +
-        `Register it with: Zen.action('${actionName}', (ctx) => { ... });`,
+          `Register it with: Zen.action('${actionName}', (ctx) => { ... });`,
       );
       return;
     }
@@ -178,10 +178,7 @@ export function processActionButton(
         await result;
       }
     } catch (err) {
-      console.error(
-        `[zen-action-button] Action "${actionName}" threw an error:`,
-        err,
-      );
+      console.error(`[zen-action-button] Action "${actionName}" threw an error:`, err);
     } finally {
       setLoading(false);
     }

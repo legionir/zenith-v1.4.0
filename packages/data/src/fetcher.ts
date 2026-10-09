@@ -131,9 +131,11 @@ export function processFetchWithCache(url: string, ttl: number = 30000): Promise
   if (cached !== null) {
     // بازگشت فوری داده + به‌روزرسانی در پس‌زمینه
     fetch(url)
-      .then(res => res.json())
-      .then(data => setCachedData(url, data))
-      .catch(() => { /* سکوت — داده قدیمی هنوز موجود است */ });
+      .then((res) => res.json())
+      .then((data) => setCachedData(url, data))
+      .catch(() => {
+        /* سکوت — داده قدیمی هنوز موجود است */
+      });
     return Promise.resolve(cached);
   }
   return fetch(url).then(async (res) => {
@@ -260,7 +262,16 @@ async function performFetch(
       await new Promise((resolve) => setTimeout(resolve, delay));
       // اگر در حین تأخیر، fetch دیگری شروع شده، تلاش مجدد را لغو کن.
       if (fetchId !== getCurrentFetchId()) return;
-      return performFetch(url, signal, fetchId, getCurrentFetchId, new AbortController(), method, body, retryCount + 1);
+      return performFetch(
+        url,
+        signal,
+        fetchId,
+        getCurrentFetchId,
+        new AbortController(),
+        method,
+        body,
+        retryCount + 1,
+      );
     }
 
     if (!res.ok) {
@@ -337,7 +348,8 @@ export function processFetch(
   const stateName = el.getAttribute('zen-state') || 'data';
 
   // BUG-DAT-03: متد HTTP (GET, POST, PUT, DELETE)
-  const method = (el.getAttribute('zen-fetch-method')?.toUpperCase() as RequestInit['method']) ?? 'GET';
+  const method =
+    (el.getAttribute('zen-fetch-method')?.toUpperCase() as RequestInit['method']) ?? 'GET';
   // BUG-DAT-03: بدنه درخواست (برای POST/PUT)
   const body = el.getAttribute('zen-fetch-body') ?? null;
 
@@ -383,10 +395,7 @@ export function processFetch(
     try {
       url = evalFn(context);
     } catch (err) {
-      console.error(
-        `[Zenith Fetch] Failed to evaluate URL expression "${expr}":`,
-        err,
-      );
+      console.error(`[Zenith Fetch] Failed to evaluate URL expression "${expr}":`, err);
       fetchStateSignal.set({
         loading: false,
         error: `Invalid URL expression: ${(err as Error).message}`,
@@ -459,7 +468,15 @@ export function processFetch(
     const abortController = new AbortController();
     currentAbortController = abortController;
 
-    performFetch(finalUrl, fetchStateSignal, fetchId, () => currentFetchId, abortController, method, body);
+    void performFetch(
+      finalUrl,
+      fetchStateSignal,
+      fetchId,
+      () => currentFetchId,
+      abortController,
+      method,
+      body,
+    );
   });
 
   // ── ۶. ثبت dispose ──
@@ -468,7 +485,7 @@ export function processFetch(
   //   2) Effect را dispose می‌کند (جلوگیری از fetch بعد از unmount).
   //   3) تمام effectهای فرزندان را dispose می‌کند.
   disposes.push(() => {
-    currentFetchId++;  // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
+    currentFetchId++; // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
     // abort fetch در حال انجام.
     if (currentAbortController) {
       currentAbortController.abort();

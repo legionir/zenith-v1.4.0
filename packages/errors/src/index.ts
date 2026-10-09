@@ -60,8 +60,8 @@ export class ZenithError extends Error {
     this.suggestion = opts.suggestion;
     this.details = opts.details;
     this.context = opts.context;
-    this.isDevMode = typeof globalThis !== 'undefined' &&
-      (globalThis as any).__ZENITH_DEV__ !== false;
+    this.isDevMode =
+      typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false;
 
     // Maintain proper stack trace (V8 only).
     if (typeof Error.captureStackTrace === 'function') {
@@ -182,7 +182,7 @@ export const ErrorCode = {
   INTERNAL_UNKNOWN: 'ZEN-901',
 } as const;
 
-export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 // ─────────────────────────────────────────────────────────────
 // Error Factory Functions
@@ -226,9 +226,7 @@ export function variableNotDefinedError(
 /**
  * FEATURE (v1.0.0): خطای «zen-key وجود ندارد» با مثال.
  */
-export function zenForNoZenKeyError(
-  expr: string,
-): ZenithError {
+export function zenForNoZenKeyError(expr: string): ZenithError {
   return new ZenithError({
     code: ErrorCode.RUNTIME_ZEN_FOR_NO_ZEN_KEY,
     category: 'Runtime',
@@ -381,11 +379,7 @@ export function securityError(
 /**
  * FEATURE (v1.0.0): خطای HTTP برای Resource.
  */
-export function resourceHttpError(
-  url: string,
-  status: number,
-  statusText: string,
-): ZenithError {
+export function resourceHttpError(url: string, status: number, statusText: string): ZenithError {
   const suggestion =
     status === 404
       ? `URL «${url}» یافت نشد (404). مسیر endpoint را بررسی کنید.`
@@ -424,7 +418,7 @@ export function expressionSyntaxError(
       `مثال‌های معتبر:\n` +
       `  $user.name\n` +
       `  $count + 1\n` +
-      `  $items.length > 0 ? \"بله\" : \"خیر\"\n` +
+      `  $items.length > 0 ? "بله" : "خیر"\n` +
       `  $user.age > 18 && $user.active`,
     details: { expr, position, unexpectedToken },
     context: { expr, position },
@@ -434,9 +428,7 @@ export function expressionSyntaxError(
 /**
  * FEATURE (v1.0.0): خطای zen-for invalid syntax.
  */
-export function zenForInvalidSyntaxError(
-  expr: string,
-): ZenithError {
+export function zenForInvalidSyntaxError(expr: string): ZenithError {
   return new ZenithError({
     code: ErrorCode.RUNTIME_ZEN_FOR_INVALID_SYNTAX,
     category: 'Runtime',
@@ -478,10 +470,7 @@ export function compileSyntaxError(
  * خطای کامپایلر: import گم‌شده.
  * ZEN-504: COMPILE_MISSING_IMPORT
  */
-export function compileMissingImportError(
-  importName: string,
-  available?: string[],
-): ZenithError {
+export function compileMissingImportError(importName: string, available?: string[]): ZenithError {
   const suggestion = available
     ? `importهای موجود: ${available.join(', ')}`
     : 'ماژول را import کنید یا نام آن را بررسی کنید.';
@@ -498,10 +487,7 @@ export function compileMissingImportError(
  * خطای runtime در evaluation Expression.
  * ZEN-551: JS_VM_RUNTIME_ERROR
  */
-export function jsVmRuntimeError(
-  originalError: Error,
-  expression?: string,
-): ZenithError {
+export function jsVmRuntimeError(originalError: Error, expression?: string): ZenithError {
   return new ZenithError({
     code: ErrorCode.JS_VM_RUNTIME_ERROR,
     category: 'Runtime',
@@ -519,10 +505,7 @@ export function jsVmRuntimeError(
  * خطای timeout در evaluation Expression.
  * ZEN-552: JS_VM_TIMEOUT
  */
-export function jsVmTimeoutError(
-  expression: string,
-  timeoutMs: number,
-): ZenithError {
+export function jsVmTimeoutError(expression: string, timeoutMs: number): ZenithError {
   return new ZenithError({
     code: ErrorCode.JS_VM_TIMEOUT,
     category: 'Runtime',
@@ -575,10 +558,7 @@ export function findClosestMatch(
   // BUG-ERR-03: آستانه نسبی برای واژه‌های کوتاه
   // برای واژه‌های ۲-۳ حرفی، threshold مطلق ۱ از threshold نسبی بهتر است
   // تا suggestions بی‌ربط ندهد. برای واژه‌های بلندتر، ۵۰٪ طول منطقی است.
-  const defaultThreshold = Math.max(
-    1,
-    Math.floor(normalized.length / 3),
-  );
+  const defaultThreshold = Math.max(1, Math.floor(normalized.length / 3));
   const threshold = maxDistance ?? defaultThreshold;
 
   const normalizedCandidates = candidates.map((c) => ({
@@ -592,7 +572,7 @@ export function findClosestMatch(
       original,
       distance: levenshtein(normalized, candidate),
     }))
-    .filter(x => x.distance <= threshold)
+    .filter((x) => x.distance <= threshold)
     .sort((a, b) => a.distance - b.distance);
 
   return scored.length > 0 ? scored[0]!.original : null;
@@ -621,8 +601,8 @@ function levenshtein(a: string, b: string): number {
       } else {
         matrix[i]![j] = Math.min(
           matrix[i - 1]![j - 1]! + 1, // substitution
-          matrix[i]![j - 1]! + 1,     // insertion
-          matrix[i - 1]![j]! + 1,     // deletion
+          matrix[i]![j - 1]! + 1, // insertion
+          matrix[i - 1]![j]! + 1, // deletion
         );
       }
     }
@@ -650,9 +630,12 @@ export function isZenithError(err: unknown): err is ZenithError {
   // Duck typing برای cross-realm (iframe, VM context)
   if (typeof err === 'object' && err !== null) {
     const e = err as Record<string, unknown>;
-    return typeof e.code === 'string' && (e.code as string).startsWith('ZEN-')
-      && typeof e.category === 'string'
-      && typeof e.message === 'string';
+    return (
+      typeof e.code === 'string' &&
+      (e.code as string).startsWith('ZEN-') &&
+      typeof e.category === 'string' &&
+      typeof e.message === 'string'
+    );
   }
   return false;
 }

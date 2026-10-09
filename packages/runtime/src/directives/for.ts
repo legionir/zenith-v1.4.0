@@ -23,7 +23,7 @@
 //     جلوگیری، `itemSignal` فقط در آیتم‌های تازه ساخته‌شده به Signal آرایه
 //     وابسته نیست (هر آیتم Effectهای فرزندان خودش را دارد).
 
-import { effect, signal, Signal } from '@zenith/state';
+import { effect, signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 // listExpr و keyExpr هر کدام فقط یک‌بار parse می‌شوند.
 import { compileExpression } from '@zenith/expressions';
@@ -73,7 +73,9 @@ interface ParsedForSyntax {
  * @param expr رشته‌ی expression از attribute `zen-for`.
  */
 function parseForSyntax(expr: string): ParsedForSyntax {
-  const match = expr.match(/^\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*)\s*)?\)?\s+in\s+(.+)$/);
+  const match = expr.match(
+    /^\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*)\s*)?\)?\s+in\s+(.+)$/,
+  );
   if (!match) {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با مثال.
     throw zenForInvalidSyntaxError(expr);
@@ -165,8 +167,7 @@ function createLoopContext(
   // ساختار: { itemName → itemSignal, indexName → indexSignal }
   // نکته: اگر parentContext هم signals map داشت، آن را به ارث می‌بریم.
   const parentSignals = (parentContext as any).__zenith_signals__ as
-    | Map<string, Signal<any>>
-    | undefined;
+    Map<string, Signal<any>> | undefined;
   const signalsMap = parentSignals ? new Map(parentSignals) : new Map<string, Signal<any>>();
   signalsMap.set(itemName, itemSignal);
   signalsMap.set(indexName, indexSignal as Signal<any>);
@@ -288,7 +289,12 @@ function computeKey(
     });
   }
   let key: any;
-  try { key = keyEvalFn(tempContext); } catch (err) { reportError(err as Error, 'expression', { expression: 'zen-key' }); return String(index); }
+  try {
+    key = keyEvalFn(tempContext);
+  } catch (err) {
+    reportError(err as Error, 'expression', { expression: 'zen-key' });
+    return String(index);
+  }
   return key === null || key === undefined ? String(index) : String(key);
 }
 
@@ -380,7 +386,11 @@ export function processFor(
       // پاکسازی همه‌ی آیتم‌های قبلی.
       for (const it of staticItems) {
         for (const d of it.disposes) {
-          try { d(); } catch (e) { console.error('[zen-for] static dispose failed:', e); }
+          try {
+            d();
+          } catch (e) {
+            console.error('[zen-for] static dispose failed:', e);
+          }
         }
         it.disposes.length = 0;
         if (it.node.parentNode === parent) parent.removeChild(it.node);
@@ -398,9 +408,7 @@ export function processFor(
         const newNode = template.cloneNode(true) as HTMLElement;
 
         // Context ساده با مقادیر مستقیم (بدون Signal، بدون getter).
-        const localContext = createStaticLoopContext(
-          context, itemName, indexName, item, i,
-        );
+        const localContext = createStaticLoopContext(context, itemName, indexName, item, i);
 
         const disposes: (() => void)[] = [];
         processChildren(newNode, localContext, disposes);
@@ -423,7 +431,9 @@ export function processFor(
     // اگر itemsByKey خالی است (initial mount)، همه‌ی نودهای جدید را در یک
     // fragment جمع می‌کنیم و یک‌بار insert می‌کنیم.
     const isInitialMount = itemsByKey.size === 0;
-    let batchFrag: DocumentFragment | null = isInitialMount ? document.createDocumentFragment() : null;
+    const batchFrag: DocumentFragment | null = isInitialMount
+      ? document.createDocumentFragment()
+      : null;
 
     // آیتم‌های جدید را به ترتیب در DOM قرار می‌دهیم.
     let prevNode: Node = placeholder;
@@ -439,7 +449,9 @@ export function processFor(
       // کلیدهای تکراری معنادار هستند و نشان‌دهنده‌ی باگ در داده‌های کاربر
       // هستند — هشدار می‌دهیم تا DOM نادرست رندر نشود.
       if (keyExpr && usedKeys.has(key)) {
-        console.warn(`[zen-for] Duplicate key "${key}" detected. Keys must be unique. DOM may render incorrectly.`);
+        console.warn(
+          `[zen-for] Duplicate key "${key}" detected. Keys must be unique. DOM may render incorrectly.`,
+        );
       }
 
       usedKeys.add(key);
@@ -474,7 +486,11 @@ export function processFor(
 
         // Context محلی که $item و $index روی آن تعریف شده‌اند.
         const localContext = createLoopContext(
-          context, itemName, indexName, itemSignal, indexSignal,
+          context,
+          itemName,
+          indexName,
+          itemSignal,
+          indexSignal,
         );
 
         const disposes: (() => void)[] = [];

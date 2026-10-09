@@ -151,8 +151,12 @@ export function registerSW(
       supported: false,
       update: async () => false,
       unregister: async () => false,
-      skipWaiting: () => { /* no-op */ },
-      destroy: () => { /* no-op */ },
+      skipWaiting: () => {
+        /* no-op */
+      },
+      destroy: () => {
+        /* no-op */
+      },
     };
   }
 
@@ -254,10 +258,7 @@ export function registerSW(
  * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند. در غیر این‌صورت false.
  */
 export async function unregisterSW(): Promise<boolean> {
-  if (
-    typeof navigator === 'undefined' ||
-    typeof navigator.serviceWorker === 'undefined'
-  ) {
+  if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {
@@ -283,10 +284,7 @@ export async function unregisterSW(): Promise<boolean> {
  * @returns true اگر حداقل یک registration بدون خطا update شد.
  */
 export async function updateSW(): Promise<boolean> {
-  if (
-    typeof navigator === 'undefined' ||
-    typeof navigator.serviceWorker === 'undefined'
-  ) {
+  if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {

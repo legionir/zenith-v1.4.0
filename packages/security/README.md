@@ -25,17 +25,17 @@ const clean = sanitizeHTML(dirty);
 
 ## حملاتی که بلاک می‌شوند
 
-| حمله | مثال | نتیجه |
-|------|------|-------|
-| `<script>` | `<script>alert(1)</script>` | حذف کامل |
-| `<iframe>` | `<iframe src="evil.com">` | حذف کامل |
-| Event handlers | `<img onerror="...">` | حذف attribute |
-| `javascript:` | `<a href="javascript:...">` | حذف href |
-| `vbscript:` | `<a href="vbscript:...">` | حذف href |
-| `data:` URL | `<a href="data:...">` | حذف href |
+| حمله                      | مثال                               | نتیجه         |
+| ------------------------- | ---------------------------------- | ------------- |
+| `<script>`                | `<script>alert(1)</script>`        | حذف کامل      |
+| `<iframe>`                | `<iframe src="evil.com">`          | حذف کامل      |
+| Event handlers            | `<img onerror="...">`              | حذف attribute |
+| `javascript:`             | `<a href="javascript:...">`        | حذف href      |
+| `vbscript:`               | `<a href="vbscript:...">`          | حذف href      |
+| `data:` URL               | `<a href="data:...">`              | حذف href      |
 | `style` با `expression()` | `<div style="...expression(...)">` | حذف attribute |
-| Prototype Pollution | `<div __proto__="...">` | حذف attribute |
-| Comment payloads | `<!-- <script>...--> -->` | حذف comment |
+| Prototype Pollution       | `<div __proto__="...">`            | حذف attribute |
+| Comment payloads          | `<!-- <script>...--> -->`          | حذف comment   |
 
 ## تگ‌های ممنوعه (پیش‌فرض)
 
@@ -62,19 +62,19 @@ const clean = sanitizeHTML(dirty);
 import { sanitizeHTMLWithOptions } from '@zenith/security';
 
 const clean = sanitizeHTMLWithOptions(dirty, {
-  allowForms: true,           // اجازه دادن به <form>
-  allowTags: ['style'],       // اجازه دادن به تگ‌های اضافی
-  forbidTags: ['div'],        // ممنوع کردن تگ‌های اضافی
+  allowForms: true, // اجازه دادن به <form>
+  allowTags: ['style'], // اجازه دادن به تگ‌های اضافی
+  forbidTags: ['div'], // ممنوع کردن تگ‌های اضافی
 });
 ```
 
 #### `SanitizeOptions`
 
-| گزینه | نوع | توضیح |
-|-------|-----|-------|
-| `allowTags` | `string[]` | تگ‌های اضافی که باید مجاز باشند |
-| `forbidTags` | `string[]` | تگ‌های اضافی که باید ممنوع باشند |
-| `allowForms` | `boolean` | آیا `<form>` مجاز باشد؟ (پیش‌فرض: `false`) |
+| گزینه        | نوع        | توضیح                                      |
+| ------------ | ---------- | ------------------------------------------ |
+| `allowTags`  | `string[]` | تگ‌های اضافی که باید مجاز باشند            |
+| `forbidTags` | `string[]` | تگ‌های اضافی که باید ممنوع باشند           |
+| `allowForms` | `boolean`  | آیا `<form>` مجاز باشد؟ (پیش‌فرض: `false`) |
 
 ## Design Notes
 

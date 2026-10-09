@@ -122,7 +122,7 @@ export function processAuthView(
   } else {
     console.warn(
       `[zen-auth-view] Auth "${configAttr}" not found in context or is neither an Auth instance nor a Signal<AuthState>. ` +
-      `Example: Zen.start(app, { auth: createAuth({...}) });`,
+        `Example: Zen.start(app, { auth: createAuth({...}) });`,
     );
     return () => {};
   }
@@ -148,11 +148,11 @@ export function processAuthView(
   if (!authenticatedTemplate && !guestTemplate) {
     console.warn(
       '[zen-auth-view] No <template slot="authenticated"> or <template slot="guest"> found. ' +
-      'Provide at least one:\n' +
-      '  <zen-auth-view config="$auth">\n' +
-      '    <template slot="authenticated">...</template>\n' +
-      '    <template slot="guest">...</template>\n' +
-      '  </zen-auth-view>',
+        'Provide at least one:\n' +
+        '  <zen-auth-view config="$auth">\n' +
+        '    <template slot="authenticated">...</template>\n' +
+        '    <template slot="guest">...</template>\n' +
+        '  </zen-auth-view>',
     );
     return () => {};
   }
@@ -177,7 +177,9 @@ export function processAuthView(
 
     // پاکسازی slot قبلی.
     if (currentDispose) {
-      try { currentDispose(); } catch (err) {
+      try {
+        currentDispose();
+      } catch (err) {
         console.error('[zen-auth-view] Error during previous slot dispose:', err);
       }
       currentDispose = null;
@@ -220,11 +222,15 @@ export function processAuthView(
 
   // ── ۵. تابع Dispose کل ──
   return () => {
-    try { disposeEffect(); } catch (err) {
+    try {
+      disposeEffect();
+    } catch (err) {
       console.error('[zen-auth-view] Error during effect dispose:', err);
     }
     if (currentDispose) {
-      try { currentDispose(); } catch (err) {
+      try {
+        currentDispose();
+      } catch (err) {
         console.error('[zen-auth-view] Error during slot dispose:', err);
       }
       currentDispose = null;

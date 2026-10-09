@@ -1,0 +1,24 @@
+{
+  // Lint-only project (#36): includes every package src + test file so ESLint
+  // typed rules (no-floating-promises, …) can resolve types for tests too.
+  // Never used for emit — typecheck/build keep using each package tsconfig.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "WebWorker"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "scripts/**/*.mjs",
+    "vitest.config.ts",
+    "eslint.config.mjs"
+  ]
+}

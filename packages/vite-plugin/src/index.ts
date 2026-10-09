@@ -28,11 +28,7 @@
 
 import fs from 'node:fs';
 import type { Plugin, ViteDevServer, ResolvedConfig } from 'vite';
-import {
-  transformHtml,
-  hasZenithDirectives,
-  type CompileOptions,
-} from './compile';
+import { transformHtml, hasZenithDirectives, type CompileOptions } from './compile';
 
 /**
  * تبدیل یک glob pattern ساده به RegExp.
@@ -113,12 +109,7 @@ export interface ZenithPluginOptions {
  * @returns Plugin object برای Vite.
  */
 export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
-  const {
-    autoInjectDevtools = true,
-    enableHtmlHMR = true,
-    watchPatterns,
-    compile = {},
-  } = options;
+  const { autoInjectDevtools = true, enableHtmlHMR = true, watchPatterns, compile = {} } = options;
 
   // متغیرهای state که در hooks تنظیم می‌شوند
   let isBuild = false;
@@ -130,13 +121,14 @@ export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
   // استاندارد مثل "pages/**/*.html" استفاده کند.
   // IMPROVEMENT (I-8): پیش‌فرض watchPatterns به pages/ و components/ محدود شده
   // تا HMR ناخواسته روی node_modules یا build output انجام نشود.
-  const watchRegexes = watchPatterns && watchPatterns.length > 0
-    ? watchPatterns.map(p => globToRegex(p))
-    : [/\/pages\/.*\.html$/, /\/components\/.*\.html$/];
+  const watchRegexes =
+    watchPatterns && watchPatterns.length > 0
+      ? watchPatterns.map((p) => globToRegex(p))
+      : [/\/pages\/.*\.html$/, /\/components\/.*\.html$/];
 
   return {
     name: 'zenith-plugin',
-    enforce: 'pre',  // قبل از پلاگین‌های دیگر اجرا شود.
+    enforce: 'pre', // قبل از پلاگین‌های دیگر اجرا شود.
 
     // ── تنظیم build mode از config Vite ──
     // FIX (B-1): به‌جای ctx.hasOwnProperty('bundle') که ناپایدار است،
@@ -316,7 +308,7 @@ export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
       }
 
       // بررسی اینکه آیا فایل با یکی از watchPatterns منطبق است.
-      const matches = watchRegexes.some(regex => regex.test(file));
+      const matches = watchRegexes.some((regex) => regex.test(file));
       if (!matches) return [];
 
       // ارسال رویداد custom به مرورگر.

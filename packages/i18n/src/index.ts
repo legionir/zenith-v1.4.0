@@ -2,12 +2,12 @@
 
 /** تبدیل اعداد انگلیسی به فارسی. */
 export function toPersianNums(n: number | string): string {
-  return String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'.charAt(+d));
+  return String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(+d));
 }
 
 /** تبدیل اعداد انگلیسی به عربی. */
 export function toArabicNums(n: number | string): string {
-  return String(n).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'.charAt(+d));
+  return String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.charAt(+d));
 }
 
 /**
@@ -35,19 +35,31 @@ export function toJalali(date: Date | string): string {
   let jy: number;
   let gyMut = gy;
   if (gyMut <= 1600) {
-    jy = 0; gyMut -= 621;
+    jy = 0;
+    gyMut -= 621;
   } else {
-    jy = 979; gyMut -= 1600;
+    jy = 979;
+    gyMut -= 1600;
   }
-  const gy2 = (gm > 2) ? (gyMut + 1) : gyMut;
-  let days = (365 * gyMut) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1]!;
-  jy += 33 * Math.floor(days / 12053); days %= 12053;
-  jy += 4 * Math.floor(days / 1461); days %= 1461;
+  const gy2 = gm > 2 ? gyMut + 1 : gyMut;
+  let days =
+    365 * gyMut +
+    Math.floor((gy2 + 3) / 4) -
+    Math.floor((gy2 + 99) / 100) +
+    Math.floor((gy2 + 399) / 400) -
+    80 +
+    gd +
+    g_d_m[gm - 1]!;
+  jy += 33 * Math.floor(days / 12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days / 1461);
+  days %= 1461;
   if (days > 365) {
-    jy += Math.floor((days - 1) / 365); days = (days - 1) % 365;
+    jy += Math.floor((days - 1) / 365);
+    days = (days - 1) % 365;
   }
-  const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
 
   // BUG-07: validation خروجی
   if (jy < 1 || jm < 1 || jm > 12 || jd < 1 || jd > 31) {
@@ -84,8 +96,8 @@ export function isRTL(text?: string): boolean {
   //   3) lang attribute یکی از زبان‌های RTL (fa, ar, he, ur)
   if (typeof document === 'undefined') return false;
   if (document.dir === 'rtl') return true;
-  if (typeof document.documentElement !== 'undefined'
-      && document.documentElement.dir === 'rtl') return true;
+  if (typeof document.documentElement !== 'undefined' && document.documentElement.dir === 'rtl')
+    return true;
   if (typeof document.documentElement !== 'undefined') {
     const lang = document.documentElement.lang?.split('-')[0] || '';
     if (['fa', 'ar', 'he', 'ur'].includes(lang)) return true;
@@ -103,8 +115,18 @@ export function isRTL(text?: string): boolean {
 // ── IMPROVEMENT-02 (v1.0.1): API کامل تقویم جلالی ──
 
 const JALALI_MONTH_NAMES = [
-  'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-  'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+  'فروردین',
+  'اردیبهشت',
+  'خرداد',
+  'تیر',
+  'مرداد',
+  'شهریور',
+  'مهر',
+  'آبان',
+  'آذر',
+  'دی',
+  'بهمن',
+  'اسفند',
 ];
 
 /** استخراج بخش‌های تاریخ جلالی (سال، ماه، روز) از یک Date میلادی. */
@@ -124,23 +146,44 @@ export function parseJalaliParts(date: Date | string): [number, number, number] 
   const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
   let jy: number;
   let gyMut = gy;
-  if (gyMut <= 1600) { jy = 0; gyMut -= 621; }
-  else { jy = 979; gyMut -= 1600; }
-  const gy2 = (gm > 2) ? (gyMut + 1) : gyMut;
-  let days = (365 * gyMut) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1]!;
-  jy += 33 * Math.floor(days / 12053); days %= 12053;
-  jy += 4 * Math.floor(days / 1461); days %= 1461;
-  if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
-  const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+  if (gyMut <= 1600) {
+    jy = 0;
+    gyMut -= 621;
+  } else {
+    jy = 979;
+    gyMut -= 1600;
+  }
+  const gy2 = gm > 2 ? gyMut + 1 : gyMut;
+  let days =
+    365 * gyMut +
+    Math.floor((gy2 + 3) / 4) -
+    Math.floor((gy2 + 99) / 100) +
+    Math.floor((gy2 + 399) / 400) -
+    80 +
+    gd +
+    g_d_m[gm - 1]!;
+  jy += 33 * Math.floor(days / 12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days / 1461);
+  days %= 1461;
+  if (days > 365) {
+    jy += Math.floor((days - 1) / 365);
+    days = (days - 1) % 365;
+  }
+  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
   return [jy, jm, jd];
 }
 
 /** تبدیل جلالی به میلادی. */
 export function fromJalali(jy: number, jm: number, jd: number): Date {
   jy += 1595;
-  let days = -355779 + 365 * jy + Math.floor((jy + 3) / 4) - Math.floor((jy + 99) / 100)
-    + Math.floor((jy + 199) / 400);
+  let days =
+    -355779 +
+    365 * jy +
+    Math.floor((jy + 3) / 4) -
+    Math.floor((jy + 99) / 100) +
+    Math.floor((jy + 199) / 400);
   jy -= 1595;
   if (jm <= 6) days += (jm - 1) * 31;
   else days += (jm - 7) * 30 + 186;
@@ -182,7 +225,10 @@ export function addDaysJalali(date: Date | string | null | undefined, days: numb
 
 /** آیا سال جلالی کبیسه است؟ */
 export function isJalaliLeap(jy: number): boolean {
-  const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+  const breaks = [
+    -61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394,
+    2456, 3178,
+  ];
   let jp = breaks[0]!;
   let jump = 0;
   for (let i = 1; i < breaks.length; i++) {
@@ -194,7 +240,7 @@ export function isJalaliLeap(jy: number): boolean {
   let n = jy - jp;
   if (n < jump) {
     if (jump - n < 6) n = n - jump + Math.floor((jump + 4) / 33) * 33;
-    let leap = ((n + 1) % 33 - 1) % 4;
+    let leap = (((n + 1) % 33) - 1) % 4;
     if (leap === -1) leap = 4;
     return leap === 0;
   }
@@ -223,13 +269,15 @@ export function formatJalali(date: Date | string, fmt: string = 'YYYY/MM/DD'): s
   // ترکیبی مثل 'MMMM YYYY'، توکن MM داخل MMMM با عدد ماه جایگزین می‌شد
   // و نام ماه خراب می‌گشت). راه‌حل: MMMM اول جایگزین شود، سپس YYYY، MM،
   // DD، و در نهایت YY.
-  return fmt
-    // FIX (BUG-I18N-02): word boundary regex برای جلوگیری از جایگزینی نادرست.
-    .replace(/\bYYYY\b/g, toPersianNums(jy))
-    .replace(/\bMMMM\b/g, JALALI_MONTH_NAMES[jm - 1] || '')
-    .replace(/\bMM\b/g, toPersianNums(String(jm).padStart(2, '0')))
-    .replace(/\bDD\b/g, toPersianNums(String(jd).padStart(2, '0')))
-    .replace(/\bYY\b/g, toPersianNums(String(jy).slice(-2)));
+  return (
+    fmt
+      // FIX (BUG-I18N-02): word boundary regex برای جلوگیری از جایگزینی نادرست.
+      .replace(/\bYYYY\b/g, toPersianNums(jy))
+      .replace(/\bMMMM\b/g, JALALI_MONTH_NAMES[jm - 1] || '')
+      .replace(/\bMM\b/g, toPersianNums(String(jm).padStart(2, '0')))
+      .replace(/\bDD\b/g, toPersianNums(String(jd).padStart(2, '0')))
+      .replace(/\bYY\b/g, toPersianNums(String(jy).slice(-2)))
+  );
 }
 
 /** نام ماه جلالی. */

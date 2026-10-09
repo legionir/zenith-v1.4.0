@@ -3,7 +3,11 @@ import { effect } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
 
-export function processShow(el: HTMLElement, expr: string, context: Record<string, any>): () => void {
+export function processShow(
+  el: HTMLElement,
+  expr: string,
+  context: Record<string, any>,
+): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
   const evalFn = compileExpression(expr);
   // FEATURE (v1.0.0): Property Diffing — اگر visible با قبلی برابر است، skip کن.

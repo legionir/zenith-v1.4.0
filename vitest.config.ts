@@ -10,7 +10,10 @@ const packagesDir = join(process.cwd(), 'packages');
 type AliasEntry = { find: RegExp; replacement: string };
 const alias: AliasEntry[] = [
   // subpath first: @zenith/service-worker/sw
-  { find: /^@zenith\/service-worker\/sw$/, replacement: join(packagesDir, 'service-worker/src/sw.ts') },
+  {
+    find: /^@zenith\/service-worker\/sw$/,
+    replacement: join(packagesDir, 'service-worker/src/sw.ts'),
+  },
 ];
 for (const dir of readdirSync(packagesDir)) {
   const src = join(packagesDir, dir, 'src', 'index.ts');

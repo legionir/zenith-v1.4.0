@@ -70,7 +70,9 @@ export function registerServerComponent(comp: ServerComponent): void {
     throw new Error('[Zenith SSR] Invalid ServerComponent: name is required.');
   }
   if (typeof comp.render !== 'function') {
-    throw new Error(`[Zenith SSR] Invalid ServerComponent "${comp.name}": render() must be a function.`);
+    throw new Error(
+      `[Zenith SSR] Invalid ServerComponent "${comp.name}": render() must be a function.`,
+    );
   }
   // BUG-SSR-03 FIX (v1.3.0): اگر کامپوننتی با همین نام از قبل ثبت شده باشد،
   // در حالت توسعه یک هشدار چاپ کن. این برای HMR مفید است اما overwrite
@@ -78,8 +80,8 @@ export function registerServerComponent(comp: ServerComponent): void {
   if (serverComponentRegistry.has(comp.name)) {
     console.warn(
       `[Zenith SSR] ServerComponent "${comp.name}" is being overwritten. ` +
-      `This is expected during HMR, but if it happens at startup, ` +
-      `check for duplicate registrations or conflicting component names.`
+        `This is expected during HMR, but if it happens at startup, ` +
+        `check for duplicate registrations or conflicting component names.`,
     );
   }
   serverComponentRegistry.set(comp.name, comp);
@@ -178,7 +180,11 @@ export async function renderServerComponent(
   // اگر render خالی برگرداند یا non-string، آن را به string تبدیل کن.
   if (html == null) html = '';
   if (typeof html !== 'string') {
-    try { html = String(html); } catch { html = ''; }
+    try {
+      html = String(html);
+    } catch {
+      html = '';
+    }
   }
 
   return `${open}${html}${close}`;
@@ -466,8 +472,7 @@ async function singlePass(
     const tag = tags[i]!;
     const replacement = rendered[i];
     if (typeof replacement !== 'string') continue;
-    result =
-      result.slice(0, tag.start) + replacement + result.slice(tag.end);
+    result = result.slice(0, tag.start) + replacement + result.slice(tag.end);
   }
 
   return result;

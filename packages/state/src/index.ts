@@ -22,11 +22,27 @@ export {
   type Owner,
 } from './context';
 // IMP-07 (v1.3.0): export onEffectError برای Error Boundary.
-export { effect, getEffectPriority, setCurrentPriority, getCurrentPriority, onEffectError, type EffectFn, type EffectOptions } from './effect';
+export {
+  effect,
+  getEffectPriority,
+  setCurrentPriority,
+  getCurrentPriority,
+  onEffectError,
+  type EffectFn,
+  type EffectOptions,
+} from './effect';
 export { computed, Computed } from './computed';
 export { createRoot } from './root';
 export { batch } from './batch';
-export { onError, emitError, errorBoundary, getErrorHistory, clearErrorHistory, setDevMode, isDevMode } from './error';
+export {
+  onError,
+  emitError,
+  errorBoundary,
+  getErrorHistory,
+  clearErrorHistory,
+  setDevMode,
+  isDevMode,
+} from './error';
 export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './error';
 
 // ── Bug Fix #2: Re-export Priority از scheduler ──

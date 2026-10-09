@@ -180,7 +180,9 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
   if (typeof options === 'number' || typeof options === 'string') {
     actualPriority = normalizePriority(options);
   } else if (options) {
-    actualPriority = options.priority ? normalizePriority(options.priority) : currentDefaultPriority;
+    actualPriority = options.priority
+      ? normalizePriority(options.priority)
+      : currentDefaultPriority;
     ownerOption = options.owner ?? null;
   } else {
     actualPriority = currentDefaultPriority;
@@ -202,14 +204,14 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
     setOwner(owner);
 
     // ۱. پاکسازی وابستگی‌های قبلی
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
 
     // ۲. تنظیم Effect فعلی به عنوان activeEffect
     setActiveEffect(runEffect);
 
     // ۳. تنظیم مکانیزم ثبت Cleanup
-    setActiveCleanupRegistration(cleanup => {
+    setActiveCleanupRegistration((cleanup) => {
       cleanupQueue.push(cleanup);
     });
 
@@ -226,8 +228,12 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
       // they were pushed onto `cleanupQueue` but the next run would clear
       // the queue (running them) only if the effect re-ran, and a thrown
       // error typically takes the effect out of the reactive graph.
-      cleanupQueue.forEach(cleanup => {
-        try { cleanup(); } catch { /* ignore cleanup errors during error path */ }
+      cleanupQueue.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch {
+          /* ignore cleanup errors during error path */
+        }
       });
       cleanupQueue = [];
 
@@ -262,7 +268,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
 
   // Register effect's own cleanup in the owner tree
   onCleanup(() => {
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
   });
@@ -283,7 +289,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
    */
   return () => {
     if (owner.disposed) return;
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
     disposeOwner(owner);
@@ -316,5 +322,5 @@ export function getEffectPriority(effectFn: Function): Priority {
  */
 export function triggerEffects(effects: Set<Function>): void {
   const toRun = [...effects];
-  toRun.forEach(effect => effect());
+  toRun.forEach((effect) => effect());
 }

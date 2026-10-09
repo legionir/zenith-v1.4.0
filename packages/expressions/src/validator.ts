@@ -14,15 +14,12 @@
 //   - constructor, __proto__, prototype          → Prototype Pollution
 //   - arguments, caller, callee                   → Function internals
 
-import { ASTNode } from './parser';
+import { type ASTNode } from './parser';
 // FIX (v1.2.8): P1-1 — Import the shared FORBIDDEN_PROPERTIES list so the
 // validator and evaluator stay in sync. Previously the validator only
 // blocked [constructor, __proto__, prototype] while the evaluator blocked
 // a larger list — leaving holes for __lookupGetter__/__lookupSetter__ etc.
-import {
-  FORBIDDEN_PROPERTIES,
-  isForbiddenIdentifier,
-} from './security-constants';
+import { FORBIDDEN_PROPERTIES, isForbiddenIdentifier } from './security-constants';
 
 /**
  * لیست Identifierهای ممنوعه (legacy alias — kept for compatibility).
@@ -175,19 +172,20 @@ export function validate(node: ASTNode): void {
     // و نمی‌توانند expression باشند.
     // ───────────────────────────────────────────────
     case 'ArrayExpression':
-      node.elements.forEach(el => validate(el));
+      node.elements.forEach((el) => validate(el));
       break;
 
-
     case 'ArrowFunction':
-      node.params.forEach(p => {
+      node.params.forEach((p) => {
         // BUG-18 FIX (v1.2.2): قبلاً فقط window/document/eval چک می‌شد. حالا
         // تمام FORBIDDEN_IDENTIFIERS چک می‌شوند تا یک arrow function نتواند
         // با shadowing یک global ممنوعه (مثل constructor، globalThis، self، ...)
         // از sandbox فرار کند. مثلاً `(constructor) => constructor.constructor('...')()`
         // می‌توانست به Function constructor دسترسی پیدا کند.
         if (isForbiddenIdentifier(p.name)) {
-          throw new Error(`Security Alert: Arrow function parameter "${p.name}" shadows a forbidden global.`);
+          throw new Error(
+            `Security Alert: Arrow function parameter "${p.name}" shadows a forbidden global.`,
+          );
         }
       });
       validate(node.body);

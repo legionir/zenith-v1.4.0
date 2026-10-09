@@ -55,15 +55,16 @@ describe('runAllParityTests + report', () => {
   it('aggregates all suites and counts total/passed/failed', () => {
     const sameRunner = (c: ParityTestContext) => c.html;
     const report = runAllParityTests(sameRunner, sameRunner);
-    expect(report.total).toBe(
-      STANDARD_TEST_SUITES.reduce((n, s) => n + s.cases.length, 0),
-    );
+    expect(report.total).toBe(STANDARD_TEST_SUITES.reduce((n, s) => n + s.cases.length, 0));
     expect(report.failed).toBe(0);
     expect(report.passed).toBe(report.total);
   });
 
   it('generateParityReport renders a summary with status line', () => {
-    const report = runAllParityTests(() => 'a', () => 'b');
+    const report = runAllParityTests(
+      () => 'a',
+      () => 'b',
+    );
     const text = generateParityReport(report);
     expect(text).toContain('PARITY REPORT');
     expect(text).toContain('Total tests');

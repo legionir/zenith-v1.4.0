@@ -37,7 +37,10 @@ describe('service-worker listener lifecycle (#6)', () => {
   it('registers the five lifecycle listeners through the tracked path', () => {
     setupSW({ precache: [], routes: [] });
     for (const t of expectedTypes) {
-      expect(registered.some((r) => r.type === t), `listener "${t}" registered`).toBe(true);
+      expect(
+        registered.some((r) => r.type === t),
+        `listener "${t}" registered`,
+      ).toBe(true);
     }
     expect(registered.length).toBe(5);
     const cfg = getConfig();

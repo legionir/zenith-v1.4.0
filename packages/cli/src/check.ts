@@ -57,34 +57,76 @@ interface Finding {
  */
 const VALID_DIRECTIVES = new Set([
   // Core directives
-  'zen-text', 'zen-if', 'zen-show', 'zen-for', 'zen-bind', 'zen-model',
-  'zen-html', 'zen-html-trusted', 'zen-fetch', 'zen-resource', 'zen-action',
-  'zen-link', 'zen-validate', 'zen-permission', 'zen-role', 'zen-error',
-  'zen-suspense', 'zen-virtual-list', 'zen-key', 'zen-item-height',
-  'zen-buffer', 'zen-dynamic-heights', 'zen-transition', 'zen-cloak',
-  'zen-ref', 'zen-html-slot', 'zen-props', 'zen-static', 'zen-animate',
-  'zen-portal', 'zen-intersection', 'zen-error-text',
+  'zen-text',
+  'zen-if',
+  'zen-show',
+  'zen-for',
+  'zen-bind',
+  'zen-model',
+  'zen-html',
+  'zen-html-trusted',
+  'zen-fetch',
+  'zen-resource',
+  'zen-action',
+  'zen-link',
+  'zen-validate',
+  'zen-permission',
+  'zen-role',
+  'zen-error',
+  'zen-suspense',
+  'zen-virtual-list',
+  'zen-key',
+  'zen-item-height',
+  'zen-buffer',
+  'zen-dynamic-heights',
+  'zen-transition',
+  'zen-cloak',
+  'zen-ref',
+  'zen-html-slot',
+  'zen-props',
+  'zen-static',
+  'zen-animate',
+  'zen-portal',
+  'zen-intersection',
+  'zen-error-text',
   // BUG-20 FIX (v1.2.2): directives جدید اضافه شدند.
-  'zen-optimistic', 'zen-track', 'zen-date-picker', 'zen-virtual',
-  'zen-island', 'zen-memo', 'zen-else', 'zen-else-if',
-  'zen-action-button', 'zen-auth-view', 'zen-resource-view',
+  'zen-optimistic',
+  'zen-track',
+  'zen-date-picker',
+  'zen-virtual',
+  'zen-island',
+  'zen-memo',
+  'zen-else',
+  'zen-else-if',
+  'zen-action-button',
+  'zen-auth-view',
+  'zen-resource-view',
   // Router element directives (tags)
-  'zen-route', 'zen-outlet', 'zen-router',
+  'zen-route',
+  'zen-outlet',
+  'zen-router',
   // Form-related
-  'zen-form', 'zen-field', 'zen-submit',
+  'zen-form',
+  'zen-field',
+  'zen-submit',
   // Store
   'zen-store',
   // Auth
-  'zen-auth', 'zen-login', 'zen-logout',
+  'zen-auth',
+  'zen-login',
+  'zen-logout',
   // Misc attribute directives
-  'immutable', 'loading-text', 'hydrate',
+  'immutable',
+  'loading-text',
+  'hydrate',
 ]);
 
 /**
  * دستورالعمل‌های deprecated.
  */
 const DEPRECATED_DIRECTIVES: Record<string, string> = {
-  'zen-compile': 'Use zen-text or zen-html with proper expressions instead. compileAndRender was removed for security.',
+  'zen-compile':
+    'Use zen-text or zen-html with proper expressions instead. compileAndRender was removed for security.',
 };
 
 /**
@@ -156,14 +198,16 @@ function checkHtmlFile(filePath: string): Finding[] {
   try {
     content = fs.readFileSync(filePath, 'utf-8');
   } catch (e) {
-    return [{
-      file: filePath,
-      line: 0,
-      column: 0,
-      severity: 'error',
-      rule: 'Z001',
-      message: `Cannot read file: ${(e as Error).message}`,
-    }];
+    return [
+      {
+        file: filePath,
+        line: 0,
+        column: 0,
+        severity: 'error',
+        rule: 'Z001',
+        message: `Cannot read file: ${(e as Error).message}`,
+      },
+    ];
   }
 
   // ── Rule Z100: استفاده از compileAndRender حذف‌شده ──
@@ -178,7 +222,8 @@ function checkHtmlFile(filePath: string): Finding[] {
         column,
         severity: 'error',
         rule: 'Z100',
-        message: 'compileAndRender was removed for security (XSS). Use zen-text or zen-html with pre-compiled expressions.',
+        message:
+          'compileAndRender was removed for security (XSS). Use zen-text or zen-html with pre-compiled expressions.',
       });
     }
   }
@@ -203,9 +248,9 @@ function checkHtmlFile(filePath: string): Finding[] {
   while ((scriptMatch = scriptRegex.exec(stripped)) !== null) {
     const scriptContent = scriptMatch[1] ?? '';
     if (scriptContent.includes('eval(') || scriptContent.includes('new Function(')) {
-      const idx = scriptMatch.index + scriptContent.indexOf(
-        scriptContent.includes('eval(') ? 'eval(' : 'new Function(',
-      );
+      const idx =
+        scriptMatch.index +
+        scriptContent.indexOf(scriptContent.includes('eval(') ? 'eval(' : 'new Function(');
       const { line, column } = getLineColumn(stripped, idx);
       findings.push({
         file: filePath,
@@ -213,7 +258,8 @@ function checkHtmlFile(filePath: string): Finding[] {
         column,
         severity: 'error',
         rule: 'Z101',
-        message: 'Use of eval() or new Function() detected in <script>. This is forbidden in Zenith for security.',
+        message:
+          'Use of eval() or new Function() detected in <script>. This is forbidden in Zenith for security.',
       });
     }
   }
@@ -294,9 +340,16 @@ function checkHtmlFile(filePath: string): Finding[] {
 
     // Rule Z400: بررسی سینتکس expression با lexer + parser (compile)
     const expr = extractExpression(directive, value);
-    if (expr && (directive === 'zen-text' || directive === 'zen-if' || directive === 'zen-show' ||
-                 directive === 'zen-bind' || directive === 'zen-model' || directive === 'zen-html' ||
-                 directive === 'zen-for')) {
+    if (
+      expr &&
+      (directive === 'zen-text' ||
+        directive === 'zen-if' ||
+        directive === 'zen-show' ||
+        directive === 'zen-bind' ||
+        directive === 'zen-model' ||
+        directive === 'zen-html' ||
+        directive === 'zen-for')
+    ) {
       try {
         // استفاده از compile که lexer + parser + validator را با هم صدا می‌زند.
         // این برای کشف خطاهای سینتکس (مثل پرانتز بسته‌نشده، عملگر نامعتبر و ...)
@@ -342,9 +395,19 @@ function checkHtmlFile(filePath: string): Finding[] {
   //
   // Compilable directives: zen-text, zen-if, zen-show, zen-bind, zen-html, zen-model
   const RUNTIME_ONLY_DIRECTIVES = new Set([
-    'zen-for', 'zen-action', 'zen-fetch', 'zen-resource', 'zen-link',
-    'zen-permission', 'zen-role', 'zen-error', 'zen-suspense',
-    'zen-virtual-list', 'zen-component', 'zen-validate', 'zen-transition',
+    'zen-for',
+    'zen-action',
+    'zen-fetch',
+    'zen-resource',
+    'zen-link',
+    'zen-permission',
+    'zen-role',
+    'zen-error',
+    'zen-suspense',
+    'zen-virtual-list',
+    'zen-component',
+    'zen-validate',
+    'zen-transition',
   ]);
 
   // پیدا کردن تمام zen-* directiveها (دوباره، چون روی stripped اجرا می‌کنیم)
@@ -361,7 +424,8 @@ function checkHtmlFile(filePath: string): Finding[] {
         column,
         severity: 'warning',
         rule: 'Z800',
-        message: `Directive '${dirName}' is not compilable by @zenith/compiler. ` +
+        message:
+          `Directive '${dirName}' is not compilable by @zenith/compiler. ` +
           `In compile-mode, it will be preserved and processed by runtime walker (slower).`,
       });
     }
@@ -387,7 +451,8 @@ function checkHtmlFile(filePath: string): Finding[] {
         column,
         severity: 'info',
         rule: 'Z810',
-        message: `zen-virtual-list is using static heights (default). ` +
+        message:
+          `zen-virtual-list is using static heights (default). ` +
           `If items have varying content heights, add zen-dynamic-heights="true" ` +
           `for ResizeObserver-based measurement.`,
       });
@@ -400,7 +465,8 @@ function checkHtmlFile(filePath: string): Finding[] {
   // $toPersianNums، $formatNumber، $formatPrice ممکن است در context باشند
   // بدون اینکه به‌عنوان Signal ثبت شوند. این rule اطلاع‌رسانی می‌کند که
   // اگر از این توابع استفاده شده، کاربر باید مطمئن شود که در context ثبت شده‌اند.
-  const i18nRegex = /\$(toJalali|toPersianNums|toArabicNums|formatNumber|formatPrice|jalaliNow)\s*\(/g;
+  const i18nRegex =
+    /\$(toJalali|toPersianNums|toArabicNums|formatNumber|formatPrice|jalaliNow)\s*\(/g;
   let i18nMatch: RegExpExecArray | null;
   const seenI18n = new Set<string>();
   while ((i18nMatch = i18nRegex.exec(stripped)) !== null) {
@@ -415,7 +481,8 @@ function checkHtmlFile(filePath: string): Finding[] {
       column,
       severity: 'info',
       rule: 'Z820',
-      message: `i18n function '$${funcName}' is used. Make sure it's registered in Zen.start() context: ` +
+      message:
+        `i18n function '$${funcName}' is used. Make sure it's registered in Zen.start() context: ` +
         `Zen.start(root, { ${funcName}: <function> }) — otherwise expression will throw "Variable not defined".`,
     });
   }
@@ -500,10 +567,7 @@ function printFinding(finding: Finding): void {
     info: colorize('info', 'blue'),
   }[finding.severity];
 
-  const location = colorize(
-    `${finding.file}:${finding.line}:${finding.column}`,
-    'gray',
-  );
+  const location = colorize(`${finding.file}:${finding.line}:${finding.column}`, 'gray');
   const rule = colorize(finding.rule, 'bold');
   console.log(`  ${severityLabel}  ${rule}  ${finding.message}`);
   console.log(`            ${location}`);
@@ -542,7 +606,9 @@ export function runCheck(
   }
 
   if (!options.quiet) {
-    console.log(colorize(`🔍 Checking ${files.length} HTML file${files.length === 1 ? '' : 's'}...`, 'bold'));
+    console.log(
+      colorize(`🔍 Checking ${files.length} HTML file${files.length === 1 ? '' : 's'}...`, 'bold'),
+    );
     console.log('');
   }
 

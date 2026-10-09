@@ -38,13 +38,13 @@ bun add @zenith/service-worker
 همه‌ی استراتژی‌ها `Promise<Response>` برمی‌گردانند و از Cache API
 (`caches.open`, `cache.match`, `cache.put`) استفاده می‌کنند.
 
-| استراتژی              | رفتار                                                       | بهترین استفاده                |
-|----------------------|-------------------------------------------------------------|-------------------------------|
-| `cacheFirst`         | cache → network → fallback 503                              | assets استاتیک hash‌شده        |
-| `networkFirst`       | network (با timeout) → cache → 503                          | API داده‌ای حساس به تازگی       |
-| `staleWhileRevalidate` | cache فورا + revalidate در پس‌زمینه                          | داده‌های کم‌اهمیت تازگی          |
-| `networkOnly`        | مستقیم fetch                                                 | mutation ها، endpoints حساس    |
-| `cacheOnly`          | مستقیم cache → 503                                           | pre-critical assets           |
+| استراتژی               | رفتار                               | بهترین استفاده              |
+| ---------------------- | ----------------------------------- | --------------------------- |
+| `cacheFirst`           | cache → network → fallback 503      | assets استاتیک hash‌شده     |
+| `networkFirst`         | network (با timeout) → cache → 503  | API داده‌ای حساس به تازگی   |
+| `staleWhileRevalidate` | cache فورا + revalidate در پس‌زمینه | داده‌های کم‌اهمیت تازگی     |
+| `networkOnly`          | مستقیم fetch                        | mutation ها، endpoints حساس |
+| `cacheOnly`            | مستقیم cache → 503                  | pre-critical assets         |
 
 ### استفاده مستقیم از استراتژی‌ها (در SW context)
 
@@ -72,9 +72,9 @@ const config: SWConfig = {
   swUrl: '/sw.js',
   precache: ['/', '/index.html', '/app.js', '/styles.css'],
   routes: [
-    { urlPattern: '/api/users',  strategy: 'networkFirst',  cacheName: 'users',  timeout: 3000 },
+    { urlPattern: '/api/users', strategy: 'networkFirst', cacheName: 'users', timeout: 3000 },
     { urlPattern: '/api/products', strategy: 'staleWhileRevalidate', cacheName: 'products' },
-    { urlPattern: /\/assets\//,   strategy: 'cacheFirst',    cacheName: 'assets' },
+    { urlPattern: /\/assets\//, strategy: 'cacheFirst', cacheName: 'assets' },
   ],
   defaultStrategy: 'networkOnly',
   skipWaiting: false,
@@ -113,9 +113,7 @@ import { zenithSWPlugin } from '@zenith/service-worker';
 Zen.use(zenithSWPlugin, {
   swUrl: '/sw.js',
   precache: ['/'],
-  routes: [
-    { urlPattern: '/api', strategy: 'networkFirst', cacheName: 'api' },
-  ],
+  routes: [{ urlPattern: '/api', strategy: 'networkFirst', cacheName: 'api' }],
   defaultStrategy: 'networkOnly',
 });
 
@@ -142,8 +140,8 @@ import { setupSW } from '@zenith/service-worker/sw';
 setupSW({
   precache: ['/', '/index.html', '/app.js'],
   routes: [
-    { urlPattern: '/api/users',  strategy: 'networkFirst', cacheName: 'users', timeout: 3000 },
-    { urlPattern: /\/assets\//,   strategy: 'cacheFirst',  cacheName: 'assets' },
+    { urlPattern: '/api/users', strategy: 'networkFirst', cacheName: 'users', timeout: 3000 },
+    { urlPattern: /\/assets\//, strategy: 'cacheFirst', cacheName: 'assets' },
   ],
   defaultStrategy: 'networkOnly',
   backgroundSyncQueueName: 'zenith-bg-sync',
@@ -178,7 +176,7 @@ navigator.serviceWorker.ready.then((reg) => {
 ## Security Notes
 
 - کد SW از `self` استفاده می‌کند (نه `window`/`document`) و با guard `typeof self
-  !== 'undefined'` در Node.js/SSR بدون خطا import می‌شود.
+!== 'undefined'` در Node.js/SSR بدون خطا import می‌شود.
 - کد main-thread با guard `typeof navigator !== 'undefined'` از crash در SSR
   جلوگیری می‌کند.
 - فقط responseهای `ok` و متد `GET` کش می‌شوند (best practice).

@@ -23,20 +23,20 @@ initDevTools();
 const hook = window.__ZENITH__;
 
 // نسخه‌ی فریم‌ورک
-console.log(hook.version);  // "1.0.0"
+console.log(hook.version); // "1.0.0"
 
 // لیست تمام Signal های فعال
-hook.getSignals().forEach(s => {
+hook.getSignals().forEach((s) => {
   console.log(`Signal #${s.id}:`, s.value, `(${s.subscriberCount} subscribers)`);
 });
 
 // Timeline تغییرات State
-hook.getTimeline(50).forEach(change => {
+hook.getTimeline(50).forEach((change) => {
   console.log(`Signal #${change.signalId}: ${change.oldValue} → ${change.newValue}`);
 });
 
 // گوش دادن به تغییرات real-time
-hook.onStateChange(change => {
+hook.onStateChange((change) => {
   console.log('State changed:', change);
 });
 ```
@@ -53,7 +53,9 @@ window.__ZENITH_DEVTOOLS__ = false;
 یا در HTML:
 
 ```html
-<script>window.__ZENITH_DEVTOOLS__ = false;</script>
+<script>
+  window.__ZENITH_DEVTOOLS__ = false;
+</script>
 ```
 
 ## API
@@ -66,14 +68,14 @@ window.__ZENITH_DEVTOOLS__ = false;
 
 شیءای که روی `window.__ZENITH__` قرار می‌گیرد:
 
-| متد/فیلد | توضیح |
-|----------|-------|
-| `version` | نسخه‌ی فریم‌ورک |
-| `getSignals()` | لیست تمام Signal های فعال |
-| `getTimeline(limit?)` | Timeline تغییرات State |
-| `onStateChange(cb)` | گوش دادن به تغییرات real-time (برمی‌گرداند unsubscribe) |
-| `components` | Map از کامپوننت‌های ثبت‌شده |
-| `installedAt` | زمان نصب Hook |
+| متد/فیلد              | توضیح                                                   |
+| --------------------- | ------------------------------------------------------- |
+| `version`             | نسخه‌ی فریم‌ورک                                         |
+| `getSignals()`        | لیست تمام Signal های فعال                               |
+| `getTimeline(limit?)` | Timeline تغییرات State                                  |
+| `onStateChange(cb)`   | گوش دادن به تغییرات real-time (برمی‌گرداند unsubscribe) |
+| `components`          | Map از کامپوننت‌های ثبت‌شده                             |
+| `installedAt`         | زمان نصب Hook                                           |
 
 ## Design Notes
 

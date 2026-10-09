@@ -5,5 +5,11 @@
 // استفاده در runtime:
 //   import { processFetch, type FetchState } from '@zenith/data';
 
-export { processFetch, processFetchWithCache, getCachedData, setCachedData, clearFetchCache } from './fetcher';
+export {
+  processFetch,
+  processFetchWithCache,
+  getCachedData,
+  setCachedData,
+  clearFetchCache,
+} from './fetcher';
 export type { FetchState } from './fetcher';

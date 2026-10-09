@@ -23,7 +23,7 @@
 // این الگو به runtime اجازه می‌دهد بدون router هم کار کند (مثلاً در تست‌های
 // واحد یا اپلیکیشن‌های بدون routing).
 
-import { Signal } from '@zenith/state';
+import { type Signal } from '@zenith/state';
 
 /**
  * Type of the route signal provider function.

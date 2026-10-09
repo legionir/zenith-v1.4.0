@@ -69,12 +69,10 @@ export interface HttpError extends Error {
 }
 
 export type RequestInterceptor = (
-  config: HttpRequestOptions
+  config: HttpRequestOptions,
 ) => HttpRequestOptions | Promise<HttpRequestOptions>;
 
-export type ResponseInterceptor = (
-  response: HttpResponse
-) => HttpResponse | Promise<HttpResponse>;
+export type ResponseInterceptor = (response: HttpResponse) => HttpResponse | Promise<HttpResponse>;
 
 export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 
@@ -94,12 +92,12 @@ let defaultConfig: HttpRequestOptions = {
     maxAttempts: 3,
     initialDelay: 500,
     backoffMultiplier: 2,
-    retryOn: [408, 429, 500, 502, 503, 504]
+    retryOn: [408, 429, 500, 502, 503, 504],
   },
   cache: {
     enabled: false,
-    ttl: 60000
-  }
+    ttl: 60000,
+  },
 };
 
 // ============================================================
@@ -167,7 +165,7 @@ export function clearCache(tags?: string[]): void {
   }
   // Simple tag-based invalidation (tags stored in key prefix)
   for (const key of Array.from(cacheStore.keys())) {
-    if (tags.some(tag => key.includes(`__tag:${tag}`))) {
+    if (tags.some((tag) => key.includes(`__tag:${tag}`))) {
       cacheStore.delete(key);
     }
   }
@@ -182,7 +180,7 @@ export function clearCache(tags?: string[]): void {
  */
 export async function request<T = any>(
   url: string,
-  options: HttpRequestOptions = {}
+  options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
   // Merge with defaults
   const config: HttpRequestOptions = {
@@ -191,14 +189,15 @@ export async function request<T = any>(
     headers: {
       'Content-Type': 'application/json',
       ...defaultConfig.headers,
-      ...options.headers
-    }
+      ...options.headers,
+    },
   };
 
   // Prepend base URL
-  const fullUrl = config.baseURL && !url.startsWith('http')
-    ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
-    : url;
+  const fullUrl =
+    config.baseURL && !url.startsWith('http')
+      ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+      : url;
 
   // Run request interceptors
   if (!config.skipInterceptors) {
@@ -217,7 +216,7 @@ export async function request<T = any>(
         status: 200,
         statusText: 'OK (from cache)',
         headers: new Headers(),
-        config
+        config,
       };
     }
   }
@@ -252,7 +251,11 @@ export async function request<T = any>(
       error.status = response.status;
       error.statusText = response.statusText;
       error.config = config;
-      try { error.data = await response.json(); } catch { /* ignore */ }
+      try {
+        error.data = await response.json();
+      } catch {
+        /* ignore */
+      }
 
       // Run error interceptors
       for (const interceptor of errorInterceptors) {
@@ -264,7 +267,7 @@ export async function request<T = any>(
         category: 'runtime',
         severity: 'error',
         recoverable: true,
-        context: { url, status: error.status }
+        context: { url, status: error.status },
       });
 
       throw error;
@@ -278,7 +281,7 @@ export async function request<T = any>(
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
-      config
+      config,
     };
 
     // Run response interceptors
@@ -293,7 +296,7 @@ export async function request<T = any>(
       const ttl = config.cache.ttl || 60000;
       cacheStore.set(cacheKey, {
         data: httpResponse.data,
-        expiresAt: Date.now() + ttl
+        expiresAt: Date.now() + ttl,
       });
     }
 
@@ -307,15 +310,18 @@ export async function request<T = any>(
 
       if (shouldRetry) {
         const remainingAttempts = retryConfig.maxAttempts - 1;
-        const delay = (retryConfig.initialDelay || 500) *
-          Math.pow(retryConfig.backoffMultiplier || 2,
-            (retryConfig.maxAttempts - remainingAttempts - 1));
+        const delay =
+          (retryConfig.initialDelay || 500) *
+          Math.pow(
+            retryConfig.backoffMultiplier || 2,
+            retryConfig.maxAttempts - remainingAttempts - 1,
+          );
 
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise((r) => setTimeout(r, delay));
 
         return request<T>(url, {
           ...config,
-          retry: { ...retryConfig, maxAttempts: remainingAttempts }
+          retry: { ...retryConfig, maxAttempts: remainingAttempts },
         });
       }
     }
@@ -366,10 +372,10 @@ export const http = {
       }
     }
 
-    refetch();
+    void refetch();
 
     return { data, loading, error, refetch };
-  }
+  },
 };
 
 // ============================================================

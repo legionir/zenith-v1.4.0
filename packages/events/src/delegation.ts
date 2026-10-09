@@ -447,7 +447,7 @@ function delegateEvent(
       event.preventDefault();
       const path = linkEl.getAttribute('zen-link') || linkEl.getAttribute('href');
       if (path) {
-        navigate(path);
+        void navigate(path);
         flushSync();
       } else {
         console.warn('[Zenith] <a zen-link> has no path (neither zen-link nor href attribute).');
@@ -491,10 +491,7 @@ function delegateEvent(
           const ctx = createContextForEval(state);
           args = parsed.argExprs.map((expr) => evaluateExpression(expr, ctx));
         } catch (err) {
-          console.error(
-            `[Zenith] Failed to evaluate args for action "${actionName}":`,
-            err,
-          );
+          console.error(`[Zenith] Failed to evaluate args for action "${actionName}":`, err);
           reportError(err as Error, 'action', { element });
           flushSync();
           return;
@@ -541,7 +538,11 @@ function delegateEvent(
           const cached = timedHandlerCache.get(element);
           if (cached) {
             for (const [, wrapper] of cached) {
-              try { wrapper.cancel(); } catch { /* ignore */ }
+              try {
+                wrapper.cancel();
+              } catch {
+                /* ignore */
+              }
             }
             cached.clear();
           }
@@ -554,8 +555,7 @@ function delegateEvent(
     };
 
     // FIX (v1.2.7): wire applyTimingModifiers for .debounce / .throttle.
-    const hasTiming =
-      modifiers.includes('debounce') || modifiers.includes('throttle');
+    const hasTiming = modifiers.includes('debounce') || modifiers.includes('throttle');
     if (hasTiming) {
       const cacheKey = `${eventName}:${actionName}`;
       let elementCache = timedHandlerCache.get(element);
@@ -657,7 +657,11 @@ export function initEventDelegation(
     // FIX (v1.2.7): cancel pending debounce/throttle timers.
     for (const elementCache of timedHandlerCache.values()) {
       for (const wrapped of elementCache.values()) {
-        try { wrapped.cancel(); } catch { /* ignore */ }
+        try {
+          wrapped.cancel();
+        } catch {
+          /* ignore */
+        }
       }
       elementCache.clear();
     }

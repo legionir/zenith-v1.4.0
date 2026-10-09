@@ -84,16 +84,34 @@ function calculateDynamicBuffer(
 // IMP-VL-02: انیمیشن ساده برای mount/unmount آیتم‌ها.
 const MOUNT_PRESETS: Record<string, Keyframe[]> = {
   fadeIn: [{ opacity: '0' }, { opacity: '1' }],
-  slideDown: [{ transform: 'translateY(-10px)', opacity: '0' }, { transform: 'none', opacity: '1' }],
-  slideUp: [{ transform: 'translateY(10px)', opacity: '0' }, { transform: 'none', opacity: '1' }],
-  scaleIn: [{ transform: 'scale(0.9)', opacity: '0' }, { transform: 'scale(1)', opacity: '1' }],
+  slideDown: [
+    { transform: 'translateY(-10px)', opacity: '0' },
+    { transform: 'none', opacity: '1' },
+  ],
+  slideUp: [
+    { transform: 'translateY(10px)', opacity: '0' },
+    { transform: 'none', opacity: '1' },
+  ],
+  scaleIn: [
+    { transform: 'scale(0.9)', opacity: '0' },
+    { transform: 'scale(1)', opacity: '1' },
+  ],
 };
 
 const UNMOUNT_PRESETS: Record<string, Keyframe[]> = {
   fadeOut: [{ opacity: '1' }, { opacity: '0' }],
-  slideUp: [{ transform: 'none', opacity: '1' }, { transform: 'translateY(-10px)', opacity: '0' }],
-  slideDown: [{ transform: 'none', opacity: '1' }, { transform: 'translateY(10px)', opacity: '0' }],
-  scaleOut: [{ transform: 'scale(1)', opacity: '1' }, { transform: 'scale(0.9)', opacity: '0' }],
+  slideUp: [
+    { transform: 'none', opacity: '1' },
+    { transform: 'translateY(-10px)', opacity: '0' },
+  ],
+  slideDown: [
+    { transform: 'none', opacity: '1' },
+    { transform: 'translateY(10px)', opacity: '0' },
+  ],
+  scaleOut: [
+    { transform: 'scale(1)', opacity: '1' },
+    { transform: 'scale(0.9)', opacity: '0' },
+  ],
 };
 
 function animateItem(el: HTMLElement, preset: string, isMount: boolean): void {
@@ -101,7 +119,12 @@ function animateItem(el: HTMLElement, preset: string, isMount: boolean): void {
   const keyframes = presets[preset];
   if (!keyframes || typeof el.animate !== 'function') return;
   const anim = el.animate(keyframes, { duration: 200, easing: 'ease-out' });
-  anim.onfinish = () => { try { anim.commitStyles(); } catch { } anim.cancel(); };
+  anim.onfinish = () => {
+    try {
+      anim.commitStyles();
+    } catch {}
+    anim.cancel();
+  };
 }
 
 // ── Main Export ──
@@ -126,16 +149,28 @@ export function processVirtualList(
         const itemSignal = signal(item);
         const indexSignal = signal(i);
         const childCtx: Record<string, any> = Object.create(context);
-        Object.defineProperty(childCtx, '$item', { get: () => itemSignal.get(), enumerable: true, configurable: true });
-        Object.defineProperty(childCtx, '$index', { get: () => indexSignal.get(), enumerable: true, configurable: true });
+        Object.defineProperty(childCtx, '$item', {
+          get: () => itemSignal.get(),
+          enumerable: true,
+          configurable: true,
+        });
+        Object.defineProperty(childCtx, '$index', {
+          get: () => indexSignal.get(),
+          enumerable: true,
+          configurable: true,
+        });
         const signalsMap = new Map<string, Signal<any>>();
-        const parentSignals = (context as any).__zenith_signals__ as Map<string, Signal<any>> | undefined;
+        const parentSignals = (context as any).__zenith_signals__ as
+          Map<string, Signal<any>> | undefined;
         if (parentSignals) {
           for (const [k, v] of parentSignals) signalsMap.set(k, v);
         }
         signalsMap.set('item', itemSignal);
         signalsMap.set('index', indexSignal as Signal<any>);
-        Object.defineProperty(childCtx, '__zenith_signals__', { value: signalsMap, enumerable: false });
+        Object.defineProperty(childCtx, '__zenith_signals__', {
+          value: signalsMap,
+          enumerable: false,
+        });
 
         const itemDisposes: (() => void)[] = [];
         for (const child of Array.from(el.children)) {
@@ -147,7 +182,9 @@ export function processVirtualList(
     return {
       scrollToIndex() {},
       rebuild() {},
-      getRange(): VirtualRange { return { start: 0, end: 0, offsetY: 0, totalHeight: 0 }; },
+      getRange(): VirtualRange {
+        return { start: 0, end: 0, offsetY: 0, totalHeight: 0 };
+      },
     };
   }
 
@@ -211,7 +248,9 @@ export function processVirtualList(
     return {
       scrollToIndex() {},
       rebuild() {},
-      getRange(): VirtualRange { return { start: 0, end: 0, offsetY: 0, totalHeight: 0 }; },
+      getRange(): VirtualRange {
+        return { start: 0, end: 0, offsetY: 0, totalHeight: 0 };
+      },
     };
   }
 
@@ -319,7 +358,8 @@ export function processVirtualList(
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (offset >= offsetsCache[mid]!) {
-        const nextOffset = mid + 1 < offsetsCache.length ? offsetsCache[mid + 1]! : totalHeightCache;
+        const nextOffset =
+          mid + 1 < offsetsCache.length ? offsetsCache[mid + 1]! : totalHeightCache;
         if (offset < nextOffset) return mid;
         lo = mid + 1;
       } else {
@@ -442,7 +482,11 @@ export function processVirtualList(
           itemResizeObserver.unobserve(entry.node);
         }
         entry.node.remove();
-        entry.disposes.forEach(d => { try { d(); } catch {} });
+        entry.disposes.forEach((d) => {
+          try {
+            d();
+          } catch {}
+        });
         renderedNodes.delete(idx);
       }
     }
@@ -460,21 +504,41 @@ export function processVirtualList(
       const itemSignal = signal(item);
       const indexSignal = signal(i);
       const childCtx: Record<string, any> = Object.create(context);
-      Object.defineProperty(childCtx, '$item', { get: () => itemSignal.get(), enumerable: true, configurable: true });
-      Object.defineProperty(childCtx, '$index', { get: () => indexSignal.get(), enumerable: true, configurable: true });
+      Object.defineProperty(childCtx, '$item', {
+        get: () => itemSignal.get(),
+        enumerable: true,
+        configurable: true,
+      });
+      Object.defineProperty(childCtx, '$index', {
+        get: () => indexSignal.get(),
+        enumerable: true,
+        configurable: true,
+      });
 
       if (!('item' in context)) {
-        Object.defineProperty(childCtx, 'item', { get: () => itemSignal.get(), enumerable: true, configurable: true });
+        Object.defineProperty(childCtx, 'item', {
+          get: () => itemSignal.get(),
+          enumerable: true,
+          configurable: true,
+        });
       }
       if (!('index' in context)) {
-        Object.defineProperty(childCtx, 'index', { get: () => indexSignal.get(), enumerable: true, configurable: true });
+        Object.defineProperty(childCtx, 'index', {
+          get: () => indexSignal.get(),
+          enumerable: true,
+          configurable: true,
+        });
       }
 
-      const parentSignals = (context as any).__zenith_signals__ as Map<string, Signal<any>> | undefined;
+      const parentSignals = (context as any).__zenith_signals__ as
+        Map<string, Signal<any>> | undefined;
       const signalsMap = parentSignals ? new Map(parentSignals) : new Map<string, Signal<any>>();
       signalsMap.set('item', itemSignal);
       signalsMap.set('index', indexSignal as Signal<any>);
-      Object.defineProperty(childCtx, '__zenith_signals__', { value: signalsMap, enumerable: false });
+      Object.defineProperty(childCtx, '__zenith_signals__', {
+        value: signalsMap,
+        enumerable: false,
+      });
 
       newNode.style.position = 'absolute';
       newNode.style.top = '0';
@@ -536,7 +600,11 @@ export function processVirtualList(
     if (itemResizeRaf !== null) cancelAnimationFrame(itemResizeRaf);
     if (rebuildTimeout) clearTimeout(rebuildTimeout);
     for (const [, entry] of renderedNodes) {
-      entry.disposes.forEach(d => { try { d(); } catch {} });
+      entry.disposes.forEach((d) => {
+        try {
+          d();
+        } catch {}
+      });
     }
     renderedNodes.clear();
     disposeEffect();

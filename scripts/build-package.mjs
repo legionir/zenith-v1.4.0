@@ -14,11 +14,7 @@ import { spawnSync } from 'child_process';
  * Browser/isomorphic packages intentionally stay on `neutral` so their output
  * remains portable across runtimes.
  */
-const NODE_PLATFORM_PACKAGES = new Set([
-  'cli',
-  'ssr',
-  'vite-plugin',
-]);
+const NODE_PLATFORM_PACKAGES = new Set(['cli', 'ssr', 'vite-plugin']);
 
 /**
  * Build a single package with dual ESM + CJS output + TypeScript declarations.
@@ -97,10 +93,14 @@ export async function buildPackage(pkgName) {
   // Type declarations via tsc
   const tsconfigPath = join(pkgPath, 'tsconfig.json');
   if (existsSync(tsconfigPath)) {
-    const result = spawnSync('npx', ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly', '--outDir', outDir], {
-      stdio: 'pipe',
-      shell: true,
-    });
+    const result = spawnSync(
+      'npx',
+      ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly', '--outDir', outDir],
+      {
+        stdio: 'pipe',
+        shell: true,
+      },
+    );
     if (result.status !== 0) {
       // Fail loudly. This used to be swallowed, which let type errors and
       // missing .d.ts files ship while the build still reported success.
@@ -109,8 +109,7 @@ export async function buildPackage(pkgName) {
         .join('\n')
         .trim();
       throw new Error(
-        `tsc failed to emit declarations for @zenith/${pkgName}` +
-          (details ? `:\n${details}` : ''),
+        `tsc failed to emit declarations for @zenith/${pkgName}` + (details ? `:\n${details}` : ''),
       );
     }
   }

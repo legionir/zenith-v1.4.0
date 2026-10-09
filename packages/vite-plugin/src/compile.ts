@@ -36,7 +36,12 @@ import { compile as compileExpression } from '@zenith/expressions';
  * اعتبارسنجی شود، باید اینجا اضافه شود.
  */
 const EXPRESSION_DIRECTIVES = new Set([
-  'zen-text', 'zen-if', 'zen-show', 'zen-bind', 'zen-model', 'zen-html',
+  'zen-text',
+  'zen-if',
+  'zen-show',
+  'zen-bind',
+  'zen-model',
+  'zen-html',
   // FEATURE (v0.4.0): zen-html-trusted هم expression دارد مثل zen-html.
   'zen-html-trusted',
 ]);
@@ -258,7 +263,7 @@ export async function transformHtml(
   // برای directiveهای runtime-only (zen-for, zen-action, zen-fetch, ...):
   //   attribute اصلی حفظ می‌شود چون runtime walker باید آن را پردازش کند.
   //   این از silent drop جلوگیری می‌کند.
-  const runtimeDirectiveNames = new Set(compiled.runtimeDirectives.map(rd => rd.directive));
+  const runtimeDirectiveNames = new Set(compiled.runtimeDirectives.map((rd) => rd.directive));
   let strippedHtml = html;
   for (const d of directives) {
     // FIX (B-5): برای runtime directives، attribute اصلی را با
@@ -341,7 +346,9 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
   lines.push(`// Effect count: ${compiled.effectCount}`);
   lines.push(`// Is static: ${compiled.isStatic}`);
   if (hasRuntimeDirectives) {
-    lines.push(`// Runtime directives (not compilable, processed by runtime walker): ${compiled.runtimeDirectives.length}`);
+    lines.push(
+      `// Runtime directives (not compilable, processed by runtime walker): ${compiled.runtimeDirectives.length}`,
+    );
     for (const rd of compiled.runtimeDirectives) {
       lines.push(`//   - ${rd.directive}="${rd.value}" at ${rd.elementPath}`);
     }
@@ -395,17 +402,23 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
   lines.push(`    const processChildren = (node, localState) => {`);
   lines.push(`      if (typeof walkAndBind === 'function') {`);
   lines.push(`        try { return walkAndBind(node, localState || {}); }`);
-  lines.push(`        catch (e) { console.error('[Zenith] processChildren failed for zen-for clone:', e); }`);
+  lines.push(
+    `        catch (e) { console.error('[Zenith] processChildren failed for zen-for clone:', e); }`,
+  );
   lines.push(`      } else if (typeof Zen !== 'undefined' && Zen.start) {`);
   lines.push(`        // Fallback: اگر walkAndBind در دسترس نبود (runtime قدیمی)، از`);
   lines.push(`        // Zen.start استفاده کن. در این حالت teardown وجود ندارد و نشت`);
   lines.push(`        // حافظه‌ی قدیمی باقی می‌ماند (پیام هشدار چاپ می‌شود).`);
   lines.push(`        try { Zen.start(node, localState || {}); }`);
-  lines.push(`        catch (e) { console.error('[Zenith] processChildren fallback (Zen.start) failed:', e); }`);
+  lines.push(
+    `        catch (e) { console.error('[Zenith] processChildren fallback (Zen.start) failed:', e); }`,
+  );
   lines.push(`      }`);
   lines.push(`      return null;`);
   lines.push(`    };`);
-  lines.push(`    render(root, ctx, effect, signal, sanitizeHTML, window.__ZENITH_STATE__ || null, processChildren, sanitizeHTMLTrusted, evaluateExpression);`);
+  lines.push(
+    `    render(root, ctx, effect, signal, sanitizeHTML, window.__ZENITH_STATE__ || null, processChildren, sanitizeHTMLTrusted, evaluateExpression);`,
+  );
   if (hasRuntimeDirectives) {
     lines.push(`    // FEATURE (v1.0.0): Level 3 Walker Elimination.`);
     lines.push(`    // Process runtime directives (zen-for, zen-action, zen-fetch, etc.)`);
@@ -419,20 +432,28 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
     lines.push(`    //      Delegation و Components یک‌بار setup شوند.`);
     lines.push(`    //   2. برای هر عنصر runtime directive، walkAndBind صدا زده می‌شود که`);
     lines.push(`    //      سبک‌وزن‌تر است (Event Delegation را re-init نمی‌کند).`);
-    lines.push(`    if (typeof Zen !== 'undefined' && Zen.start && typeof walkAndBind === 'function') {`);
+    lines.push(
+      `    if (typeof Zen !== 'undefined' && Zen.start && typeof walkAndBind === 'function') {`,
+    );
     lines.push(`      // 1. One-time setup: Event Delegation + Components.`);
     lines.push(`      const dummy = document.createElement('div');`);
-    lines.push(`      try { Zen.start(dummy, window.__ZENITH_STATE__ || {}, { devtools: false }); }`);
+    lines.push(
+      `      try { Zen.start(dummy, window.__ZENITH_STATE__ || {}, { devtools: false }); }`,
+    );
     lines.push(`      catch (e) { console.error('[Zenith] One-time setup failed:', e); }`);
     lines.push(`      // 2. Per-element: walkAndBind (lightweight, no re-init).`);
     lines.push(`      const runtimeEls = root.querySelectorAll('[data-zenith-runtime="true"]');`);
     lines.push(`      for (const el of runtimeEls) {`);
     lines.push(`        try { walkAndBind(el, window.__ZENITH_STATE__ || {}); }`);
-    lines.push(`        catch (e) { console.error('[Zenith] walkAndBind failed for runtime element:', e); }`);
+    lines.push(
+      `        catch (e) { console.error('[Zenith] walkAndBind failed for runtime element:', e); }`,
+    );
     lines.push(`      }`);
     lines.push(`    }`);
   }
-  lines.push(`    console.log('[Zenith] Compiled template executed:', '${moduleName}'${hasRuntimeDirectives ? ` + ' (with ' + ${compiled.runtimeDirectives.length} + ' runtime directives)'` : ''});`);
+  lines.push(
+    `    console.log('[Zenith] Compiled template executed:', '${moduleName}'${hasRuntimeDirectives ? ` + ' (with ' + ${compiled.runtimeDirectives.length} + ' runtime directives)'` : ''});`,
+  );
   lines.push(`  } catch (e) {`);
   lines.push(`    console.error('[Zenith] Failed to execute compiled template:', e);`);
   lines.push(`  }`);
@@ -454,7 +475,10 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
  *
  * کاربرد: در `zenith check` یا قبل از build برای بررسی زودهنگام.
  */
-export function analyzeHtml(html: string, htmlPath: string = '<inline>'): {
+export function analyzeHtml(
+  html: string,
+  htmlPath: string = '<inline>',
+): {
   directiveCount: number;
   warnings: string[];
   errors: string[];

@@ -4,7 +4,8 @@
 // Centralized error handling for effects, expressions, directives and runtime
 
 export type ErrorSeverity = 'error' | 'warning' | 'info';
-export type ErrorCategory = 'reactivity' | 'expression' | 'directive' | 'runtime' | 'ssr' | 'security';
+export type ErrorCategory =
+  'reactivity' | 'expression' | 'directive' | 'runtime' | 'ssr' | 'security';
 
 export interface ZenithError {
   message: string;

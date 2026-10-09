@@ -51,11 +51,10 @@ export function processIf(
   const parent = el.parentElement;
 
   if (!parent) {
-    reportError(
-      new Error('[zen-if] Element must have a parent node.'),
-      'directive',
-      { expression: expr, element: el }
-    );
+    reportError(new Error('[zen-if] Element must have a parent node.'), 'directive', {
+      expression: expr,
+      element: el,
+    });
     return () => {}; // no-op dispose
   }
 
@@ -74,9 +73,9 @@ export function processIf(
   if (hasForChild) {
     console.warn(
       '[Zenith] ⚠️ zen-if on parent of zen-for may cause context loss on re-mount.\n' +
-      '  Problem: <div zen-if="$show"><li zen-for="...">  ← مشکل‌ساز\n' +
-      '  Fix 1:   <div zen-bind:class="{hidden: !$show}"><li zen-for="...">  ← توصیه‌شده\n' +
-      '  Fix 2:   <li zen-for="..." zen-if="$show && condition">  ← اگر شرط روی هر آیتم است'
+        '  Problem: <div zen-if="$show"><li zen-for="...">  ← مشکل‌ساز\n' +
+        '  Fix 1:   <div zen-bind:class="{hidden: !$show}"><li zen-for="...">  ← توصیه‌شده\n' +
+        '  Fix 2:   <li zen-for="..." zen-if="$show && condition">  ← اگر شرط روی هر آیتم است',
     );
     // BUG FIX (BUG-02): fallback به display:none برای جلوگیری از context loss
     // روی zen-for. mount/remount باعث می‌شود فرزندان zen-for دوباره ساخته شوند
@@ -96,7 +95,12 @@ export function processIf(
     // effect فقط display را toggle می‌کند (بدون unmount/remount).
     const dispose = effect(() => {
       let condition: boolean;
-      try { condition = Boolean(evalFn(context)); } catch (err) { reportError(err as Error, 'expression', { expression: expr, element: el }); return; }
+      try {
+        condition = Boolean(evalFn(context));
+      } catch (err) {
+        reportError(err as Error, 'expression', { expression: expr, element: el });
+        return;
+      }
       el.style.display = condition ? '' : 'none';
     });
 
@@ -126,7 +130,12 @@ export function processIf(
 
   const dispose = effect(() => {
     let condition: boolean;
-    try { condition = Boolean(evalFn(context)); } catch (err) { reportError(err as Error, 'expression', { expression: expr, element: el }); return; }
+    try {
+      condition = Boolean(evalFn(context));
+    } catch (err) {
+      reportError(err as Error, 'expression', { expression: expr, element: el });
+      return;
+    }
 
     if (condition && !isMounted) {
       // ── شرط true شد: mount ──

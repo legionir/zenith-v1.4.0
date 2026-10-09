@@ -25,7 +25,7 @@
 //   در غیر این صورت، یک String با مقدار "!" (مثلاً "!" در "+ flag + "!"")
 //   به اشتباه به عنوان عملگر یکانی ! تفسیر می‌شود.
 
-import { lex, Token, TokenType } from './lexer';
+import { lex, type Token, TokenType } from './lexer';
 
 /**
  * انواع نودهای درخت AST.
@@ -344,7 +344,13 @@ export class Parser {
           this.consume(); // consume '['
           const property = this.parseConditional();
           this.expect(']');
-          node = { type: 'MemberExpression', object: node, property, computed: true, optional: isOptional };
+          node = {
+            type: 'MemberExpression',
+            object: node,
+            property,
+            computed: true,
+            optional: isOptional,
+          };
         } else {
           const property = this.parsePrimary();
           if (property.type !== 'Identifier') {
@@ -353,7 +359,13 @@ export class Parser {
                 `expected identifier after '.' but got '${this.current().value}'`,
             );
           }
-          node = { type: 'MemberExpression', object: node, property, computed: false, optional: isOptional };
+          node = {
+            type: 'MemberExpression',
+            object: node,
+            property,
+            computed: false,
+            optional: isOptional,
+          };
         }
       } else if (this.match('[')) {
         // ── a[b] ──
@@ -425,7 +437,10 @@ export class Parser {
     // ── x => expr (single param without parens) ──
     // نکته: این بررسی باید قبل از Identifier باشد، وگرنه `x` به‌عنوان Identifier
     // مصرف می‌شود و `=>`识别 نمی‌شود.
-    if ((token.type as number) === (TokenType.Identifier as number) && this.peek()?.value === '=>') {
+    if (
+      (token.type as number) === (TokenType.Identifier as number) &&
+      this.peek()?.value === '=>'
+    ) {
       const paramName = this.consume().value;
       this.consume(); // consume =>
       const body = this.parseConditional();
@@ -435,10 +450,22 @@ export class Parser {
     if (token.type === TokenType.Identifier) {
       const name = token.value;
       // FIX (B-2): Literal keywords true/false/null/undefined.
-      if (name === 'true') { this.consume(); return { type: 'Literal', value: true }; }
-      if (name === 'false') { this.consume(); return { type: 'Literal', value: false }; }
-      if (name === 'null') { this.consume(); return { type: 'Literal', value: null }; }
-      if (name === 'undefined') { this.consume(); return { type: 'Literal', value: undefined }; }
+      if (name === 'true') {
+        this.consume();
+        return { type: 'Literal', value: true };
+      }
+      if (name === 'false') {
+        this.consume();
+        return { type: 'Literal', value: false };
+      }
+      if (name === 'null') {
+        this.consume();
+        return { type: 'Literal', value: null };
+      }
+      if (name === 'undefined') {
+        this.consume();
+        return { type: 'Literal', value: undefined };
+      }
       this.consume();
       return { type: 'Identifier', name: token.value };
     }
@@ -451,7 +478,8 @@ export class Parser {
         const params: Array<{ name: string }> = [];
         if (this.current().value !== ')') {
           do {
-            if (this.current().type !== TokenType.Identifier) throw new Error('expected identifier');
+            if (this.current().type !== TokenType.Identifier)
+              throw new Error('expected identifier');
             params.push({ name: this.consume().value });
             if (this.match(',')) {
               this.consume(); // مصرف کاما
@@ -506,9 +534,7 @@ export class Parser {
       return this.parseObjectExpression();
     }
 
-    throw new Error(
-      `Syntax Error at position ${token.start}: unexpected token '${token.value}'`,
-    );
+    throw new Error(`Syntax Error at position ${token.start}: unexpected token '${token.value}'`);
   }
 
   /**

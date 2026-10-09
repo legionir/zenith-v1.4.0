@@ -12,7 +12,6 @@ import {
 import {
   signal,
   registerSignal,
-  recordStateChange,
   getAllSignals,
   getSignalInfo,
   getStateTimeline,
@@ -43,7 +42,9 @@ describe('error system (#115 model)', () => {
 
   it('a throwing handler does not break emitError', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const off = onError(() => { throw new Error('handler broke'); });
+    const off = onError(() => {
+      throw new Error('handler broke');
+    });
     expect(() =>
       emitError({ message: 'ok', category: 'ssr', severity: 'info', recoverable: true }),
     ).not.toThrow();
@@ -61,9 +62,13 @@ describe('error system (#115 model)', () => {
   });
 
   it('errorBoundary catches and routes errors', () => {
-    const fn = errorBoundary(() => { throw new Error('inner'); }, 'directive');
+    const fn = errorBoundary(() => {
+      throw new Error('inner');
+    }, 'directive');
     expect(fn()).toBeUndefined();
-    expect(getErrorHistory().some((e) => e.message === 'inner' && e.category === 'directive')).toBe(true);
+    expect(getErrorHistory().some((e) => e.message === 'inner' && e.category === 'directive')).toBe(
+      true,
+    );
     const ok = errorBoundary(() => 42, 'directive');
     expect(ok()).toBe(42);
   });
@@ -74,7 +79,14 @@ describe('error system (#115 model)', () => {
     const spy = vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {});
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'groupEnd').mockImplementation(() => {});
-    emitError({ message: 'dev', category: 'security', severity: 'warning', recoverable: true, hint: 'h', context: { a: 1 } });
+    emitError({
+      message: 'dev',
+      category: 'security',
+      severity: 'warning',
+      recoverable: true,
+      hint: 'h',
+      context: { a: 1 },
+    });
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
     setDevMode(false);

@@ -23,12 +23,7 @@ import { registerSignal, recordStateChange } from './registry';
 import { getEffectPriority } from './effect';
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با effect.ts.
-import {
-  _getMutableContext,
-  getActiveEffect,
-  setActiveEffect,
-  registerCleanup,
-} from './context';
+import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup } from './context';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -101,7 +96,9 @@ export class Signal<T> {
    */
   set(newValue: T): void {
     if (this._readonly) {
-      throw new Error('[Zenith] Cannot set a readonly signal. Use writable signals for mutable state.');
+      throw new Error(
+        '[Zenith] Cannot set a readonly signal. Use writable signals for mutable state.',
+      );
     }
     // جلوگیری از آپدیت‌های غیرضروری (Reference Equality + NaN handling)
     if (Object.is(this._value, newValue)) return;
@@ -125,7 +122,7 @@ export class Signal<T> {
     // هر Effect را با priority ذخیره‌شده‌اش schedule می‌کنیم.
     // این اولویت توسط effect(fn, priority) تعیین می‌شود.
     // اگر Effect اولویتی نداشته باشد، 'normal' استفاده می‌شود.
-    this._subscribers.forEach(effectFn => {
+    this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
       scheduleEffect(effectFn as () => void, priority);
     });
@@ -174,7 +171,7 @@ export class Signal<T> {
     // BUG-01 FIX: pass oldValue (captured before assignment) instead of this._value.
     recordStateChange(this, oldValue, next);
     // ── فاز ۷: Scheduler ──
-    this._subscribers.forEach(effectFn => {
+    this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
       scheduleEffect(effectFn as () => void, priority);
     });

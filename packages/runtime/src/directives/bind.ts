@@ -91,7 +91,7 @@ function hasDangerousUrlProtocol(value: string): boolean {
   // Relative URLs and fragment-only URLs have no scheme — safe.
   // A scheme is `<scheme-name>:` at the start, where scheme-name is
   // [a-z][a-z0-9+.-]* per RFC 3986.
-  const schemeMatch = /^([a-z][a-z0-9+.\-]*):/.exec(normalized);
+  const schemeMatch = /^([a-z][a-z0-9+.-]*):/.exec(normalized);
   if (!schemeMatch) return false;
   const scheme = schemeMatch[1];
   if (scheme === 'javascript' || scheme === 'vbscript') return true;
@@ -179,9 +179,7 @@ export function processBind(
     // not accidentally treated as plain objects.
     if (attrName === 'class' && Array.isArray(value)) {
       const managedClasses = new Set(getManagedClasses(el));
-      const newSet = new Set(
-        value.filter((c: any) => c).map((c: any) => String(c))
-      );
+      const newSet = new Set(value.filter((c: any) => c).map((c: any) => String(c)));
       // Remove previously-managed classes that are no longer in the array.
       for (const className of managedClasses) {
         if (!newSet.has(className)) {
@@ -232,12 +230,7 @@ export function processBind(
     // property path rather than the boolean-attribute path.
     if (attrName === 'value' || attrName === 'checked') {
       const tag = (el.tagName || '').toUpperCase();
-      if (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'SELECT' ||
-        tag === 'OPTION'
-      ) {
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'OPTION') {
         (el as any)[attrName] = value == null ? '' : value;
         return;
       }

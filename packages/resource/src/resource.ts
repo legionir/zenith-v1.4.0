@@ -115,10 +115,12 @@ export interface CrudResult<T = any> {
 function canonicalize(obj: any): any {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(canonicalize);
-  return Object.keys(obj).sort().reduce((acc: any, key: string) => {
-    acc[key] = canonicalize(obj[key]);
-    return acc;
-  }, {});
+  return Object.keys(obj)
+    .sort()
+    .reduce((acc: any, key: string) => {
+      acc[key] = canonicalize(obj[key]);
+      return acc;
+    }, {});
 }
 
 /**
@@ -226,7 +228,11 @@ export class Resource<T = any> {
   async list(force = false): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, 'list()', this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        'list()',
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -236,7 +242,11 @@ export class Resource<T = any> {
   async read(id: string | number, force = false): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `read(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `read(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -249,7 +259,11 @@ export class Resource<T = any> {
   async create(body: any): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, 'create()', this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        'create()',
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -262,7 +276,11 @@ export class Resource<T = any> {
   async update(id: string | number, body: any): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `update(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `update(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -275,7 +293,11 @@ export class Resource<T = any> {
   async delete(id: string | number): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `delete(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `delete(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -307,7 +329,10 @@ export class Resource<T = any> {
    * Reset کامل Resource.
    */
   reset(): void {
-    if (this._refreshTimer) { clearInterval(this._refreshTimer); this._refreshTimer = null; }
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer);
+      this._refreshTimer = null;
+    }
     this._mutationQueue.length = 0;
     this._inflightRequests.clear();
     // FEATURE (v1.0.0): ساخت AbortController تازه — تا reset() بتواند
@@ -370,7 +395,13 @@ export class Resource<T = any> {
     // BUG-RES-04 (v1.3.0): پاک‌سازی callbackهای DOM قبل از هر چیز.
     // این کار ارجاعات المان‌ها را حذف می‌کند تا garbage collector بتواند
     // DOM nodeها را جمع‌آوری کند حتی اگر Resource همچنان در memory زنده باشد.
-    this._domCleanups.forEach(fn => { try { fn(); } catch { /* ignore */ } });
+    this._domCleanups.forEach((fn) => {
+      try {
+        fn();
+      } catch {
+        /* ignore */
+      }
+    });
     this._domCleanups.clear();
     // ۱. توقف تایمر auto-refresh (clearInterval).
     this.stopAutoRefresh();
@@ -425,13 +456,16 @@ export class Resource<T = any> {
       if (this._signal.get().data) {
         // SWR: return stale data immediately, revalidate in background
         this._signal.set({ ...this._signal.get(), isStale: true });
-        this.list(true).then(() => {});
+        void this.list(true).then(() => {});
       }
     }, interval);
   }
 
   stopAutoRefresh(): void {
-    if (this._refreshTimer) { clearInterval(this._refreshTimer); this._refreshTimer = null; }
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer);
+      this._refreshTimer = null;
+    }
   }
 
   // ── Optimistic Updates ──
@@ -447,7 +481,7 @@ export class Resource<T = any> {
     // Optimistic: add to list immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => [...(old as any[]), { ...body, id: tempId, _optimistic: true }] as any);
+      this.setData((old) => [...(old as any[]), { ...body, id: tempId, _optimistic: true }] as any);
     }
 
     // Actual request
@@ -458,13 +492,15 @@ export class Resource<T = any> {
     } else if (Array.isArray(this._signal.get().data) && result.data) {
       this._finalizeSnapshot(version);
       // Replace temp item with real one
-      this.setData(old => (old as any[]).map(item => item.id === tempId ? result.data : item) as any);
+      this.setData(
+        (old) => (old as any[]).map((item) => (item.id === tempId ? result.data : item)) as any,
+      );
     } else if (Array.isArray(this._signal.get().data) && result.data === undefined) {
       this._finalizeSnapshot(version);
       // FIX (v1.2.3): سرور ۲۰۴ (No Content) برگردانده — یعنی آیتم ساخته شد ولی
       // body ندارد. قبلاً در این حالت tempId در UI باقی می‌ماند. حالا tempId را
       // از لیست فیلتر می‌کنیم (به‌جای map کردن).
-      this.setData(old => (old as any[]).filter(item => item.id !== tempId) as any);
+      this.setData((old) => (old as any[]).filter((item) => item.id !== tempId) as any);
     } else {
       this._finalizeSnapshot(version);
     }
@@ -481,9 +517,12 @@ export class Resource<T = any> {
     // Optimistic: update immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => ((old as any[]).map(item =>
-        String(item.id) === String(id) ? { ...item, ...body } : item) as any
-      ));
+      this.setData(
+        (old) =>
+          (old as any[]).map((item) =>
+            String(item.id) === String(id) ? { ...item, ...body } : item,
+          ) as any,
+      );
     }
 
     const result = await this.update(id, body);
@@ -506,7 +545,7 @@ export class Resource<T = any> {
     // Optimistic: remove immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => (old as any[]).filter(item => String(item.id) !== String(id)) as any);
+      this.setData((old) => (old as any[]).filter((item) => String(item.id) !== String(id)) as any);
     }
 
     const result = await this.delete(id);
@@ -532,7 +571,7 @@ export class Resource<T = any> {
    */
   enqueueMutation(op: () => Promise<CrudResult<any>>, rollback?: () => void): void {
     this._mutationQueue.push({ op, rollback });
-    this._processQueue();
+    void this._processQueue();
   }
 
   private _processing = false;
@@ -699,13 +738,12 @@ export class Resource<T = any> {
   private _isNetworkError(err: unknown): boolean {
     return (
       err instanceof TypeError ||
-      (err instanceof Error && (
-        err.message.includes('network') ||
-        err.message.includes('NetworkError') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Load failed') ||
-        err.name === 'TimeoutError'
-      ))
+      (err instanceof Error &&
+        (err.message.includes('network') ||
+          err.message.includes('NetworkError') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('Load failed') ||
+          err.name === 'TimeoutError'))
     );
   }
 
@@ -738,7 +776,10 @@ export class Resource<T = any> {
           // that rapid successive calls cancel the previous in-flight request.
           signal: this._currentRequestController
             ? AbortSignal.any
-              ? AbortSignal.any([this._abortController.signal, this._currentRequestController.signal])
+              ? AbortSignal.any([
+                  this._abortController.signal,
+                  this._currentRequestController.signal,
+                ])
               : this._currentRequestController.signal
             : this._abortController.signal,
         };
@@ -759,9 +800,7 @@ export class Resource<T = any> {
         }
 
         const contentType = res.headers.get('content-type') || '';
-        const data = contentType.includes('application/json')
-          ? await res.json()
-          : await res.text();
+        const data = contentType.includes('application/json') ? await res.json() : await res.text();
 
         return { success: true, data };
       } catch (err) {
@@ -781,7 +820,7 @@ export class Resource<T = any> {
 
         // اگر این آخرین تلاش نیست، صبر کن و دوباره تلاش کن.
         if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, this._config.retryDelay * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, this._config.retryDelay * (attempt + 1)));
         }
       }
     }

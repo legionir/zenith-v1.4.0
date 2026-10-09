@@ -14,7 +14,7 @@ export {
   getNotificationDefaults,
   getNotificationsByPosition,
   notificationsAPI,
-  handleNotifyDirective
+  handleNotifyDirective,
 } from './notifications';
 export type {
   Notification,
@@ -22,5 +22,5 @@ export type {
   NotificationPosition,
   NotifyOptions,
   AlertOptions,
-  ConfirmOptions
+  ConfirmOptions,
 } from './notifications';

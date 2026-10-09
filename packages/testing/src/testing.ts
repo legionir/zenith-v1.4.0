@@ -53,10 +53,10 @@ export function createTestHarness(): TestHarness & Disposable {
     return {
       dispose,
       flush: flushSync,
-      tick: () => new Promise<void>(resolve => nextTick(resolve)),
+      tick: () => new Promise<void>((resolve) => nextTick(resolve)),
       signal,
       effect,
-      computed
+      computed,
     };
   });
 
@@ -65,7 +65,7 @@ export function createTestHarness(): TestHarness & Disposable {
     ...result,
     [Symbol.dispose]() {
       disposeFn?.();
-    }
+    },
   } as TestHarness & Disposable;
 }
 
@@ -88,7 +88,7 @@ export function trackEffect(fn: () => any): TrackedEffect & { dispose: () => voi
     runCount: 0,
     lastValue: undefined,
     values: [],
-    dispose: () => {}
+    dispose: () => {},
   };
 
   const dispose = effect(() => {
@@ -108,7 +108,7 @@ export function trackEffect(fn: () => any): TrackedEffect & { dispose: () => voi
  */
 export async function waitFor(
   condition: () => boolean,
-  options: { timeout?: number; interval?: number } = {}
+  options: { timeout?: number; interval?: number } = {},
 ): Promise<void> {
   const { timeout = 1000, interval = 10 } = options;
   const start = Date.now();
@@ -116,7 +116,7 @@ export async function waitFor(
   while (Date.now() - start < timeout) {
     flushSync();
     if (condition()) return;
-    await new Promise(r => setTimeout(r, interval));
+    await new Promise((r) => setTimeout(r, interval));
   }
 
   throw new Error(`waitFor timed out after ${timeout}ms`);
@@ -151,12 +151,14 @@ export function createMockSignal<T>(initial: T): {
   return {
     signal: base,
     history,
-    get setCount() { return setCount; },
+    get setCount() {
+      return setCount;
+    },
     reset: () => {
       history.length = 0;
       history.push(initial);
       setCount = 0;
-    }
+    },
   };
 }
 
@@ -166,7 +168,7 @@ export function createMockSignal<T>(initial: T): {
 export async function expectSignal<T>(
   sig: Signal<T> | ReadonlySignal<T>,
   matcher: (value: T) => boolean,
-  options?: { timeout?: number }
+  options?: { timeout?: number },
 ): Promise<void> {
   await waitFor(() => matcher(sig.get()), options);
 }
@@ -227,7 +229,9 @@ export function createMockResource<T = any>(initialData?: T): MockResource<T> {
       error.set(null);
       requestCount = 0;
     },
-    get requestCount() { return requestCount; }
+    get requestCount() {
+      return requestCount;
+    },
   };
 }
 
@@ -264,7 +268,7 @@ export interface RenderResult {
 export function render(
   template: string,
   state: Record<string, any> = {},
-  options: { attachToBody?: boolean } = {}
+  options: { attachToBody?: boolean } = {},
 ): RenderResult {
   const container = document.createElement('div');
   container.innerHTML = template;
@@ -290,9 +294,11 @@ export function render(
       container.remove();
     },
     flush: flushSync,
-    query: <T extends HTMLElement>(selector: string) => container.querySelector(selector) as T | null,
-    queryAll: <T extends HTMLElement>(selector: string) => Array.from(container.querySelectorAll(selector)) as T[],
-    text: () => container.textContent ?? ''
+    query: <T extends HTMLElement>(selector: string) =>
+      container.querySelector(selector) as T | null,
+    queryAll: <T extends HTMLElement>(selector: string) =>
+      Array.from(container.querySelectorAll(selector)) as T[],
+    text: () => container.textContent ?? '',
   };
 }
 
@@ -310,18 +316,20 @@ export const zenithMatchers = {
     const pass = Object.is(actual, expected);
     return {
       pass,
-      message: () => pass
-        ? `Expected signal NOT to have value ${JSON.stringify(expected)}`
-        : `Expected signal to have value ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+      message: () =>
+        pass
+          ? `Expected signal NOT to have value ${JSON.stringify(expected)}`
+          : `Expected signal to have value ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
     };
   },
   toBeReadonly(received: any) {
     const pass = received && typeof received.set === 'undefined';
     return {
       pass,
-      message: () => pass
-        ? 'Expected signal NOT to be readonly'
-        : 'Expected signal to be readonly (no .set method)'
+      message: () =>
+        pass
+          ? 'Expected signal NOT to be readonly'
+          : 'Expected signal to be readonly (no .set method)',
     };
-  }
+  },
 };

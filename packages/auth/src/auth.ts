@@ -126,12 +126,7 @@ export interface AuthConfig {
 /**
  * IMP-AUT-02 (v1.3.0): رویدادهای Auth.
  */
-export type AuthEvent =
-  | 'login'
-  | 'logout'
-  | 'token-refresh'
-  | 'token-expired'
-  | 'error';
+export type AuthEvent = 'login' | 'logout' | 'token-refresh' | 'token-expired' | 'error';
 
 /**
  * IMP-AUT-02 (v1.3.0): Listener برای رویدادهای Auth.
@@ -199,7 +194,7 @@ export class Auth {
     if (this._signal.get().token) {
       this.fetchUser().catch(() => {
         // اگر fetchUser ناموفق بود، logout کن
-        this.logout();
+        void this.logout();
       });
     }
   }
@@ -325,7 +320,7 @@ export class Auth {
           method: 'POST',
           keepalive: true,
           headers: {
-            'Authorization': `Bearer ${this.token}`,
+            Authorization: `Bearer ${this.token}`,
             ...this._config.headers,
           },
           credentials: 'same-origin',
@@ -406,7 +401,7 @@ export class Auth {
     try {
       const res = await fetch(this._config.meUrl, {
         headers: {
-          'Authorization': `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.token}`,
           ...this._config.headers,
         },
         credentials: 'same-origin',
@@ -470,7 +465,7 @@ export class Auth {
    * IMP-AUT-02 (v1.3.0): انتشار داخلی رویداد.
    */
   private _emit(event: AuthEvent, data?: any): void {
-    this._listeners.get(event)?.forEach(fn => {
+    this._listeners.get(event)?.forEach((fn) => {
       try {
         fn(event, data);
       } catch (err) {
@@ -669,9 +664,13 @@ export class Auth {
 
     // IMP-AUT-04 (v1.3.0): اگر آفلاین هستیم، صبر کن تا اتصال برگردد.
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      window.addEventListener('online', () => {
-        this._scheduleRefresh(expiry);
-      }, { once: true });
+      window.addEventListener(
+        'online',
+        () => {
+          this._scheduleRefresh(expiry);
+        },
+        { once: true },
+      );
       return;
     }
 
@@ -682,7 +681,7 @@ export class Auth {
     this._refreshTimer = setTimeout(() => {
       // FIX (v1.2.9): BUG-08 — Double-check _destroyed in callback
       if (this._destroyed) return;
-      this.refresh();
+      void this.refresh();
     }, delay);
   }
 
@@ -809,27 +808,27 @@ export class Auth {
         // FIX (v1.2.3): token معتبر به‌نظر می‌رسد — یک refresh فوری برای
         // validation انجام بده تا isAuthenticated:true شود.
         if (this._config.refreshUrl && refreshToken) {
-          this.refresh();
+          void this.refresh();
         } else {
           // بدون refreshUrl، فقط fetchUser می‌تواند اعتبارسنجی کند. اگر meUrl
           // موجود است، آن را صدا بزن. در غیر این صورت، هیچ راهی برای validation
           // نیست — isAuthenticated:false باقی می‌ماند.
           if (this._config.meUrl) {
-            this.fetchUser();
+            void this.fetchUser();
           }
         }
         this._scheduleRefresh(expiry);
       } else if (expiry && expiry <= Date.now()) {
         // Token already expired — try refresh.
         if (this._config.refreshUrl && refreshToken) {
-          this.refresh();
+          void this.refresh();
         } else {
-          this.logout();
+          void this.logout();
         }
       } else {
         // No expiry info — try fetchUser to validate.
         if (this._config.meUrl) {
-          this.fetchUser();
+          void this.fetchUser();
         }
       }
     }
@@ -854,10 +853,17 @@ export class Auth {
    */
   private _getStorage(): Storage | 'cookie' | null {
     // BUG-06 (v1.0.1): بررسی واقعی SSR — JSDOM هم localStorage دارد ولی باید در SSR null برگرداند.
-    const isServer = typeof window === 'undefined' ||
-      (typeof process !== 'undefined' && process.versions?.node && typeof document !== 'undefined' &&
-       (document as any).__zenithSSR__ === true);
-    if (isServer && this._config.tokenStorage !== 'cookie' && this._config.tokenStorage !== 'memory') {
+    const isServer =
+      typeof window === 'undefined' ||
+      (typeof process !== 'undefined' &&
+        process.versions?.node &&
+        typeof document !== 'undefined' &&
+        (document as any).__zenithSSR__ === true);
+    if (
+      isServer &&
+      this._config.tokenStorage !== 'cookie' &&
+      this._config.tokenStorage !== 'memory'
+    ) {
       return null;
     }
 
@@ -983,13 +989,13 @@ let functionalConfig: FunctionalAuthConfig = {
     logout: '/api/auth/logout',
     register: '/api/auth/register',
     refresh: '/api/auth/refresh',
-    me: '/api/auth/me'
+    me: '/api/auth/me',
   },
   storageKey: FUNCTIONAL_STORAGE_KEY,
   autoRefresh: true,
   loginRedirect: '/dashboard',
   logoutRedirect: '/',
-  loginPath: '/login'
+  loginPath: '/login',
 };
 
 const functionalUser = signal<User | null>(null);
@@ -997,7 +1003,9 @@ const functionalTokens = signal<AuthTokens | null>(null);
 const functionalIsLoading = signal(false);
 const functionalAuthError = signal<string | null>(null);
 
-const functionalIsAuthenticated = computed(() => !!functionalUser.get() && !!functionalTokens.get());
+const functionalIsAuthenticated = computed(
+  () => !!functionalUser.get() && !!functionalTokens.get(),
+);
 const functionalRoles = computed(() => functionalUser.get()?.roles || []);
 const functionalPermissions = computed(() => functionalUser.get()?.permissions || []);
 
@@ -1008,7 +1016,7 @@ export function configureAuth(cfg: Partial<FunctionalAuthConfig>): void {
   functionalConfig = {
     ...functionalConfig,
     ...cfg,
-    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints }
+    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints },
   };
 }
 
@@ -1036,7 +1044,9 @@ function loadFunctionalTokens(): AuthTokens | null {
 function clearFunctionalTokens(): void {
   try {
     localStorage.removeItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function initAuth(): Promise<void> {
@@ -1066,7 +1076,7 @@ export async function login(credentials: LoginCredentials): Promise<User | null>
     const { http } = await import('@zenith/http');
     const response = await http.post<{ user: User; tokens: AuthTokens }>(
       functionalConfig.endpoints?.login || '/api/auth/login',
-      credentials
+      credentials,
     );
 
     const { user: newUser, tokens: newTokens } = response.data;
@@ -1089,7 +1099,7 @@ export async function login(credentials: LoginCredentials): Promise<User | null>
       category: 'runtime',
       severity: 'error',
       recoverable: true,
-      context: { phase: 'login' }
+      context: { phase: 'login' },
     });
     return null;
   } finally {
@@ -1105,7 +1115,7 @@ export async function register(data: RegisterData): Promise<User | null> {
     const { http } = await import('@zenith/http');
     const response = await http.post<{ user: User; tokens: AuthTokens }>(
       functionalConfig.endpoints?.register || '/api/auth/register',
-      data
+      data,
     );
 
     const { user: newUser, tokens: newTokens } = response.data;
@@ -1153,7 +1163,7 @@ export async function refreshToken(): Promise<AuthTokens | null> {
     const { http } = await import('@zenith/http');
     const response = await http.post<AuthTokens>(
       functionalConfig.endpoints?.refresh || '/api/auth/refresh',
-      { refreshToken: currentTokens.refreshToken }
+      { refreshToken: currentTokens.refreshToken },
     );
 
     functionalTokens.set(response.data);
@@ -1205,11 +1215,11 @@ export function hasRole(role: string): boolean {
 }
 
 export function hasAnyRole(roleList: string[]): boolean {
-  return roleList.some(r => functionalRoles.get().includes(r));
+  return roleList.some((r) => functionalRoles.get().includes(r));
 }
 
 export function hasAllRoles(roleList: string[]): boolean {
-  return roleList.every(r => functionalRoles.get().includes(r));
+  return roleList.every((r) => functionalRoles.get().includes(r));
 }
 
 export function hasPermission(permission: string): boolean {
@@ -1217,7 +1227,7 @@ export function hasPermission(permission: string): boolean {
 }
 
 export function hasAnyPermission(permList: string[]): boolean {
-  return permList.some(p => functionalPermissions.get().includes(p));
+  return permList.some((p) => functionalPermissions.get().includes(p));
 }
 
 export interface RouteGuard {
@@ -1228,7 +1238,9 @@ export interface RouteGuard {
   redirectTo?: string;
 }
 
-export async function canActivateRoute(guard: RouteGuard): Promise<{ allowed: boolean; redirectTo?: string }> {
+export async function canActivateRoute(
+  guard: RouteGuard,
+): Promise<{ allowed: boolean; redirectTo?: string }> {
   if (guard.requiresAuth && !functionalIsAuthenticated.get()) {
     return { allowed: false, redirectTo: guard.redirectTo || functionalConfig.loginPath };
   }
@@ -1289,5 +1301,5 @@ export const auth: FunctionalAuthState & {
   hasAnyPermission,
   canActivateRoute,
   configure: configureAuth,
-  init: initAuth
+  init: initAuth,
 };

@@ -19,7 +19,7 @@
 //   setSignalFromPath() مسیر را تجزیه می‌کند، Signal مربوطه را پیدا می‌کند،
 //   و یک کپی جدید (با تغییرات اعمال‌شده) را در Signal می‌نویسد.
 
-import { effect, Signal } from '@zenith/state';
+import { effect, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { isSignal } from '../context';
@@ -121,7 +121,7 @@ function setSignalFromPath(
   // آن در context نیاز داریم. این حلقه تمام بخش‌هایی که با `$` شروع می‌شوند
   // را در context جستجو می‌کند و با مقدار واقعی (به‌صورت رشته) جایگزین می‌کند.
   // اگر متغیر در context نبود یا null/undefined بود، بخش بدون تغییر باقی می‌ماند.
-  const resolvedParts = parts.map(part => {
+  const resolvedParts = parts.map((part) => {
     if (part.startsWith('$') && context) {
       try {
         const val = (context as any)[part];
@@ -144,8 +144,7 @@ function setSignalFromPath(
   if (context) {
     // بررسی اینکه آیا context دارای signals map است (برای متغیرهای محلی)
     const localSignals = (context as any).__zenith_signals__ as
-      | Map<string, Signal<any>>
-      | undefined;
+      Map<string, Signal<any>> | undefined;
     if (localSignals && localSignals.has(rootKey)) {
       const localSignal = localSignals.get(rootKey)!;
       return setSignalValue(localSignal, resolvedParts, value);
@@ -158,7 +157,7 @@ function setSignalFromPath(
   if (!isSignal(signal)) {
     console.warn(
       `[zen-model] Cannot find signal for path: ${path}. ` +
-      `If this is inside zen-for, use $item (with $ prefix) instead of item.`,
+        `If this is inside zen-for, use $item (with $ prefix) instead of item.`,
     );
     return false;
   }
@@ -174,11 +173,7 @@ function setSignalFromPath(
  * @param value  مقدار جدید.
  * @returns true در صورت موفقیت.
  */
-function setSignalValue(
-  signal: Signal<any>,
-  parts: string[],
-  value: any,
-): boolean {
+function setSignalValue(signal: Signal<any>, parts: string[], value: any): boolean {
   if (parts.length === 1) {
     // مسیر ساده: signal.set(value) مستقیم
     signal.set(value);
@@ -193,9 +188,7 @@ function setSignalValue(
   // به‌جای Array، Object باشد و همه‌ی Array methods از کار بیفتند.
   // راه‌حل: تشخیص نوع و استفاده از spread مناسب (array spread برای آرایه،
   // object spread برای آبجکت). برای nested levels هم همین منطق اعمال می‌شود.
-  const newValue: any = Array.isArray(currentValue)
-    ? [...currentValue]
-    : { ...currentValue };
+  const newValue: any = Array.isArray(currentValue) ? [...currentValue] : { ...currentValue };
 
   let target: any = newValue;
   for (let i = 1; i < parts.length - 1; i++) {

@@ -77,9 +77,9 @@ navigate('/products/101');
 تطبیق یک الگو با یک مسیر. برمی‌گرداند `Record<string, string> | null`.
 
 ```typescript
-matchRoute('/products/:id', '/products/101')  // → { id: '101' }
-matchRoute('**', '/anything')                  // → {}
-matchRoute('/', '/about')                      // → null
+matchRoute('/products/:id', '/products/101'); // → { id: '101' }
+matchRoute('**', '/anything'); // → {}
+matchRoute('/', '/about'); // → null
 ```
 
 ### `processRouter(el, processChildren, parentDisposes)`

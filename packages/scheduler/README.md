@@ -14,7 +14,7 @@ State را در یک تیک جمع‌آوری کرده و DOM را فقط **یک
 ```typescript
 // بدون Scheduler — DOM ۱۰ بار آپدیت می‌شود!
 for (let i = 1; i <= 10; i++) {
-  count.set(i);  // ← هر بار Effectها اجرا می‌شوند و DOM آپدیت می‌شود
+  count.set(i); // ← هر بار Effectها اجرا می‌شوند و DOM آپدیت می‌شود
 }
 ```
 
@@ -26,7 +26,7 @@ Scheduler Effectها را در یک صف (Queue) قرار می‌دهد و یک 
 ```typescript
 // با Scheduler — DOM فقط ۱ بار آپدیت می‌شود!
 for (let i = 1; i <= 10; i++) {
-  count.set(i);  // ← Effectها به صف اضافه می‌شوند، نه اجرا
+  count.set(i); // ← Effectها به صف اضافه می‌شوند، نه اجرا
 }
 // ← در microtask بعدی، Effectها یک‌بار اجرا می‌شوند (با مقدار نهایی ۱۰)
 ```
@@ -62,10 +62,11 @@ scheduleEffect(() => {
 count.set(1);
 count.set(2);
 count.set(3);
-flushSync();  // ← Effectها همین‌جا اجرا می‌شوند (نه در microtask بعدی)
+flushSync(); // ← Effectها همین‌جا اجرا می‌شوند (نه در microtask بعدی)
 ```
 
 کاربردها:
+
 - **Event Handlers:** برای اطمینان از آپدیت DOM قبل از اتمام رویداد.
 - **تست‌ها:** برای sync کردن DOM بعد از `state.set()`.
 - **SSR:** برای اطمینان از رندر کامل قبل از serialize.
@@ -76,9 +77,9 @@ flushSync();  // ← Effectها همین‌جا اجرا می‌شوند (نه �
 
 ```typescript
 count.set(1);
-console.log(hasPendingEffects());  // true
+console.log(hasPendingEffects()); // true
 flushSync();
-console.log(hasPendingEffects());  // false
+console.log(hasPendingEffects()); // false
 ```
 
 ## Design Notes

@@ -18,10 +18,14 @@ for (const dir of pkgDirs) {
   // Declarations are needed by downstream workspace packages because their
   // package `types` entries point at dist/. This is intentionally not
   // --noEmit: CI type-checks before the bundling step on a clean checkout.
-  const result = spawnSync('npx', ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly'], {
-    stdio: 'inherit',
-    shell: true,
-  });
+  const result = spawnSync(
+    'npx',
+    ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly'],
+    {
+      stdio: 'inherit',
+      shell: true,
+    },
+  );
 
   if (result.status !== 0) {
     failed++;

@@ -52,7 +52,10 @@ function resolveContainer(container: HTMLElement | string): HTMLElement {
 }
 
 function isSignal<T>(value: T[] | Signal<T[]>): value is Signal<T[]> {
-  return typeof (value as Signal<T[]>).get === 'function' && typeof (value as Signal<T[]>).set === 'function';
+  return (
+    typeof (value as Signal<T[]>).get === 'function' &&
+    typeof (value as Signal<T[]>).set === 'function'
+  );
 }
 
 /**
@@ -113,9 +116,8 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const key = keyFor(item, index);
     const measured = measurements.get(key);
     if (measured !== undefined) return measured;
-    const estimated = typeof options.itemSize === 'function'
-      ? options.itemSize(item, index)
-      : options.itemSize;
+    const estimated =
+      typeof options.itemSize === 'function' ? options.itemSize(item, index) : options.itemSize;
     return Number.isFinite(estimated) && estimated > 0 ? estimated : 1;
   };
 
@@ -238,15 +240,16 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     });
   };
 
-  const containerResizeObserver = typeof ResizeObserver === 'undefined'
-    ? null
-    : new ResizeObserver(() => {
-      if (resizeFrame !== null) return;
-      resizeFrame = requestAnimationFrame(() => {
-        resizeFrame = null;
-        update();
-      });
-    });
+  const containerResizeObserver =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          if (resizeFrame !== null) return;
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = null;
+            update();
+          });
+        });
 
   container.addEventListener('scroll', onScroll, { passive: true });
   containerResizeObserver?.observe(container);
@@ -254,7 +257,10 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
 
   const refresh = () => update();
   const scrollToOffset = (offset: number) => {
-    container[scrollProperty] = Math.max(0, Math.min(offset, Math.max(0, totalSize - container[clientProperty])));
+    container[scrollProperty] = Math.max(
+      0,
+      Math.min(offset, Math.max(0, totalSize - container[clientProperty])),
+    );
     update();
   };
   refresh();

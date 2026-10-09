@@ -133,7 +133,10 @@ export function escapeHTML(s: string): string {
  * @param signal Optional AbortSignal to cancel the fetch.
  * @returns The parsed <template> element.
  */
-export async function loadComponent(src: string, signal?: AbortSignal): Promise<HTMLTemplateElement> {
+export async function loadComponent(
+  src: string,
+  signal?: AbortSignal,
+): Promise<HTMLTemplateElement> {
   if (!src) {
     throw new Error('[Zenith async-loader] src is required.');
   }
@@ -176,7 +179,9 @@ export async function loadComponent(src: string, signal?: AbortSignal): Promise<
     }
     const res = await fetch(src, signal ? { signal } : undefined);
     if (!res.ok) {
-      throw new Error(`[Zenith async-loader] Failed to fetch "${src}": ${res.status} ${res.statusText}`);
+      throw new Error(
+        `[Zenith async-loader] Failed to fetch "${src}": ${res.status} ${res.statusText}`,
+      );
     }
     const html = await res.text();
     const parser = new DOMParser();
@@ -215,9 +220,7 @@ export async function loadComponent(src: string, signal?: AbortSignal): Promise<
     // breaks thundering-herd patterns for known-bad URLs. We clone the
     // error so the cached copy doesn't carry a stale stack trace from
     // the original throw site (which could confuse debuggers).
-    const cachedError = err instanceof Error
-      ? new Error(err.message)
-      : new Error(String(err));
+    const cachedError = err instanceof Error ? new Error(err.message) : new Error(String(err));
     errorCache.set(src, {
       error: cachedError,
       storedAt: Date.now(),
@@ -318,10 +321,18 @@ export function processAsyncComponent(
   // level.
   return () => {
     if (abortController) {
-      try { abortController.abort(); } catch { /* noop */ }
+      try {
+        abortController.abort();
+      } catch {
+        /* noop */
+      }
     }
     for (const d of localDisposes) {
-      try { d(); } catch { /* noop */ }
+      try {
+        d();
+      } catch {
+        /* noop */
+      }
     }
     localDisposes.length = 0;
   };

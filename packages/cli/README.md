@@ -31,6 +31,7 @@ npm run dev
 ```
 
 فایل‌های ساخته‌شده:
+
 - `index.html` — صفحه‌ی اصلی با دایرکتیوهای Zenith
 - `main.ts` — تعریف State و Action ها
 - `vite.config.ts` — پیکربندی Vite با پلاگین Zenith

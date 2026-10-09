@@ -13,12 +13,17 @@
   <!-- Success state -->
   <div class="product-card" zen-if="!$product.loading && !$product.error">
     <h2>📦 <span zen-text="$product.data.name"></span></h2>
-    <p>کد محصول: <strong><span zen-text="$product.data.id"></span></strong></p>
-    <p>قیمت: <span class="product-price"><span zen-text="$product.data.price"></span> تومان</span></p>
+    <p>
+      کد محصول: <strong><span zen-text="$product.data.id"></span></strong>
+    </p>
+    <p>
+      قیمت: <span class="product-price"><span zen-text="$product.data.price"></span> تومان</span>
+    </p>
     <p>توضیحات: <span zen-text="$product.data.description"></span></p>
 
-    <p style="margin-top: 20px; font-size: 0.85rem; color: #6b7280;">
-      💡 این داده‌ها از <code>/api/products/<span zen-text="$route.params.id"></span></code> fetch شده‌اند.
+    <p style="margin-top: 20px; font-size: 0.85rem; color: #6b7280">
+      💡 این داده‌ها از <code>/api/products/<span zen-text="$route.params.id"></span></code> fetch
+      شده‌اند.
     </p>
   </div>
 </div>

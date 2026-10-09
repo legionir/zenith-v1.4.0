@@ -164,7 +164,10 @@ export interface DataTableApi<T = any> {
   saveEditing: (value: any) => Promise<void>;
 
   // === Export ===
-  exportToCSV: (filename?: string, options?: { includeHeaders?: boolean; separator?: string }) => void;
+  exportToCSV: (
+    filename?: string,
+    options?: { includeHeaders?: boolean; separator?: string },
+  ) => void;
   exportToJSON: (filename?: string) => void;
 
   // === State ===
@@ -191,7 +194,7 @@ export interface DataTableState {
  * Create a fully-featured reactive data table
  */
 export function createDataTable<T extends Record<string, any>>(
-  options: DataTableOptions<T>
+  options: DataTableOptions<T>,
 ): DataTableApi<T> {
   const {
     columns: initialColumns,
@@ -201,7 +204,7 @@ export function createDataTable<T extends Record<string, any>>(
     sorting = { enabled: true, multiColumn: false },
     filtering = { enabled: true, globalSearch: true },
     selection = { enabled: false, mode: 'multiple' },
-    editing = { enabled: false, mode: 'cell' }
+    editing = { enabled: false, mode: 'cell' },
   } = options;
 
   // === Core State ===
@@ -230,7 +233,7 @@ export function createDataTable<T extends Record<string, any>>(
   // Computed: Visible Columns
   // ============================================================
   const visibleColumns = computed(() =>
-    columns.get().filter(col => !hiddenColumns.get().has(col.key))
+    columns.get().filter((col) => !hiddenColumns.get().has(col.key)),
   );
 
   // ============================================================
@@ -244,32 +247,40 @@ export function createDataTable<T extends Record<string, any>>(
 
     // Global search
     if (search && filtering.globalSearch) {
-      result = result.filter(row =>
-        cols.some(col => {
+      result = result.filter((row) =>
+        cols.some((col) => {
           const value = getNestedValue(row, col.dataIndex || col.key);
-          return String(value ?? '').toLowerCase().includes(search);
-        })
+          return String(value ?? '')
+            .toLowerCase()
+            .includes(search);
+        }),
       );
     }
 
     // Column filters
     if (filters.length > 0) {
-      result = result.filter(row =>
-        filters.every(filter => {
-          const col = cols.find(c => c.key === filter.key);
+      result = result.filter((row) =>
+        filters.every((filter) => {
+          const col = cols.find((c) => c.key === filter.key);
           if (!col) return true;
           const value = String(getNestedValue(row, col.dataIndex || col.key) ?? '').toLowerCase();
           const filterValue = filter.value.toLowerCase();
 
           switch (filter.operator || 'contains') {
-            case 'equals': return value === filterValue;
-            case 'startsWith': return value.startsWith(filterValue);
-            case 'endsWith': return value.endsWith(filterValue);
-            case 'greaterThan': return Number(value) > Number(filterValue);
-            case 'lessThan': return Number(value) < Number(filterValue);
-            default: return value.includes(filterValue);
+            case 'equals':
+              return value === filterValue;
+            case 'startsWith':
+              return value.startsWith(filterValue);
+            case 'endsWith':
+              return value.endsWith(filterValue);
+            case 'greaterThan':
+              return Number(value) > Number(filterValue);
+            case 'lessThan':
+              return Number(value) < Number(filterValue);
+            default:
+              return value.includes(filterValue);
           }
-        })
+        }),
       );
     }
 
@@ -278,7 +289,7 @@ export function createDataTable<T extends Record<string, any>>(
     if (sorts.length > 0 && sorting.enabled) {
       result.sort((a, b) => {
         for (const sort of sorts) {
-          const col = cols.find(c => c.key === sort.key);
+          const col = cols.find((c) => c.key === sort.key);
           if (!col || !sort.direction) continue;
 
           const aVal = getNestedValue(a, col.dataIndex || col.key);
@@ -317,7 +328,7 @@ export function createDataTable<T extends Record<string, any>>(
   // ============================================================
   const selectedRowData = computed(() => {
     const selected = selectedRows.get();
-    return data.get().filter(row => selected.has(row[rowKey]));
+    return data.get().filter((row) => selected.has(row[rowKey]));
   });
 
   // ============================================================
@@ -331,7 +342,7 @@ export function createDataTable<T extends Record<string, any>>(
 
   function updateRow(key: any, changes: Partial<T>) {
     const current = data.get();
-    const index = current.findIndex(r => r[rowKey] === key);
+    const index = current.findIndex((r) => r[rowKey] === key);
     if (index > -1) {
       const updated = [...current];
       updated[index] = { ...updated[index], ...changes } as T;
@@ -344,9 +355,9 @@ export function createDataTable<T extends Record<string, any>>(
   }
 
   function removeRows(keys: any[]) {
-    data.set(data.get().filter(r => !keys.includes(r[rowKey])));
+    data.set(data.get().filter((r) => !keys.includes(r[rowKey])));
     const selected = new Set(selectedRows.get());
-    keys.forEach(k => selected.delete(k));
+    keys.forEach((k) => selected.delete(k));
     selectedRows.set(selected);
   }
 
@@ -357,7 +368,8 @@ export function createDataTable<T extends Record<string, any>>(
   function toggleColumn(key: string, visible?: boolean) {
     const hidden = new Set(hiddenColumns.get());
     const shouldHide = visible === undefined ? !hidden.has(key) : !visible;
-    if (shouldHide) hidden.add(key); else hidden.delete(key);
+    if (shouldHide) hidden.add(key);
+    else hidden.delete(key);
     hiddenColumns.set(hidden);
   }
 
@@ -369,12 +381,14 @@ export function createDataTable<T extends Record<string, any>>(
     if (!sorting.enabled) return;
 
     const current = sortState.get();
-    const existing = current.find(s => s.key === key);
+    const existing = current.find((s) => s.key === key);
 
     if (direction !== undefined) {
       const updated = sorting.multiColumn
-        ? current.filter(s => s.key !== key).concat(direction ? [{ key, direction }] : [])
-        : direction ? [{ key, direction }] : [];
+        ? current.filter((s) => s.key !== key).concat(direction ? [{ key, direction }] : [])
+        : direction
+          ? [{ key, direction }]
+          : [];
       sortState.set(updated);
       return;
     }
@@ -385,8 +399,10 @@ export function createDataTable<T extends Record<string, any>>(
     else if (existing?.direction === 'desc') nextDir = null;
 
     const updated = sorting.multiColumn
-      ? current.filter(s => s.key !== key).concat(nextDir ? [{ key, direction: nextDir }] : [])
-      : nextDir ? [{ key, direction: nextDir }] : [];
+      ? current.filter((s) => s.key !== key).concat(nextDir ? [{ key, direction: nextDir }] : [])
+      : nextDir
+        ? [{ key, direction: nextDir }]
+        : [];
     sortState.set(updated);
   }
 
@@ -398,9 +414,13 @@ export function createDataTable<T extends Record<string, any>>(
   // Filter Operations
   // ============================================================
 
-  function setColumnFilter(key: string, value: string, operator: ColumnFilter['operator'] = 'contains') {
+  function setColumnFilter(
+    key: string,
+    value: string,
+    operator: ColumnFilter['operator'] = 'contains',
+  ) {
     if (!filtering.enabled) return;
-    const current = columnFilters.get().filter(f => f.key !== key);
+    const current = columnFilters.get().filter((f) => f.key !== key);
     if (value.trim()) {
       current.push({ key, value, operator });
     }
@@ -459,7 +479,7 @@ export function createDataTable<T extends Record<string, any>>(
 
   function selectAll() {
     if (!selection.enabled || selection.mode === 'single') return;
-    selectedRows.set(new Set(pageData.get().map(r => r[rowKey])));
+    selectedRows.set(new Set(pageData.get().map((r) => r[rowKey])));
   }
 
   function clearSelection() {
@@ -483,7 +503,7 @@ export function createDataTable<T extends Record<string, any>>(
     const cell = editingCell.get();
     if (!cell) return;
 
-    const col = columns.get().find(c => c.key === cell.columnKey);
+    const col = columns.get().find((c) => c.key === cell.columnKey);
     if (!col) return;
 
     const changes: Partial<T> = {};
@@ -491,7 +511,7 @@ export function createDataTable<T extends Record<string, any>>(
     updateRow(cell.rowKey, changes);
 
     if (editing.onSave) {
-      const row = data.get().find(r => r[rowKey] === cell.rowKey);
+      const row = data.get().find((r) => r[rowKey] === cell.rowKey);
       if (row) await editing.onSave(row, changes);
     }
 
@@ -502,22 +522,28 @@ export function createDataTable<T extends Record<string, any>>(
   // Export
   // ============================================================
 
-  function exportToCSV(filename = 'data.csv', options: { includeHeaders?: boolean; separator?: string } = {}) {
+  function exportToCSV(
+    filename = 'data.csv',
+    options: { includeHeaders?: boolean; separator?: string } = {},
+  ) {
     const { includeHeaders = true, separator = ',' } = options;
-    const cols = visibleColumns.get().filter(c => !c.hidden);
+    const cols = visibleColumns.get().filter((c) => !c.hidden);
     const rows = filteredData.get();
 
     let csv = '';
 
     if (includeHeaders) {
-      csv += cols.map(c => `"${c.title.replace(/"/g, '""')}"`).join(separator) + '\n';
+      csv += cols.map((c) => `"${c.title.replace(/"/g, '""')}"`).join(separator) + '\n';
     }
 
     for (const row of rows) {
-      csv += cols.map(col => {
-        const value = getNestedValue(row, col.dataIndex || col.key);
-        return `"${String(value ?? '').replace(/"/g, '""')}"`;
-      }).join(separator) + '\n';
+      csv +=
+        cols
+          .map((col) => {
+            const value = getNestedValue(row, col.dataIndex || col.key);
+            return `"${String(value ?? '').replace(/"/g, '""')}"`;
+          })
+          .join(separator) + '\n';
     }
 
     downloadFile(csv, filename, 'text/csv;charset=utf-8;');
@@ -540,7 +566,7 @@ export function createDataTable<T extends Record<string, any>>(
       page: currentPage.get(),
       pageSize: pageSize.get(),
       selectedRows: Array.from(selectedRows.get()),
-      hiddenColumns: Array.from(hiddenColumns.get())
+      hiddenColumns: Array.from(hiddenColumns.get()),
     };
   }
 
@@ -667,6 +693,6 @@ export function createDataTable<T extends Record<string, any>>(
     // State
     getState,
     loadState,
-    reset
+    reset,
   };
 }

@@ -41,9 +41,13 @@ export function processText(
       el.textContent = value === null || value === undefined ? '' : String(value);
     } catch (err) {
       // Report to error boundary (IMPROVE 12).
-      const available = Object.keys(context).filter(k => k.startsWith('$')).join(', ');
+      const available = Object.keys(context)
+        .filter((k) => k.startsWith('$'))
+        .join(', ');
       reportError(
-        new Error(`[zen-text] Expression "${expr}" failed\n  Element: <${el.tagName.toLowerCase()}>\n  Reason: ${(err as Error).message}\n  Available state: ${available || 'none'}`),
+        new Error(
+          `[zen-text] Expression "${expr}" failed\n  Element: <${el.tagName.toLowerCase()}>\n  Reason: ${(err as Error).message}\n  Available state: ${available || 'none'}`,
+        ),
         'expression',
         { expression: expr, element: el },
       );

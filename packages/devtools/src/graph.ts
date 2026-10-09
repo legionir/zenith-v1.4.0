@@ -286,11 +286,27 @@ export class DependencyGraph {
    */
   private addEdge(from: string, to: string, type: GraphEdgeType): void {
     if (!this.nodes.has(from)) {
-      console.warn('[Zenith DevTools] addEdge: node "' + from + '" does not exist. Edge type=' + type + ' to="' + to + '" skipped.');
+      console.warn(
+        '[Zenith DevTools] addEdge: node "' +
+          from +
+          '" does not exist. Edge type=' +
+          type +
+          ' to="' +
+          to +
+          '" skipped.',
+      );
       return;
     }
     if (!this.nodes.has(to)) {
-      console.warn('[Zenith DevTools] addEdge: node "' + to + '" does not exist. Edge type=' + type + ' from="' + from + '" skipped.');
+      console.warn(
+        '[Zenith DevTools] addEdge: node "' +
+          to +
+          '" does not exist. Edge type=' +
+          type +
+          ' from="' +
+          from +
+          '" skipped.',
+      );
       return;
     }
     const key = from + '' + to + '' + type;

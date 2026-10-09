@@ -46,14 +46,14 @@ import {
 } from '@zenith/actions';
 ```
 
-| تابع | کاربرد |
-|------|--------|
-| `registerAction(name, fn)` | ثبت یا بازنویسی یک اکشن |
-| `unregisterAction(name)` | حذف یک اکشن (برمی‌گرداند `boolean`) |
-| `getAction(name)` | دریافت تابع اکشن یا `undefined` |
-| `hasAction(name)` | بررسی وجود اکشن |
-| `clearActions()` | پاکسازی کل Registry (فقط تست/HMR) |
-| `action.register` / `action.unregister` / … | همان توابع، در قالب یک شیء |
+| تابع                                        | کاربرد                              |
+| ------------------------------------------- | ----------------------------------- |
+| `registerAction(name, fn)`                  | ثبت یا بازنویسی یک اکشن             |
+| `unregisterAction(name)`                    | حذف یک اکشن (برمی‌گرداند `boolean`) |
+| `getAction(name)`                           | دریافت تابع اکشن یا `undefined`     |
+| `hasAction(name)`                           | بررسی وجود اکشن                     |
+| `clearActions()`                            | پاکسازی کل Registry (فقط تست/HMR)   |
+| `action.register` / `action.unregister` / … | همان توابع، در قالب یک شیء          |
 
 ## ActionContext
 
@@ -61,9 +61,9 @@ import {
 
 ```typescript
 interface ActionContext {
-  event: Event;                  // رویداد اصلی مرورگر
-  state: Record<string, any>;    // همان State که به Zen.start داده شد
-  element: HTMLElement;           // عنصری که zen-action روی آن بود
+  event: Event; // رویداد اصلی مرورگر
+  state: Record<string, any>; // همان State که به Zen.start داده شد
+  element: HTMLElement; // عنصری که zen-action روی آن بود
 }
 ```
 

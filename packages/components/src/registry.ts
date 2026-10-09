@@ -81,7 +81,9 @@ function isHTMLTemplateElement(value: any): value is HTMLTemplateElement {
  */
 export function registerComponent(name: string, template: HTMLTemplateElement): void {
   if (typeof name !== 'string' || name.length === 0) {
-    throw new Error(`[Zenith] Component name must be a non-empty string. Received: ${String(name)}`);
+    throw new Error(
+      `[Zenith] Component name must be a non-empty string. Received: ${String(name)}`,
+    );
   }
   if (!isHTMLTemplateElement(template)) {
     throw new Error(`[Zenith] Component "${name}" requires an HTMLTemplateElement.`);
@@ -156,7 +158,12 @@ export function trackComponentLifecycle(element: HTMLElement, dispose: () => voi
   componentDisposes.set(element, dispose);
 
   // Start the MutationObserver on the first call if not already running.
-  if (!_lifecycleObserver && typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body) {
+  if (
+    !_lifecycleObserver &&
+    typeof MutationObserver !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    document.body
+  ) {
     _lifecycleObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const removedNode of mutation.removedNodes) {
@@ -240,12 +247,14 @@ export function defineComponent<TProps extends Record<string, any> = Record<stri
       try {
         // Dynamic import to avoid static circular dependency at module
         // resolution time. The actual resolution still happens once.
-        import('./processor').then(processor => {
-          processor.registerLifecycle(name, { onMount, onDestroy });
-        }).catch(() => {
-          // processor not yet available — silently skip; lifecycle hooks
-          // only activate when processComponent() runs later.
-        });
+        import('./processor')
+          .then((processor) => {
+            processor.registerLifecycle(name, { onMount, onDestroy });
+          })
+          .catch(() => {
+            // processor not yet available — silently skip; lifecycle hooks
+            // only activate when processComponent() runs later.
+          });
       } catch {
         // processor not yet available — silently skip; lifecycle hooks
         // only activate when processComponent() runs later.

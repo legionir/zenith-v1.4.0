@@ -15,7 +15,7 @@
 //   firstName.set('Reza');
 //   fullName.get(); // 'Reza Mohammadi'  ← به صورت خودکار آپدیت شد.
 
-import { Signal, signal, type ReadonlySignal } from './signal';
+import { type Signal, signal, type ReadonlySignal } from './signal';
 import { effect } from './effect';
 import { createOwner, disposeOwner, getOwner } from './context';
 
@@ -80,18 +80,21 @@ export class Computed<T> {
     this._value = this.computation();
     this._innerSignal = signal<T>(this._value as T);
 
-    this._cleanup = effect(() => {
-      const newValue = this.computation();
+    this._cleanup = effect(
+      () => {
+        const newValue = this.computation();
 
-      // اگر مقدار واقعاً تغییر کرده، innerSignal را update می‌کنیم.
-      // در غیر این صورت، هیچ کاری نمی‌کنیم تا از re-render غیرضروری جلوگیری شود.
-      if (!Object.is(newValue, this._value)) {
-        this._value = newValue;
-        this._innerSignal.set(newValue as T);
-      }
-    }, {
-      owner: this._owner,
-    });
+        // اگر مقدار واقعاً تغییر کرده، innerSignal را update می‌کنیم.
+        // در غیر این صورت، هیچ کاری نمی‌کنیم تا از re-render غیرضروری جلوگیری شود.
+        if (!Object.is(newValue, this._value)) {
+          this._value = newValue;
+          this._innerSignal.set(newValue as T);
+        }
+      },
+      {
+        owner: this._owner,
+      },
+    );
 
     this._initialized = true;
   }

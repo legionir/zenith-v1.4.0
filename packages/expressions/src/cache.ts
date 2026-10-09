@@ -18,7 +18,7 @@
 //   - قبل از Cache، validate اجرا می‌شود تا اگر Expression مخربی بود
 //     به جای cache، خطا پرتاب شود.
 
-import { Parser, ASTNode } from './parser';
+import { Parser, type ASTNode } from './parser';
 import { validate } from './validator';
 import { sanitizeExpression } from './security-constants';
 

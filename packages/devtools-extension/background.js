@@ -10,9 +10,9 @@ chrome.devtools.panels.create(
   'Zenith',
   null, // icon (از default استفاده می‌کند)
   'popup.html',
-  (panel) => {
+  (_panel) => {
     console.log('[Zenith DevTools] DevTools panel created.');
-  }
+  },
 );
 
 // گوش دادن به پیام‌های از content script.
@@ -22,7 +22,7 @@ chrome.devtools.panels.create(
 // default notification icon. To restore a branded icon later, drop PNGs into
 // `icons/` (icon16.png, icon48.png, icon128.png), add an `"icons"` field to
 // manifest.json, and pass `iconUrl: 'icons/icon48.png'` here.
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
   if (message.type === 'ZENITH_NOTIFICATION') {
     // نمایش notification برای state changes مهم.
     chrome.notifications.create({

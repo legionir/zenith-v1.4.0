@@ -40,17 +40,40 @@
  * (به‌خاطر `fill: 'forwards'`).
  */
 export const ANIMATE_PRESETS: Record<string, Keyframe[]> = {
-  fadeIn:    [{ opacity: 0 }, { opacity: 1 }],
-  fadeOut:   [{ opacity: 1 }, { opacity: 0 }],
-  slideUp:   [{ transform: 'translateY(20px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-  slideDown: [{ transform: 'translateY(-20px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-  slideLeft: [{ transform: 'translateX(40px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-  slideRight:[{ transform: 'translateX(-40px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-  scaleIn:   [{ transform: 'scale(0.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }],
-  scaleOut:  [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(0.8)', opacity: 0 }],
-  bounce:    [{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }],
-  shake:     [{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }],
-  rotate:    [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+  fadeIn: [{ opacity: 0 }, { opacity: 1 }],
+  fadeOut: [{ opacity: 1 }, { opacity: 0 }],
+  slideUp: [
+    { transform: 'translateY(20px)', opacity: 0 },
+    { transform: 'none', opacity: 1 },
+  ],
+  slideDown: [
+    { transform: 'translateY(-20px)', opacity: 0 },
+    { transform: 'none', opacity: 1 },
+  ],
+  slideLeft: [
+    { transform: 'translateX(40px)', opacity: 0 },
+    { transform: 'none', opacity: 1 },
+  ],
+  slideRight: [
+    { transform: 'translateX(-40px)', opacity: 0 },
+    { transform: 'none', opacity: 1 },
+  ],
+  scaleIn: [
+    { transform: 'scale(0.8)', opacity: 0 },
+    { transform: 'scale(1)', opacity: 1 },
+  ],
+  scaleOut: [
+    { transform: 'scale(1)', opacity: 1 },
+    { transform: 'scale(0.8)', opacity: 0 },
+  ],
+  bounce: [{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }],
+  shake: [
+    { transform: 'translateX(0)' },
+    { transform: 'translateX(-10px)' },
+    { transform: 'translateX(10px)' },
+    { transform: 'translateX(0)' },
+  ],
+  rotate: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
 };
 
 /**
@@ -103,7 +126,9 @@ export function zenAnimate(
       // commitStyles استایل نهایی انیمیشن را به‌عنوان inline style روی عنصر
       // ثبت می‌کند تا بعد از cancel حذف نشود. در محیط‌هایی که این متد را
       // ندارند (مثل برخی jsdomها) silently نادیده گرفته می‌شود.
-      try { anim.commitStyles(); } catch {}
+      try {
+        anim.commitStyles();
+      } catch {}
       // cancel انیمیشن را از lookups مرورگر حذف می‌کند (memory cleanup)
       // بدون اینکه استایل commitشده را بازنشاند.
       anim.cancel();
@@ -166,7 +191,7 @@ export function parseAnimateAttr(value: string): ParsedAnimateAttr {
   if (!keyframes) {
     throw new Error(
       `[zen-animate] Unknown preset '${preset}'. ` +
-      `Available: ${Object.keys(ANIMATE_PRESETS).join(', ')}.`,
+        `Available: ${Object.keys(ANIMATE_PRESETS).join(', ')}.`,
     );
   }
 
@@ -194,9 +219,7 @@ export function parseAnimateAttr(value: string): ParsedAnimateAttr {
         break;
       case 'iterations':
         // 'Infinity' رشته‌ای هم پشتیبانی شود (loop بی‌نهایت).
-        options.iterations = rawVal.toLowerCase() === 'infinity'
-          ? Infinity
-          : Number(rawVal);
+        options.iterations = rawVal.toLowerCase() === 'infinity' ? Infinity : Number(rawVal);
         break;
       case 'iterationStart':
         options.iterationStart = Number(rawVal);

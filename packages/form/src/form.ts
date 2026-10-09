@@ -57,7 +57,14 @@ export function createReactiveForm<T extends Record<string, any>>(options: FormO
 
   return { values, errors, submitting, startSubmit, endSubmit };
 }
-import { validateField, validateFieldAsync, validateForm, validateFormAsync, type FieldValidation, type FormValidation } from './validator';
+import {
+  validateField,
+  validateFieldAsync,
+  validateForm,
+  validateFormAsync,
+  type FieldValidation,
+  type FormValidation,
+} from './validator';
 
 export interface FormFieldState {
   value: any;
@@ -124,9 +131,13 @@ export class FormStore {
     });
   }
 
-  get signal(): Signal<FormStoreState> { return this._signal; }
+  get signal(): Signal<FormStoreState> {
+    return this._signal;
+  }
 
-  getValue(name: string): any { return this._signal.get().fields[name]?.value; }
+  getValue(name: string): any {
+    return this._signal.get().fields[name]?.value;
+  }
 
   setValue(name: string, value: any): void {
     this._updateField(name, value, false);
@@ -146,7 +157,8 @@ export class FormStore {
     if (!field) return;
 
     const allValues: Record<string, any> = {};
-    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][]) allValues[k] = v.value;
+    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][])
+      allValues[k] = v.value;
 
     const validation = validateField(value, this._rules[name] || '', allValues);
 
@@ -167,11 +179,14 @@ export class FormStore {
     for (const [otherName, otherField] of Object.entries(newFields) as [string, FormFieldState][]) {
       if (otherName === name) continue;
       const otherRules = this._rules[otherName] || '';
-      if (otherRules.includes('equalsField') ||
-          otherRules.includes('differentFrom') ||
-          otherRules.includes('requiresField')) {
+      if (
+        otherRules.includes('equalsField') ||
+        otherRules.includes('differentFrom') ||
+        otherRules.includes('requiresField')
+      ) {
         const newAllValues: Record<string, any> = {};
-        for (const [k, v] of Object.entries(newFields) as [string, FormFieldState][]) newAllValues[k] = v.value;
+        for (const [k, v] of Object.entries(newFields) as [string, FormFieldState][])
+          newAllValues[k] = v.value;
         newFields[otherName] = {
           ...otherField,
           validation: validateField(otherField.value, otherRules, newAllValues),
@@ -200,10 +215,13 @@ export class FormStore {
 
     // FIX (BUG-FRM-05): استفاده از debounce per-field اگر تنظیم شده باشد.
     const debounceMs = this._fieldDebounce.get(name) ?? FormStore.DEFAULT_DEBOUNCE_MS;
-    this._asyncValidationTimers.set(name, setTimeout(async () => {
-      this._asyncValidationTimers.delete(name);
-      await this._validateFieldAsync(name);
-    }, debounceMs));
+    this._asyncValidationTimers.set(
+      name,
+      setTimeout(async () => {
+        this._asyncValidationTimers.delete(name);
+        await this._validateFieldAsync(name);
+      }, debounceMs),
+    );
   }
 
   /** اجرای async validation روی یک فیلد. */
@@ -226,11 +244,17 @@ export class FormStore {
     });
 
     const allValues: Record<string, any> = {};
-    for (const [k, v] of Object.entries(this._signal.get().fields) as [string, FormFieldState][]) allValues[k] = v.value;
+    for (const [k, v] of Object.entries(this._signal.get().fields) as [string, FormFieldState][])
+      allValues[k] = v.value;
 
     // FIX (v1.2.3): پاس دادن AbortSignal به validateFieldAsync تا هنگام destroy
     // بتوان درخواست‌های در حال انجام را لغو کرد.
-    const result = await validateFieldAsync(field.value, this._rules[name] || '', allValues, this._abortController.signal);
+    const result = await validateFieldAsync(
+      field.value,
+      this._rules[name] || '',
+      allValues,
+      this._abortController.signal,
+    );
 
     const currentState = this._signal.get();
     const currentField = currentState.fields[name];
@@ -280,7 +304,8 @@ export class FormStore {
   validate(): FormValidation {
     const state = this._signal.get();
     const values: Record<string, any> = {};
-    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][]) values[k] = v.value;
+    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][])
+      values[k] = v.value;
     const result = validateForm(values, this._rules);
     const newFields = { ...state.fields };
     for (const [name, validation] of Object.entries(result.fields)) {
@@ -299,7 +324,8 @@ export class FormStore {
     this._signal.set({ ...state, validating: true });
 
     const values: Record<string, any> = {};
-    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][]) values[k] = v.value;
+    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][])
+      values[k] = v.value;
     const result = await validateFormAsync(values, this._rules);
 
     // FIX (v1.2.3): قبلاً newFields از state.fields قدیمی (snapshot قبل از await)
@@ -326,10 +352,16 @@ export class FormStore {
     return result;
   }
 
-  isValid(): boolean { return this._signal.get().valid; }
+  isValid(): boolean {
+    return this._signal.get().valid;
+  }
 
-  startSubmit(): void { this._signal.set({ ...this._signal.get(), submitting: true }); }
-  endSubmit(): void { this._signal.set({ ...this._signal.get(), submitting: false, submitted: true }); }
+  startSubmit(): void {
+    this._signal.set({ ...this._signal.get(), submitting: true });
+  }
+  endSubmit(): void {
+    this._signal.set({ ...this._signal.get(), submitting: false, submitted: true });
+  }
 
   /** Submit handler با auto-validation. */
   async submit(handler: (values: Record<string, any>) => Promise<void> | void): Promise<boolean> {
@@ -359,7 +391,8 @@ export class FormStore {
   getValues(): Record<string, any> {
     const state = this._signal.get();
     const values: Record<string, any> = {};
-    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][]) values[k] = v.value;
+    for (const [k, v] of Object.entries(state.fields) as [string, FormFieldState][])
+      values[k] = v.value;
     return values;
   }
 
@@ -386,7 +419,9 @@ export class FormStore {
           validating: false,
         },
       },
-      valid: Object.values(state.fields).every((f: FormFieldState) => f.validation.valid) && validateField(initial, rules || '').valid,
+      valid:
+        Object.values(state.fields).every((f: FormFieldState) => f.validation.valid) &&
+        validateField(initial, rules || '').valid,
     });
   }
 
@@ -422,10 +457,15 @@ export class FormStore {
     }
     // FIX (BUG-FRM-03): اعتبارسنجی index.
     if (index < 0 || index >= arr.length) {
-      console.error(`[Zenith] removeItem: index ${index} out of bounds for "${fieldName}" (length=${arr.length})`);
+      console.error(
+        `[Zenith] removeItem: index ${index} out of bounds for "${fieldName}" (length=${arr.length})`,
+      );
       return;
     }
-    this.setValue(fieldName, arr.filter((_, i) => i !== index));
+    this.setValue(
+      fieldName,
+      arr.filter((_, i) => i !== index),
+    );
   }
 
   /** Move یک آیتم در array. */
@@ -437,7 +477,9 @@ export class FormStore {
     }
     // FIX (BUG-FRM-03): اعتبارسنجی indexها با خطای مشخص.
     if (from < 0 || from >= arr.length || to < 0 || to >= arr.length) {
-      console.error(`[Zenith] moveItem: index out of bounds for "${fieldName}" (length=${arr.length}, from=${from}, to=${to})`);
+      console.error(
+        `[Zenith] moveItem: index out of bounds for "${fieldName}" (length=${arr.length}, from=${from}, to=${to})`,
+      );
       return;
     }
     const [item] = arr.splice(from, 1);
@@ -571,7 +613,7 @@ export interface FieldArrayApi<T> {
  * schema validation, async validators, auto-save, and dirty/touched tracking.
  */
 export function createAdvancedForm<T extends Record<string, any>>(
-  options: AdvancedFormOptions<T>
+  options: AdvancedFormOptions<T>,
 ): AdvancedFormApi<T> {
   const {
     initialValues,
@@ -581,7 +623,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     onSubmit,
     autoSave,
     validateOnChange = true,
-    validateOnBlur = false
+    validateOnBlur = false,
   } = options;
 
   const values = signal<T>({ ...initialValues });
@@ -596,7 +638,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
   const dirty = computed(() => Object.values(dirtyFields.get()).some(Boolean));
   const valid = computed(() => {
     const err = errors.get();
-    return Object.values(err).every(e => e === null || e === undefined);
+    return Object.values(err).every((e) => e === null || e === undefined);
   });
 
   // Auto-save setup
@@ -626,9 +668,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     if (schema) {
       const result = schema.safeParse(currentValues);
       if (!result.success && result.error) {
-        const fieldError = result.error.errors?.find(
-          (e: any) => e.path?.[0] === name
-        );
+        const fieldError = result.error.errors?.find((e: any) => e.path?.[0] === name);
         if (fieldError) {
           const msg = fieldError.message || 'Invalid value';
           setFieldError(name, msg);
@@ -674,7 +714,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
 
     validating.set(false);
     formError.set(null);
-    return results.every(r => r === null);
+    return results.every((r) => r === null);
   }
 
   function setFieldValue(name: string, value: any) {
@@ -687,7 +727,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     dirtyFields.set({ ...dirtyFields.get(), [name]: isDirty });
 
     if (validateOnChange && !validateOnBlur) {
-      validateField(name);
+      void validateField(name);
     }
   }
 
@@ -698,7 +738,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
   function setFieldTouched(name: string, isTouched = true) {
     touchedFields.set({ ...touchedFields.get(), [name]: isTouched });
     if (validateOnBlur && isTouched) {
-      validateField(name);
+      void validateField(name);
     }
   }
 
@@ -709,7 +749,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
       error: computed(() => errors.get()[nameStr] || null) as unknown as Signal<string | null>,
       touched: computed(() => !!touchedFields.get()[nameStr]) as unknown as Signal<boolean>,
       dirty: computed(() => !!dirtyFields.get()[nameStr]) as unknown as Signal<boolean>,
-      validating
+      validating,
     };
   }
 
@@ -723,7 +763,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
       error: computed(() => errors.get()[path] || null) as unknown as Signal<string | null>,
       touched: computed(() => !!touchedFields.get()[path]) as unknown as Signal<boolean>,
       dirty: computed(() => !!dirtyFields.get()[path]) as unknown as Signal<boolean>,
-      validating
+      validating,
     };
   }
 
@@ -772,7 +812,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
         arr[b] = itemA;
         setArray(arr);
       },
-      clear: () => setArray([])
+      clear: () => setArray([]),
     };
   }
 
@@ -821,7 +861,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     reset,
     submit,
     startSubmit: () => submitting.set(true),
-    endSubmit: () => submitting.set(false)
+    endSubmit: () => submitting.set(false),
   };
 }
 
@@ -851,7 +891,7 @@ export interface WizardFormApi<T extends Record<string, any>> extends AdvancedFo
  * Create a multi-step wizard form.
  */
 export function createWizardForm<T extends Record<string, any>>(
-  options: AdvancedFormOptions<T> & { steps: WizardStep[] }
+  options: AdvancedFormOptions<T> & { steps: WizardStep[] },
 ): WizardFormApi<T> {
   const form = createAdvancedForm(options);
   const currentStep = signal(0);
@@ -871,7 +911,7 @@ export function createWizardForm<T extends Record<string, any>>(
     }
     // Validate current step fields synchronously (async validation would need Promise)
     const errs = form.errors.get();
-    const allValid = step.fields.every(f => !errs[f]);
+    const allValid = step.fields.every((f) => !errs[f]);
     canGoNext.set(allValid);
   });
 
@@ -881,8 +921,8 @@ export function createWizardForm<T extends Record<string, any>>(
     if (!step) return;
 
     // Validate step fields
-    const results = await Promise.all(step.fields.map(f => form.validateField(f)));
-    if (!results.every(r => r === null)) return;
+    const results = await Promise.all(step.fields.map((f) => form.validateField(f)));
+    if (!results.every((r) => r === null)) return;
 
     completedSteps.get().add(stepIndex);
     completedSteps.set(new Set(completedSteps.get()));
@@ -919,6 +959,6 @@ export function createWizardForm<T extends Record<string, any>>(
     next,
     previous,
     goToStep,
-    isStepComplete
+    isStepComplete,
   };
 }

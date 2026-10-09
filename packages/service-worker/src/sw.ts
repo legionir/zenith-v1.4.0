@@ -22,10 +22,7 @@
 // رفتنِ mutationها پس از restartِ SW جلوگیری شود. همچنین retry با exponential
 // backoff و jitter انجام می‌شود تا سرور تحت فشار قرار نگیرد.
 
-import {
-  applyStrategy,
-  type CacheStrategyName,
-} from './strategies.js';
+import { applyStrategy, type CacheStrategyName } from './strategies.js';
 
 /**
  * FEATURE (v0.4.0): RouteMatcher — تطبیق‌دهنده‌ی مسیر.
@@ -273,20 +270,20 @@ export function setupSW(config: SWRuntimeConfig): void {
     if (typeof event.respondWith !== 'function') return;
 
     if (matchedRoute) {
-      const cacheName = versionedCacheName(cfg.cachePrefix!, matchedRoute.cacheName || cfg.defaultCacheName!);
+      const cacheName = versionedCacheName(
+        cfg.cachePrefix!,
+        matchedRoute.cacheName || cfg.defaultCacheName!,
+      );
       event.respondWith(
-        applyStrategy(
-          matchedRoute.strategy,
-          request,
-          cacheName,
-          matchedRoute.timeout,
-        ).catch((err) => {
-          console.error('[Zenith SW] strategy failed:', err);
-          return new Response(JSON.stringify({ error: 'SW strategy failed' }), {
-            status: 502,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }),
+        applyStrategy(matchedRoute.strategy, request, cacheName, matchedRoute.timeout).catch(
+          (err) => {
+            console.error('[Zenith SW] strategy failed:', err);
+            return new Response(JSON.stringify({ error: 'SW strategy failed' }), {
+              status: 502,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          },
+        ),
       );
       return;
     }
@@ -301,13 +298,7 @@ export function setupSW(config: SWRuntimeConfig): void {
 
     // defaultStrategy برای GET های unmatched.
     const defaultCacheName = versionedCacheName(cfg.cachePrefix!, cfg.defaultCacheName!);
-    event.respondWith(
-      applyStrategy(
-        cfg.defaultStrategy!,
-        request,
-        defaultCacheName,
-      ),
-    );
+    event.respondWith(applyStrategy(cfg.defaultStrategy!, request, defaultCacheName));
   });
 
   // FEATURE (v0.5.0): sync event — retry queued mutations با exponential backoff.
@@ -342,10 +333,7 @@ export function setupSW(config: SWRuntimeConfig): void {
         mutation.retryCount += 1;
         // FEATURE (v0.5.0): بعد از ۳ cycle sync ناموفق، mutation را drop می‌کنیم.
         if (mutation.retryCount >= 3) {
-          console.warn(
-            '[Zenith SW] dropping mutation after 3 failed sync cycles:',
-            mutation.url,
-          );
+          console.warn('[Zenith SW] dropping mutation after 3 failed sync cycles:', mutation.url);
           // FIX (v1.2.7): also remove dropped mutations from IndexedDB
           // immediately (same rationale as the success branch above).
           if (mutation.id != null) {
@@ -373,7 +361,7 @@ export function setupSW(config: SWRuntimeConfig): void {
     const data = event && event.data ? event.data : null;
     if (!data || typeof data !== 'object') return;
     if (data.type === 'SKIP_WAITING' && typeof swSelf.skipWaiting === 'function') {
-      swSelf.skipWaiting();
+      void swSelf.skipWaiting();
     } else if (data.type === 'GET_QUEUE_SIZE') {
       const source = event.source;
       if (source && typeof source.postMessage === 'function') {
@@ -539,10 +527,7 @@ async function retryMutation(mutation: QueuedMutation): Promise<boolean> {
  * @param maxRetries تعداد retryهای داخلی (پیش‌فرض: ۳).
  * @returns true اگر حداقل یک تلاش موفق بود.
  */
-async function retryWithBackoff(
-  mutation: QueuedMutation,
-  maxRetries = 3,
-): Promise<boolean> {
+async function retryWithBackoff(mutation: QueuedMutation, maxRetries = 3): Promise<boolean> {
   const baseDelay = 1000;
   const maxDelay = 30000;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -609,11 +594,19 @@ async function loadQueue(): Promise<QueuedMutation[]> {
       req.onerror = () => resolve([]);
       tx.oncomplete = () => db.close();
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve([]);
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve([]);
     }
   });
@@ -640,14 +633,26 @@ async function addToQueue(mutation: QueuedMutation): Promise<number | null> {
       req.onsuccess = () => resolve(req.result as number);
       req.onerror = () => resolve(null);
       tx.oncomplete = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
       };
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve(null);
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve(null);
     }
   });
@@ -665,15 +670,27 @@ async function removeFromQueue(id: number): Promise<void> {
       const store = tx.objectStore(SYNC_STORE);
       store.delete(id);
       tx.oncomplete = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve();
       };
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve();
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve();
     }
   });
@@ -716,7 +733,11 @@ function addSWListener(type: string, handler: EventListener) {
  */
 export function cleanupSWListeners(): void {
   for (const h of swHandlers) {
-    try { (self as any).removeEventListener(h.type, h.handler); } catch { /* ignore */ }
+    try {
+      (self as any).removeEventListener(h.type, h.handler);
+    } catch {
+      /* ignore */
+    }
   }
   swHandlers.length = 0;
 }

@@ -34,7 +34,7 @@
 //    اگر DevTools فعال نباشد، تمام توابع این ماژول no-op می‌شوند تا هیچ
 //    overhead در production نداشته باشد.
 
-import { Signal } from './signal';
+import { type Signal } from './signal';
 // IMP-05 (v1.3.0): استفاده از DevTools Helper یکپارچه.
 import { isDevtoolsEnabled } from './devtools';
 
@@ -182,11 +182,7 @@ export function registerSignal(sig: Signal<any>, name?: string): number {
 /**
  * ثبت یک تغییر State در Timeline.
  */
-export function recordStateChange(
-  sig: Signal<any>,
-  oldValue: any,
-  newValue: any,
-): void {
+export function recordStateChange(sig: Signal<any>, oldValue: any, newValue: any): void {
   if (!isDevtoolsEnabled()) return;
 
   // BUG-04 FIX: پاکسازی دوره‌ای در صورت نبود FinalizationRegistry.
@@ -259,9 +255,7 @@ export function getStateTimeline(limit: number = 100): StateChange[] {
 /**
  * ثبت یک callback برای تغییرات State.
  */
-export function onStateChange(
-  callback: (change: StateChange) => void,
-): () => void {
+export function onStateChange(callback: (change: StateChange) => void): () => void {
   if (!isDevtoolsEnabled()) return () => {};
   stateChangeListeners.push(callback);
   return () => {

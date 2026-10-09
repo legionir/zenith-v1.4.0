@@ -163,7 +163,7 @@ export class CrudEngine {
     if (!resource) {
       throw new Error(
         `[CrudEngine] Resource "${config.resource}" not found. ` +
-        `Before using zen-crud, call createResource("${config.resource}", { url: '...' }).`,
+          `Before using zen-crud, call createResource("${config.resource}", { url: '...' }).`,
       );
     }
     this.resource = resource;
@@ -252,9 +252,7 @@ export class CrudEngine {
     // اگر CrudEngine به‌صورت standalone استفاده شود (بدون Zen app بیرونی)،
     // این کار هیچ listenerی را حذف نمی‌کند چون teardown فقط listenerهای همین
     // session را برمی‌دارد.
-    const teardown = (this.host as any).__zenithDelegationTeardown as
-      | (() => void)
-      | undefined;
+    const teardown = (this.host as any).__zenithDelegationTeardown as (() => void) | undefined;
     // نکته: teardown را اینجا فراخوانی نمی‌کنیم تا در حالت standalone هم کار کند.
     // در عوض، در action handlerها از یک event-marker برای جلوگیری از double-fire
     // استفاده می‌کنیم (به registerActions مراجعه کنید).
@@ -335,21 +333,19 @@ export class CrudEngine {
       const filters = this.activeFilters.get();
       for (const [field, value] of Object.entries(filters)) {
         if (value !== '' && value != null) {
-          result = result.filter(
-            item => String(item[field]) === String(value),
-          );
+          result = result.filter((item) => String(item[field]) === String(value));
         }
       }
 
       // ── ۲. Search ──
       const q = this.searchQuery.get().trim().toLowerCase();
       if (q) {
-        const fields =
-          this.config.searchFields ??
-          this.config.columns.map(c => c.field);
-        result = result.filter(item =>
-          fields.some(f =>
-            String(item[f] ?? '').toLowerCase().includes(q),
+        const fields = this.config.searchFields ?? this.config.columns.map((c) => c.field);
+        result = result.filter((item) =>
+          fields.some((f) =>
+            String(item[f] ?? '')
+              .toLowerCase()
+              .includes(q),
           ),
         );
       }
@@ -469,45 +465,57 @@ export class CrudEngine {
     for (const col of this.config.columns) {
       if (!col.sortable) continue;
       const actionName = `__crud_${res}_sort_${col.field}`;
-      Zen.action(actionName, this.guardAction(() => {
-        const currentSort = this.sortBy.get();
-        const currentDir = this.sortDir.get();
-        if (currentSort === col.field) {
-          this.sortDir.set(currentDir === 'asc' ? 'desc' : 'asc');
-        } else {
-          this.sortBy.set(col.field);
-          this.sortDir.set('asc');
-        }
-      }));
+      Zen.action(
+        actionName,
+        this.guardAction(() => {
+          const currentSort = this.sortBy.get();
+          const currentDir = this.sortDir.get();
+          if (currentSort === col.field) {
+            this.sortDir.set(currentDir === 'asc' ? 'desc' : 'asc');
+          } else {
+            this.sortBy.set(col.field);
+            this.sortDir.set('asc');
+          }
+        }),
+      );
       this.registeredActions.push(actionName);
     }
 
     // ── Pagination Actions ──
     const prevAction = `__crud_${res}_prevPage`;
-    Zen.action(prevAction, this.guardAction(() => {
-      const p = this.currentPage.get();
-      if (p > 1) this.currentPage.set(p - 1);
-    }));
+    Zen.action(
+      prevAction,
+      this.guardAction(() => {
+        const p = this.currentPage.get();
+        if (p > 1) this.currentPage.set(p - 1);
+      }),
+    );
     this.registeredActions.push(prevAction);
 
     const nextAction = `__crud_${res}_nextPage`;
-    Zen.action(nextAction, this.guardAction(() => {
-      const p = this.currentPage.get();
-      const tp = this.totalPages.get();
-      if (p < tp) this.currentPage.set(p + 1);
-    }));
+    Zen.action(
+      nextAction,
+      this.guardAction(() => {
+        const p = this.currentPage.get();
+        const tp = this.totalPages.get();
+        if (p < tp) this.currentPage.set(p + 1);
+      }),
+    );
     this.registeredActions.push(nextAction);
 
     const gotoAction = `__crud_${res}_gotoPage`;
-    Zen.action(gotoAction, this.guardAction(({ element }: any) => {
-      const pageAttr = element.getAttribute('data-page');
-      if (!pageAttr) return;
-      const page = parseInt(pageAttr, 10);
-      const tp = this.totalPages.get();
-      if (!isNaN(page) && page >= 1 && page <= tp) {
-        this.currentPage.set(page);
-      }
-    }));
+    Zen.action(
+      gotoAction,
+      this.guardAction(({ element }: any) => {
+        const pageAttr = element.getAttribute('data-page');
+        if (!pageAttr) return;
+        const page = parseInt(pageAttr, 10);
+        const tp = this.totalPages.get();
+        if (!isNaN(page) && page >= 1 && page <= tp) {
+          this.currentPage.set(page);
+        }
+      }),
+    );
     this.registeredActions.push(gotoAction);
 
     // ── Row Actions ──
@@ -528,17 +536,14 @@ export class CrudEngine {
           const userAction = getAction(action.action);
           if (userAction) {
             try {
-              userAction(ctx);
+              void userAction(ctx);
             } catch (e) {
-              console.error(
-                `[CrudEngine] Row action "${action.action}" failed:`,
-                e,
-              );
+              console.error(`[CrudEngine] Row action "${action.action}" failed:`, e);
             }
           } else {
             console.warn(
               `[CrudEngine] Action "${action.action}" not registered. ` +
-              `Register it via Zen.action('${action.action}', fn).`,
+                `Register it via Zen.action('${action.action}', fn).`,
             );
           }
         }, action.permission),
@@ -557,17 +562,14 @@ export class CrudEngine {
           const userAction = getAction(action.action);
           if (userAction) {
             try {
-              userAction(ctx);
+              void userAction(ctx);
             } catch (e) {
-              console.error(
-                `[CrudEngine] Table action "${action.action}" failed:`,
-                e,
-              );
+              console.error(`[CrudEngine] Table action "${action.action}" failed:`, e);
             }
           } else {
             console.warn(
               `[CrudEngine] Action "${action.action}" not registered. ` +
-              `Register it via Zen.action('${action.action}', fn).`,
+                `Register it via Zen.action('${action.action}', fn).`,
             );
           }
         }, action.permission),
@@ -600,9 +602,7 @@ export class CrudEngine {
       if (permission) {
         const manager = getPermissionManager();
         if (manager && !manager.checkPermission(permission)) {
-          console.warn(
-            `[CrudEngine] Permission denied for action requiring "${permission}".`,
-          );
+          console.warn(`[CrudEngine] Permission denied for action requiring "${permission}".`);
           return;
         }
       }
@@ -646,8 +646,7 @@ export class CrudEngine {
    * ساخت HTML کامل جدول CRUD.
    */
   private buildHTML(): string {
-    const inner =
-      this.buildToolbar() + this.buildTable() + this.buildPagination();
+    const inner = this.buildToolbar() + this.buildTable() + this.buildPagination();
 
     // اگر permission تنظیم شده، کل جدول در یک wrapper با zen-permission قرار بده.
     // نکته: zen-permission به‌صورت دستی در wirePermissions() پردازش می‌شود.
@@ -681,7 +680,7 @@ export class CrudEngine {
       const label = filter.label ?? filter.field;
       const options = filter.options
         .map(
-          opt =>
+          (opt) =>
             `<option value="${this.escapeAttr(opt.value)}">${this.escapeHtml(opt.label)}</option>`,
         )
         .join('');
@@ -727,14 +726,13 @@ export class CrudEngine {
 
     // ── Head Cells ──
     const headCells = this.config.columns
-      .map(col => {
+      .map((col) => {
         const label = col.label ?? col.field;
         if (col.sortable) {
           const actionName = `__crud_${res}_sort_${col.field}`;
           // نشانگر sort: ↑ یا ↓ بر اساس sortBy و sortDir.
           // سینتکس: ternary تودرتو (سینتکس استاندارد Zenith Expression).
-          const indicator =
-            `$sortBy === '${col.field}' ? ($sortDir === 'asc' ? ' ↑' : ' ↓') : ''`;
+          const indicator = `$sortBy === '${col.field}' ? ($sortDir === 'asc' ? ' ↑' : ' ↓') : ''`;
           return (
             `<th>` +
             `<button type="button" class="zen-crud-sort-btn" ` +
@@ -753,13 +751,13 @@ export class CrudEngine {
 
     // ── Body Cells (data row template) ──
     const bodyCells = this.config.columns
-      .map(col => `<td zen-text="$item.${this.escapeAttr(col.field)}"></td>`)
+      .map((col) => `<td zen-text="$item.${this.escapeAttr(col.field)}"></td>`)
       .join('');
 
     let bodyRow = `<tr zen-for="item in $viewData" zen-key="item.id">${bodyCells}`;
     if (hasRowActions) {
       const actionButtons = (this.config.rowActions ?? [])
-        .map(action => {
+        .map((action) => {
           const actionName = `__crud_${res}_row_${action.name}`;
           const permAttr = action.permission
             ? ` zen-permission="${this.escapeAttr(action.permission)}"`
@@ -890,9 +888,7 @@ export class CrudEngine {
 
     // Dispose walker-created effects on the host.
     if (typeof document !== 'undefined' && this.host) {
-      const disposes = (this.host as any).__zenithDisposes as
-        | (() => void)[]
-        | undefined;
+      const disposes = (this.host as any).__zenithDisposes as (() => void)[] | undefined;
       if (disposes) {
         for (const d of disposes) {
           try {
@@ -906,9 +902,7 @@ export class CrudEngine {
       }
 
       // Remove event delegation listeners created by Zen.start on this host.
-      const teardown = (this.host as any).__zenithDelegationTeardown as
-        | (() => void)
-        | undefined;
+      const teardown = (this.host as any).__zenithDelegationTeardown as (() => void) | undefined;
       if (typeof teardown === 'function') {
         try {
           teardown();
@@ -955,10 +949,7 @@ export class CrudEngine {
    * Escape characters برای استفاده در attribute value (داخل کوتیشن دوتایی).
    */
   private escapeAttr(s: string): string {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 }
 
@@ -1016,9 +1007,7 @@ export function processCrud(
 
   // ── Validation ──
   if (!config || typeof config !== 'object' || !config.resource) {
-    console.error(
-      `[CrudEngine] Invalid config: missing "resource" property.`,
-    );
+    console.error(`[CrudEngine] Invalid config: missing "resource" property.`);
     return () => {};
   }
 

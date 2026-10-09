@@ -62,7 +62,7 @@ export function processIntersection(
     if (typeof console !== 'undefined' && console.warn) {
       console.warn(
         '[Zenith zen-intersection] IntersectionObserver is not available in this environment. ' +
-        'The directive will be a no-op.',
+          'The directive will be a no-op.',
       );
     }
     return () => {}; // no-op dispose

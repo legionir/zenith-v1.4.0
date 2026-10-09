@@ -14,7 +14,13 @@ npm install @zenith/testing
 
 ```typescript
 import { describe, it, expect } from 'bun:test';
-import { createTestHarness, trackEffect, createMockResource, render, zenithMatchers } from '@zenith/testing';
+import {
+  createTestHarness,
+  trackEffect,
+  createMockResource,
+  render,
+  zenithMatchers,
+} from '@zenith/testing';
 
 expect.extend(zenithMatchers);
 

@@ -282,13 +282,11 @@ export class ActionRegistry {
    */
   private _validateName(name: string): void {
     if (typeof name !== 'string' || name.length === 0) {
-      throw new Error(
-        `[Zenith] Action name must be a non-empty string. Received: ${String(name)}`,
-      );
+      throw new Error(`[Zenith] Action name must be a non-empty string. Received: ${String(name)}`);
     }
     // FEATURE (v1.3.0): Allow `.` for namespacing (e.g. `cart.save`).
     // Disallow leading/trailing dot, double dots, and unsafe chars.
-    if (!/^[a-zA-Z_$][a-zA-Z0-9_$.\-]*$/.test(name)) {
+    if (!/^[a-zA-Z_$][a-zA-Z0-9_$.-]*$/.test(name)) {
       throw new Error(
         `[Zenith] Invalid action name "${name}". Names must start with a letter, ` +
           `underscore, or $, and may contain letters, digits, underscores, $, ` +
@@ -304,9 +302,7 @@ export class ActionRegistry {
 
   private _validateFn(fn: ActionFn): void {
     if (typeof fn !== 'function') {
-      throw new Error(
-        `[Zenith] Action handler must be a function. Received: ${typeof fn}`,
-      );
+      throw new Error(`[Zenith] Action handler must be a function. Received: ${typeof fn}`);
     }
   }
 }
@@ -326,11 +322,7 @@ const _defaultRegistry = new ActionRegistry();
  * @param fn       تابعی که هنگام رخ دادن رویداد اجرا می‌شود.
  * @param metadata FEATURE (v1.3.0): متادیتای اختیاری برای DevTools.
  */
-export function registerAction(
-  name: string,
-  fn: ActionFn,
-  metadata?: ActionMetadata,
-): void {
+export function registerAction(name: string, fn: ActionFn, metadata?: ActionMetadata): void {
   _defaultRegistry.register(name, fn, metadata);
 }
 

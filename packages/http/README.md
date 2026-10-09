@@ -25,7 +25,7 @@ const { data } = await http.post<Session>('/login', { email, password });
 const response = await request<Product>({
   url: '/api/products',
   method: 'GET',
-  params: { category: 'electronics' }
+  params: { category: 'electronics' },
 });
 ```
 
@@ -37,7 +37,7 @@ import { setHttpConfig, addRequestInterceptor, addErrorInterceptor } from '@zeni
 // Base configuration
 setHttpConfig({
   baseURL: 'https://api.example.com',
-  timeout: 15000
+  timeout: 15000,
 });
 
 // Request interceptor for auth token
@@ -46,7 +46,7 @@ addRequestInterceptor((config) => {
   if (token) {
     config.headers = {
       ...config.headers,
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     };
   }
   return config;
@@ -81,7 +81,7 @@ users.refresh();
 
 ```typescript
 const cachedData = await http.get('/products', {
-  cache: { enabled: true, ttl: 30000 }
+  cache: { enabled: true, ttl: 30000 },
 });
 ```
 

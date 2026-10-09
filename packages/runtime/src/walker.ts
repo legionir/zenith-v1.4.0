@@ -203,11 +203,7 @@ function __elId(el: HTMLElement): number {
  * نکته: این تابع هرگز نباید exception بروز دهد — تمام بدنه‌ی آن در
  * try/catch پیچیده شده تا DevTools نتواند runtime را خراب کند.
  */
-function __trackDirective(
-  el: HTMLElement,
-  directiveType: string,
-  expression: string,
-): void {
+function __trackDirective(el: HTMLElement, directiveType: string, expression: string): void {
   const dt = __devtools();
   if (!dt || typeof dt.addDirective !== 'function') return;
   try {
@@ -284,10 +280,7 @@ export function processDOM(root: HTMLElement, state: Record<string, any>): void 
  * @param state آبجکت State (شامل Signalهای محلی).
  * @returns تابع teardown که تمام Effectهای ایجادشده را dispose می‌کند.
  */
-export function walkAndBind(
-  root: HTMLElement,
-  state: Record<string, any>,
-): () => void {
+export function walkAndBind(root: HTMLElement, state: Record<string, any>): () => void {
   const context = createContext(state);
   const disposes: (() => void)[] = [];
   walk(root, context, state, disposes);
@@ -355,9 +348,7 @@ function processIfChain(
   ) => void,
 ): () => void {
   // جمع‌آوری زنجیره
-  const chain: Array<{ el: HTMLElement; expr: string | null }> = [
-    { el: ifEl, expr: ifExpr },
-  ];
+  const chain: Array<{ el: HTMLElement; expr: string | null }> = [{ el: ifEl, expr: ifExpr }];
 
   let next = ifEl.nextElementSibling as HTMLElement | null;
   while (next) {
@@ -373,9 +364,7 @@ function processIfChain(
   }
 
   // compile همه expressions (یک‌بار)
-  const evalFns = chain.map(({ expr }) =>
-    expr ? compileExpression(expr) : () => true,
-  );
+  const evalFns = chain.map(({ expr }) => (expr ? compileExpression(expr) : () => true));
 
   // FIX (v1.2.8): P0-1 — برای هر branch یک Comment placeholder بساز و عنصر
   // را با آن جایگزین کن. عنصر در حافظه نگه داشته می‌شود؛ mountBranch آن را
@@ -419,7 +408,11 @@ function processIfChain(
     // ابتدا disposes فرزندان را اجرا کن
     const ds = branchDisposes[i]!;
     for (const d of ds) {
-      try { d(); } catch { /* یک dispose failure نباید بقیه را متوقف کند */ }
+      try {
+        d();
+      } catch {
+        /* یک dispose failure نباید بقیه را متوقف کند */
+      }
     }
     branchDisposes[i] = [];
     // عنصر را از DOM حذف کن (placeholder باقی می‌ماند برای re-mount)
@@ -435,7 +428,7 @@ function processIfChain(
     let newIndex = -1;
     for (let i = 0; i < chain.length; i++) {
       try {
-        if (Boolean(evalFns[i]!(context))) {
+        if (evalFns[i]!(context)) {
           newIndex = i;
           break;
         }
@@ -553,9 +546,9 @@ function walk(
     // IMPROVEMENT-05 (v1.0.1): بررسی zen-else-if و zen-else در sibling ها
     // اگر زنجیره if-else-if-else وجود دارد، از processIfChain استفاده می‌کنیم.
     const nextSibling = el.nextElementSibling as HTMLElement | null;
-    const hasElseChain = nextSibling && (
-      nextSibling.hasAttribute('zen-else-if') || nextSibling.hasAttribute('zen-else')
-    );
+    const hasElseChain =
+      nextSibling &&
+      (nextSibling.hasAttribute('zen-else-if') || nextSibling.hasAttribute('zen-else'));
 
     if (hasElseChain) {
       // پردازش زنجیره if-else-if-else
@@ -698,17 +691,14 @@ function walk(
   // state دوباره render شوند.
   if (el.hasAttribute('zen-memo')) {
     const memoExpr = el.getAttribute('zen-memo')!;
-    disposes.push(processMemo(
-      el,
-      memoExpr,
-      context,
-      (nodeEl, nodeCtx, nodeDisposes) => {
+    disposes.push(
+      processMemo(el, memoExpr, context, (nodeEl, nodeCtx, nodeDisposes) => {
         processNodeDirectives(nodeEl, nodeCtx, state, nodeDisposes);
         for (const child of Array.from(nodeEl.children)) {
           walk(child, nodeCtx, state, nodeDisposes);
         }
-      },
-    ));
+      }),
+    );
     return;
   }
 
@@ -727,17 +717,14 @@ function walk(
   // تا island ها بتوانند کل زیردرخت را کنترل کنند.
   if (el.hasAttribute('zen-island')) {
     const hydrateMode = el.getAttribute('zen-island') || 'load';
-    disposes.push(processIsland(
-      el,
-      hydrateMode,
-      context,
-      (nodeEl, nodeCtx, nodeDisposes) => {
+    disposes.push(
+      processIsland(el, hydrateMode, context, (nodeEl, nodeCtx, nodeDisposes) => {
         processNodeDirectives(nodeEl, nodeCtx, state, nodeDisposes);
         for (const child of Array.from(nodeEl.children)) {
           walk(child, nodeCtx, state, nodeDisposes);
         }
-      },
-    ));
+      }),
+    );
     return;
   }
 
@@ -776,8 +763,12 @@ function walk(
   if (el.hasAttribute('zen-resource')) {
     const resourceExpr = el.getAttribute('zen-resource')!;
     processResource(
-      el, resourceExpr, context,
-      (childNode, childContext, childDisposes) => { walk(childNode, childContext, state, childDisposes); },
+      el,
+      resourceExpr,
+      context,
+      (childNode, childContext, childDisposes) => {
+        walk(childNode, childContext, state, childDisposes);
+      },
       disposes,
     );
     return;

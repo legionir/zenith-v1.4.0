@@ -45,6 +45,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # #36: style gate — ESLint (0 errors) and Prettier check run first so
+      # avoidable style failures surface before the slower typecheck/build.
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
       # #27: core unit tests with the >=70% statement coverage gate (vitest).
       # A failing test or an unmet threshold fails the job and blocks the merge.
       - name: Unit tests + coverage gate

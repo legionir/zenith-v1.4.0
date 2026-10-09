@@ -176,7 +176,7 @@ function buildComponentContext(
           } catch (err) {
             console.warn(
               `[Zenith] Failed to evaluate prop "${propName}"="${expr}" on ` +
-              `<${el.tagName.toLowerCase()}>: ${(err as Error).message}.`,
+                `<${el.tagName.toLowerCase()}>: ${(err as Error).message}.`,
             );
             return undefined;
           }
@@ -219,10 +219,7 @@ function buildComponentContext(
  * @param content      DocumentFragment کلون‌شده از قالب کامپوننت.
  * @param slotContents محتوای slotها (از buildSlotContents).
  */
-function fillSlots(
-  content: DocumentFragment,
-  slotContents: Map<string, HTMLElement[]>,
-): void {
+function fillSlots(content: DocumentFragment, slotContents: Map<string, HTMLElement[]>): void {
   const slots = content.querySelectorAll('slot');
   // اگر هیچ slotی در قالب نبود، چیزی برای پر کردن نیست.
   if (slots.length === 0) return;
@@ -326,103 +323,98 @@ export function processComponent(
   if (_processingStack.has(tagName)) {
     throw new Error(
       `[Zenith] Circular component dependency detected: "${tagName}" ` +
-      `is already being processed. Check your component nesting — ` +
-      `component "${tagName}" should not reference itself ` +
-      `(directly or indirectly).`,
+        `is already being processed. Check your component nesting — ` +
+        `component "${tagName}" should not reference itself ` +
+        `(directly or indirectly).`,
     );
   }
   _processingStack.add(tagName);
 
   try {
+    // ── ۱. ساخت Context محلی (ارث‌بری از والد + Props) ──
+    const localContext = buildComponentContext(el, parentContext);
 
-  // ── ۱. ساخت Context محلی (ارث‌بری از والد + Props) ──
-  const localContext = buildComponentContext(el, parentContext);
+    // ── ۲. جمع‌آوری محتوای slot از داخل تگ کامپوننت ──
+    // این کار را قبل از clone و clear کردن innerHTML انجام می‌دهیم چون بعد از
+    // آن، فرزندان از بین می‌روند.
+    const slotContents = buildSlotContents(el);
 
-  // ── ۲. جمع‌آوری محتوای slot از داخل تگ کامپوننت ──
-  // این کار را قبل از clone و clear کردن innerHTML انجام می‌دهیم چون بعد از
-  // آن، فرزندان از بین می‌روند.
-  const slotContents = buildSlotContents(el);
-
-  // برای هر فرزند slot، یک flag ذخیره می‌کنیم تا بعداً بتوانیم تشخیص دهیم
-  // با کدام Context باید walk شوند (parent برای slot content، local برای
-  // محتوای خود قالب).
-  const slotNodes = new Set<HTMLElement>();
-  for (const nodes of slotContents.values()) {
-    for (const node of nodes) slotNodes.add(node);
-  }
-
-  // ── ۳. کلون کردن محتوای قالب ──
-  const content = template.content.cloneNode(true) as DocumentFragment;
-
-  // ── ۴. پر کردن slotها ──
-  fillSlots(content, slotContents);
-
-  // BUG-COM-03 (v1.3.0): Warn when slot content exists but component
-  // template has no <slot> element. Previously this was a silent no-op
-  // — the slot content children were simply cleared when we set
-  // el.innerHTML = '' above, and no warning was produced, making this
-  // a confusing developer experience.
-  {
-    const hasSlotContent = Array.from(slotContents.values()).some(arr => arr.length > 0);
-    const templateSlots = content.querySelectorAll('slot');
-    if (hasSlotContent && templateSlots.length === 0) {
-      console.warn(
-        `[Zenith] Component "${tagName}" has slot content but no <slot> ` +
-        `element in its template. The slot content will not be rendered.`,
-      );
+    // برای هر فرزند slot، یک flag ذخیره می‌کنیم تا بعداً بتوانیم تشخیص دهیم
+    // با کدام Context باید walk شوند (parent برای slot content، local برای
+    // محتوای خود قالب).
+    const slotNodes = new Set<HTMLElement>();
+    for (const nodes of slotContents.values()) {
+      for (const node of nodes) slotNodes.add(node);
     }
-  }
 
-  // ── ۵. جایگزینی محتوای تگ کامپوننت با محتوای قالب ──
-  // ابتدا innerHTML را خالی می‌کنیم (اگر محتوای slot نبود، حذف می‌شود).
-  // سپس محتوای قالب را درج می‌کنیم.
-  el.innerHTML = '';
-  el.appendChild(content);
+    // ── ۳. کلون کردن محتوای قالب ──
+    const content = template.content.cloneNode(true) as DocumentFragment;
 
-  // ── ۶. Walk فرزندان با Context مناسب ──
-  // دو نوع فرزند داریم:
-  //   a) فرزندان قالب کامپوننت → با localContext (شامل Props) walk می‌شوند.
-  //   b) فرزندان slot content → با parentContext (Context محل استفاده) walk می‌شوند.
-  //
-  // این تفکیک مهم است چون اگر slot content با localContext walk شود،
-  // به Props دسترسی دارد که منطقی نیست (Props فقط برای قالب کامپوننت هستند).
-  // slot content باید در محیطی که کامپوننت استفاده شده، ارزیابی شود.
-  for (const child of Array.from(el.children)) {
-    const childEl = child as HTMLElement;
-    const isSlot = slotNodes.has(childEl);
-    processChildren(
-      childEl,
-      isSlot ? parentContext : localContext,
-      disposes,
-      isSlot,
-    );
-  }
+    // ── ۴. پر کردن slotها ──
+    fillSlots(content, slotContents);
 
-  // IMP-COM-02 (v1.3.0): Lifecycle hooks — call onMount after the
-  // component template has been initialized and its children walked.
-  // If onMount returns a cleanup function, register it as a dispose
-  // handler so it runs when the component element is removed from the
-  // DOM (via the MutationObserver in registry.ts).
-  const hooks = lifecycleHooks.get(tagName);
-  if (hooks?.onMount) {
-    try {
-      const cleanup = hooks.onMount();
-      if (typeof cleanup === 'function') {
-        disposes.push(cleanup);
-        // Also register with the MutationObserver-based lifecycle tracker
-        // so cleanup fires when the element leaves the DOM even if the
-        // walker doesn't explicitly call the dispose array.
-        if (typeof trackComponentLifecycle === 'function') {
-          try {
-            trackComponentLifecycle(el, cleanup);
-          } catch { /* ignore — non-critical */ }
-        }
+    // BUG-COM-03 (v1.3.0): Warn when slot content exists but component
+    // template has no <slot> element. Previously this was a silent no-op
+    // — the slot content children were simply cleared when we set
+    // el.innerHTML = '' above, and no warning was produced, making this
+    // a confusing developer experience.
+    {
+      const hasSlotContent = Array.from(slotContents.values()).some((arr) => arr.length > 0);
+      const templateSlots = content.querySelectorAll('slot');
+      if (hasSlotContent && templateSlots.length === 0) {
+        console.warn(
+          `[Zenith] Component "${tagName}" has slot content but no <slot> ` +
+            `element in its template. The slot content will not be rendered.`,
+        );
       }
-    } catch (err) {
-      console.error(`[Zenith] Lifecycle onMount error for "${tagName}":`, err);
     }
-  }
 
+    // ── ۵. جایگزینی محتوای تگ کامپوننت با محتوای قالب ──
+    // ابتدا innerHTML را خالی می‌کنیم (اگر محتوای slot نبود، حذف می‌شود).
+    // سپس محتوای قالب را درج می‌کنیم.
+    el.innerHTML = '';
+    el.appendChild(content);
+
+    // ── ۶. Walk فرزندان با Context مناسب ──
+    // دو نوع فرزند داریم:
+    //   a) فرزندان قالب کامپوننت → با localContext (شامل Props) walk می‌شوند.
+    //   b) فرزندان slot content → با parentContext (Context محل استفاده) walk می‌شوند.
+    //
+    // این تفکیک مهم است چون اگر slot content با localContext walk شود،
+    // به Props دسترسی دارد که منطقی نیست (Props فقط برای قالب کامپوننت هستند).
+    // slot content باید در محیطی که کامپوننت استفاده شده، ارزیابی شود.
+    for (const child of Array.from(el.children)) {
+      const childEl = child as HTMLElement;
+      const isSlot = slotNodes.has(childEl);
+      processChildren(childEl, isSlot ? parentContext : localContext, disposes, isSlot);
+    }
+
+    // IMP-COM-02 (v1.3.0): Lifecycle hooks — call onMount after the
+    // component template has been initialized and its children walked.
+    // If onMount returns a cleanup function, register it as a dispose
+    // handler so it runs when the component element is removed from the
+    // DOM (via the MutationObserver in registry.ts).
+    const hooks = lifecycleHooks.get(tagName);
+    if (hooks?.onMount) {
+      try {
+        const cleanup = hooks.onMount();
+        if (typeof cleanup === 'function') {
+          disposes.push(cleanup);
+          // Also register with the MutationObserver-based lifecycle tracker
+          // so cleanup fires when the element leaves the DOM even if the
+          // walker doesn't explicitly call the dispose array.
+          if (typeof trackComponentLifecycle === 'function') {
+            try {
+              trackComponentLifecycle(el, cleanup);
+            } catch {
+              /* ignore — non-critical */
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[Zenith] Lifecycle onMount error for "${tagName}":`, err);
+      }
+    }
   } finally {
     // BUG-COM-04 (v1.3.0): Always remove this component from the
     // processing stack, even if an error was thrown during processing.

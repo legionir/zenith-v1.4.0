@@ -117,11 +117,19 @@ export function processIsland(
 
     // Cancel any other pending triggers.
     if (observer) {
-      try { observer.disconnect(); } catch { /* noop */ }
+      try {
+        observer.disconnect();
+      } catch {
+        /* noop */
+      }
       observer = null;
     }
     if (idleHandle !== null && typeof (globalThis as any).cancelIdleCallback !== 'undefined') {
-      try { (globalThis as any).cancelIdleCallback(idleHandle); } catch { /* noop */ }
+      try {
+        (globalThis as any).cancelIdleCallback(idleHandle);
+      } catch {
+        /* noop */
+      }
     }
     idleHandle = null;
     if (timeoutHandle !== null) {
@@ -181,11 +189,19 @@ export function processIsland(
 
   return () => {
     if (observer) {
-      try { observer.disconnect(); } catch { /* noop */ }
+      try {
+        observer.disconnect();
+      } catch {
+        /* noop */
+      }
       observer = null;
     }
     if (idleHandle !== null && typeof (globalThis as any).cancelIdleCallback !== 'undefined') {
-      try { (globalThis as any).cancelIdleCallback(idleHandle); } catch { /* noop */ }
+      try {
+        (globalThis as any).cancelIdleCallback(idleHandle);
+      } catch {
+        /* noop */
+      }
     }
     idleHandle = null;
     if (timeoutHandle !== null) {
@@ -193,7 +209,11 @@ export function processIsland(
       timeoutHandle = null;
     }
     for (const d of childDisposes) {
-      try { d(); } catch { /* noop */ }
+      try {
+        d();
+      } catch {
+        /* noop */
+      }
     }
     childDisposes = [];
   };

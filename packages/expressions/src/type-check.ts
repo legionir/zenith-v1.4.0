@@ -36,7 +36,13 @@ export function inferType(value: any): ExpressionType {
   if (value === undefined) return 'undefined';
   if (Array.isArray(value)) return 'array';
   const base = typeof value;
-  if (base === 'string' || base === 'number' || base === 'boolean' || base === 'function' || base === 'object') {
+  if (
+    base === 'string' ||
+    base === 'number' ||
+    base === 'boolean' ||
+    base === 'function' ||
+    base === 'object'
+  ) {
     return base;
   }
   return 'unknown';
@@ -61,7 +67,7 @@ export function isAssignableTo(value: any, expected: ExpressionType): boolean {
 export function validateType(
   value: any,
   expected: ExpressionType,
-  expression: string
+  expression: string,
 ): TypeCheckResult {
   const actual = inferType(value);
   const errors: string[] = [];
@@ -69,7 +75,7 @@ export function validateType(
 
   if (!isAssignableTo(value, expected)) {
     errors.push(
-      `Expression "${expression}" evaluates to type "${actual}", expected "${expected}".`
+      `Expression "${expression}" evaluates to type "${actual}", expected "${expected}".`,
     );
   }
 
@@ -81,7 +87,7 @@ export function validateType(
     type: actual,
     valid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 }
 
@@ -106,7 +112,8 @@ export const TypeGuards = {
   isString: (v: any): v is string => typeof v === 'string',
   isNumber: (v: any): v is number => typeof v === 'number' && !Number.isNaN(v),
   isBoolean: (v: any): v is boolean => typeof v === 'boolean',
-  isObject: (v: any): v is Record<string, any> => v !== null && typeof v === 'object' && !Array.isArray(v),
+  isObject: (v: any): v is Record<string, any> =>
+    v !== null && typeof v === 'object' && !Array.isArray(v),
   isArray: (v: any): v is any[] => Array.isArray(v),
-  isFunction: (v: any): v is (...args: any[]) => any => typeof v === 'function'
+  isFunction: (v: any): v is (...args: any[]) => any => typeof v === 'function',
 };

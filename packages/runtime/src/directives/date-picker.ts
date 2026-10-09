@@ -65,11 +65,7 @@ export class ZenDatePicker extends HTMLElement {
     return ['value'];
   }
 
-  attributeChangedCallback(
-    name: string,
-    _oldVal: string | null,
-    newVal: string | null,
-  ): void {
+  attributeChangedCallback(name: string, _oldVal: string | null, newVal: string | null): void {
     if (name === 'value' && newVal) {
       const parsed = parseJalaliString(newVal);
       if (parsed) {
@@ -101,7 +97,11 @@ export class ZenDatePicker extends HTMLElement {
 
   public dispose(): void {
     for (const { el, event, fn } of this._listeners) {
-      try { el.removeEventListener(event, fn); } catch { /* ignore */ }
+      try {
+        el.removeEventListener(event, fn);
+      } catch {
+        /* ignore */
+      }
     }
     this._listeners.length = 0;
   }
@@ -212,8 +212,14 @@ export class ZenDatePicker extends HTMLElement {
   private moveMonth(delta: number): void {
     let m = this.viewMonth + delta;
     let y = this.viewYear;
-    if (m < 1) { m = 12; y -= 1; }
-    if (m > 12) { m = 1; y += 1; }
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    }
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
     this.viewMonth = m;
     this.viewYear = y;
     this.render();
@@ -233,10 +239,7 @@ export class ZenDatePicker extends HTMLElement {
  * registered, then returns a no-op dispose (the element manages its own
  * lifecycle).
  */
-export function processDatePicker(
-  _el: HTMLElement,
-  _context: Record<string, any>,
-): () => void {
+export function processDatePicker(_el: HTMLElement, _context: Record<string, any>): () => void {
   if (typeof customElements === 'undefined') {
     return () => {};
   }

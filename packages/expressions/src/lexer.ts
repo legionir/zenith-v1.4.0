@@ -49,14 +49,35 @@ export interface Token {
  *   اگر "==" اول match شود، "=" باقی می‌ماند که معنا ندارد.
  */
 const PUNCTUATORS = [
-  '+', '-', '*', '/', '%',
-  '??', '?.', '=>',
-  '==', '===', '!=', '!==',
-  '<', '>', '<=', '>=',
-  '&&', '||', '!',
-  '?', ':', '.', ',',
-  '(', ')', '[', ']',
-  '{', '}',
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '??',
+  '?.',
+  '=>',
+  '==',
+  '===',
+  '!=',
+  '!==',
+  '<',
+  '>',
+  '<=',
+  '>=',
+  '&&',
+  '||',
+  '!',
+  '?',
+  ':',
+  '.',
+  ',',
+  '(',
+  ')',
+  '[',
+  ']',
+  '{',
+  '}',
 ];
 
 // Pre-sort برای جلوگیری از sort در هر iteration حلقه
@@ -103,13 +124,27 @@ export function lex(input: string): Token[] {
         if (input[i] === '\\' && i + 1 < input.length) {
           const next = input[i + 1];
           switch (next) {
-            case 'n': str += '\n'; break;
-            case 'r': str += '\r'; break;
-            case 't': str += '\t'; break;
-            case '\\': str += '\\'; break;
-            case "'": str += "'"; break;
-            case '"': str += '"'; break;
-            case '0': str += '\0'; break;
+            case 'n':
+              str += '\n';
+              break;
+            case 'r':
+              str += '\r';
+              break;
+            case 't':
+              str += '\t';
+              break;
+            case '\\':
+              str += '\\';
+              break;
+            case "'":
+              str += "'";
+              break;
+            case '"':
+              str += '"';
+              break;
+            case '0':
+              str += '\0';
+              break;
             // FIX (v1.2.4): \uXXXX — Unicode code point escape (4 hex digits).
             // Example: "\u0041" → "A", "\u1F600" — wait, that's 5 digits.
             // Spec-compliant \u takes exactly 4 hex digits. For code points
@@ -137,7 +172,8 @@ export function lex(input: string): Token[] {
               }
               break;
             }
-            default: str += next; // سایر escapeها: همان کاراکتر بعدی
+            default:
+              str += next; // سایر escapeها: همان کاراکتر بعدی
           }
           i += 2;
         } else {
@@ -204,7 +240,10 @@ export function lex(input: string): Token[] {
           let depth = 1;
           while (i < input.length && depth > 0) {
             if (input[i] === '{') depth++;
-            else if (input[i] === '}') { depth--; if (depth === 0) break; }
+            else if (input[i] === '}') {
+              depth--;
+              if (depth === 0) break;
+            }
             expr += input[i++];
           }
           if (depth !== 0) {
@@ -217,7 +256,7 @@ export function lex(input: string): Token[] {
           // tokens را در middle of stream اضافه می‌کنیم، EOF باید فیلتر شود
           // تا parser در میانه‌ی کار به EOF نرسیده و خطا ندهد.
           const allExprTokens = lex(expr);
-          const exprTokens = allExprTokens.filter(t => t.type !== TokenType.EOF);
+          const exprTokens = allExprTokens.filter((t) => t.type !== TokenType.EOF);
           // اگر یک token داشت (مثل یک Identifier یا Literal)، مستقیم emit کن.
           if (exprTokens.length === 1) {
             tokens.push(exprTokens[0]!);
@@ -234,16 +273,32 @@ export function lex(input: string): Token[] {
         // ── بخش متنی (غیر از ${}) ──
         // جمع‌آوری متن تا ${ یا ` یا پایان.
         let textContent = '';
-        while (i < input.length && input[i] !== '`' && !(input[i] === '$' && input[i + 1] === '{')) {
+        while (
+          i < input.length &&
+          input[i] !== '`' &&
+          !(input[i] === '$' && input[i + 1] === '{')
+        ) {
           if (input[i] === '\\' && i + 1 < input.length) {
             const next = input[i + 1];
             switch (next) {
-              case 'n': textContent += '\n'; break;
-              case 'r': textContent += '\r'; break;
-              case 't': textContent += '\t'; break;
-              case '\\': textContent += '\\'; break;
-              case '`': textContent += '`'; break;
-              case '$': textContent += '$'; break;
+              case 'n':
+                textContent += '\n';
+                break;
+              case 'r':
+                textContent += '\r';
+                break;
+              case 't':
+                textContent += '\t';
+                break;
+              case '\\':
+                textContent += '\\';
+                break;
+              case '`':
+                textContent += '`';
+                break;
+              case '$':
+                textContent += '$';
+                break;
               // FIX (v1.2.4): \uXXXX and \xXX in template literals too —
               // keep parity with regular string literals above.
               case 'u': {
@@ -266,7 +321,8 @@ export function lex(input: string): Token[] {
                 }
                 break;
               }
-              default: textContent += next;
+              default:
+                textContent += next;
             }
             i += 2;
           } else {
@@ -280,7 +336,12 @@ export function lex(input: string): Token[] {
         }
 
         if (textContent.length > 0 || firstPart) {
-          tokens.push({ type: TokenType.String, value: textContent, start: i - textContent.length, end: i });
+          tokens.push({
+            type: TokenType.String,
+            value: textContent,
+            start: i - textContent.length,
+            end: i,
+          });
           firstPart = false;
         }
       }

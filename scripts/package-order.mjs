@@ -34,9 +34,7 @@ export function getPackageOrder() {
   function visit(directory, ancestry = []) {
     if (visited.has(directory)) return;
     if (visiting.has(directory)) {
-      throw new Error(
-        `Circular workspace dependency: ${[...ancestry, directory].join(' -> ')}`,
-      );
+      throw new Error(`Circular workspace dependency: ${[...ancestry, directory].join(' -> ')}`);
     }
 
     visiting.add(directory);

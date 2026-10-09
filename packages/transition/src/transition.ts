@@ -141,7 +141,11 @@ function enterTransitionWAAPI(
 
   anim.onfinish = () => {
     if (cancelled) return;
-    try { anim.commitStyles(); } catch { /* noop */ }
+    try {
+      anim.commitStyles();
+    } catch {
+      /* noop */
+    }
     anim.cancel();
     el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
     onComplete?.();
@@ -194,7 +198,7 @@ function enterTransitionCSS(
       if (cancelled) return;
       // BUG FIX (v1.3.0, BUG-TRN-02): استفاده از getComputedStyle به‌جای
       // getBoundingClientRect — cheaper force reflow (فقط style resolution).
-      getComputedStyle(el).transform;
+      void getComputedStyle(el).transform; // intentional forced style resolution (reflow)
 
       el.classList.remove(ENTER_FROM);
       el.classList.add(ENTER_TO);
@@ -231,7 +235,8 @@ function enterTransitionCSS(
     cancelled = true;
     if (raf1) cancelAnimationFrame(raf1);
     if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0; raf2 = 0;
+    raf1 = 0;
+    raf2 = 0;
     if (timer) clearTimeout(timer);
     timer = null;
     if (onEnd) el.removeEventListener('transitionend', onEnd);
@@ -291,7 +296,11 @@ function leaveTransitionWAAPI(
 
   anim.onfinish = () => {
     if (cancelled) return;
-    try { anim.commitStyles(); } catch { /* noop */ }
+    try {
+      anim.commitStyles();
+    } catch {
+      /* noop */
+    }
     anim.cancel();
     el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
     onComplete?.();
@@ -336,7 +345,7 @@ function leaveTransitionCSS(
     raf2 = requestAnimationFrame(() => {
       if (cancelled) return;
       // BUG FIX (v1.3.0): استفاده از getComputedStyle به‌جای getBoundingClientRect
-      getComputedStyle(el).transform;
+      void getComputedStyle(el).transform; // intentional forced style resolution (reflow)
 
       el.classList.remove(LEAVE_FROM);
       el.classList.add(LEAVE_TO);
@@ -370,7 +379,8 @@ function leaveTransitionCSS(
     cancelled = true;
     if (raf1) cancelAnimationFrame(raf1);
     if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0; raf2 = 0;
+    raf1 = 0;
+    raf2 = 0;
     if (timer) clearTimeout(timer);
     timer = null;
     if (onEnd) el.removeEventListener('transitionend', onEnd);
@@ -385,10 +395,7 @@ function leaveTransitionCSS(
  * بررسی اینکه آیا عنصر در حال حاضر در حال transition است.
  */
 export function isTransitioning(el: HTMLElement): boolean {
-  return (
-    el.classList.contains(ENTER_ACTIVE) ||
-    el.classList.contains(LEAVE_ACTIVE)
-  );
+  return el.classList.contains(ENTER_ACTIVE) || el.classList.contains(LEAVE_ACTIVE);
 }
 
 /**
@@ -411,8 +418,15 @@ export const TRANSITION_NAMES = new Set<string>(['fade', 'slide', 'scale', 'slid
  * @returns easing معتبر یا 'ease' پیش‌فرض
  */
 export function validateEasing(easing: string): EffectTiming['easing'] {
-  const builtin = ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out',
-    'step-start', 'step-end'];
+  const builtin = [
+    'linear',
+    'ease',
+    'ease-in',
+    'ease-out',
+    'ease-in-out',
+    'step-start',
+    'step-end',
+  ];
   if (builtin.includes(easing)) return easing;
   if (/^cubic-bezier\([\d.]+,\s*[\d.]+,\s*[\d.]+,\s*[\d.]+\)$/.test(easing)) return easing;
   if (/^steps\(\d+,\s*(start|end)\)$/.test(easing)) return easing;
@@ -440,7 +454,10 @@ export function animateGroup(
 ): Promise<void> {
   return new Promise((resolve) => {
     let remaining = elements.length;
-    if (remaining === 0) { resolve(); return; }
+    if (remaining === 0) {
+      resolve();
+      return;
+    }
 
     const onDone = () => {
       remaining--;
@@ -574,7 +591,7 @@ export function createTransition(
       raf2 = requestAnimationFrame(() => {
         if (settled) return;
         // اطمینان از اعمال شدن state آغازین پیش از تغییر classها.
-        getComputedStyle(element).transform;
+        void getComputedStyle(element).transform; // intentional forced style resolution (reflow)
         removeClasses(element, from);
         addClasses(element, to);
         element.addEventListener('transitionend', onEnd);

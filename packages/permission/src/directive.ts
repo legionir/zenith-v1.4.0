@@ -35,16 +35,15 @@ import { sanitizeHTML } from '@zenith/security';
  * @param expr  Expression دسترسی (مثل "users:delete" یا "any:a,b").
  * @returns تابع dispose.
  */
-export function processPermission(
-  el: HTMLElement,
-  expr: string,
-): () => void {
+export function processPermission(el: HTMLElement, expr: string): () => void {
   // FIX (v1.2.3): جایگزینی `display:none` با DOM removal واقعی.
   // قبلاً برای deny فقط `el.style.display = 'none'` ست می‌شد که عنصر را در DOM
   // نگه می‌داشت (و باعث می‌شد Effectها/Event Listenerهای داخلی همچنان فعال
   // بمانند). حالا children را در یک DocumentFragment ذخیره می‌کنیم و آن‌ها را
   // از DOM حذف می‌کنیم. هنگام grant، از همان Fragment restore می‌کنیم.
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
   let fallbackEl: HTMLElement | null = null;
   if (fallbackTemplate) {
     fallbackEl = document.createElement('div');
@@ -61,7 +60,7 @@ export function processPermission(
   const collectChildren = (): DocumentFragment => {
     const frag = document.createDocumentFragment();
     // Array.from چون NodeList زنده است و هنگام append تغییر می‌کند.
-    const nodes = Array.from(el.childNodes).filter(n => n !== fallbackEl);
+    const nodes = Array.from(el.childNodes).filter((n) => n !== fallbackEl);
     for (const n of nodes) frag.appendChild(n);
     return frag;
   };
@@ -78,7 +77,9 @@ export function processPermission(
     // createGuard() default.
     const hasAccess = manager ? manager.checkPermission(expr) : false;
     if (!manager) {
-      console.error('[Zenith Permission] zen-permission directive: no PermissionManager registered — failing closed (showing fallback).');
+      console.error(
+        '[Zenith Permission] zen-permission directive: no PermissionManager registered — failing closed (showing fallback).',
+      );
     }
 
     if (hasAccess) {
@@ -109,12 +110,11 @@ export function processPermission(
  * @param expr  Expression role (مثل "admin" یا "any:admin,editor").
  * @returns تابع dispose.
  */
-export function processRole(
-  el: HTMLElement,
-  expr: string,
-): () => void {
+export function processRole(el: HTMLElement, expr: string): () => void {
   // FIX (v1.2.3): جایگزینی `display:none` با DOM removal واقعی (همانند processPermission).
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
   let fallbackEl: HTMLElement | null = null;
   if (fallbackTemplate) {
     fallbackEl = document.createElement('div');
@@ -129,7 +129,7 @@ export function processRole(
   let savedFragment: DocumentFragment | null = null;
   const collectChildren = (): DocumentFragment => {
     const frag = document.createDocumentFragment();
-    const nodes = Array.from(el.childNodes).filter(n => n !== fallbackEl);
+    const nodes = Array.from(el.childNodes).filter((n) => n !== fallbackEl);
     for (const n of nodes) frag.appendChild(n);
     return frag;
   };
@@ -142,7 +142,9 @@ export function processRole(
     // SEC FIX (v1.2.6): SEC-A5 — fail-closed when no manager is registered.
     const hasAccess = manager ? manager.checkRole(expr) : false;
     if (!manager) {
-      console.error('[Zenith Permission] zen-role directive: no PermissionManager registered — failing closed (showing fallback).');
+      console.error(
+        '[Zenith Permission] zen-role directive: no PermissionManager registered — failing closed (showing fallback).',
+      );
     }
 
     if (hasAccess) {

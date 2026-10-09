@@ -16,7 +16,7 @@ const packages = [
   'testing',
   'http',
   'notifications',
-  'data-table'
+  'data-table',
 ];
 
 console.log('🚀 Building all Zenith packages...\n');

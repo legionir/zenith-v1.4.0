@@ -59,13 +59,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       installed: true,
       version: hook.version || 'unknown',
       signalCount: signals.length,
-      signals: signals.map(s => ({
+      signals: signals.map((s) => ({
         id: s.id,
         name: s.name,
         value: s.value,
         subscriberCount: s.subscriberCount,
       })),
-      timeline: timeline.map(c => ({
+      timeline: timeline.map((c) => ({
         signalId: c.signalId,
         signalName: c.signalName,
         oldValue: c.oldValue,

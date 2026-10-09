@@ -89,7 +89,10 @@ export interface SuspenseContext {
  *                   تا parent context به‌صورت هم‌زمان (بدون gap میکروتسک)
  *                   از وضعیت فرزند مطلع شود.
  */
-export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled: boolean) => void): SuspenseContext {
+export function createSuspenseContext(
+  timeoutMs: number = 0,
+  onSettle?: (settled: boolean) => void,
+): SuspenseContext {
   const loadingSet = new Set<string>();
   const sig = signal<SuspenseState>({
     loading: false,
@@ -122,7 +125,7 @@ export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled
   }
 
   // BUG-SUS-01 FIX: `settled` را برای اطلاع به parent (onSettle) نگه می‌داریم.
-  let _prevSettled = true;  // حالت اولیه settled است (loading=0).
+  let _prevSettled = true; // حالت اولیه settled است (loading=0).
 
   function updateState() {
     const pendingCount = loadingSet.size;
@@ -130,7 +133,13 @@ export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled
     const current = sig.get();
 
     // شروع timeout timer وقتی loading شروع می‌شود.
-    if (isLoading && !current.timedOut && !current.error && timeoutMs > 0 && timeoutHandle === null) {
+    if (
+      isLoading &&
+      !current.timedOut &&
+      !current.error &&
+      timeoutMs > 0 &&
+      timeoutHandle === null
+    ) {
       armTimeout();
     }
 
@@ -402,9 +411,15 @@ export function processSuspense(
   const timeoutMs = timeoutAttr ? parseInt(timeoutAttr, 10) || 0 : 0;
 
   // ── ۲. پیدا کردن fallback templates ──
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
-  const timeoutTemplate = el.querySelector(':scope > template[zen-timeout]') as HTMLTemplateElement | null;
-  const errorTemplate = el.querySelector(':scope > template[zen-error]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
+  const timeoutTemplate = el.querySelector(
+    ':scope > template[zen-timeout]',
+  ) as HTMLTemplateElement | null;
+  const errorTemplate = el.querySelector(
+    ':scope > template[zen-error]',
+  ) as HTMLTemplateElement | null;
 
   // ── ۳. ساخت fallback elements ──
   let fallbackEl: HTMLElement | null = null;
@@ -457,7 +472,7 @@ export function processSuspense(
   // ── ۵. ساخت SuspenseContext ──
   // BUG-SUS-01 FIX: به‌جای effect برای tracking nested state، از onSettle
   // callback هم‌زمان استفاده می‌کنیم که parent را بدون gap میکروتسک مطلع کند.
-  let innerSettled = true;   // حالت اولیه settled
+  let innerSettled = true; // حالت اولیه settled
   const suspenseCtx = createSuspenseContext(timeoutMs, (settled) => {
     if (settled !== innerSettled) {
       innerSettled = settled;
@@ -551,7 +566,9 @@ export function processSuspense(
       outerCtx.stopLoading(innerId);
     }
     for (const d of childDisposes) {
-      try { d(); } catch (e) {
+      try {
+        d();
+      } catch (e) {
         // FEATURE (v1.0.0): گزارش به error boundary.
         reportError(e as Error, 'directive', { element: el });
       }

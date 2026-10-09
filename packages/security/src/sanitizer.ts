@@ -35,21 +35,21 @@
  * این تگ‌ها یا می‌توانند کد اجرا کنند، یا برای حملات XSS استفاده شوند.
  */
 const FORBIDDEN_TAGS = new Set([
-  'SCRIPT',     // اجرای کد
-  'IFRAME',     // بارگذاری صفحات خارجی
-  'OBJECT',     // بارگذاری plugin ها
-  'EMBED',      // بارگذاری plugin ها
-  'APPLET',     // java applet (قدیمی اما خطرناک)
-  'LINK',       // بارگذاری استایل یا prefetch
-  'META',       // meta refresh, CSP bypass
-  'BASE',       // تغییر base URL
-  'STYLE',      // CSS-based attacks (expression(), url(javascript:))
-  'FORM',       // form hijacking (قابل تنظیم در آینده)
-  'NOSCRIPT',   // محتوای fallback مخرب
-  'FRAMESET',   // قدیمی اما خطرناک
-  'FRAME',      // قدیمی اما خطرناک
-  'XML',        // XML processing instructions
-  'TEMPLATE',   // BUG-SEC-04: Mutation XSS - template content can be cloned and executed
+  'SCRIPT', // اجرای کد
+  'IFRAME', // بارگذاری صفحات خارجی
+  'OBJECT', // بارگذاری plugin ها
+  'EMBED', // بارگذاری plugin ها
+  'APPLET', // java applet (قدیمی اما خطرناک)
+  'LINK', // بارگذاری استایل یا prefetch
+  'META', // meta refresh, CSP bypass
+  'BASE', // تغییر base URL
+  'STYLE', // CSS-based attacks (expression(), url(javascript:))
+  'FORM', // form hijacking (قابل تنظیم در آینده)
+  'NOSCRIPT', // محتوای fallback مخرب
+  'FRAMESET', // قدیمی اما خطرناک
+  'FRAME', // قدیمی اما خطرناک
+  'XML', // XML processing instructions
+  'TEMPLATE', // BUG-SEC-04: Mutation XSS - template content can be cloned and executed
   // SEC FIX (v1.2.6): SEC-A3 — block SVG/SMIL animation tags. These can
   // animate attribute values (e.g. xlink:href) at runtime to smuggle
   // dangerous payloads past static sanitization, and `<set>` can flip a
@@ -59,10 +59,10 @@ const FORBIDDEN_TAGS = new Set([
   'ANIMATETRANSFORM',
   'SET',
   // BUG-SEC-01: SVG/MathML tags that can execute scripts or bypass sanitization
-  'SVG',        // Can contain <script> or event handlers
-  'MATH',       // MathML can contain script-like content
-  'USE',        // SVG <use> can reference external resources
-  'SYMBOL',     // SVG <symbol> can contain scripts
+  'SVG', // Can contain <script> or event handlers
+  'MATH', // MathML can contain script-like content
+  'USE', // SVG <use> can reference external resources
+  'SYMBOL', // SVG <symbol> can contain scripts
   'FOREIGNOBJECT', // SVG can embed HTML with scripts
 ]);
 
@@ -78,21 +78,80 @@ const FORBIDDEN_TAGS = new Set([
  */
 const ALLOWED_TAGS = new Set([
   // ریشه و بخش‌بندی
-  'BODY', 'DIV', 'SPAN', 'SECTION', 'ARTICLE', 'ASIDE', 'HEADER', 'FOOTER',
-  'MAIN', 'NAV', 'FIGURE', 'FIGCAPTION',
+  'BODY',
+  'DIV',
+  'SPAN',
+  'SECTION',
+  'ARTICLE',
+  'ASIDE',
+  'HEADER',
+  'FOOTER',
+  'MAIN',
+  'NAV',
+  'FIGURE',
+  'FIGCAPTION',
   // متن
-  'P', 'BR', 'HR', 'PRE', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'P',
+  'BR',
+  'HR',
+  'PRE',
+  'BLOCKQUOTE',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
   // درون‌خطی
-  'A', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'SMALL', 'SUB', 'SUP', 'MARK',
-  'CODE', 'KBD', 'SAMP', 'VAR', 'ABBR', 'CITE', 'Q', 'TIME', 'BDI', 'BDO',
-  'WBR', 'DEL', 'INS',
+  'A',
+  'B',
+  'STRONG',
+  'I',
+  'EM',
+  'U',
+  'S',
+  'SMALL',
+  'SUB',
+  'SUP',
+  'MARK',
+  'CODE',
+  'KBD',
+  'SAMP',
+  'VAR',
+  'ABBR',
+  'CITE',
+  'Q',
+  'TIME',
+  'BDI',
+  'BDO',
+  'WBR',
+  'DEL',
+  'INS',
   // فهرست‌ها
-  'UL', 'OL', 'LI', 'DL', 'DT', 'DD',
+  'UL',
+  'OL',
+  'LI',
+  'DL',
+  'DT',
+  'DD',
   // جدول
-  'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR', 'TD', 'TH', 'CAPTION',
-  'COL', 'COLGROUP',
+  'TABLE',
+  'THEAD',
+  'TBODY',
+  'TFOOT',
+  'TR',
+  'TD',
+  'TH',
+  'CAPTION',
+  'COL',
+  'COLGROUP',
   // رسانه (اتریبیوت‌ها جداگانه توسط isAttributeDangerous پالایش می‌شوند)
-  'IMG', 'PICTURE', 'SOURCE', 'AUDIO', 'VIDEO', 'TRACK',
+  'IMG',
+  'PICTURE',
+  'SOURCE',
+  'AUDIO',
+  'VIDEO',
+  'TRACK',
 ]);
 
 /**
@@ -270,7 +329,7 @@ function isAttributeDangerous(attrName: string, attrValue: string, el?: Element)
   }
 
   // ── ۲. Prototype Pollution در attribute name ──
-  if (FORBIDDEN_ATTR_NAMES.some(name => lowerName.includes(name))) {
+  if (FORBIDDEN_ATTR_NAMES.some((name) => lowerName.includes(name))) {
     return true;
   }
 
@@ -387,7 +446,7 @@ function hasDangerousProtocol(value: string): boolean {
   const noWhitespace = trimmed.replace(/[\s\x00-\x20]+/g, '');
 
   // بررسی پروتکل‌های خطرناک.
-  return DANGEROUS_PROTOCOLS.some(protocol => noWhitespace.startsWith(protocol));
+  return DANGEROUS_PROTOCOLS.some((protocol) => noWhitespace.startsWith(protocol));
 }
 
 /**
@@ -414,10 +473,7 @@ export interface SanitizeOptions {
   allowForms?: boolean;
 }
 
-export function sanitizeHTMLWithOptions(
-  dirty: string,
-  options: SanitizeOptions = {},
-): string {
+export function sanitizeHTMLWithOptions(dirty: string, options: SanitizeOptions = {}): string {
   if (!dirty || typeof dirty !== 'string') return '';
 
   // BUG-SEC-02 FIX: SSR fallback - try DOMParser first
@@ -525,7 +581,9 @@ export function sanitizeHTMLTrusted(html: string): string {
   if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false) {
     // ایمن‌سازی دسترسی به console (در برخی محیط‌های SSR ممکن است نباشد).
     if (typeof console !== 'undefined' && typeof console.warn === 'function') {
-      console.warn('⚠️ [Zenith] zen-html-trusted: rendering unsanitized HTML. Ensure this content is trusted (e.g. from your own server, sanitized upstream).');
+      console.warn(
+        '⚠️ [Zenith] zen-html-trusted: rendering unsanitized HTML. Ensure this content is trusted (e.g. from your own server, sanitized upstream).',
+      );
     }
   }
   // نکته: همیشه ورودی را به‌صورت رشته برمی‌گردانیم. null/undefined به '' تبدیل
@@ -552,19 +610,21 @@ export function sanitizeHTMLTrusted(html: string): string {
  */
 export function sanitizeCSS(css: string): string {
   if (!css || typeof css !== 'string') return '';
-  return css
-    // Remove IE expression() XSS
-    .replace(/expression\s*\(/gi, '')
-    // Remove javascript: URLs
-    .replace(/javascript\s*:/gi, '')
-    // Remove @import which can load external styles
-    .replace(/@import\s+/gi, '')
-    // Remove behavior: (IE-specific)
-    .replace(/behavior\s*:/gi, '')
-    // Remove -moz-binding (Firefox XBL)
-    .replace(/-moz-binding\s*:/gi, '')
-    // Remove url() with dangerous protocols
-    .replace(/url\s*\(\s*(javascript|data|vbscript)\s*:/gi, 'url(');
+  return (
+    css
+      // Remove IE expression() XSS
+      .replace(/expression\s*\(/gi, '')
+      // Remove javascript: URLs
+      .replace(/javascript\s*:/gi, '')
+      // Remove @import which can load external styles
+      .replace(/@import\s+/gi, '')
+      // Remove behavior: (IE-specific)
+      .replace(/behavior\s*:/gi, '')
+      // Remove -moz-binding (Firefox XBL)
+      .replace(/-moz-binding\s*:/gi, '')
+      // Remove url() with dangerous protocols
+      .replace(/url\s*\(\s*(javascript|data|vbscript)\s*:/gi, 'url(')
+  );
 }
 
 // ──────────────────────────────────────────────

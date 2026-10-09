@@ -128,7 +128,10 @@ const afterFlushCallbacks: Array<() => void> = [];
 function getEffectivePriority(task: Task): number {
   const age = Date.now() - task.createdAt;
   if (age < AGING_THRESHOLD) return task.priority;
-  return Math.max(0, task.priority - Math.floor((age - AGING_THRESHOLD) * PRIORITY_AGING_RATE / 1000));
+  return Math.max(
+    0,
+    task.priority - Math.floor(((age - AGING_THRESHOLD) * PRIORITY_AGING_RATE) / 1000),
+  );
 }
 
 /**

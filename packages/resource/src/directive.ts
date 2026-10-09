@@ -65,13 +65,15 @@ export function processResource(
   }
 
   // شروع fetch اولیه.
-  resource.list();
+  void resource.list();
 
   // ثبت dispose.
   disposes.push(() => {
     resource.reset();
     for (const d of childDisposes) {
-      try { d(); } catch (err) {
+      try {
+        d();
+      } catch (err) {
         console.error('[Zenith Resource] Error during dispose:', err);
       }
     }
