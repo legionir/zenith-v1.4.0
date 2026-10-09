@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #79
+آخرین issue کامل: #26
 issue در حال انجام: —
-بعدی: #25, #26, #14, #70, #68, #69, #59 سپس موج ۱
+بعدی: #14, #70, #68, #69, #59 سپس موج ۱
 مسدود/نیازمند انسان: —
-آخرین run موفق CI: 37878247149 (#36)
+آخرین run موفق CI: 37882868930 (#25)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -25,4 +25,10 @@ issue در حال انجام: —
     .dependency-cruiser.cjs (چرخه استاتیکی post-compilation)، .size-limit.json، playwright.config.ts، e2e/browser-smoke.spec.ts + e2e/fixture.html.
   - zenith-vscode با compile -w ساخته می‌شود تا publint سبز شود؛ DEC-004 ثبت شد؛ .github/CI.md بازنویسی شد (#16 را هم پوشش می‌دهد).
   - dev-dep audit/secret-scan → #65؛ بودجه دقیق per-package → #83؛ لایه‌بندی کامل → #49؛ publint+attw کامل → #74.
+- #25 انجام شد: package-order لبه‌های dev را وارد گراف کرد؛ چرخهٔ فقط-dev = هشدار+رد لبه،
+  چرخهٔ واقعی = throw با نام پکیج‌ها؛ injectable شد؛ ۶ تست در scripts/test/package-order.test.mjs؛
+  DEC-005؛ typecheck/build روی dist خالی سبز.
+- #26 انجام شد: typecheck-all بدون emit؛ tsconfig موقت noEmit با paths→src در `.tsbuild/`
+  (wipe ابتدای هر اجرا، gitignore شد)؛ spawn از typescript/bin/tsc ورک‌اسپیس؛ ۴ تست
+  scripts/test/typecheck-all.test.mjs (شامل «declaration کهنه خطا را پنهان نمی‌کند»)؛ DEC-006.
 - typecheck/build از baseline سبز است (۳۴/۳۴).

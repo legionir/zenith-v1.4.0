@@ -44,3 +44,6 @@ coverage/
 # Playwright outputs
 playwright-report/
 test-results/
+
+# Temporary type-check configs (scripts/typecheck-all.mjs #26)
+.tsbuild/
