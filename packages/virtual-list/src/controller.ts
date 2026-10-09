@@ -42,6 +42,9 @@ export interface VirtualListApi<T> {
 interface RenderedItem {
   node: HTMLElement;
   index: number;
+  // FIX (#17): نگه‌داشتن ارجاع آیتم رندرشده تا اگر همان key به آیتم جدیدی
+  // نگاشت شد (مرتب‌سازی، جایگزینی شیء، درج/حذف میانی) نود کهنه دوباره رندر شود.
+  item: unknown;
 }
 
 function resolveContainer(container: HTMLElement | string): HTMLElement {
@@ -56,6 +59,33 @@ function isSignal<T>(value: T[] | Signal<T[]>): value is Signal<T[]> {
     typeof (value as Signal<T[]>).get === 'function' &&
     typeof (value as Signal<T[]>).set === 'function'
   );
+}
+
+/**
+ * FIX (#17): مقایسه‌ی سبک «تغییر آیتم» — اول ارجاع (ارزان‌ترین و رایج‌ترین
+ * حالت: همان شیء)، سپس برای primitive ها برابری مقدار، و برای آبجکت‌های
+ * تخت (record ها) مقایسه‌ی سطح‌یک روی key/value ها.
+ *
+ * هدف: جلوگیری از بازرندر بی‌دلیل وقتی آیتم از نظر محتوا تغییر نکرده ولی
+ * ارجعش عوض شده (مثل `items.set([...sameObjects])` در stateای که آرایه‌ی نو
+ * می‌سازد)، و در عوض تشخیص دقیق تغییر واقعی در مرتب‌سازی/جایگزینی/درج.
+ */
+function itemChanged(a: unknown, b: unknown): boolean {
+  if (a === b) return false;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') {
+    // primitive (یا ترکیب primitive/object): تفاوت = تغییر
+    return true;
+  }
+  const ao = a as Record<string, unknown>;
+  const bo = b as Record<string, unknown>;
+  const ak = Object.keys(ao);
+  const bk = Object.keys(bo);
+  if (ak.length !== bk.length) return true;
+  for (const k of ak) {
+    if (!Object.prototype.hasOwnProperty.call(bo, k)) return true;
+    if (ao[k] !== bo[k]) return true; // سطح‌یک: nested object تغییر ارجاع = تغییر
+  }
+  return false;
 }
 
 /**
@@ -187,12 +217,19 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       const item = list[index]!;
       const key = keyFor(item, index);
       let entry = rendered.get(key);
+      // FIX (#17): اگر نود کش‌شده برای این key به آیتم دیگری تعلق دارد
+      // (مرتب‌سازی با index-key، جایگزینی شیء با همان key، درج/حذف میانی)،
+      // نود کهنه را دور بریزیم و دوباره رندر کنیم.
+      if (entry && itemChanged(entry.item, item)) {
+        removeRendered(key);
+        entry = undefined;
+      }
       if (!entry) {
         const node = options.renderItem(item, index);
         node.style.position = 'absolute';
         node.dataset.zenVirtualIndex = String(index);
         content.appendChild(node);
-        entry = { node, index };
+        entry = { node, index, item };
         rendered.set(key, entry);
         itemResizeObserver?.observe(node);
       }
