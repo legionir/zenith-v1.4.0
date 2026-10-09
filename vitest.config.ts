@@ -24,7 +24,7 @@ export default defineConfig({
   resolve: { alias },
   test: {
     environment: 'node',
-    include: ['packages/*/test/**/*.test.ts'],
+    include: ['packages/*/test/**/*.test.ts', 'scripts/test/**/*.test.mjs'],
     globals: false,
     coverage: {
       provider: 'v8',
