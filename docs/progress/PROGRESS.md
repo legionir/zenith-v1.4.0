@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #10
+آخرین issue کامل: #17
 issue در حال انجام: —
-بعدی: باقی موج ۱ (#17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
+بعدی: باقی موج ۱ (#19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 37907905842 (#10)
+آخرین run موفق CI: 37911348280 (#17)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -78,3 +78,11 @@ issue در حال انجام: —
   input»؛ `parse()` junk انتهایی (`a)`، `(a))`، `1 2`) را رد می‌کند؛
   تست `packages/expressions/test/parser-eof.test.ts` (۳۵ مورد: ۳۲ ورودی ناقص
   + فیوژ قطعی ۱۰٬۰۰۰ ورودی، همه red-before-fix؛ ۳۵۹/۳۵۹ سراسری؛ CI 37907905842).
+- #17 انجام شد (موج ۱): رفع محتوای کهنه در `virtual-list/controller.ts` —
+  `RenderedItem` حالا `item` را نگه می‌دارد؛ `renderRange` پیش از استفاده از
+  نود کشی، با helper `itemChanged` (برابری ارجاع → مقایسهٔ سطح‌یک record)
+  تغییر آیتم را می‌سنجد و در صورت تفاوت نود را دور ریخته و `renderItem` را
+  دوباره صدا می‌زند؛ مرتب‌سازی/جایگزینی آرایه/جایگزینی شیء با همان key/
+  درج-حذف میانی پوشش داده شد؛ ۴ تست jsdom در
+  `packages/virtual-list/test/controller-stale.test.ts` (red-before-fix؛
+  آیتم بی‌تغییر دوباره رندر نمی‌شود = تست ضعیف‌شده مجاز نیست)؛ ۳۶۳/۳۶۳ سراسری.
