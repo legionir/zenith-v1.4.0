@@ -299,7 +299,7 @@ export function processModel(
   // ── ۲. Input → State (Event Listener) ──
   const config = getInputConfig(el);
 
-  const eventListener = (event: Event) => {
+  const eventListener = (_event: Event) => {
     // BUG-3 FIX (v1.2.2): stopPropagation رویداد را از رسیدن به delegated
     // event listeners (که در document level ثبت شده‌اند) بازمی‌داشت. این
     // باعث می‌شد zen-action و سایر directiveهای delegated روی parentها کار

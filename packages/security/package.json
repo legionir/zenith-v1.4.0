@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — HTML Sanitizer and Security Layer (Phase 9). Protects against XSS, prototype pollution, and dangerous protocols.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,16 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./shared": {
-      "types": "./dist/security-constants.d.ts",
-      "import": "./dist/security-constants.js",
-      "require": "./dist/security-constants.cjs"
     }
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {

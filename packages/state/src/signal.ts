@@ -41,9 +41,11 @@ import {
 export class Signal<T> {
   private _value: T;
   private _subscribers: Set<Function> = new Set();
+  private _readonly: boolean;
 
-  constructor(initialValue: T) {
+  constructor(initialValue: T, options?: { readonly?: boolean }) {
     this._value = initialValue;
+    this._readonly = options?.readonly ?? false;
     // ── فاز ۱۰: ثبت در State Registry (برای DevTools) ──
     // این کار به DevTools اجازه می‌دهد این Signal را بازرسی کند.
     // اگر DevTools فعال نباشد، no-op است.
@@ -74,7 +76,7 @@ export class Signal<T> {
       // این Signal خودش را از لیست subscribers آن Effect پاک می‌کند.
       // این کار از Memory Leak و Zombie Effectها جلوگیری می‌کند.
       registerCleanup(() => {
-        this._subscribers.delete(subscribedEffect);
+        this._subscribers.delete(subscribedEffect as () => void);
       });
     }
     return this._value;
@@ -98,6 +100,9 @@ export class Signal<T> {
    *     flushSync();  // Effectها همین‌جا اجرا می‌شوند.
    */
   set(newValue: T): void {
+    if (this._readonly) {
+      throw new Error('[Zenith] Cannot set a readonly signal. Use writable signals for mutable state.');
+    }
     // جلوگیری از آپدیت‌های غیرضروری (Reference Equality + NaN handling)
     if (Object.is(this._value, newValue)) return;
 
@@ -122,7 +127,7 @@ export class Signal<T> {
     // اگر Effect اولویتی نداشته باشد، 'normal' استفاده می‌شود.
     this._subscribers.forEach(effectFn => {
       const priority = getEffectPriority(effectFn);
-      scheduleEffect(effectFn, priority);
+      scheduleEffect(effectFn as () => void, priority);
     });
   }
 
@@ -171,7 +176,7 @@ export class Signal<T> {
     // ── فاز ۷: Scheduler ──
     this._subscribers.forEach(effectFn => {
       const priority = getEffectPriority(effectFn);
-      scheduleEffect(effectFn, priority);
+      scheduleEffect(effectFn as () => void, priority);
     });
   }
 
@@ -197,10 +202,26 @@ export class Signal<T> {
  *   const count = signal(0);
  *   count.get();   // خواندن
  *   count.set(5);  // مقداردهی
+ *
+ * @example
+ *   const count = signal(0); // Signal<number>
+ *   const name = signal<string>('Ali'); // explicit type
  */
-export function signal<T>(initialValue: T): Signal<T> {
-  return new Signal(initialValue);
+export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Signal<T> {
+  return new Signal(initialValue, options);
 }
+
+/**
+ * Type helper for readonly signals (e.g. computed values).
+ * Omits the `set` method to prevent external mutation.
+ *
+ * Values produced by `computed()` own an internal effect, so they also expose
+ * `dispose()` for releasing it. It is declared optional because not every
+ * ReadonlySignal is a Computed.
+ */
+export type ReadonlySignal<T> = Omit<Signal<T>, 'set'> & {
+  dispose?(): void;
+};
 
 // FEATURE (v1.3.0): untrack() — execute a function without tracking dependencies.
 // All signal.get() calls inside fn() will NOT register subscriptions.

@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — SPA Router with History API (Phase 8). Declarative route definitions, lazy-loaded pages, URL parameter extraction.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {
@@ -36,7 +35,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/state": "1.0.0"
+    "@zenith/state": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

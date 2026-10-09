@@ -10,7 +10,10 @@
 
 export {
   scheduleEffect,
+  schedule,
+  setEffectDisposal,
   flushSync,
+  nextTick,
   hasPendingEffects,
   pendingEffectCount,
   pendingEffectsByPriority,
@@ -20,7 +23,8 @@ export {
   configureScheduler,
   setSchedulerHooks,
   getSchedulerHooks,
-  type Priority,
+  Priority,
+  type PriorityInput,
   type SchedulerAdapter,
   type SchedulerHooks,
 } from './scheduler';

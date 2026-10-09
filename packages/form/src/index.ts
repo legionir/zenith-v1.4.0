@@ -1,8 +1,22 @@
 export {
   FormStore,
   createForm,
+  createReactiveForm,
+  createAdvancedForm,
+  createWizardForm,
   type FormStoreState,
   type FormFieldState,
+  type ValidationRule,
+  type FormOptions,
+  type ValidationResult,
+  type Validator,
+  type FieldState,
+  type FormState,
+  type AdvancedFormOptions,
+  type AdvancedFormApi,
+  type FieldArrayApi,
+  type WizardStep,
+  type WizardFormApi,
 } from './form';
 
 export {

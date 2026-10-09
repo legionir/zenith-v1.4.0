@@ -103,5 +103,7 @@
     "@types/node": "^20.19.43",
     "@types/vscode": "^1.80.0",
     "typescript": "^5.4.0"
-  }
+  },
+  "type": "module",
+  "license": "MIT"
 }

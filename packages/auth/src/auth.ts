@@ -915,3 +915,379 @@ export function getAuth(name: string = 'default'): Auth | undefined {
 export function clearAuth(): void {
   authRegistry.clear();
 }
+
+// ============================================================
+// FEATURE (v1.4.0): Functional Auth API
+// ============================================================
+
+import { computed, emitError, type ReadonlySignal } from '@zenith/state';
+
+export interface User {
+  id: string | number;
+  name: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+  [key: string]: any;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}
+
+export interface FunctionalAuthState {
+  user: Signal<User | null>;
+  tokens: Signal<AuthTokens | null>;
+  isAuthenticated: ReadonlySignal<boolean>;
+  isLoading: Signal<boolean>;
+  error: Signal<string | null>;
+  roles: ReadonlySignal<string[]>;
+  permissions: ReadonlySignal<string[]>;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  [key: string]: any;
+}
+
+export interface FunctionalAuthConfig {
+  endpoints?: {
+    login?: string;
+    logout?: string;
+    register?: string;
+    refresh?: string;
+    me?: string;
+  };
+  storageKey?: string;
+  autoRefresh?: boolean;
+  loginRedirect?: string;
+  logoutRedirect?: string;
+  loginPath?: string;
+}
+
+const FUNCTIONAL_STORAGE_KEY = 'zenith_auth_tokens';
+
+let functionalConfig: FunctionalAuthConfig = {
+  endpoints: {
+    login: '/api/auth/login',
+    logout: '/api/auth/logout',
+    register: '/api/auth/register',
+    refresh: '/api/auth/refresh',
+    me: '/api/auth/me'
+  },
+  storageKey: FUNCTIONAL_STORAGE_KEY,
+  autoRefresh: true,
+  loginRedirect: '/dashboard',
+  logoutRedirect: '/',
+  loginPath: '/login'
+};
+
+const functionalUser = signal<User | null>(null);
+const functionalTokens = signal<AuthTokens | null>(null);
+const functionalIsLoading = signal(false);
+const functionalAuthError = signal<string | null>(null);
+
+const functionalIsAuthenticated = computed(() => !!functionalUser.get() && !!functionalTokens.get());
+const functionalRoles = computed(() => functionalUser.get()?.roles || []);
+const functionalPermissions = computed(() => functionalUser.get()?.permissions || []);
+
+let functionalRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let functionalInitialized = false;
+
+export function configureAuth(cfg: Partial<FunctionalAuthConfig>): void {
+  functionalConfig = {
+    ...functionalConfig,
+    ...cfg,
+    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints }
+  };
+}
+
+export function getAuthConfig(): FunctionalAuthConfig {
+  return { ...functionalConfig };
+}
+
+function saveFunctionalTokens(t: AuthTokens): void {
+  try {
+    localStorage.setItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY, JSON.stringify(t));
+  } catch (e) {
+    console.warn('Cannot save tokens to storage:', e);
+  }
+}
+
+function loadFunctionalTokens(): AuthTokens | null {
+  try {
+    const raw = localStorage.getItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearFunctionalTokens(): void {
+  try {
+    localStorage.removeItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
+  } catch { /* ignore */ }
+}
+
+export async function initAuth(): Promise<void> {
+  if (functionalInitialized) return;
+  functionalInitialized = true;
+
+  const savedTokens = loadFunctionalTokens();
+  if (savedTokens) {
+    functionalTokens.set(savedTokens);
+    try {
+      await fetchCurrentUser();
+    } catch {
+      clearFunctionalAuthState();
+    }
+  }
+
+  if (functionalConfig.autoRefresh) {
+    setupFunctionalAutoRefresh();
+  }
+}
+
+export async function login(credentials: LoginCredentials): Promise<User | null> {
+  functionalIsLoading.set(true);
+  functionalAuthError.set(null);
+
+  try {
+    const { http } = await import('@zenith/http');
+    const response = await http.post<{ user: User; tokens: AuthTokens }>(
+      functionalConfig.endpoints?.login || '/api/auth/login',
+      credentials
+    );
+
+    const { user: newUser, tokens: newTokens } = response.data;
+
+    functionalUser.set(newUser);
+    functionalTokens.set(newTokens);
+
+    if (credentials.remember) {
+      saveFunctionalTokens(newTokens);
+    }
+
+    if (functionalConfig.autoRefresh) setupFunctionalAutoRefresh();
+
+    return newUser;
+  } catch (e: any) {
+    const message = e?.data?.message || e?.message || 'Login failed';
+    functionalAuthError.set(message);
+    emitError({
+      message,
+      category: 'runtime',
+      severity: 'error',
+      recoverable: true,
+      context: { phase: 'login' }
+    });
+    return null;
+  } finally {
+    functionalIsLoading.set(false);
+  }
+}
+
+export async function register(data: RegisterData): Promise<User | null> {
+  functionalIsLoading.set(true);
+  functionalAuthError.set(null);
+
+  try {
+    const { http } = await import('@zenith/http');
+    const response = await http.post<{ user: User; tokens: AuthTokens }>(
+      functionalConfig.endpoints?.register || '/api/auth/register',
+      data
+    );
+
+    const { user: newUser, tokens: newTokens } = response.data;
+
+    functionalUser.set(newUser);
+    functionalTokens.set(newTokens);
+    saveFunctionalTokens(newTokens);
+
+    return newUser;
+  } catch (e: any) {
+    const message = e?.data?.message || e?.message || 'Registration failed';
+    functionalAuthError.set(message);
+    return null;
+  } finally {
+    functionalIsLoading.set(false);
+  }
+}
+
+export async function logout(notifyServer = true): Promise<void> {
+  functionalIsLoading.set(true);
+
+  try {
+    if (notifyServer && functionalTokens.get()) {
+      const { http } = await import('@zenith/http');
+      await http.post(functionalConfig.endpoints?.logout || '/api/auth/logout', {}).catch(() => {});
+    }
+  } finally {
+    clearFunctionalAuthState();
+    clearFunctionalTokens();
+    if (functionalRefreshTimer) {
+      clearTimeout(functionalRefreshTimer);
+      functionalRefreshTimer = null;
+    }
+    functionalIsLoading.set(false);
+  }
+}
+
+export async function refreshToken(): Promise<AuthTokens | null> {
+  const currentTokens = functionalTokens.get();
+  if (!currentTokens?.refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const { http } = await import('@zenith/http');
+    const response = await http.post<AuthTokens>(
+      functionalConfig.endpoints?.refresh || '/api/auth/refresh',
+      { refreshToken: currentTokens.refreshToken }
+    );
+
+    functionalTokens.set(response.data);
+    saveFunctionalTokens(response.data);
+    return response.data;
+  } catch (e) {
+    clearFunctionalAuthState();
+    throw e;
+  }
+}
+
+export async function fetchCurrentUser(): Promise<User | null> {
+  try {
+    const { http } = await import('@zenith/http');
+    const response = await http.get<User>(functionalConfig.endpoints?.me || '/api/auth/me');
+    functionalUser.set(response.data);
+    return response.data;
+  } catch (e) {
+    clearFunctionalAuthState();
+    throw e;
+  }
+}
+
+function clearFunctionalAuthState(): void {
+  functionalUser.set(null);
+  functionalTokens.set(null);
+  functionalAuthError.set(null);
+}
+
+function setupFunctionalAutoRefresh(): void {
+  if (functionalRefreshTimer) clearTimeout(functionalRefreshTimer);
+
+  const currentTokens = functionalTokens.get();
+  if (!currentTokens?.expiresAt) return;
+
+  const refreshIn = Math.max(0, currentTokens.expiresAt - Date.now() - 60000);
+
+  functionalRefreshTimer = setTimeout(async () => {
+    try {
+      await refreshToken();
+    } catch {
+      await logout(false);
+    }
+  }, refreshIn);
+}
+
+export function hasRole(role: string): boolean {
+  return functionalRoles.get().includes(role);
+}
+
+export function hasAnyRole(roleList: string[]): boolean {
+  return roleList.some(r => functionalRoles.get().includes(r));
+}
+
+export function hasAllRoles(roleList: string[]): boolean {
+  return roleList.every(r => functionalRoles.get().includes(r));
+}
+
+export function hasPermission(permission: string): boolean {
+  return functionalPermissions.get().includes(permission);
+}
+
+export function hasAnyPermission(permList: string[]): boolean {
+  return permList.some(p => functionalPermissions.get().includes(p));
+}
+
+export interface RouteGuard {
+  requiresAuth?: boolean;
+  roles?: string[];
+  permissions?: string[];
+  canActivate?: () => boolean | Promise<boolean>;
+  redirectTo?: string;
+}
+
+export async function canActivateRoute(guard: RouteGuard): Promise<{ allowed: boolean; redirectTo?: string }> {
+  if (guard.requiresAuth && !functionalIsAuthenticated.get()) {
+    return { allowed: false, redirectTo: guard.redirectTo || functionalConfig.loginPath };
+  }
+
+  if (guard.roles && guard.roles.length > 0) {
+    if (!hasAnyRole(guard.roles)) {
+      return { allowed: false, redirectTo: guard.redirectTo || '/forbidden' };
+    }
+  }
+
+  if (guard.permissions && guard.permissions.length > 0) {
+    if (!hasAnyPermission(guard.permissions)) {
+      return { allowed: false, redirectTo: guard.redirectTo || '/forbidden' };
+    }
+  }
+
+  if (guard.canActivate) {
+    const allowed = await guard.canActivate();
+    if (!allowed) {
+      return { allowed: false, redirectTo: guard.redirectTo };
+    }
+  }
+
+  return { allowed: true };
+}
+
+export const auth: FunctionalAuthState & {
+  login: typeof login;
+  logout: typeof logout;
+  register: typeof register;
+  refreshToken: typeof refreshToken;
+  fetchUser: typeof fetchCurrentUser;
+  hasRole: typeof hasRole;
+  hasAnyRole: typeof hasAnyRole;
+  hasAllRoles: typeof hasAllRoles;
+  hasPermission: typeof hasPermission;
+  hasAnyPermission: typeof hasAnyPermission;
+  canActivateRoute: typeof canActivateRoute;
+  configure: typeof configureAuth;
+  init: typeof initAuth;
+} = {
+  user: functionalUser,
+  tokens: functionalTokens,
+  isAuthenticated: functionalIsAuthenticated,
+  isLoading: functionalIsLoading,
+  error: functionalAuthError,
+  roles: functionalRoles,
+  permissions: functionalPermissions,
+  login,
+  logout,
+  register,
+  refreshToken,
+  fetchUser: fetchCurrentUser,
+  hasRole,
+  hasAnyRole,
+  hasAllRoles,
+  hasPermission,
+  hasAnyPermission,
+  canActivateRoute,
+  configure: configureAuth,
+  init: initAuth
+};

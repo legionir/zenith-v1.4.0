@@ -1,9 +1,9 @@
 {
   "name": "@zenith/runtime",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
+  "description": "Zenith framework — DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {
@@ -37,20 +36,21 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/state": "1.0.0",
-    "@zenith/expressions": "1.0.0",
-    "@zenith/actions": "1.0.0",
-    "@zenith/events": "1.0.0",
-    "@zenith/components": "1.0.0",
-    "@zenith/scheduler": "1.0.0",
-    "@zenith/router": "1.0.0",
-    "@zenith/data": "1.0.0",
-    "@zenith/security": "1.0.0",
-    "@zenith/devtools": "1.0.0",
-    "@zenith/error-boundary": "1.0.0",
-    "@zenith/transition": "1.0.0",
-    "@zenith/resource": "1.0.0",
-    "@zenith/suspense": "1.0.0"
+    "@zenith/state": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/actions": "1.4.0",
+    "@zenith/events": "1.4.0",
+    "@zenith/components": "1.4.0",
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/data": "1.4.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/devtools": "1.4.0",
+    "@zenith/error-boundary": "1.4.0",
+    "@zenith/transition": "1.4.0",
+    "@zenith/resource": "1.4.0",
+    "@zenith/suspense": "1.4.0",
+    "@zenith/auth": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
@@ -58,10 +58,9 @@
     "@types/node": "^20.11.0",
     "@types/jsdom": "^21.1.6",
     "jsdom": "^24.0.0",
-    "@zenith/auth": "1.0.0",
-    "@zenith/permission": "1.0.0",
-    "@zenith/store": "1.0.0",
-    "@zenith/form": "1.0.0",
-    "@zenith/i18n": "1.0.0"
+    "@zenith/permission": "1.4.0",
+    "@zenith/store": "1.4.0",
+    "@zenith/form": "1.4.0",
+    "@zenith/i18n": "1.4.0"
   }
 }

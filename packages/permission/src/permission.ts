@@ -226,12 +226,12 @@ export class PermissionManager {
     // SEC FIX (v1.2.6): SEC-A6 — preferred `any(...)` / `all(...)` syntax.
     const anyParen = /^any\((.+)\)$/.exec(trimmed);
     if (anyParen) {
-      const perms = anyParen[1].split(',').map(s => s.trim());
+      const perms = (anyParen[1] ?? '').split(',').map(s => s.trim());
       return this.canAny(perms);
     }
     const allParen = /^all\((.+)\)$/.exec(trimmed);
     if (allParen) {
-      const perms = allParen[1].split(',').map(s => s.trim());
+      const perms = (allParen[1] ?? '').split(',').map(s => s.trim());
       return this.canAll(perms);
     }
 
@@ -281,12 +281,12 @@ export class PermissionManager {
     // SEC FIX (v1.2.6): SEC-A6 — preferred `any(...)` / `all(...)` syntax.
     const anyParen = /^any\((.+)\)$/.exec(trimmed);
     if (anyParen) {
-      const roles = anyParen[1].split(',').map(s => s.trim());
+      const roles = (anyParen[1] ?? '').split(',').map(s => s.trim());
       return this.hasAnyRole(roles);
     }
     const allParen = /^all\((.+)\)$/.exec(trimmed);
     if (allParen) {
-      const roles = allParen[1].split(',').map(s => s.trim());
+      const roles = (allParen[1] ?? '').split(',').map(s => s.trim());
       return this.hasAllRoles(roles);
     }
 

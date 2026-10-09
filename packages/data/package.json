@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — Declarative Data Fetching (Phase 8). zen-fetch directive with loading/error/success states and reactive URL.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {
@@ -35,8 +34,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/state": "1.0.0",
-    "@zenith/expressions": "1.0.0"
+    "@zenith/state": "1.4.0",
+    "@zenith/expressions": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

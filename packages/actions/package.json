@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — Action Registry (Phase 4). Maps declarative HTML action names to JavaScript handler functions, enabling full separation of UI from business logic.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {

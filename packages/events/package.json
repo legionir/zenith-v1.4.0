@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — Event Delegation engine (Phase 4). A single delegated listener per event type on document, with modifier parsing (prevent, stop, enter, escape, ...).",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {
@@ -35,10 +34,10 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/actions": "1.0.0",
-    "@zenith/router": "1.0.0",
-    "@zenith/scheduler": "1.0.0",
-    "@zenith/expressions": "1.0.0"
+    "@zenith/actions": "1.4.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/expressions": "1.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

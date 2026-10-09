@@ -33,6 +33,32 @@ import { domAls, type DOMGlobals } from './dom-context';
 // در هر call، EffectContext مخصوص همان async context را برمی‌گرداند.
 import { setEffectContextStore, type EffectContext } from '@zenith/state';
 
+/**
+ * Serialize state for server-to-client transfer.
+ * Strips functions and other non-serializable values.
+ */
+export function serializeState(state: Record<string, any>): string {
+  return JSON.stringify(state, (_, value) => {
+    if (typeof value === 'function') return undefined;
+    return value;
+  });
+}
+
+/**
+ * Inject serialized state into HTML output.
+ */
+export function injectState(html: string, state: string): string {
+  const script = `<script id="zenith-state" type="application/json">${state}</script>`;
+  return html.replace('</head>', `${script}</head>`);
+}
+
+/**
+ * Validate hydration consistency between client and server state.
+ */
+export function validateHydration(clientState: any, serverState: any): boolean {
+  return JSON.stringify(clientState) === JSON.stringify(serverState);
+}
+
 export interface SSRResult { html: string; state: string; route?: string; }
 
 // SEC FIX (v1.2.6): SEC-A1 — safeScriptValue helper.
@@ -59,6 +85,69 @@ export function isRouteSafe(route: string | undefined | null): boolean {
   return !route.includes('</');
 }
 
+/**
+ * Calculate a simple checksum for hydration validation.
+ * Used to verify server output matches client DOM before hydration.
+ */
+export function calculateChecksum(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/**
+ * Validate hydration using checksum comparison.
+ * More reliable than simple JSON comparison of state alone.
+ */
+export function validateHydrationChecksum(serverHtml: string, clientRoot: HTMLElement): boolean {
+  const serverChecksum = calculateChecksum(serverHtml);
+  const clientChecksum = calculateChecksum(clientRoot.innerHTML);
+  return serverChecksum === clientChecksum;
+}
+
+// ── Isomorphic utilities — work identically on server and client ──
+
+/**
+ * Get current environment (server or client).
+ */
+export function getEnvironment(): 'server' | 'client' {
+  return typeof window === 'undefined' ? 'server' : 'client';
+}
+
+/**
+ * Check if running on server.
+ */
+export function isServer(): boolean {
+  return getEnvironment() === 'server';
+}
+
+/**
+ * Check if running on client/browser.
+ */
+export function isClient(): boolean {
+  return getEnvironment() === 'client';
+}
+
+/**
+ * Run code only on server.
+ */
+export function runOnServer<T>(fn: () => T): T | undefined {
+  if (isServer()) return fn();
+  return undefined;
+}
+
+/**
+ * Run code only on client.
+ */
+export function runOnClient<T>(fn: () => T): T | undefined {
+  if (isClient()) return fn();
+  return undefined;
+}
+
 // ── AsyncLocalStorage for thread-safe DOM isolation ──
 
 /**
@@ -80,11 +169,12 @@ function setEffectContextStoreOnce(): void {
     if (!store) return null;
     if (!store.effectContext) {
       store.effectContext = {
+        owner: null,
         activeEffect: null,
         activeCleanupRegistration: null,
       };
     }
-    return store.effectContext;
+    return store.effectContext ?? null;
   });
 }
 

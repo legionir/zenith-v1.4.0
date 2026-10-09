@@ -388,7 +388,7 @@ export function defineStore<S, G extends Record<string, (state: S) => any>, A ex
           return (getter as Function)(stateObj);
         });
         store[name] = c;
-        computedDisposables.push(() => c.dispose());
+        computedDisposables.push(() => c.dispose?.());
       }
     }
 

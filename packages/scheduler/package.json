@@ -3,7 +3,7 @@
   "version": "1.4.0",
   "description": "Zenith framework — Microtask-based Effect Scheduler (Phase 7). Automatically batches multiple Signal updates into a single DOM update via queueMicrotask.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "src",
     "README.md"
   ],
   "scripts": {

@@ -49,7 +49,8 @@
 export function processPortal(
   el: HTMLElement,
   targetSelector: string,
-  context: Record<string, any> = {},
+  // Part of the directive signature; portal targets are resolved from the DOM.
+  _context: Record<string, any> = {},
 ): () => void {
   // ── ۱. ذخیره‌ی originalParent ──
   // اگر عنصر parent نداشت (مثلاً detached)، نمی‌توانیم portal کنیم — no-op.

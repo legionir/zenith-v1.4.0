@@ -240,8 +240,12 @@ export function defineComponent<TProps extends Record<string, any> = Record<stri
       try {
         // Dynamic import to avoid static circular dependency at module
         // resolution time. The actual resolution still happens once.
-        const processor = await import('./processor');
-        processor.registerLifecycle(name, { onMount, onDestroy });
+        import('./processor').then(processor => {
+          processor.registerLifecycle(name, { onMount, onDestroy });
+        }).catch(() => {
+          // processor not yet available — silently skip; lifecycle hooks
+          // only activate when processComponent() runs later.
+        });
       } catch {
         // processor not yet available — silently skip; lifecycle hooks
         // only activate when processComponent() runs later.

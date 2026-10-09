@@ -3,20 +3,32 @@
   "version": "1.4.0",
   "description": "Zenith framework — Error messages library with structured codes (ZEN-001 to ZEN-999), helpful suggestions, and test coverage.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["zenith", "errors", "error-codes", "error-messages"],
-  "license": "MIT"
+  "keywords": [
+    "zenith",
+    "errors",
+    "error-codes",
+    "error-messages"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
 }

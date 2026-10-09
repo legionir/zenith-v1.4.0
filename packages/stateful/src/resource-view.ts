@@ -163,6 +163,9 @@ export function processResourceView(
     return () => {};
   }
 
+  // Narrowed once here so the type survives inside the effect closures below.
+  const tplContent = userTemplate.content;
+
   // ─ـ ۳. خواندن attributeهای سفارشی‌سازی (override متون پیش‌فرض) ──
   const loadingText = el.getAttribute('loading-text') || DEFAULT_LOADING_TEXT;
   const emptyText = el.getAttribute('empty-text') || DEFAULT_EMPTY_TEXT;
@@ -246,7 +249,7 @@ export function processResourceView(
     retryBtn.textContent = retryText;
     const onRetry = () => {
       // force refresh — cache نادیده گرفته می‌شود.
-      resource.list(true).catch((err) => {
+      resource.list(true).catch((err: unknown) => {
         console.error('[zen-resource-view] Retry failed:', err);
       });
     };
@@ -326,15 +329,15 @@ export function processResourceView(
         // را clone می‌کنیم. اگر template فقط شامل text باشد یا چند element،
         // آن را در یک div wrapper قرار می‌دهیم.
         let clone: HTMLElement;
-        const firstChild = userTemplate.content.firstElementChild;
-        if (firstChild && firstChild === userTemplate.content.lastElementChild) {
+        const firstChild = tplContent.firstElementChild;
+        if (firstChild && firstChild === tplContent.lastElementChild) {
           // تک top-level element: مستقیماً clone کن.
           clone = firstChild.cloneNode(true) as HTMLElement;
         } else {
           // چند top-level یا text: در یک wrapper قرار بده.
           clone = document.createElement('div');
           clone.className = 'zen-resource-item-wrapper';
-          clone.appendChild(userTemplate.content.cloneNode(true));
+          clone.appendChild(tplContent.cloneNode(true));
         }
 
         // Signalهای محلی برای این آیتم.
@@ -366,7 +369,7 @@ export function processResourceView(
 
       // ── مدیریت DOM Order ──
       // اگر نود در جای درست نیست، آن را جابجا کن.
-      const expectedNext = prevNode ? prevNode.nextSibling : el.firstChild;
+      const expectedNext: Node | null = prevNode ? prevNode.nextSibling : el.firstChild;
       if (existing.node !== expectedNext) {
         el.insertBefore(existing.node, expectedNext);
       }

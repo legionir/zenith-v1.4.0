@@ -29,7 +29,7 @@ import { effect, signal, Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { zenForNoZenKeyError, zenForInvalidSyntaxError, isZenithError } from '@zenith/errors';
+import { zenForNoZenKeyError, zenForInvalidSyntaxError } from '@zenith/errors';
 
 /**
  * اطلاعات هر آیتم رندرشده در حلقه.

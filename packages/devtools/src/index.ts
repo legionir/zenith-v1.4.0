@@ -38,3 +38,19 @@ export {
   type GraphNodeType,
   type GraphEdgeType,
 } from './graph';
+
+// FEATURE (v1.4.0): DevTools Internal API — zero-cost tracking
+export {
+  devtoolsAPI,
+  exposeDevToolsAPI,
+  registerSignal,
+  registerEffect,
+  markEffectActive,
+  markEffectDisposed,
+  recordStateChange,
+  type DevToolsAPI,
+  type SignalInfo,
+  type EffectInfo,
+  type ComponentInfo,
+  type StateChange,
+} from './api';

@@ -20,9 +20,13 @@ export {
   runWithRouteSync,
   registerRouterCleanup,
   beforeEach,
+  defineRoutes,
+  useRoute,
   type RouteState,
   type NavigationGuard,
   type NavigateOptions,
+  type Route,
+  type RouteContext,
 } from './router';
 
 export { processRouter, prefetchRoute, clearRouteCache } from './outlet';

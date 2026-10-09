@@ -171,17 +171,17 @@ function walkObject(body: string, name: string, signals: Map<string, string[]>):
       // کلید identifier با ":" (مثل name: ...)
       const idMatch = /^([a-zA-Z_$][\w$]*)\s*:/.exec(body.slice(i));
       if (idMatch) {
-        keys.push(idMatch[1]);
+        keys.push(idMatch[1]!);
         // اگر مقدار کلید خود یک object literal است (با یا بدون wrapper signal())،
         // به‌صورت بازگشتی کلیدهای آن را با نام کلید فعلی ثبت کن.
         let j = i + idMatch[0].length;
-        while (j < body.length && /\s/.test(body[j])) j++;
+        while (j < body.length && /\s/.test(body[j]!)) j++;
         const sigPrefix = /^signal\s*\(\s*/.exec(body.slice(j));
         if (sigPrefix) j += sigPrefix[0].length;
         if (body[j] === '{') {
           const subBody = extractBracedBody(body, j);
           if (subBody !== null) {
-            walkObject(subBody, idMatch[1], signals);
+            walkObject(subBody, idMatch[1]!, signals);
           }
         }
         i += idMatch[0].length;
@@ -190,7 +190,7 @@ function walkObject(body: string, name: string, signals: Map<string, string[]>):
       // کلید quoted مثل "name": یا 'name':
       const qMatch = /^(['"])([a-zA-Z_$][\w$]*)\1\s*:/.exec(body.slice(i));
       if (qMatch) {
-        keys.push(qMatch[2]);
+        keys.push(qMatch[2]!);
         i += qMatch[0].length;
         continue;
       }
@@ -219,7 +219,7 @@ function collectKnownSignals(document: vscode.TextDocument): Map<string, string[
   const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
   let sm: RegExpExecArray | null;
   while ((sm = scriptRegex.exec(text)) !== null) {
-    sources.push(sm[1]);
+    sources.push(sm[1]!);
   }
 
   // FIX (B-4): اگر companion در VSCode باز باشد، از API ناهمگام (async) آن استفاده کن.
@@ -251,7 +251,7 @@ function collectKnownSignals(document: vscode.TextDocument): Map<string, string[
     const assignRegex = /\b(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:signal\s*\(\s*)?\{/g;
     let am: RegExpExecArray | null;
     while ((am = assignRegex.exec(src)) !== null) {
-      const varName = am[1];
+      const varName = am[1]!;
       // براکت `{` باز، آخرین کاراکتر match است.
       const openBraceIdx = am.index + am[0].length - 1;
       const body = extractBracedBody(src, openBraceIdx);
@@ -288,8 +288,8 @@ function checkSignalPropertyAccess(
     if (c === '$') {
       const m = /^\$([a-zA-Z_$][\w$]*)\.([a-zA-Z_$][\w$]*)/.exec(expr.slice(i));
       if (m) {
-        const ident = m[1];
-        const prop = m[2];
+        const ident = m[1]!;
+        const prop = m[2]!;
         const known = knownSignals.get(ident);
         if (known && !known.includes(prop)) {
           // پیدا کردن نزدیک‌ترین کلید با Levenshtein.
@@ -459,7 +459,7 @@ function createDiagnosticsProvider(): vscode.Disposable {
     let match: RegExpExecArray | null;
 
     while ((match = attrRegex.exec(text)) !== null) {
-      const attrName = match[1];
+      const attrName = match[1]!;
       // FIX (B-7): مقدار می‌تواند در match[2] (double quote) یا match[3] (single quote) باشد.
       const expr = match[2] ?? match[3] ?? '';
       const startPos = document.positionAt(match.index + match[0].length - expr.length - 1);

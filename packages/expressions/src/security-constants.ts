@@ -44,4 +44,85 @@ export const FORBIDDEN_PROPERTIES: readonly string[] = Object.freeze([
   '__defineSetter__',
   '__lookupGetter__',
   '__lookupSetter__',
+  'caller',
+  'callee',
+  'arguments',
+  'arity',
+  'name',
+  'toString',
+  'valueOf',
+  'toLocaleString',
+  'hasOwnProperty',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'getOwnPropertyDescriptor',
+  'getOwnPropertyNames',
+  'getOwnPropertySymbols',
+  'keys',
+  'values',
+  'entries',
+  'assign',
+  'create',
+  'defineProperty',
+  'defineProperties',
+  'freeze',
+  'seal',
+  'preventExtensions',
+  'isFrozen',
+  'isSealed',
+  'isExtensible',
+  'setPrototypeOf',
+  'Reflect',
+  'Proxy',
+  'Object',
+  'Function',
+  'eval',
+  'setTimeout',
+  'setInterval',
+  'Function.prototype',
+  'global',
+  'globalThis',
+  'window',
+  'document',
+  'location',
+  'history',
 ]);
+
+/**
+ * Forbidden identifiers/globals that must NEVER be used as standalone
+ * identifiers in expressions.
+ */
+export const FORBIDDEN_IDENTIFIERS: readonly string[] = Object.freeze([
+  'eval',
+  'Function',
+  'Proxy',
+  'Reflect',
+  'window',
+  'document',
+  'globalThis',
+  'global',
+  'process',
+  'require',
+  'module',
+  'exports',
+]);
+
+/**
+ * Check if an identifier name is forbidden.
+ */
+export function isForbiddenIdentifier(name: string): boolean {
+  return FORBIDDEN_IDENTIFIERS.includes(name) || FORBIDDEN_PROPERTIES.includes(name);
+}
+
+/**
+ * Sanitize expression body — block arrow function exploits and
+ * direct constructor calls.
+ */
+export function sanitizeExpression(expr: string): string {
+  let clean = expr.trim();
+  // Block arrow functions with direct execution: () => {(...)}
+  clean = clean.replace(/\(\s*\)\s*=>\s*\{?\s*\(/g, '');
+  // Block direct constructor calls
+  clean = clean.replace(/constructor\s*[.(]/g, '');
+  return clean;
+}

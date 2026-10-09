@@ -37,6 +37,27 @@ export interface HydrationResult {
  * BUG FIX (BUG-09): این تابع حالا قبل از iteration، type validation انجام
  * می‌دهد تا از prototype pollution و خطاهای runtime جلوگیری شود.
  */
+/**
+ * Deserialize state from a JSON string.
+ */
+export function deserializeStateFromString(serialized: string): Record<string, any> {
+  try {
+    return JSON.parse(serialized);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Load preloaded state on client from the injected script tag.
+ */
+export function loadPreloadedState(): Record<string, any> | null {
+  if (typeof document === 'undefined') return null;
+  const el = document.getElementById('zenith-state');
+  if (!el) return null;
+  return deserializeStateFromString(el.textContent || '{}');
+}
+
 export function deserializeState(serializedState: Record<string, any>): Record<string, any> {
   const state: Record<string, any> = {};
 
@@ -237,7 +258,8 @@ function skipServerComponents(root: HTMLElement): number {
   const usedClose = new Set<Comment>();
 
   for (let i = 0; i < comments.length; i++) {
-    const open = comments[i];
+    // Loop bounds guarantee these indices exist.
+    const open = comments[i]!;
     const openText = open.data || '';
     if (!openText.startsWith(SC_OPEN_PREFIX)) continue;
 
@@ -246,7 +268,7 @@ function skipServerComponents(root: HTMLElement): number {
     // پیدا کردن close متناظر.
     let close: Comment | null = null;
     for (let j = i + 1; j < comments.length; j++) {
-      const c = comments[j];
+      const c = comments[j]!;
       if (usedClose.has(c)) continue;
       const ct = c.data || '';
       if (ct.startsWith(SC_CLOSE_PREFIX)) {

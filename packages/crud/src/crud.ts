@@ -51,14 +51,12 @@ import { Zen } from '@zenith/runtime';
 // @returns داده‌های merge شده.
 function rollbackWithMerge(current: any[], snapshot: any[]): any[] {
   const snapshotIds = new Set(snapshot.map(item => item.id));
-  const currentIds = new Set(current.map(item => item.id));
 
   // آیتم‌هایی که بین حذف و rollback اضافه شده‌اند.
   const newItems = current.filter(item => !snapshotIds.has(item.id));
-  // آیتم‌های حذف‌شده که باید برگردند.
-  const restoredItems = snapshot.filter(item => currentIds.has(item.id) === false);
 
   // ترکیب: snapshot اصلی + آیتم‌های جدید - dedup.
+  // شروع از snapshot یعنی آیتم‌های حذف‌شده به‌صورت خودکار restore می‌شوند.
   const merged = [...snapshot];
 
   for (const item of newItems) {
@@ -66,10 +64,6 @@ function rollbackWithMerge(current: any[], snapshot: any[]): any[] {
       merged.push(item);
     }
   }
-
-  // آیتم‌هایی که در snapshot بودند و در current حذف نشدند، باقی می‌مانند.
-  // آیتم‌هایی که در snapshot بودند و در current حذف شدند (optimistic delete)
-  // توسط restoredItems برگردانده می‌شوند.
 
   return merged;
 }
@@ -90,17 +84,22 @@ function rollbackWithMerge(current: any[], snapshot: any[]): any[] {
 //   // → { user: { name: 'Ali' }, tags: ['admin'] }
 function setNestedValue(obj: Record<string, any>, path: string, value: any): void {
   const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+  const lastKey = keys[keys.length - 1];
+  // `split` always yields at least one element, so this only guards the
+  // empty-path case and narrows the index type for TypeScript.
+  if (lastKey === undefined) return;
+
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
-    const key = keys[i];
+    const key = keys[i]!;
     // در صورت نیاز، object یا array بعدی را بساز.
     if (!(key in current)) {
       const nextKey = keys[i + 1];
-      current[key] = /^\d+$/.test(nextKey) ? [] : {};
+      current[key] = nextKey !== undefined && /^\d+$/.test(nextKey) ? [] : {};
     }
     current = current[key];
   }
-  current[keys[keys.length - 1]] = value;
+  current[lastKey] = value;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

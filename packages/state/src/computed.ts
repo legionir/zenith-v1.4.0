@@ -15,8 +15,9 @@
 //   firstName.set('Reza');
 //   fullName.get(); // 'Reza Mohammadi'  ← به صورت خودکار آپدیت شد.
 
-import { Signal, signal } from './signal';
+import { Signal, signal, type ReadonlySignal } from './signal';
 import { effect } from './effect';
+import { createOwner, disposeOwner, getOwner } from './context';
 
 /**
  * کلاس Computed: یک Signal با مقدار مشتق‌شده.
@@ -35,6 +36,7 @@ export class Computed<T> {
   private _innerSignal: Signal<T | undefined>;
   private _cleanup: (() => void) | null = null;
   private _initialized = false;
+  private _owner: ReturnType<typeof createOwner>;
 
   constructor(private computation: () => T) {
     // BUG-03 FIX + IMP-01 (v1.3.0): Lazy initialization — computation() is
@@ -47,6 +49,7 @@ export class Computed<T> {
     // innerSignal starts with undefined as a placeholder. When get() is called
     // for the first time, _initialize() runs computation(), creates the real
     // innerSignal, and sets up the tracking effect.
+    this._owner = createOwner(getOwner());
     this._innerSignal = signal<T | undefined>(undefined);
   }
 
@@ -86,6 +89,8 @@ export class Computed<T> {
         this._value = newValue;
         this._innerSignal.set(newValue as T);
       }
+    }, {
+      owner: this._owner,
     });
 
     this._initialized = true;
@@ -99,16 +104,20 @@ export class Computed<T> {
       this._cleanup();
       this._cleanup = null;
     }
+    disposeOwner(this._owner);
     this._initialized = false;
   }
 }
 
 /**
- * تابع کمکی برای ساخت Computed.
+ * Create a computed (derived) readonly signal with full type inference.
  *
  * @param computation تابع محاسبه‌کننده‌ی مقدار.
- * @returns یک Computed قابل استفاده.
+ * @returns یک Computed قابل استفاده (به‌صورت ReadonlySignal).
+ *
+ * @example
+ *   const double = computed(() => count.get() * 2); // ReadonlySignal<number>
  */
-export function computed<T>(computation: () => T): Computed<T> {
-  return new Computed(computation);
+export function computed<T>(computation: () => T): ReadonlySignal<T> {
+  return new Computed(computation) as unknown as ReadonlySignal<T>;
 }
