@@ -131,6 +131,9 @@ jobs:
       # #70: uniform repository/homepage/bugs/publishConfig/sideEffects.
       - name: Validate package fields
         run: node scripts/validate-package-fields.mjs
+      # #68: every package LICENSE must equal the root MIT text.
+      - name: Check LICENSE sync
+        run: node scripts/sync-license.mjs --check
       - name: publint all packages
         run: npm run publint
 
