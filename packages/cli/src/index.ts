@@ -18,6 +18,7 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
+import { validateProjectName } from './validate-project-name';
 import {
   indexHtmlTemplate,
   mainTsTemplate,
@@ -76,6 +77,13 @@ program
   .option('--no-git', 'Skip git initialization')
   .option('--pwa', 'Create a Progressive Web App with service worker and manifest')
   .action((projectName: string, opts: { git: boolean; pwa: boolean }) => {
+    // AUDIT CLI-03 (#7): اعتبارسنجی کامل نام — بدون آن `../x` یا `/etc/x`
+    // باعث نوشتن بیرون از cwd می‌شد. پیام روشن + کد خروج غیرصفر.
+    const nameError = validateProjectName(projectName, process.cwd());
+    if (nameError) {
+      console.error(`[ERROR] Invalid project name "${projectName}": ${nameError}`);
+      process.exit(1);
+    }
     projectName = normalizeFilePath(projectName);
     const projectDir = path.join(process.cwd(), projectName);
     // بررسی اینکه آیا directory از قبل وجود دارد.

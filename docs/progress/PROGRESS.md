@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #187
+آخرین issue کامل: #7
 issue در حال انجام: —
-بعدی: باقی موج ۱ (#7، #10، #17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
+بعدی: باقی موج ۱ (#10، #17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 37884888485 (#14)
 
@@ -63,3 +63,11 @@ issue در حال انجام: —
   zen-text end-to-end) همه red-before-fix؛ README quickstart به `computed`
   واقعی برگشت و دوباره با Playwright هدلس روی باندل راستی‌آزمایی شد (0→2→6).
 - typecheck/build از baseline سبز است (۳۴/۳۴).
+- #7 انجام شد (موج ۱): اعتبارسنجی نام پروژه در `zenith create` — ماژول جدید
+  `packages/cli/src/validate-project-name.ts` (الگوی `[a-zA-Z0-9._-]` شروع
+  alphanumeric، رد مطلق/سپاریتر POSIX+ویندوز+یونیکد/نام خالی/بیش از ۱۰۰/
+  رزرو ویندوز/لنگهٔ resolve داخل cwd)؛ `index.ts` با پیام `[ERROR] Invalid
+  project name` و exit 1 فراخوانی می‌کند؛ ۸ تست در
+  `packages/cli/test/cli-traversal.test.ts` (واحد + یکپارچگی با بیلد واقعی
+  CLI در سندباکس: `../evil`، `a/b`، `..\evil` رد و هیچ فایل بیرون cwd
+  نوشته نمی‌شود؛ `my-app` می‌گذرد).
