@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #59
+آخرین issue کامل: #69
 issue در حال انجام: —
-بعدی: #69 سپس موج ۱
+بعدی: موج ۱ (باگ/امنیت) — #7، #187 (کشف‌شده حین #69) و بقیهٔ لیست باز
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 37884888485 (#14)
 
@@ -47,4 +47,12 @@ issue در حال انجام: —
   docs/README.md (لینک از README ریشه → #69؛ CONTRIBUTING → #107)؛
   تست scripts/test/security.test.mjs (۸ مورد)؛ فعال‌سازی Private vulnerability
   reporting فقط از UI است → needs-human + docs/MANUAL-STEPS.md.
+- #69 انجام شد: README.md ریشه (معرفی HTML-First/Signal، شروع سریع قابل‌اجرا با
+  باندل مرورگری + راستی‌آزمایی Playwright هدلس، جدول ۳۶ پکیج با لایه/نقش/لینک،
+  لینک ARCHITECTURE/docs/SECURITY/MANUAL-STEPS، نشان‌ها)؛ ۱۲ README پکیج
+  تکمیل شد (compiler/crud/dependency-graph/error-boundary/i18n/permission/
+  resource/stateful/store/suspense/transition/virtual-list)؛
+  تست scripts/test/root-readme.test.mjs (۷ مورد: جدول کامل، لینک‌های نسبی
+  سالم، API واقعی quickstart). حین آزمون manual، باگ واقعی computed-in-template
+  کشف و به‌عنوان #187 گزارش شد (README فعلاً الگوی signal+effect را نشان می‌دهد).
 - typecheck/build از baseline سبز است (۳۴/۳۴).
