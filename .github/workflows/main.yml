@@ -45,6 +45,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # #27: core unit tests with the >=70% statement coverage gate (vitest).
+      # A failing test or an unmet threshold fails the job and blocks the merge.
+      - name: Unit tests + coverage gate
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-node${{ matrix.node }}
+          path: coverage/
+          retention-days: 14
+
       - name: Type-check
         run: npm run typecheck
 
