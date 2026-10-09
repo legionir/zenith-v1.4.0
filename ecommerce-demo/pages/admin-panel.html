@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>پنل مدیر</title></head>
+<body>
+  <h2>پنل مدیر</h2>
+  <div zen-if="$auth.user">
+    <p>مدیر: <span zen-text="$auth.user.name"></span></p>
+    <div zen-resource="'/api/admin/orders'" zen-state="orders">
+      <table>
+        <tr><th>سفارش</th><th>وضعیت</th></tr>
+        <tr zen-for="o in $orders.data" zen-key="o.id">
+          <td zen-text="$o.id"></td>
+          <td zen-text="$o.status"></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <div zen-if="!$auth.user">
+    <p>دسترسی محدود — لطفاً <a zen-link="/admin-login">وارد شوید</a></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فروشگاه Zenith</title>
+  <script type="module" src="/src/store.ts"></script>
+</head>
+<body>
+  <header>
+    <h1 zen-text="$store.name">فروشگاه Zenith</h1>
+    <nav>
+      <a zen-link="/">صفحه اصلی</a>
+      <a zen-link="/cart">سبد خرید</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="products">
+      <h2>محصولات</h2>
+      <div zen-resource="'/api/products'" zen-state="products">
+        <div zen-if="$products.loading">در حال بارگذاری...</div>
+        <div zen-if="$products.error">خطا: <span zen-text="$products.error"></span></div>
+        <ul zen-for="product in $products.data" zen-key="product.id">
+          <li>
+            <h3 zen-text="$product.title"></h3>
+            <p>قیمت: <span zen-text="$product.price"></span> تومان</p>
+            <button zen-action="addToCart"
+                    zen-bind:data-product-id="$product.id"
+                    zen-bind:data-product-name="$product.title">افزودن</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="cart">
+      <h2>سبد خرید (<span zen-text="$store.cartCount"></span>)</h2>
+      <div zen-for="item in $store.cart" zen-key="item.id">
+        <span zen-text="$item.title"></span>
+        <button zen-action="removeFromCart" zen-bind:data-id="$item.id">حذف</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

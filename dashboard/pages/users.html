@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>کاربران</title></head>
+<body>
+  <h2>لیست کاربران</h2>
+  <div zen-resource="'/api/users'" zen-state="users"></div>
+  <table>
+    <tr zen-for="u in $users.data" zen-key="u.id">
+      <td zen-text="$u.name"></td>
+      <td zen-text="$u.email"></td>
+    </tr>
+  </table>
+</body>
+</html>

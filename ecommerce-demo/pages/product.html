@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>جزئیات محصول</title></head>
+<body>
+  <a zen-link="/">← بازگشت</a>
+  <div zen-fetch="'/api/products/' + $route.params.id" zen-state="product">
+    <h1 zen-text="$product.data.title"></h1>
+    <p>قیمت: <span zen-text="$product.data.price"></span> تومان</p>
+    <button zen-action="addToCart"
+            zen-bind:data-product-id="$route.params.id"
+            zen-bind:data-product-name="$product.data.title">افزودن به سبد</button>
+  </div>
+</body>
+</html>

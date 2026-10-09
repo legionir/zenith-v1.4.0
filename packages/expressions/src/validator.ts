@@ -27,7 +27,7 @@ import {
 /**
  * لیست Identifierهای ممنوعه (legacy alias — kept for compatibility).
  *
- * اگر کاربری در Expression بنویسد `window.location.href` یا `eval(...)`،
+ * اگر کاربری در Expression بنویسد `window.location.href`، `eval(...)`، یا `Function(...)`،
  * این لیست بلاکش می‌کند.
  *
  * نکته‌ی امنیتی مهم (v0.4.0 — fuzzing finding):
