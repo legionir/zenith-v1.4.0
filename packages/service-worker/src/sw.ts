@@ -180,13 +180,20 @@ export function setupSW(config: SWRuntimeConfig): void {
 
   const swSelf = self as unknown as {
     addEventListener: (type: string, listener: (event: any) => void) => void;
+    removeEventListener: (type: string, listener: (event: any) => void) => void;
     skipWaiting?: () => Promise<void>;
     clients?: { claim?: () => Promise<void> };
     registration?: { sync?: { register: (tag: string) => Promise<void> } };
   };
 
+  // FIX (#6): همهٔ handlerها از طریق addSWListener ثبت می‌شوند تا در swHandlers
+  // ذخیره شوند و cleanupSWListeners واقعاً بتواند آن‌ها را حذف کند.
+  const registerHandler = (type: string, handler: (event: any) => void): void => {
+    addSWListener(type, handler);
+  };
+
   // FEATURE (v0.4.0): install event — pre-cache critical assets.
-  swSelf.addEventListener('install', (event: any) => {
+  registerHandler('install', (event: any) => {
     const cfg = _config!;
     const precachePromise = (async () => {
       const cacheStore = typeof caches !== 'undefined' ? caches : null;
@@ -215,7 +222,7 @@ export function setupSW(config: SWRuntimeConfig): void {
   });
 
   // FEATURE (v0.4.0): activate event — پاکسازی cacheهای قدیمی.
-  swSelf.addEventListener('activate', (event: any) => {
+  registerHandler('activate', (event: any) => {
     const cfg = _config!;
     const cleanupPromise = (async () => {
       const cacheStore = typeof caches !== 'undefined' ? caches : null;
@@ -253,7 +260,7 @@ export function setupSW(config: SWRuntimeConfig): void {
   });
 
   // FEATURE (v0.4.0): fetch event — route-matching → apply strategy.
-  swSelf.addEventListener('fetch', (event: any) => {
+  registerHandler('fetch', (event: any) => {
     const cfg = _config!;
     const request: Request = event.request;
     if (!request || !request.url) return;
@@ -305,7 +312,7 @@ export function setupSW(config: SWRuntimeConfig): void {
 
   // FEATURE (v0.5.0): sync event — retry queued mutations با exponential backoff.
   // صف از IndexedDB لود می‌شود تا حتی پس از restartِ SW هم mutationها حفظ شوند.
-  swSelf.addEventListener('sync', (event: any) => {
+  registerHandler('sync', (event: any) => {
     const cfg = _config!;
     const tag = event && event.tag ? event.tag : cfg.backgroundSyncQueueName!;
     if (tag !== cfg.backgroundSyncQueueName!) return;
@@ -362,7 +369,7 @@ export function setupSW(config: SWRuntimeConfig): void {
 
   // FEATURE (v0.4.0): message event — کنترل از main thread.
   // مثلاً برای فرمان skipWaiting.
-  swSelf.addEventListener('message', (event: any) => {
+  registerHandler('message', (event: any) => {
     const data = event && event.data ? event.data : null;
     if (!data || typeof data !== 'object') return;
     if (data.type === 'SKIP_WAITING' && typeof swSelf.skipWaiting === 'function') {
@@ -689,7 +696,13 @@ export function getQueueSize(): number {
 export function getConfig(): SWRuntimeConfig | null {
   return _config;
 }
-// Real listener cleanup: event handlers stored in swHandlers for removal
+/**
+ * رجیستری listenerهای ثبت‌شده توسط setupSW (#6، DEC-001).
+ *
+ * در SW واقعی global scope با هر restart دوباره ساخته می‌شود و cleanup دستی
+ * لازم نیست؛ این رجیستری برای تست (mock self) و سناریوهای register مجدد در
+ * همان صفحه استفاده می‌شود.
+ */
 const swHandlers: Array<{ type: string; handler: EventListener }> = [];
 
 function addSWListener(type: string, handler: EventListener) {
@@ -697,13 +710,13 @@ function addSWListener(type: string, handler: EventListener) {
   (self as any).addEventListener(type, handler);
 }
 
+/**
+ * همهٔ listenerهای ثبت‌شده توسط `setupSW` را حذف می‌کند (idempotent).
+ * @public
+ */
 export function cleanupSWListeners(): void {
   for (const h of swHandlers) {
     try { (self as any).removeEventListener(h.type, h.handler); } catch { /* ignore */ }
   }
   swHandlers.length = 0;
 }
-
-// Listener cleanup added for packages/service-worker/src/sw.ts
-// Listener cleanup: handlers stored for removal
-// Real cleanup: if listeners exist, remove them here via stored references
