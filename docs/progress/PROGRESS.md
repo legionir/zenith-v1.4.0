@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #26
+آخرین issue کامل: #70
 issue در حال انجام: —
-بعدی: #14, #70, #68, #69, #59 سپس موج ۱
+بعدی: #68, #69, #59 سپس موج ۱
 مسدود/نیازمند انسان: —
-آخرین run موفق CI: 37882868930 (#25)
+آخرین run موفق CI: 37884888485 (#14)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -31,4 +31,10 @@ issue در حال انجام: —
 - #26 انجام شد: typecheck-all بدون emit؛ tsconfig موقت noEmit با paths→src در `.tsbuild/`
   (wipe ابتدای هر اجرا، gitignore شد)؛ spawn از typescript/bin/tsc ورک‌اسپیس؛ ۴ تست
   scripts/test/typecheck-all.test.mjs (شامل «declaration کهنه خطا را پنهان نمی‌کند»)؛ DEC-006.
+- #14 انجام شد: engines ≥18.19 در ریشه+۳۵ پکیج+lockfile؛ ماتریس CI کامنت؛ DEC-007؛
+  تست scripts/test/engines.test.mjs (قرارداد اجرایی).
+- #70 انجام شد: repository/homepage/bugs/publishConfig/sideEffects در ۳۵ پکیج؛
+  sideEffects=router/cli glob صریح، بقیه false (اسکن ایستا)؛ اسکریپت CI
+  scripts/validate-package-fields.mjs؛ تست‌های package-fields + side-effects
+  (شامل اثبات tree-shaking با esbuild)؛ DEC-008.
 - typecheck/build از baseline سبز است (۳۴/۳۴).

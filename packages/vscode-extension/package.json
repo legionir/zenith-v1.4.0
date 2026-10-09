@@ -8,6 +8,10 @@
     "vscode": "^1.80.0",
     "node": ">=18.19"
   },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "categories": [
     "Programming Languages",
     "Snippets",
@@ -107,6 +111,15 @@
   },
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/vscode-extension"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
   "dependencies": {
     "@zenith/runtime": "1.4.0"
   }

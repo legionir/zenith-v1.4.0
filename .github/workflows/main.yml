@@ -128,6 +128,9 @@ jobs:
       # not by the esbuild pipeline (it has no src/index.ts).
       - name: Compile vscode extension
         run: npm run compile -w zenith-vscode
+      # #70: uniform repository/homepage/bugs/publishConfig/sideEffects.
+      - name: Validate package fields
+        run: node scripts/validate-package-fields.mjs
       - name: publint all packages
         run: npm run publint
 
