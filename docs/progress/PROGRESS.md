@@ -1,9 +1,9 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #70
+آخرین issue کامل: #59
 issue در حال انجام: —
-بعدی: #68, #69, #59 سپس موج ۱
-مسدود/نیازمند انسان: —
+بعدی: #69 سپس موج ۱
+مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 37884888485 (#14)
 
 ## وضعیت شناخته‌شدهٔ baseline
@@ -37,4 +37,14 @@ issue در حال انجام: —
   sideEffects=router/cli glob صریح، بقیه false (اسکن ایستا)؛ اسکریپت CI
   scripts/validate-package-fields.mjs؛ تست‌های package-fields + side-effects
   (شامل اثبات tree-shaking با esbuild)؛ DEC-008.
+- #68 انجام شد: LICENSE MIT ریشه («Zenith Team 2026») + sync به ۳۵ پکیج
+  (scripts/sync-license.mjs با --check در CI)؛ 'LICENSE' در files تمام پکیج‌ها؛
+  تست license (۳۹ مورد incl. اثبات npm pack)؛ مالک حقوقی → needs-human +
+  docs/MANUAL-STEPS.md.
+- #59 انجام شد: SECURITY.md (جدول نسخه‌های پشتیبانی‌شده، گزارش خصوصی GHSA +
+  fallback ایمیل ZENITH-SEC، SLA تأیید ۴۸ ساعت / ارزیابی ۷ روز / افشای ≤۹۰ روز،
+  دامنه in/out، اشاره به مرز امنیتی expressions و Node ≥18.19)؛ لینک از
+  docs/README.md (لینک از README ریشه → #69؛ CONTRIBUTING → #107)؛
+  تست scripts/test/security.test.mjs (۸ مورد)؛ فعال‌سازی Private vulnerability
+  reporting فقط از UI است → needs-human + docs/MANUAL-STEPS.md.
 - typecheck/build از baseline سبز است (۳۴/۳۴).

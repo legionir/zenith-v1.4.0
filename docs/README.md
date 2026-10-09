@@ -97,3 +97,7 @@ CI (`.github/workflows/main.yml`) در هر پوش/PR هر gate را در یک j
 
 ## 🤝 مشارکت
 برای گزارش باگ یا درخواست ویژگی از Issue Tracker استفاده کنید.
+
+🔒 برای گزارش **آسیب‌پذیری امنیتی** هرگز issue عمومی باز نکنید؛ سیاست و کانال
+گزارش خصوصی در [`SECURITY.md`](../SECURITY.md) آمده است. مراحل دستی باقی‌مانده
+(فعال‌سازی Private vulnerability reporting) در [`docs/MANUAL-STEPS.md`](MANUAL-STEPS.md) ثبت شده است.
