@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #36
+آخرین issue کامل: #79
 issue در حال انجام: —
-بعدی: #79, #25, #26, #14, #70, #68, #69, #59 سپس موج ۱
+بعدی: #25, #26, #14, #70, #68, #69, #59 سپس موج ۱
 مسدود/نیازمند انسان: —
-آخرین run موفق CI: 37876438121 (#27)
+آخرین run موفق CI: 37878247149 (#36)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -17,4 +17,12 @@ issue در حال انجام: —
   - همهٔ خطاهای lint رفع شد (کد خروج ۰)؛ ۶۵۹ هشدار `no-explicit-any` موقتاً warn تا #38.
   - DEC-003 (دامنهٔ lint و انحراف‌ها) ثبت شد.
   - مراحل Lint + Format check به CI اضافه شد؛ README docs/README.md بخش دستورهای توسعه.
+- #79 انجام شد: main.yml بازسازی شد به ۱۱ job موازی مستقل (lint، format، typecheck،
+  unit+coverage، audit(prod/high)، dependency-graph، build Node18/22، publint، size-limit،
+  browser-e2e Playwright/Chromium روی باندل واقعی، release).
+  - ابزارهای stage: publint، @playwright/test 1.56، dependency-cruiser 16، size-limit 11 + @size-limit/file (Node 18 سازگار).
+  - اسکریپت‌های جدید: scripts/publint-all.mjs، scripts/e2e-server.mjs؛ کانفیگ‌ها:
+    .dependency-cruiser.cjs (چرخه استاتیکی post-compilation)، .size-limit.json، playwright.config.ts، e2e/browser-smoke.spec.ts + e2e/fixture.html.
+  - zenith-vscode با compile -w ساخته می‌شود تا publint سبز شود؛ DEC-004 ثبت شد؛ .github/CI.md بازنویسی شد (#16 را هم پوشش می‌دهد).
+  - dev-dep audit/secret-scan → #65؛ بودجه دقیق per-package → #83؛ لایه‌بندی کامل → #49؛ publint+attw کامل → #74.
 - typecheck/build از baseline سبز است (۳۴/۳۴).

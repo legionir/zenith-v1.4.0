@@ -1,0 +1,27 @@
+[
+  {
+    "name": "runtime browser bundle (minified, gzipped)",
+    "path": "browser-bundles/zenith-runtime.js",
+    "limit": "50 kb"
+  },
+  {
+    "name": "@zenith/state",
+    "path": "packages/state/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/scheduler",
+    "path": "packages/scheduler/dist/index.js",
+    "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/expressions",
+    "path": "packages/expressions/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/compiler",
+    "path": "packages/compiler/dist/index.js",
+    "limit": "8 kb"
+  }
+]

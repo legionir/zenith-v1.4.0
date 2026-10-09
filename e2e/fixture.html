@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith e2e fixture</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@zenith/state": "/packages/state/dist/index.js",
+          "@zenith/scheduler": "/packages/scheduler/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="app">
+      <p id="counter">0</p>
+      <button id="inc" type="button">+1</button>
+      <p id="doubled">0</p>
+    </main>
+    <script type="module">
+      import { signal, computed, effect } from '@zenith/state';
+
+      const count = signal(0);
+      const doubled = computed(() => count.get() * 2);
+
+      // effect() runs synchronously on creation; updates flush via the
+      // scheduler microtask queue — exactly what the e2e test drives.
+      effect(() => {
+        document.getElementById('counter').textContent = String(count.get());
+      });
+      effect(() => {
+        document.getElementById('doubled').textContent = String(doubled.get());
+      });
+
+      document.getElementById('inc').addEventListener('click', () => count.update((c) => c + 1));
+      window.__ZENITH_E2E_READY__ = true;
+    </script>
+  </body>
+</html>

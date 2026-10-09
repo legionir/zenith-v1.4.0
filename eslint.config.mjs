@@ -13,6 +13,8 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
+      '**/out/**',
+      'browser-bundles/**',
       'artifacts/**',
       'coverage/**',
       'docs/**',
@@ -92,6 +94,16 @@ export default tseslint.config(
   {
     files: ['packages/security/src/sanitizer.ts', 'packages/runtime/src/directives/bind.ts'],
     rules: { 'no-control-regex': 'off' },
+  },
+
+  // ── Root CommonJS config files (.dependency-cruiser.cjs, …) ──
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      parserOptions: { project: null, sourceType: 'commonjs' },
+      ecmaVersion: 2022,
+      globals: { ...globals.node },
+    },
   },
 
   // ── Build scripts (untyped, node) ──

@@ -18,65 +18,182 @@ concurrency:
 permissions:
   contents: read
 
+# #79: every quality gate is its OWN parallel job, so it surfaces as a separate
+# check in the GitHub UI and a failure in any one of them blocks the PR. Fast,
+# source-only gates (lint/format/typecheck/unit/audit) share no work; the
+# build-dependent gates (package-lint publint, size budget, browser-e2e) each
+# run the real build. The Node 18/22 matrix is reserved for the published
+# bundle build so the pipeline stays well under ~10 minutes for a normal PR.
 jobs:
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # #36: ESLint must exit 0 (0 errors).
+      - run: npm run lint
+
+  format:
+    name: Format (Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  typecheck:
+    name: Type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # Every package type-checks clean; declarations are proven by the build.
+      - run: npm run typecheck
+
+  unit:
+    name: Unit tests + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # #27: vitest with the >=70% statement coverage gate on core packages.
+      - run: npm run test:coverage
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+
+  audit:
+    name: Dependency audit (prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      # #65 owns the dev-dependency audit + secret scanning; this gate keeps
+      # the shipped production tree free of high/critical advisories.
+      - name: npm audit (production, high)
+        run: npm audit --omit=dev --audit-level=high
+
+  deps:
+    name: Dependency graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # #79 baseline: no static import cycles / src→devDep leakage. Full
+      # layering rules land in #49.
+      - run: npm run deps
+
+  package-lint:
+    name: Package lint (publint)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # vscode-extension's publint entry (out/extension.js) is compiled here,
+      # not by the esbuild pipeline (it has no src/index.ts).
+      - name: Compile vscode extension
+        run: npm run compile -w zenith-vscode
+      - name: publint all packages
+        run: npm run publint
+
+  size:
+    name: Size budget
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run build:browser
+      # #79 budget (.size-limit.json); per-package budgets expand in #83.
+      - run: npm run size
+
+  e2e:
+    name: Browser e2e (Chromium)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
   build:
     name: Build (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
-        # Lowest supported version (package.json engines: >=18) and current LTS.
+        # Lowest supported version (package.json engines) and current LTS.
         node: ['18', '22']
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
+      - uses: actions/checkout@v6
       - name: Set up Node ${{ matrix.node }}
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-
       # `npm ci` needs a lockfile that matches package.json exactly. It also
       # guards against the malformed-lockfile class of bug that used to break
       # installs in this repo.
-      - name: Install dependencies
-        run: npm ci
-
-      # #36: style gate — ESLint (0 errors) and Prettier check run first so
-      # avoidable style failures surface before the slower typecheck/build.
-      - name: Lint
-        run: npm run lint
-
-      - name: Format check
-        run: npm run format:check
-
-      # #27: core unit tests with the >=70% statement coverage gate (vitest).
-      # A failing test or an unmet threshold fails the job and blocks the merge.
-      - name: Unit tests + coverage gate
-        run: npm run test:coverage
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-node${{ matrix.node }}
-          path: coverage/
-          retention-days: 14
-
-      - name: Type-check
-        run: npm run typecheck
-
-      # build-package.mjs fails hard on tsc errors, so this also verifies
-      # that every package emits its .d.ts files.
+      - run: npm ci
       - name: Build all packages
         run: npm run build
-
       - name: Collect bundles
         run: node scripts/collect-artifacts.mjs artifacts
-
       - name: Summarise bundles
         run: |
           {
@@ -96,9 +213,8 @@ jobs:
               }
             '
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # Bundles land under artifacts/packages/<name>/dist/ plus a
-      # manifest.json index. Download them from the run's Artifacts section.
+      # Bundles land under artifacts/packages/<name>/dist/ plus a manifest.json
+      # index. Download them from the run's Artifacts section.
       - name: Upload bundles
         uses: actions/upload-artifact@v6
         with:
@@ -116,17 +232,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - name: Download bundles
         uses: actions/download-artifact@v7
         with:
           name: zenith-bundles-node22
           path: artifacts
-
       - name: Create tarball
         run: tar -czf "zenith-bundles-${GITHUB_REF_NAME}.tar.gz" -C artifacts .
-
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:

@@ -84,8 +84,12 @@ Zen.start('#app', { count, double });
 | `npm run lint:fix` | ESLint with autofix |
 | `npm run format` | Prettier write (HTML/Markdown excluded via `.prettierignore`) |
 | `npm run format:check` | Prettier check (CI-enforced) |
+| `npm run test:e2e` | Playwright Chromium smoke against the built ESM bundles (`e2e/`) |
+| `npm run publint` | publint over all packages (fails on packaging errors) |
+| `npm run size` | size-limit gzip budgets (`.size-limit.json`) |
+| `npm run deps` | dependency-cruiser cycle/devDep gate (`.dependency-cruiser.cjs`) |
 
-CI (`.github/workflows/main.yml`) در هر پوش `lint`، `format:check`، `test:coverage` (with gate)، `typecheck` و `build` را اجرا می‌کند؛ جزئیات تصمیم در `docs/decisions/DEC-003-eslint-scope.md` و `DEC-002-vitest-runner.md`.
+CI (`.github/workflows/main.yml`) در هر پوش/PR هر gate را در یک job موازی جدا اجرا می‌کند: lint، format، typecheck، unit+coverage، audit، dependency-graph، build (Node 18/22)، publint، size-budget و browser-e2e؛ جزئیات در `.github/CI.md` و تصمیم در `docs/decisions/DEC-004-ci-pipeline.md` (همچنین DEC-003 و DEC-002).
 
 ## 🤝 مشارکت
 برای گزارش باگ یا درخواست ویژگی از Issue Tracker استفاده کنید.

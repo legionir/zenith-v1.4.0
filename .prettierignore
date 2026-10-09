@@ -1,6 +1,8 @@
 node_modules
 dist
+out
 coverage
+browser-bundles
 artifacts
 *.tsbuildinfo
 package-lock.json

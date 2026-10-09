@@ -13,6 +13,9 @@ packages/*/out/
 # Collected build artifacts (scripts/collect-artifacts.mjs)
 artifacts/
 
+# Standalone browser bundle output (scripts/build-browser-bundle.mjs)
+browser-bundles/
+
 # Logs
 *.log
 npm-debug.log*
@@ -37,3 +40,7 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Playwright outputs
+playwright-report/
+test-results/
