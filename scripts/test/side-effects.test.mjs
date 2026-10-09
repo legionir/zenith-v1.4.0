@@ -75,6 +75,9 @@ describe('sideEffects truthfulness (#70)', () => {
     // acceptance: "bundler test (esbuild) removes unused code with
     // sideEffects:false". Consumer imports one tiny symbol from the built
     // @zenith/scheduler bundle; the rest of the module must not survive.
+    // The unit CI job has no dist/, so build the scheduler package here.
+    const { buildPackage } = await import('../build-package.mjs');
+    await buildPackage('scheduler');
     const esbuild = await import('esbuild');
     const consumer = join(await import('node:os').then((os) => os.tmpdir()), 'sl-consumer.js');
     const { writeFileSync } = await import('node:fs');
