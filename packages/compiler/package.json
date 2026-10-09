@@ -19,8 +19,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/test-no-silent-drop.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",

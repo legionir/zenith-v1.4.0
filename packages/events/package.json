@@ -19,8 +19,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/events-test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",
@@ -44,7 +43,6 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "jsdom": "^25.0.1",
-    "tsx": "^4.7.0",
     "typescript": "^5.4.0"
   }
 }

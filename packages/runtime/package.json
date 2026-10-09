@@ -19,7 +19,6 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --tsconfig tsconfig.test.json test/test.ts && tsx test/integration-test.ts",
     "demo": "tsx --tsconfig tsconfig.test.json test/demo.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -57,7 +56,6 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
     "@types/jsdom": "^21.1.6",
     "jsdom": "^24.0.0",

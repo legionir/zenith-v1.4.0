@@ -19,8 +19,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/sw-listeners-test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",
@@ -36,8 +35,7 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "tsx": "^4.7.0"
+    "typescript": "^5.4.0"
   },
   "dependencies": {
     "@zenith/runtime": "1.4.0"

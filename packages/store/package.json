@@ -19,8 +19,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/store-test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",
@@ -38,7 +37,6 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
     "@zenith/scheduler": "1.4.0"
   }

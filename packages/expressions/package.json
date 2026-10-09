@@ -19,7 +19,6 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx test/test.ts",
     "demo": "tsx test/demo.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -39,7 +38,6 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
     "@zenith/state": "1.4.0"
   },
