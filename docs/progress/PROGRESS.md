@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #7
+آخرین issue کامل: #10
 issue در حال انجام: —
-بعدی: باقی موج ۱ (#10، #17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
+بعدی: باقی موج ۱ (#17، #19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 37884888485 (#14)
+آخرین run موفق CI: 37907905842 (#10)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -71,3 +71,10 @@ issue در حال انجام: —
   `packages/cli/test/cli-traversal.test.ts` (واحد + یکپارچگی با بیلد واقعی
   CLI در سندباکس: `../evil`، `a/b`، `..\evil` رد و هیچ فایل بیرون cwd
   نوشته نمی‌شود؛ `my-app` می‌گذرد).
+- #10 انجام شد (موج ۱): هاردن کردن parser/lexer در برابر EOF — `current()`
+  هرگز undefined نمی‌دهد (EOF sentinel)؛ helper `syntaxError()` همهٔ پرتاب‌های
+  syntax پارسر + ۳ پرتاب خام lexer را به `expressionSyntaxError` (ZenithError
+  ZEN-004 با position) تبدیل می‌کند؛ EOF در پیام به‌جای `'null'` → «end of
+  input»؛ `parse()` junk انتهایی (`a)`، `(a))`، `1 2`) را رد می‌کند؛
+  تست `packages/expressions/test/parser-eof.test.ts` (۳۵ مورد: ۳۲ ورودی ناقص
+  + فیوژ قطعی ۱۰٬۰۰۰ ورودی، همه red-before-fix؛ ۳۵۹/۳۵۹ سراسری؛ CI 37907905842).
