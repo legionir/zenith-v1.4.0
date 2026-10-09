@@ -105,5 +105,8 @@
     "typescript": "^5.4.0"
   },
   "type": "module",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@zenith/runtime": "1.4.0"
+  }
 }

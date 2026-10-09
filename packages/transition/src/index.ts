@@ -7,8 +7,12 @@ export {
   TRANSITION_NAMES,
   validateEasing,
   animateGroup,
+  createTransition,
   type TransitionDirection,
+  type TransitionClasses,
   type TransitionOptions,
+  type TransitionRun,
+  type TransitionController,
 } from './transition';
 
 // FEATURE (v0.5.0): zen-animate — Web Animations API.

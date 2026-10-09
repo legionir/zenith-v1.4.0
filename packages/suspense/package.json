@@ -30,8 +30,9 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@zenith/state": "1.4.0",
-    "@zenith/expressions": "1.4.0"
+    "@zenith/error-boundary": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/state": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

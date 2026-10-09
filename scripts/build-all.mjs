@@ -1,12 +1,7 @@
-import { readdirSync, existsSync } from 'fs';
-import { join } from 'path';
 import { buildPackage } from './build-package.mjs';
+import { getPackageOrder } from './package-order.mjs';
 
-const packagesDir = './packages';
-const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name)
-  .filter(name => existsSync(join(packagesDir, name, 'package.json')));
+const pkgDirs = getPackageOrder();
 
 let failed = 0;
 let built = 0;
