@@ -31,7 +31,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=18.19"
   },
   "dependencies": {
     "@zenith/router": "1.4.0",

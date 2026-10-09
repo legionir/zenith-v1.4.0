@@ -23,6 +23,10 @@ Zenith یک فریم‌ورک فرانت‌اند نوآورانه با رویک
 
 ## 🚀 شروع سریع
 
+> **حداقل نسخهٔ Node:** `>=18.19` (تمام ۳۵ پکیج و ریشه؛ DEC-007).
+> `process.getBuiltinModule` برای ایزولاسیون per-request روتر در SSR به همین
+> نسخه نیاز دارد. CI روی ماتریس Node 18 (به‌عنوان کف) و 22 (LTS) اجرا می‌شود.
+
 ```bash
 # نصب پکیج‌های اصلی
 npm install @zenith/state @zenith/runtime

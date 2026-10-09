@@ -177,7 +177,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Lowest supported version (package.json engines) and current LTS.
+        # Lowest supported version (package.json engines: >=18.19, #14) and
+        # current LTS. GitHub's `node-version: '18'` resolves to the newest
+        # 18.x on the runner, which is >= 18.19, so the floor is exercised.
         node: ['18', '22']
     steps:
       - uses: actions/checkout@v6

@@ -32,7 +32,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=18.19"
   },
   "dependencies": {
     "@zenith/runtime": "1.4.0",
