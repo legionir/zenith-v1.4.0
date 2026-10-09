@@ -10,6 +10,10 @@
 // یعنی برای هر رشته، همیشه دنباله‌ی Token یکسان تولید می‌شود.
 // این خاصیت باعث می‌شود Lexer برای Caching کاملاً مناسب باشد.
 
+// FIX (#10): خطاهای lexer هم مثل parser باید ZenithError با کد ZEN-004 و
+// موقعیت باشند، نه `Error` خام.
+import { expressionSyntaxError } from '@zenith/errors';
+
 /**
  * نوع هر Token در خروجی Lexer.
  *
@@ -100,6 +104,9 @@ const SORTED_PUNCTUATORS = [...PUNCTUATORS].sort((a, b) => b.length - a.length);
  * @returns آرایه‌ای از Tokenها.
  */
 export function lex(input: string): Token[] {
+  // FIX (#10): helper برای خطاهای lexer با کد ZEN-004 و موقعیت
+  const lexError = (position: number, unexpected: string): Error =>
+    expressionSyntaxError(input, position, unexpected);
   const tokens: Token[] = [];
   let i = 0;
 
@@ -247,7 +254,7 @@ export function lex(input: string): Token[] {
             expr += input[i++];
           }
           if (depth !== 0) {
-            throw new Error(`Unterminated template literal interpolation at position ${start}`);
+            throw lexError(start, 'unterminated template literal interpolation');
           }
           i++; // از } عبور کن
 
@@ -347,7 +354,7 @@ export function lex(input: string): Token[] {
       }
 
       if (input[i] !== '`') {
-        throw new Error(`Unterminated template literal at position ${start}`);
+        throw lexError(start, 'unterminated template literal');
       }
       i++; // از backtick بسته عبور کن
       continue;
@@ -415,7 +422,7 @@ export function lex(input: string): Token[] {
     }
 
     if (!matched) {
-      throw new Error(`Unexpected character: '${char}' at position ${i}`);
+      throw lexError(i, `unexpected character '${char}'`);
     }
   }
 

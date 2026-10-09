@@ -25,6 +25,7 @@
 //   در غیر این صورت، یک String با مقدار "!" (مثلاً "!" در "+ flag + "!"")
 //   به اشتباه به عنوان عملگر یکانی ! تفسیر می‌شود.
 
+import { expressionSyntaxError } from '@zenith/errors';
 import { lex, type Token, TokenType } from './lexer';
 
 /**
@@ -106,6 +107,8 @@ export type ASTNode =
 export class Parser {
   private tokens: Token[] = [];
   private pos = 0;
+  // FIX (#10): نگه‌داشتن رشته‌ی اصلی برای تولید ZenithError با context و موقعیت
+  private readonly source: string;
   // SEC FIX (v1.2.6): SEC-A10 — depth counter + hard cap to prevent
   // stack-overflow / catastrophic backtracking on attacker-controlled deeply
   // nested input (e.g. `(((((((...)))))))` or a hand-crafted expression that
@@ -117,6 +120,7 @@ export class Parser {
   private static readonly MAX_DEPTH = 200;
 
   constructor(input: string) {
+    this.source = input;
     this.tokens = lex(input);
   }
 
@@ -127,7 +131,30 @@ export class Parser {
   }
 
   private current(): Token {
-    return this.tokens[this.pos]!;
+    // FIX (#10): هرگز undefined برنمی‌گرداند — در پایان token ها، EOF sentinel
+    // برگردانده می‌شود تا خواندن‌های `this.current().value/.type/.start` روی
+    // ورودی ناقص (EOF) به TypeError منجر نشوند.
+    return this.tokens[this.pos] ?? this.tokens[this.tokens.length - 1]!;
+  }
+
+  /**
+   * FIX (#10): توصیف Token برای پیام خطا — EOF به‌جای 'null' به‌عنوان
+   * «پایان ورودی» گزارش می‌شود.
+   */
+  private describe(token: Token): string {
+    return token.type === TokenType.EOF ? 'end of input' : `'${token.value}'`;
+  }
+
+  /**
+   * FIX (#10): سازنده‌ی خطای syntax استاندارد — همه‌ی مسیرهای syntax در Parser
+   * باید این را پرتاب کنند (ZenithError با کد ZEN-004 و موقعیت)، نه `Error` خام.
+   */
+  private syntaxError(token: Token, expected: string, found?: string): Error {
+    return expressionSyntaxError(
+      this.source,
+      token.start,
+      `expected ${expected} but got ${found ?? this.describe(token)}`,
+    );
   }
 
   private consume(): Token {
@@ -141,9 +168,7 @@ export class Parser {
   private expect(value: string): Token {
     const token = this.current();
     if (token.value !== value) {
-      throw new Error(
-        `Syntax Error at position ${token.start}: expected '${value}' but got '${token.value}'`,
-      );
+      throw this.syntaxError(token, `'${value}'`);
     }
     return this.consume();
   }
@@ -182,7 +207,13 @@ export class Parser {
    * شروع از پایین‌ترین اولویت (Conditional) تا بالاترین (Primary).
    */
   parse(): ASTNode {
-    return this.parseConditional();
+    const node = this.parseConditional();
+    // FIX (#10): رد کردن هرگونه junk باقی‌مانده بعد از Expression کامل
+    // (مثلاً `a)` یا `(a))` یا `1 2`). قبلاً این‌ها بی‌صدا accepted می‌شدند.
+    if (this.current().type !== TokenType.EOF) {
+      throw this.syntaxError(this.current(), 'end of input');
+    }
+    return node;
   }
 
   // ── توابع Parse (به ترتیب اولویت) ─────────────────────
@@ -327,7 +358,6 @@ export class Parser {
     let node = this.parsePrimary();
 
     while (true) {
-      if (!this.current()) break; // guard EOF
       if (this.match('.') || this.match('?.')) {
         // ── a.b  یا  a?.b (optional chaining) ──
         // BUG-17 FIX (v1.2.2): در حالت `?.`، `optional: true` را روی
@@ -354,10 +384,7 @@ export class Parser {
         } else {
           const property = this.parsePrimary();
           if (property.type !== 'Identifier') {
-            throw new Error(
-              `Syntax Error at position ${this.current().start}: ` +
-                `expected identifier after '.' but got '${this.current().value}'`,
-            );
+            throw this.syntaxError(this.current(), 'an identifier');
           }
           node = {
             type: 'MemberExpression',
@@ -521,8 +548,7 @@ export class Parser {
           if (this.match(',')) {
             this.consume(); // مصرف کاما برای ادامه‌ی loop
           } else {
-            if (!this.current()) break; // guard EOF
-            break; // دیگر کاما نیست → خروج از loop
+            break; // دیگر کاما نیست → خروج از loop (expect(']') خطای لازم را می‌دهد)
           }
         } while (true);
       }
@@ -534,7 +560,11 @@ export class Parser {
       return this.parseObjectExpression();
     }
 
-    throw new Error(`Syntax Error at position ${token.start}: unexpected token '${token.value}'`);
+    throw this.syntaxError(
+      token,
+      'a value',
+      token.type === TokenType.EOF ? 'end of input' : undefined,
+    );
   }
 
   /**
@@ -596,10 +626,7 @@ export class Parser {
       this.consume();
       key = token.value as string;
     } else {
-      throw new Error(
-        `Syntax Error at position ${token.start}: ` +
-          `expected string or identifier as object key, but got '${token.value}'`,
-      );
+      throw this.syntaxError(token, 'a string or identifier as object key');
     }
 
     this.expect(':');
