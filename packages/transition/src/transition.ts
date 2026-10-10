@@ -492,6 +492,67 @@ function classTokens(className: string): string[] {
   return className.split(/\s+/).filter(Boolean);
 }
 
+/**
+ * FIX (#23): تبدیل مقدار COMPUTED زمان CSS (مثل "0.5s"/"120ms") به میلی‌ثانیه.
+ */
+function cssTimeToMs(value: string): number {
+  const trimmed = value.trim();
+  if (trimmed.endsWith('ms')) return Number.parseFloat(trimmed) || 0;
+  if (trimmed.endsWith('s')) return (Number.parseFloat(trimmed) || 0) * 1000;
+  return Number.parseFloat(trimmed) || 0;
+}
+
+/** فهرست‌های CSS (comma-separated) را در computed style به آرایهٔ مقادیر ساده تبدیل می‌کند. */
+function cssList(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * FIX (#23): مدت واقعی «طولانی‌ترین» transition/animation فعال روی یک عنصر —
+ * بیشینهٔ (delay + duration) برای transitionها و
+ * (delay + duration × iterations) برای animationها از روی getComputedStyle.
+ * infinite/بیش از MAX_ITERATIONS به سقف SAFE_CAP محدود می‌شود تا انتظار
+ * نامتناظر createTransition تبدیل به hang نشود.
+ */
+const MAX_COUNTED_ITERATIONS = 100;
+const SAFE_CAP_MS = 30_000;
+
+function measureTransitionDuration(el: HTMLElement): number {
+  const style = getComputedStyle(el);
+  let longest = 0;
+
+  const tProps = cssList(style.transitionProperty);
+  const tDurations = cssList(style.transitionDuration);
+  const tDelays = cssList(style.transitionDelay);
+  if (!tProps.includes('none')) {
+    for (let i = 0; i < Math.max(tDurations.length, 1); i++) {
+      const duration = cssTimeToMs(tDurations[i % tDurations.length!] ?? '0s');
+      const delay = cssTimeToMs(tDelays[i % Math.max(tDelays.length, 1)] ?? '0s');
+      longest = Math.max(longest, delay + duration);
+    }
+  }
+
+  const aNames = cssList(style.animationName);
+  if (!aNames.includes('none')) {
+    const aDurations = cssList(style.animationDuration);
+    const aDelays = cssList(style.animationDelay);
+    const aCounts = cssList(style.animationIterationCount);
+    for (let i = 0; i < aNames.length; i++) {
+      const duration = cssTimeToMs(aDurations[i % aDurations.length!] ?? '0s');
+      const delay = cssTimeToMs(aDelays[i % Math.max(aDelays.length, 1)] ?? '0s');
+      const countRaw = (aCounts[i % Math.max(aCounts.length, 1)] ?? '1').trim();
+      const iterations =
+        countRaw === 'infinite' ? MAX_COUNTED_ITERATIONS : Number.parseFloat(countRaw) || 1;
+      longest = Math.max(longest, delay + duration * Math.min(iterations, MAX_COUNTED_ITERATIONS));
+    }
+  }
+
+  return Math.min(longest, SAFE_CAP_MS);
+}
+
 function addClasses(el: HTMLElement, className: string): void {
   el.classList.add(...classTokens(className));
 }
@@ -541,6 +602,11 @@ export function createTransition(
     let raf1 = 0;
     let raf2 = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // FIX (#23): مدت واقعیِ طولانی‌ترین transition/animation (از computed
+    // style)؛ 0 یعنی «قابل‌اندازه‌گیری نیست» و duration تنظیم‌شده fallback می‌ماند.
+    let expectedEndMs = 0;
+    // برای تمدید تایمر fallback بر حسب زمان دیواری صرف‌شده از شروع run.
+    const startedAt = Date.now();
 
     const finish = (completed: boolean) => {
       if (settled) return;
@@ -567,7 +633,16 @@ export function createTransition(
     };
 
     const onEnd = (event: Event) => {
-      if (event.target === element) finish(true);
+      // FIX (#23): فقط رویداد خودِ المان؛ رویدادهای bubbleشده از فرزندان
+      // نباید پایان transition باشند.
+      if (event.target !== element) return;
+      // FIX (#23): پایان زودهنگام ممنوع — رویدادی که elapsedTime آن کوتاه‌تر
+      // از طولانی‌ترین duration محاسبه‌شده است (مثل opacity 0.1s وقتی
+      // transform تا 0.5s انیمیت می‌شود) run را تمام نمی‌کند؛ deadline و
+      // تایمر fallback تصمیم نهایی را می‌گیرند.
+      const elapsed = (event as TransitionEvent | AnimationEvent).elapsedTime ?? 0; // ثانیه
+      if (expectedEndMs > 0 && elapsed * 1000 < expectedEndMs) return;
+      finish(true);
     };
     const onCancel = (event: Event) => {
       if (event.target === element) finish(false);
@@ -587,6 +662,18 @@ export function createTransition(
     addClasses(element, from);
     addClasses(element, active);
 
+    // FIX (#23): گوش‌دادن به رویدادها از همان ابتدا (پیش از rAF) تا رویدادی
+    // از دست نرود؛ target-check و deadline مانع پایان زودهنگام می‌شوند.
+    element.addEventListener('transitionend', onEnd);
+    element.addEventListener('transitioncancel', onCancel);
+    element.addEventListener('animationend', onEnd);
+    element.addEventListener('animationcancel', onCancel);
+
+    // FIX (#24): تایمر fallback بلافاصله ساخته می‌شود، نه بعد از دو rAF —
+    // در تب پس‌زمینه rAF متوقف است وگرنه finished هرگز resolve نمی‌شود.
+    // مدت = بیشینهٔ duration تنظیم‌شده و مدت محاسبه‌شده (تقریب اولیه) + حاشیه ۵۰ms.
+    timer = setTimeout(() => finish(true), duration + 50);
+
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         if (settled) return;
@@ -594,11 +681,15 @@ export function createTransition(
         void getComputedStyle(element).transform; // intentional forced style resolution (reflow)
         removeClasses(element, from);
         addClasses(element, to);
-        element.addEventListener('transitionend', onEnd);
-        element.addEventListener('transitioncancel', onCancel);
-        element.addEventListener('animationend', onEnd);
-        element.addEventListener('animationcancel', onCancel);
-        timer = setTimeout(() => finish(true), duration + 50);
+
+        // FIX (#23): پس از اعمال کلاس مقصد، مدت واقعی طولانی‌ترین
+        // transition/animation را از computed style اندازه بگیر و deadline و
+        // تایمر fallback را به بیشینهٔ (duration، مدت واقعی) + حاشیه ببر.
+        expectedEndMs = measureTransitionDuration(element);
+        if (expectedEndMs > duration) {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => finish(true), expectedEndMs + 50 - (Date.now() - startedAt));
+        }
       });
     });
 

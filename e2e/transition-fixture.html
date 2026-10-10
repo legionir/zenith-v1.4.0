@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith transition e2e fixture</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@zenith/transition": "/packages/transition/dist/index.js"
+        }
+      }
+    </script>
+    <style>
+      #two-props {
+        transition-property: opacity, transform;
+        transition-duration: 0.1s, 0.5s;
+      }
+      #child-anim > span {
+        display: block;
+        animation: spin 0.05s linear 1;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="two-props"><span class="inner">content</span></div>
+    <div id="child-anim">
+      <span class="inner">child animates</span>
+    </div>
+
+    <script type="module">
+      import { createTransition } from '@zenith/transition';
+
+      window.__ZENITH_TRN_READY__ = false;
+      window.__ZENITH_TRN__ = { leaveCompleteAt: null, startedAt: null };
+
+      const ctl = createTransition('fade', { duration: 50 });
+
+      window.startLeave = (id) => {
+        const el = document.getElementById(id);
+        window.__ZENITH_TRN__.startedAt = performance.now();
+        return ctl.leave(el).finished.then(() => {
+          window.__ZENITH_TRN__.leaveCompleteAt = performance.now();
+          window.__ZENITH_TRN__.classNameAtEnd = el.className;
+        });
+      };
+
+      window.__ZENITH_TRN_READY__ = true;
+    </script>
+  </body>
+</html>
