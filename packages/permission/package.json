@@ -49,13 +49,11 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/router": "1.4.0",
     "@zenith/security": "1.4.0",
     "@zenith/state": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "@types/node": "^20.11.0",
-    "@zenith/scheduler": "1.4.0"
+    "@types/node": "^20.11.0"
   }
 }

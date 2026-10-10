@@ -47,8 +47,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/dependency-graph": "1.4.0",
-    "@zenith/expressions": "1.4.0"
+    "@zenith/dependency-graph": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

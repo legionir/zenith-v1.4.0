@@ -54,8 +54,7 @@
     "@zenith/resource": "1.4.0",
     "@zenith/state": "1.4.0",
     "@zenith/auth": "1.4.0",
-    "@zenith/actions": "1.4.0",
-    "@zenith/expressions": "1.4.0"
+    "@zenith/actions": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

@@ -119,20 +119,23 @@ signal، computed، effect، batch و owner/context. `scheduler` را برای b
 
 گراف وابستگی (با dev/peer) **چرخه ندارد**.
 
-### ۴.۱ وابستگی‌های بلااستفاده (اعلام‌شده و import نشده)
-| پکیج | بلااستفاده |
+### ۴.۱ وابستگی‌های بلااستفاده (اعلام‌شده و import نشده) — رفع‌شده در #45
+بررسی مجدد (grep + `scripts/unused-zenith-deps.mjs`، در CI اجباری):
+
+| پکیج | وضعیت |
 |---|---|
-| `auth` | `scheduler`، `http` |
-| `compiler` | `expressions` |
-| `ssr` | `router`، `runtime` |
-| `stateful` | `expressions` |
-| `suspense` | `expressions` |
-| `form` | `scheduler` (dev) |
-| `permission` | `scheduler` (dev) |
-| `store` | `scheduler` (dev) |
-| `expressions` | `state` (dev) |
-| `testing` | `runtime` (peer) |
-| `runtime` | `permission`، `store`، `form` (dev) |
+| `auth` | `scheduler` حذف شد؛ `http` **استفاده می‌شود** (dynamic `import()` در API کاربردی) — نگه داشته شد |
+| `compiler` | `expressions` حذف شد (فقط ارجاع کامنت بود) |
+| `ssr` | `router`/`runtime` **استفاده می‌شوند** (dynamic import در render/hydrate) — نگه داشته شدند |
+| `stateful` | `expressions` حذف شد |
+| `suspense` | `expressions` حذف شد |
+| `form` | `scheduler` (dev) حذف شد |
+| `permission` | `scheduler` (dev) و `router` (فقط کامنت JSDoc) حذف شد |
+| `store` | `scheduler` (dev) حذف شد |
+| `expressions` | `state` (dev) حذف شد |
+| `testing` | `runtime` (peer) حذف شد (`scheduler`/`state` واقعاً import می‌شوند) |
+| `runtime` | `permission`، `store`، `form` (dev) حذف شد |
+| `service-worker` | `runtime` حذف شد (اضافه بر جدول اصلی — فقط کامنت بود) |
 
 ### ۴.۲ جهت‌های وابستگی نامناسب (تحلیل)
 - `service-worker` → `runtime`: SW در context بدون DOM اجرا می‌شود.

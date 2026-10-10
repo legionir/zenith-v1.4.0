@@ -111,6 +111,9 @@ jobs:
       # #79 baseline: no static import cycles / src→devDep leakage. Full
       # layering rules land in #49.
       - run: npm run deps
+      # #45: every declared @zenith/* dependency must actually be imported
+      # in that package's src/test (static, type, dynamic or re-export).
+      - run: npm run deps:unused
 
   package-lint:
     name: Package lint (publint)

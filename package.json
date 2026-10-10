@@ -22,7 +22,8 @@
     "format:check": "prettier --check .",
     "publint": "node scripts/publint-all.mjs",
     "size": "size-limit",
-    "deps": "dependency-cruiser packages"
+    "deps": "dependency-cruiser packages",
+    "deps:unused": "node scripts/unused-zenith-deps.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
