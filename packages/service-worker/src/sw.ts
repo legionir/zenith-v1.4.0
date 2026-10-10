@@ -535,6 +535,9 @@ async function retryWithBackoff(mutation: QueuedMutation, maxRetries = 3): Promi
     if (ok) return true;
     if (attempt < maxRetries) {
       const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+      // NON-SECURITY (#64): jitter تصادفیِ backoff فقط برای پراکندن درخواست‌ها
+      // است؛ قابل‌حدس‌زدن بودنش آسیب‌پذیری ایجاد نمی‌کند و شناسه/توکن نیست.
+      // eslint-disable-next-line no-restricted-syntax -- non-security backoff jitter (#64)
       const jitter = delay * 0.2 * Math.random();
       await new Promise((r) => setTimeout(r, delay + jitter));
     }

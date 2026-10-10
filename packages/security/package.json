@@ -52,5 +52,8 @@
     "typescript": "^5.4.0",
     "@types/node": "^20.11.0",
     "jsdom": "^25.0.0"
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0"
   }
 }

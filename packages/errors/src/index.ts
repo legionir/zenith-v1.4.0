@@ -153,6 +153,8 @@ export const ErrorCode = {
   // Security (ZEN-400 to ZEN-499)
   SECURITY_XSS_BLOCKED: 'ZEN-401',
   SECURITY_SANITIZATION_FAILED: 'ZEN-402',
+  // #64: CSPRNG در دسترس نیست — تولید شناسه‌ی امن با Math.random ممنوع است.
+  SECURITY_RANDOM_SOURCE_UNAVAILABLE: 'ZEN-403',
 
   // Compiler (ZEN-500 to ZEN-599)
   COMPILE_UNKNOWN_DIRECTIVE: 'ZEN-501',

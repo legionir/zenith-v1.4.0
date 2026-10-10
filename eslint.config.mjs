@@ -85,6 +85,17 @@ export default tseslint.config(
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false },
       ],
+      // #64: شناسه/توکن/nonce امن باید از crypto.getRandomValues بیاید
+      // (secureId). Math.random در source پکیج‌ها ممنوع است؛ استفاده‌های
+      // غیرامنیتی (مثل backoff jitter) با eslint-disable + کامنت دلیل.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[object.name="Math"][property.name="random"]',
+          message:
+            'Math.random is banned in package sources (#64). Use secureId() from @zenith/security for ids/tokens/nonces; document non-security uses with an eslint-disable comment.',
+        },
+      ],
     },
   },
 

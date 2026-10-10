@@ -40,6 +40,8 @@
 
 import { signal, effect, type ReadonlySignal, type Signal } from '@zenith/state';
 import { reportError } from '@zenith/error-boundary';
+// FIX (#64): شناسه‌های داخلی با CSPRNG (crypto.getRandomValues) به‌جای Math.random.
+import { secureId } from '@zenith/security';
 
 /**
  * وضعیت Suspense.
@@ -521,7 +523,9 @@ export function processSuspense(
   const outerCtx = (context as any).__zenith_suspense__ as SuspenseContext | undefined;
   let innerId: string | null = null;
   if (outerCtx) {
-    innerId = `zen-suspense-${Math.random().toString(36).slice(2, 10)}`;
+    // FIX (#64): شناسه‌ی منحصربه‌فرد با CSPRNG — Math.random قابل‌حدس و
+    // مستعد برخورد بود.
+    innerId = `zen-suspense-${secureId(4)}`;
     outerCtx.startLoading(innerId);
   }
 
