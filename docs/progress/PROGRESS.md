@@ -1,7 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #20
-issue در حال انجام: #23/#24 (رفع کامیت‌شده a4c9414+؛ در انتظار CI)
+آخرین issue کامل: #64
+issue در حال انجام: —
+بعدی: #30، #62، #45، #46، #47 (باقی موج ۱) سپس موج ۲
 بعدی: #64، #30، #62، #45، #46، #47 (باقی موج ۱)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38013588836 (روی HEAD #20)
@@ -109,3 +110,10 @@ issue در حال انجام: #23/#24 (رفع کامیت‌شده a4c9414+؛ د�
     پاک‌سازی تایمر پس از پایان طبیعی).
   - رفع جانبی: e2e-server حالا به /favicon.ico پاسخ 204 می‌دهد (Chrome دسکتاپ
     404 را به‌عنوان page error به smoke test تزریق می‌کرد).
+- #23/#24 در انتظار CI (کامیت‌ها: a4c9414، 87855c0 «fix(e2e)»، f2155f7 «docs(progress)»).
+- #64 انجام شد (موج ۱): `secureId(bytes)` در `@zenith/security` (crypto.getRandomValues،
+  ZenithError ZEN-403 در نبود crypto، بدون fallback غیرامن)؛ suspense innerId به
+  secureId(4)؛ jitter سرویس‌ورکر با کامنت NON-SECURITY + eslint-disable؛ قانون
+  ESLint no-restricted-syntax روی Math.random در packages/**/src (اثبات: probe
+  خطا می‌دهد، repo سبز)؛ security→errors و suspense→security edgeها بدون چرخه
+  (dependency-cruiser سبز)؛ ۴ تست `packages/security/test/secure-id.test.ts`؛ DEC-014.
