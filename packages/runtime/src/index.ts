@@ -1099,6 +1099,8 @@ export { processPortal } from './directives/portal';
 export { processIntersection } from './directives/intersection';
 export { processCloak } from './directives/cloak';
 export { processRef } from './directives/ref';
+// #145 — zen-persist (ذخیرهٔ مقدار zen-model در @zenith/storage).
+export { processPersist } from './directives/persist';
 
 /**
  * FEATURE (v1.2.0): Re-export v1.2.x directive processors — restored in v1.2.2.

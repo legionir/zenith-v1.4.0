@@ -37,6 +37,18 @@
           "url": "https://zenith.dev/docs/runtime#zen-model"
         }
       ]
+    },
+    "zen-persist": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-persist`\n\n```html\n<input zen-model=\"$form.user\" zen-persist=\"cart.user\" zen-persist-driver=\"local\" zen-persist-ttl=\"never\" zen-persist-version=\"1\" zen-persist-debounce=\"300ms\" />\n```\n\nمقدار zen-model را زیر کلید داده‌شده در @zenith/storage ذخیره و هنگام mount بازیابی می‌کند؛ فقط روی المان دارای zen-model معنا دارد.\n\nمقدارها: `کلید ذخیره (string غیرخالی)`\n\nsub-attributes: `zen-persist-driver`, `zen-persist-ttl`, `zen-persist-version`, `zen-persist-debounce`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/storage#zen-persist"
+        }
+      ]
     }
   }
 }

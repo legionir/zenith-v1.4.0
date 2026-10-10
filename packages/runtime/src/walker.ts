@@ -29,6 +29,8 @@ import { effect } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { processBind } from './directives/bind';
 import { processModel } from './directives/model';
+// #145 — zen-persist: ذخیرهٔ مقدار zen-model در @zenith/storage (attribute surface SPEC §۲.۵).
+import { processPersist } from './directives/persist';
 import { processFor } from './directives/for';
 import { isComponent, processComponent } from '@zenith/components';
 import { processRouter } from '@zenith/router';
@@ -890,6 +892,15 @@ function processNodeDirectives(
     disposes.push(processModel(el, expr, context, state));
     // FEATURE (v0.4.0): ثبت در گراف DevTools (zero-cost وقتی غیرفعال).
     __trackDirective(el, 'model', expr);
+  }
+
+  // ── zen-persist (#145): ذخیرهٔ مقدار zen-model در @zenith/storage ──
+  // بعد از zen-model می‌آید تا hydrate روی همان signal بنشیند و listener ما
+  // پس از model ثبت شود (منبع مقدار: خود el؛ وابستگی به ترتیب نداریم).
+  if (el.hasAttribute('zen-persist')) {
+    const persistKey = el.getAttribute('zen-persist')!;
+    disposes.push(processPersist(el, persistKey, context, state));
+    __trackDirective(el, 'persist', persistKey);
   }
 
   // ─────────────────────────────────────────────────────────────

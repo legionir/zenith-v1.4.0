@@ -105,8 +105,8 @@ describe('getPackageOrder (#25)', () => {
     // The actual monorepo must order every package exactly once and never
     // throw; workspace devDep edges (e.g. runtime → permission) are honoured.
     const order = getPackageOrder({ packagesDir: join(process.cwd(), 'packages') });
-    // #142: @zenith/schema added (39 → 40).
-    expect(order).toHaveLength(40);
-    expect(new Set(order).size).toBe(40);
+    // #142: @zenith/schema added (39 → 40); #145: @zenith/storage (40 → 41).
+    expect(order).toHaveLength(41);
+    expect(new Set(order).size).toBe(41);
   });
 });

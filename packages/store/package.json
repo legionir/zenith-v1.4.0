@@ -48,8 +48,9 @@
     "provenance": true
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.11.0"
+    "@types/node": "^20.11.0",
+    "@zenith/storage": "1.5.0",
+    "typescript": "^5.4.0"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"

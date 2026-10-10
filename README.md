@@ -11,7 +11,7 @@
 
 - ⚡ **Fine-grained reactivity** — فقط وابستگی‌های واقعی update می‌شوند (بدون diff درخت)
 - 🧲 **HTML-First** — قالب شما همان HTML است؛ compile اختیاری است، نه اجباری
-- 🧩 **۴۱ پکیج ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، تقویم جلالی و devtools)
+- 🧩 **۴۲ پکیج ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، تقویم جلالی و devtools)
 - 🔒 **مرزهای امنیتی** — sanitizer مستقل، expression evaluator بدون `eval` (سیاست: [SECURITY.md](SECURITY.md))
 - 🖥️ **SSR + Hydration** و پشتیبانی service-worker آفلاین
 
@@ -71,7 +71,7 @@ npm ci && npm run build && npm run build:browser
 
 ---
 
-## 📦 پکیج‌ها (۴۱)
+## 📦 پکیج‌ها (۴۲)
 
 لایه‌ها طبق [ARCHITECTURE.md §۱](ARCHITECTURE.md). تا پیش از انتشار رسمی npm (#66) همهٔ پکیج‌ها از راه source ورک‌اسپیس و باندل‌های مرورگری در دسترس‌اند.
 
@@ -83,6 +83,7 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/cache`](packages/cache) | L0 | کش مشترک: TTL/SWR/tags/LRU — تنها پیاده‌سازی cache (#144) | [📄](packages/cache/README.md) |
 | [`@zenith/jalali`](packages/jalali) | L0 | تقویم جلالی خالص (Borkowski؛ بررسی‌شده با Intl) — استخراج از i18n (#146) | [📄](packages/jalali/README.md) |
 | [`@zenith/schema`](packages/schema) | L0 | اعتبارسنجی گزینه‌ها/config با ZEN-1xxx + متادیتای directive و JSON Schema (#142) | [📄](packages/schema/README.md) |
+| [`@zenith/storage`](packages/storage) | L0 | لایهٔ واحد ذخیره‌سازی (local/session/memory/cookie/indexeddb) + ttl/migrate/sync بین‌تب (#145) | [📄](packages/storage/README.md) |
 | [`@zenith/logger`](packages/logger) | L0 | لاگر مرکزی: سطوح، sinkها، redact، deprecate (ZEN-DEPR) | [📄](packages/logger/README.md) |
 | [`@zenith/security`](packages/security) | L0 | sanitizer، CSP، TrustedTypes | [📄](packages/security/README.md) |
 | [`@zenith/i18n`](packages/i18n) | L0 | ارقام فارسی/عربی، تقویم جلالی | [📄](packages/i18n/README.md) |

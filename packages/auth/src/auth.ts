@@ -954,6 +954,9 @@ export function clearAuth(): void {
 // ============================================================
 
 import { computed, emitError, type ReadonlySignal } from '@zenith/state';
+// #145 — توکن‌های functional از راه @zenith/storage (record نسخه‌دار +
+// migrate دادهٔ میراث + fallback امن). کلید دقیق قدیمی حفظ می‌شود.
+import { createStorage, type ZenithStorage } from '@zenith/storage';
 
 export interface User {
   id: string | number;
@@ -1051,29 +1054,46 @@ export function getAuthConfig(): FunctionalAuthConfig {
   return { ...functionalConfig };
 }
 
+// #145 — همتای ذخیره‌سازی توکن: namespace '' تا کلید دقیق میراث
+// (zenith_auth_tokens) حفظ شود؛ remember-me انتخاب آگاهانۀ کاربر است
+// (هشدار ZEN-404 کلاس Auth #62 جای خود؛ این مسیر functional همان
+// localStorage را نگه می‌دارد ولی version‌دار و no-throw). migrate ⇒ JSON
+// خام قدیمی به‌عنوان version 0 پذیرفته و با record تازه بازنویسی می‌شود؛
+// validate ⇒ دادهٔ دست‌کاری‌شده (بدون accessToken) رد و پاک می‌شود (ZEN-1104).
+function tokenStorage(): ZenithStorage {
+  return createStorage({
+    namespace: '',
+    sync: false,
+    migrate: (old) => old,
+    validate: (v) => {
+      if (!v || typeof v !== 'object' || typeof (v as AuthTokens).accessToken !== 'string') {
+        throw new Error('invalid AuthTokens shape');
+      }
+      return v;
+    },
+  });
+}
+
+let functionalStorage: ZenithStorage | null = null;
+function getFunctionalStorage(): ZenithStorage {
+  if (!functionalStorage) functionalStorage = tokenStorage();
+  return functionalStorage;
+}
+
 function saveFunctionalTokens(t: AuthTokens): void {
-  try {
-    localStorage.setItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY, JSON.stringify(t));
-  } catch (e) {
-    console.warn('Cannot save tokens to storage:', e);
-  }
+  // خطای ذخیره را storage خودش گزارش می‌کند (ZEN-1101/1102) — اینجا no-throw.
+  getFunctionalStorage().set(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY, t);
 }
 
 function loadFunctionalTokens(): AuthTokens | null {
-  try {
-    const raw = localStorage.getItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return (
+    getFunctionalStorage().get<AuthTokens>(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY) ??
+    null
+  );
 }
 
 function clearFunctionalTokens(): void {
-  try {
-    localStorage.removeItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
+  getFunctionalStorage().remove(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
 }
 
 export async function initAuth(): Promise<void> {

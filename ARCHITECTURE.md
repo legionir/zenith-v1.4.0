@@ -3,7 +3,7 @@
 این سند ساختار داخلی، پکیج‌ها، وابستگی‌ها و گزینه‌های (options) هر پکیج را شرح می‌دهد.
 همهٔ اعداد و جدول‌ها از کد مخزن استخراج شده‌اند. بخش‌های «مشکلات و پیشنهاد» تحلیل‌اند و نه واقعیت مستند.
 
-- مخزن: monorepo با npm workspaces (`packages/*`)، ۴۱ پوشه، ۴۰ بستهٔ دارای `package.json`
+- مخزن: monorepo با npm workspaces (`packages/*`)، ۴۲ پوشه، ۴۱ بستهٔ دارای `package.json`
 - حدود ۳۸ هزار خط TypeScript در `src` (`ES2022`، `strict`)
 - خروجی هر پکیج: ESM (`dist/index.js`)، CJS (`dist/index.cjs`)، `dist/index.d.ts`؛
   پکیج‌های جدید موج ۲ (`shared` #141، `logger` #143) ESM-only هستند (DEC-027)
@@ -26,7 +26,7 @@ L2  سرویس‌ها و ویژگی‌ها     router · events · components ·
                            auth · permission · store · form · notifications
                            error-boundary · suspense · transition · virtual-list · data-table
 L1  هستهٔ reactive         state · expressions
-L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n · jalali · schema · shared · logger · cache
+L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n · jalali · schema · shared · logger · cache · storage
 ```
 
 قاعدهٔ مطلوب: هر لایه فقط به لایه‌های پایین‌تر وابسته باشد. وضعیت فعلی در بخش ۴ آمده است.
@@ -45,6 +45,7 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `logger` | L0 | ۹ / ۶۲۳ | errors, shared | لاگر مرکزی SPEC §۲.۳ (#143): createLogger/child/redact، consoleSink·bufferSink·beaconSink، warnOnce/deprecate (ZEN-DEPR)، محافظ sink خراب ZEN-1091؛ تنها مرز console ورک‌اسپیس |
 | `cache` | L0 | ۵ / ۷۳۱ | errors, shared | کش مشترک SPEC §۲.۴ (#144): createCache با TTL/SWR/tags/LRU-FIFO/maxBytes، getOrLoad با dedupe، رجیستری listCaches، signal با adapter تزریقی (DEC-021)؛ تنها پیاده‌سازی cache ورک‌اسپیس |
+| `storage` | L0 | ۹ / ۱۱۶۸ | errors, shared, logger | لایهٔ واحد ذخیره‌سازی SPEC §۲.۵ (#145): createStorage با record {v,t,e,d}، ttl lazy بدون timer، namespace، migrate (شامل دادهٔ میراث v0)، quota policies، sensitive ⇒ memory/cookie، fallback ZEN-1101 بدون استثنا، sync بین‌تب (storage event / SyncBus تزریقی)، زیرمسیر /signal ساختاری (DEC-021)، persistStore/parsePersistAttr، درایورهای memory/local/session/cookie/indexeddb؛ ESM-only 1.5.0 |
 | `jalali` | L0 | ۵ / ۷۶۹ | errors, shared | تقویم جلالی SPEC §۲.۶ (#146، DEC-028): هستۀ Borkowski (چرخهٔ ۳۳‌ساله؛ تساوی با Intl در ۱۲۰۱..۱۵۰۰)، toJalaliParts/fromJalaliParts/formatJalali/parseJalali/add*/diffDays/isLeap/monthDays/نام‌ها/ارقام؛ timeZone صریح (UTC پیش‌فرض — قطعی در SSR)؛ ZEN-1301/1302/1303؛ ESM-only 1.5.0 (DEC-026/027) |
 | `schema` | L0 | ۷ / ۱۰۲۱ | errors, shared | اعتبارسنجی گزینه‌ها SPEC §۲.۲ (#142، DEC-029): سازندهٔ `s.*`، validate/safeValidate/defineOptions/parseConfigAttr، ZEN-1001/1002/1003/1004؛ warn بدون console با reporter تزریق‌شده؛ زیرمسیرهای /zod (دونگی) و /json-schema (toJsonSchema/fromJsonSchema — Draft 2020-12)؛ متادیتای directive و zenith.meta.json/html.customData.json؛ ESM-only 1.5.0 |
 | `i18n` | L0 | ۱ / ۳۰۱ | errors, jalali | ارقام فارسی/عربی، قالب عدد و قیمت؛ alias سازگار تقویم جلالی با ZEN-DEPR-006..015 (#146؛ حذف در 2.0) |
@@ -68,7 +69,7 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `transition` | L2 | ۳ / ۹۰۹ | errors | انیمیشن enter/leave (API مبنا: `createTransition`) |
 | `virtual-list` | L2 | ۳ / ۸۷۲ | errors, expressions; peer: state | لیست مجازی (API مبنا: `createVirtualList`) |
 | `data-table` | L2 | ۲ / ۶۸۷ | peer: state | جدول reactive |
-| `runtime` | L3 | ۲۵ / ۶۷۰۵ | ۱۶ پکیج (بخش ۴) + peer: state, scheduler | walker، directiveها، hydrate، شیء `Zen` |
+| `runtime` | L3 | ۲۵ / ۶۷۰۵ | ۱۸ پکیج (بخش ۴؛ +logger، +storage برای `zen-persist` #145) + peer: state, scheduler | walker، directiveها، hydrate، شیء `Zen` |
 | `ssr` | L3 | ۵ / ۱۴۸۷ | errors, router (dynamic), runtime (dynamic); peer: state, scheduler, jsdom | رندر سرور و استریم |
 | `crud` | L4 | ۳ / ۱۴۰۲ | actions, permission, resource, runtime; peer: state | موتور CRUD |
 | `stateful` | L4 | ۴ / ۱۰۲۴ | runtime, resource, auth, actions; peer: state | کامپوننت‌های loading/error/empty |
@@ -98,8 +99,9 @@ src/
   hydrate.ts        hydration
   parity-check.ts   مقایسهٔ SSR و کلاینت
   directives/       bind cloak date-picker for html html-trusted if intersection
-                    island memo model optimistic portal ref show stateful-button
-                    text track virtual-repeat
+                    island memo model optimistic persist portal ref show
+                    stateful-button text track virtual-repeat
+                    (persist = zen-persist روی @zenith/storage — #145)
 ```
 
 ### `state`

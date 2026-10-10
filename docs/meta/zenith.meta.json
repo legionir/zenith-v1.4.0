@@ -27,6 +27,21 @@
       "description": "دوطرفه binding بین مقدار ورودی فرم و signal.",
       "syntax": "<input zen-model=\"form.name\" />",
       "docs": "https://zenith.dev/docs/runtime#zen-model"
+    },
+    {
+      "name": "zen-persist",
+      "description": "مقدار zen-model را زیر کلید داده‌شده در @zenith/storage ذخیره و هنگام mount بازیابی می‌کند؛ فقط روی المان دارای zen-model معنا دارد.",
+      "syntax": "<input zen-model=\"$form.user\" zen-persist=\"cart.user\" zen-persist-driver=\"local\" zen-persist-ttl=\"never\" zen-persist-version=\"1\" zen-persist-debounce=\"300ms\" />",
+      "attributes": [
+        "zen-persist-driver",
+        "zen-persist-ttl",
+        "zen-persist-version",
+        "zen-persist-debounce"
+      ],
+      "values": [
+        "کلید ذخیره (string غیرخالی)"
+      ],
+      "docs": "https://zenith.dev/docs/storage#zen-persist"
     }
   ]
 }

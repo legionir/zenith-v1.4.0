@@ -23,6 +23,11 @@ const alias: AliasEntry[] = [
     find: /^@zenith\/schema\/json-schema$/,
     replacement: join(packagesDir, 'schema/src/json-schema.ts'),
   },
+  // #145 — زیرمسیر SPEC §۲.۵: @zenith/storage/signal
+  {
+    find: /^@zenith\/storage\/signal$/,
+    replacement: join(packagesDir, 'storage/src/signal.ts'),
+  },
 ];
 for (const dir of readdirSync(packagesDir)) {
   const src = join(packagesDir, dir, 'src', 'index.ts');

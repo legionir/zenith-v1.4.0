@@ -93,6 +93,8 @@ export type Store<S, G, A> = {
   $reset(): void;
   /** $patch: اعمال patch partial روی state. */
   $patch(partial: Partial<S>): void;
+  /** #145 — اشتراک همگام تغییرات state → Cleanup (PersistTarget در @zenith/storage). */
+  $subscribe(cb: (state: S) => void): () => void;
   /** __dispose__: پاکسازی computed signals. */
   __dispose__(): void;
 } & { [K in keyof G]: G[K] extends (s: any) => infer R ? R : never } & { [K in keyof A]: A[K] };
@@ -288,9 +290,19 @@ export function defineStore<
     // getterهای reactive و effectهای وابسته track می‌شود.
     const versionSignal = signal<number>(0);
 
+    // #145 — اشتراک همگانی state (PersistTarget در @zenith/storage):
+    // cb همان stateObj (in-place) را می‌گیرد؛ notify هم از طریق
+    // versionSignal (effect) و هم direct انجام می‌شود ⇒ حتی اگر cb حین
+    // notification بخواند، latest visible است.
+    const stateSubscribers = new Set<(state: S) => void>();
+    const notifySubscribers = (): void => {
+      for (const cb of [...stateSubscribers]) cb(stateObj as S);
+    };
+
     // triggerReactive: فراخوانی پس از هر mutation.
     const triggerReactive = () => {
       versionSignal.set(versionSignal.get() + 1);
+      notifySubscribers();
     };
 
     // ساخت deep proxy روی همان stateObj.
@@ -372,6 +384,11 @@ export function defineStore<
 
         stateSignal.set(stateObj);
         triggerReactive();
+      },
+      // #145 — اشتراک همگانی state (PersistTarget)؛ cleanup idempotent.
+      $subscribe(cb: (state: S) => void): () => void {
+        stateSubscribers.add(cb);
+        return () => void stateSubscribers.delete(cb);
       },
       // BUG-STO-03 FIX: Reflect.ownKeys برای پشتیبانی از Symbol-keyed properties.
       $patch(partial: Partial<S>) {

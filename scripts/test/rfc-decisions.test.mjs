@@ -41,7 +41,7 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     const files = readdirSync(DEC).filter((f) => f.startsWith('DEC-'));
     const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(29); // #142: DEC-029 (schema boundaries)
+    expect(Math.max(...nums)).toBe(30); // #145: DEC-030 (storage boundaries); #142: DEC-029
   });
 
   it('error-space ADR formalizes ZEN-DEPR registry (DEC-019) and hands ranges to #171', () => {
