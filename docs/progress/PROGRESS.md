@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #143
-issue در حال انجام: (none — #144 در پیش است)
-بعدی: #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #144
+issue در حال انجام: (none — #146 در پیش است)
+بعدی: #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38045173800 (روی HEAD 473a10e — #143؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38056460063 (روی HEAD bcc3bdf — #144؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -288,3 +288,39 @@ issue در حال انجام: (none — #144 در پیش است)
     typecheck (37)/test 679/coverage (87.16≥70)/build (36)/deps:unused/peer-rule/
     dependency-cruiser/peer:single-instance/publint (37 pkg ۰ error بعد از
     compile vscode)/size-limit (logger 1.88kB<2kB)/e2e (4 با باندل مرورگری بازسازی‌شده).
+
+- #144 انجام شد (موج ۲، SPEC §۲.۴): پکیج جدید `@zenith/cache` (L0؛ deps فقط
+  errors+shared؛ ESM-only/1.5.0 طبق DEC-026/027) — تنها پیاده‌سازی cache کل
+  ورک‌اسپیس؛ انقضای lazy بدون timer (SSR-safe)، LRU/FIFO، maxBytes+sizeOf،
+  tags/invalidate، getOrLoad با dedupe (۱۰۰ هم‌زمان ⇒ ۱ loader)، SWR با
+  revalidate پس‌زمینهٔ dedupe‌شده، ژن‌شمارندهٔ bumps ضد commit دیرهنگام،
+  stats هم‌شکل expressions، registerCache/listCaches (devtools)،
+  parseCacheAttr («30s,swr=2m»/never/false/تگ)، signal با setSignalAdapter
+  (بدون یال cache→state — DEC-021؛ انحراف subpath مستدل)، ZEN-1201/1202 از
+  کاتالوگ #171، رجیستری duplicate ⇒ ZEN-1090.
+  - مهاجرت شش مصرف‌کننده (API عمومی حفظ شد): expressions (compile/clearCache/
+    getCacheSize/configureCache/getCacheStats — همان پنج‌فیلد آمار؛ configure
+    با rebuild و انتقال entryها)، http (cacheStore⇒httpCache با wrapper {data}؛
+    clearHttpCache جدید + alias clearCache با deprecate ZEN-DEPR-005 ثبت‌شده در
+    DEPRECATION_CODES — کار #3 issue؛ سازگاری __tag: قدیمی با predicate)،
+    data (getCachedData/setCachedData/clearFetchCache روی peek/set/clear؛ TTL
+    پارامتری در wrapper)، resource (_inflightRequests⇒_dedupeCache؛ delete در
+    settle ⇒ فقط join هم‌زمانی، staleTime/سگنال بدون تغییر)، components
+    (templateCache/inflight/errorCache⇒سه createCache؛ هویت AbortError حفظ)،
+    router (LRUCache دستی حذف؛ routeCache cache + timestamp Map با onEvict).
+  - گیت جدید: consumers.test.ts (شش import + نبود Map/LRUCache دستی + deps
+    package.json) — معیار «هیچ پیاده‌سازی cache مستقل دیگری».
+  - تست‌ها (red-before-fix، ۷۸ مورد در ۷ فایل): cache (۳۰+ get/set/ttl/clock
+    جعلی/LRU-FIFO/evict reasons/stats)، get-or-load (۱۱؛ dedupe ۱۰۰تایی، SWR
+    با deferred promise، خطای loader⇒ZEN-1202 با cause)، limits-registry (۱۷؛
+    maxBytes، رجیستری ZEN-1090، adapter، نشت/تایمر)، layering (۶)، env-import
+    (۲)، size-budget (۳؛ gzip≤3072B + .size-limit 3kB brotli — واقعی 2.34kB)،
+    consumers (۱۰). npm test = 762 سبز (از 679)؛ coverage 87.1≥70.
+  - شمارش‌ها/اسناد: package-fields/package-order 38، root-readme 39، README
+    ریشه ۳۹ + ردیف cache، ARCHITECTURE هدر ۳۹/۳۸ + ردیف cache + ستون وابستگی
+    شش مصرف‌کننده، docs/README و MANUAL-STEPS «۳۸ پکیج»؛ tsconfig references
+    + LICENSE sync؛ DEC-021 §«اجرای #144» (seam آداپتور + تحلیل یال مهاجرت).
+  - گیت‌های محلی سبز: lint (۰ error)/format/typecheck (38)/test/coverage/build
+    (37 built)/deps:unused (37 checked، ۰)/peer-rule/peer:single-instance/
+    dependency-cruiser (۱۵۳ modules ۰)/publint (38 پاک)/size-limit (cache
+    2.34kB≤3)/e2e (۴ با باندل بازسازی‌شده + playwright install در sandbox).
