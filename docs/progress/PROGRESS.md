@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #144
-issue در حال انجام: (none — #146 در پیش است)
-بعدی: #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #146
+issue در حال انجام: (none — #142 در پیش است)
+بعدی: #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38056460063 (روی HEAD bcc3bdf — #144؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38071497936 (روی HEAD 069c7c6 — #146؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -324,3 +324,44 @@ issue در حال انجام: (none — #146 در پیش است)
     (37 built)/deps:unused (37 checked، ۰)/peer-rule/peer:single-instance/
     dependency-cruiser (۱۵۳ modules ۰)/publint (38 پاک)/size-limit (cache
     2.34kB≤3)/e2e (۴ با باندل بازسازی‌شده + playwright install در sandbox).
+
+- #146 انجام شد (موج ۲، SPEC §۲.۶): پکیج جدید `@zenith/jalali` (L0؛ deps فقط
+  errors+shared؛ ESM-only/1.5.0 طبق DEC-026/027) — تقویم جلالی خالص با هستۀ
+  Borkowski (چرخهٔ حسابی ۳۳‌ساله، پورت از مرجع jalaali-js؛ DEC-028).
+  - API: toJalaliParts/fromJalaliParts (timeZone صریح utc|local|IANA — UTC
+    پیش‌فرض ⇒ قطعی SSR)/formatJalali (همۀ توکن‌های YYYY..ss)/parseJalali/
+    addDays/addMonths/addYears (clamp پایان ماه)/diffDays/isLeap/monthDays/
+    monthName/weekdayName (۰=شنبه)/compareJalali/jalaliNow (clock تزریقی)/
+    isValidJalali + toPersianDigits/toArabicDigits/toLatinDigits.
+  - رفتار مرز طبق SPEC: خارج از بازه ⇒ ZEN-1301 throw (انحراف عمدی از legacy؛
+    DEC-028)، قالب نامعتبر ⇒ ZEN-1302، تاریخ نامعتبر/ناموجود ⇒ ZEN-1303.
+    createReservedError حالا پیام را با پیشوند `[CODE]` می‌سازد (قابل assert).
+  - migration از i18n با alias سازگار: ZEN-DEPR-006..015 در
+    DEPRECATION_CODES ثبت (کل رجیستری ۱۵ کد؛ حذف در 2.0 — DEC-026)؛ عصر
+    legacy (`Gregorian < 1622` ⇔ Jy < ۱۰۰۰) همان الگوریتم ۳۳‌سالهٔ قدیمی را
+    حفظ می‌کند (صفر تغییر خروجی)؛ مسیر مدرن delegate می‌کند؛ فرمول معیوب
+    `fromJalali` legacy (که هیچ تاریخ معتبری نمی‌داد) با delegation تصحیح
+    شد — بی‌مصرف در مخزن پس از مهاجرت date-picker.
+  - مصرف داخلی: `runtime/date-picker` به API مبنا منتقل شد (بدون یال i18n؛
+    grid با getUTCDay ⇒.timezone-safe؛ مقدار ورودی با isValidJalali اعتبار
+    کامل می‌شود — کد قدیمی ۱۴۰۲/۱۲/۳۰ ناموجود را می‌پذیرفت). الگو: #47.
+  - تست‌ها (red-before-fix، ۶۷ مورد در ۶ فایل): jalali.test ۲۶ (لنگرها،
+    roundtrip ۱۰۰۰..۳۰۰۰ هر ۳ روز + ۳۰k PRNG با seed، ۱۲۰٬۰۰۰ sample تساوی
+    با Intl در ۱۲۰۱..۱۵۰۰ صفر اختلاف، کبیسه/ماه/سال/فرمت/پارس/add*/weekday/
+    clock/ZEN-1301/2/3) + layering ۶ + env-import ۳ + size-budget ۳؛
+    i18n/jalali-alias.test ۲۸ (حفظ legacy edgeها، DEPR دقیقاً یک‌بار،
+    تصحیح fromJalali)؛ runtime/date-picker-jalali.test ۳ jsdom (قرمز: ۴
+    هشدار ZEN-DEPR → سبز: صفر). npm test = 836 سبز (از 762)؛ coverage
+    gate ≥70 سبز؛ `testTimeout: 20_000` ریشه فقط برای دو تست سنگین تقویمی.
+  - شمارش‌ها/اسناد: package-fields/package-order ۳۹، root-readme ۴۰،
+    rfc-decisions max DEC 028؛ README ریشه ۴۰ پکیج + ردیف jalali؛
+    ARCHITECTURE هدر ۴۰/۳۹ + خط L0 + ردیف jalali/i18n + §۶ JalaliOptions +
+    §۴.۲ یال runtime؛ docs/README و MANUAL-STEPS «۳۹ پکیج»؛ tsconfig
+    references + `.size-limit` ۴kB (واقعی ۳٫۵۲kB) + LICENSE sync (۳۹)؛
+    DEC-028 ثبت شد (Borkowski/ICU agreement ۱۲۰۱..۱۵۰۰/UTC-default).
+  - گیت‌های محلی سبز: lint (۰ error)/format/typecheck (39)/test 836/
+    coverage/build (38 built)/deps:unused (۰)/peer-rule/peer:single-instance/
+    dependency-cruiser (۱۵۸ modules ۰ نقض)/publint (39 پاک؛ vscode compile)/
+    size-limit (jalali 3.52kB≤4)/e2e (۴ با playwright install در sandbox).
+  - CI سبز: run 38071497936 روی 069c7c6 (۱۲ job)؛ issue با چک‌لیست تیک‌خورده
+    + کامنت شواهد بسته شد (status:done).
