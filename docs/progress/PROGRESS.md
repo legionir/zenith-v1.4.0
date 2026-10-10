@@ -1,7 +1,7 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #141
-issue در حال انجام: #143 (پکیج logger)
+آخرین issue کامل: #143
+issue در حال انجام: (none — #144 در پیش است)
 بعدی: #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38039101614 (روی HEAD c08d4fc — #141؛ هر ۱۲ job سبز)
@@ -248,3 +248,43 @@ issue در حال انجام: #143 (پکیج logger)
     publint (36 clean)/size (shared 1.74KB≤2)/e2e (4)/attw (--pack: 🥴
     InternalResolution فقط به‌خاطر unpublished بودن @zenith/* از registry در
     sandbox — baseline virtual-list هم همین؛ #66/#74).
+- #143 انجام شد (موج ۲، SPEC §۲.۳): پکیج جدید `@zenith/logger` (L0؛ deps فقط
+  `errors@1.4.0` + `shared@1.5.0`؛ نسخهٔ تولد `1.5.0` DEC-026؛ ESM-only DEC-027؛
+  بودجه ۲KB: `.size-limit.json` (brotli CI: 1.88kB) + گیت gzip محلی (src: 2042B≤2048).
+  - API کامل بند ۲.۳: `createLogger(opts)→FullLogger (Logger & Disposable & setLevel)`،
+    `logger` پیش‌فرض scope `zen`، debug/info/warn/error(msgOrError, details)،
+    `child` (صورتبندی `parent:child`)، `isEnabled`، `addSink→Cleanup`،
+    `setLogLevel`/`addSink` ماژولی، `consoleSink` (SSR: JSON خطی + requestId؛
+    مرورگر: console[level])، `bufferSink({maxEntries})` حلقوی، `beaconSink`
+    (fetch-only، ndjson، batch/interval/dispose-flush، هرگز throw نمی‌کند)،
+    `warnOnce` per-instance، `deprecate(old,new,since)` با کد از رجیستری
+    `DEPRECATION_CODES` (DEC-020) + fallback `ZEN-DEPR-999`؛ redact ۵ کلید
+    default (case-insensitive، nested/array، چرخه⇒`[Circular]`)؛ فرمت
+    `[zen:scope] CODE: message` + خط suggestion؛clock قابل‌تزریق؛ سطح پیش‌فرض
+    dev=debug/prod=warn (فلگ `__ZENITH_DEV__`).
+  - sink خراب: حذف فوری + گزارش `ZEN-1091` (createReservedError کاتالوگ #171)
+    به sinkهای سالم با dispatch گزارش `report=false` ⇒ سقف عمق ۲، حلقهٔ خطا
+    ناممکن (میار پذیرش)؛ async reject با `.catch→fail`.
+  - اتصال ZenithError: entry با code/suggestion/details merge با حفظ reference
+    (چرخه در spread نمی‌شکند) + `globalThis.reportError` duck best-effort —
+    بدون یال L0→L2 به error-boundary (DEC-021).
+  - زیرساخت no-console (کار ۳): قاعده `error` برای `packages/*/src/**` فعال؛
+    `scripts/no-console-ratchet.mjs` منبع واحد ۶۲ فایل بدهی #39؛ گیت
+    `scripts/test/no-console-ratchet.test.mjs` (ضدلغزش: نه فایل جدید console،
+    نه ورودی کهنه، دقیقاً یک override off؛ فهرست فقط کوتاه می‌شود)؛
+    `packages/logger/src/sinks.ts` تنها مرز console با file-level disable توجیه‌شده؛
+    DEC-003 §«اجرای #143» (الگوی ratchet، beaconSink fetch-only، پیام انگلیسی
+    deprecate، reportError duck).
+  - تست‌ها (red-before-fix، ۴۷ مورد در ۷ فایل): logger.test (سطوح/silent/child/
+    redact/چرخه/ZenithError/clock/warnOnce/dispose)، sinks.test (buffer ring،
+    beacon با fake timers + fetch stub، console SSR JSON+requestId، sink خراب)،
+    deprecate.test (یک‌بار به ازای کد، ZEN-DEPR-999، سکوت prod)، console-sink.test
+    (jsdom: routing و فرمت)، env-import (Node خالص)، layering (قفل یال‌ها/ESM)،
+    size-budget (۳). npm test = 679 سبز (از 624).
+  - شمارش‌ها/اسناد: package-fields/package-order ۳۷، root-readme ۳۸، README
+    ریشه ۳۸ پکیج + ردیف logger، ARCHITECTURE §۲ ردیف logger + هدر ۳۸/۳۷،
+    docs/README و MANUAL-STEPS «۳۷ پکیج»؛ tsconfig references + LICENSE sync.
+  - گیت‌های محلی سبز: lint (۰ error + اثبات عملکرد قاعده با probe)/format/
+    typecheck (37)/test 679/coverage (87.16≥70)/build (36)/deps:unused/peer-rule/
+    dependency-cruiser/peer:single-instance/publint (37 pkg ۰ error بعد از
+    compile vscode)/size-limit (logger 1.88kB<2kB)/e2e (4 با باندل مرورگری بازسازی‌شده).

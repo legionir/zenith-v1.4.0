@@ -4,9 +4,15 @@
 // - no-explicit-any is a *warning* until #38 zeroes out the ~240 remaining
 //   `any`s in public APIs (documented in DEC-003). All other errors are
 //   enforced (lint fails the build on them).
+// - no-console: 'error' for package src since #143 (@zenith/logger); the
+//   62 legacy files listed in scripts/no-console-ratchet.mjs stay exempt
+//   until their migration in #39 (the ratchet only shrinks — enforced by
+//   scripts/test/no-console-ratchet.test.mjs). DEC-003's «off until #39»
+//   row is superseded by this two-step: rule ON now, code migrated in #39.
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import { NO_CONSOLE_RATCHET } from './scripts/no-console-ratchet.mjs';
 
 export default tseslint.config(
   {
@@ -58,7 +64,8 @@ export default tseslint.config(
 
       // TS type checker already flags undefined names; no-undef is noise.
       'no-undef': 'off',
-      'no-console': 'off', // logger centralization is #39
+      // no-console: 'error' برای src پکیج‌ها — بلوک اختصاصی پایین (#143).
+      // مهاجرت کد در #39؛ لیست معافیت در scripts/no-console-ratchet.mjs.
 
       // Unused *caught* errors are an established pattern here
       // (`catch (err) { /* best-effort */ }`); forcing `_` on ~20 existing
@@ -97,6 +104,20 @@ export default tseslint.config(
         },
       ],
     },
+  },
+
+  // ── no-console (#143, SPEC §۲.۳): قانون کلی برای src همهٔ پکیج‌ها error
+  // است. معافیت‌ها فقط فایل‌های بدهی #39 در scripts/no-console-ratchet.mjs
+  // (فهرست فقط با مهاجرت کوتاه می‌شود — گیت: no-console-ratchet.test.mjs).
+  // consoleSink داخل logger با eslint-disable سطرِ فایل استثنا شده است.
+  // ──
+  {
+    files: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.mts'],
+    rules: { 'no-console': 'error' },
+  },
+  {
+    files: NO_CONSOLE_RATCHET,
+    rules: { 'no-console': 'off' }, // بدهی ثبت‌شدهٔ #39 — با هر مهاجرت یک فایل حذف شود
   },
 
   // ── Security code deliberately matches control chars (\x00 NUL-stripping

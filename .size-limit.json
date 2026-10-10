@@ -28,5 +28,10 @@
     "name": "@zenith/shared",
     "path": "packages/shared/dist/index.js",
     "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/logger",
+    "path": "packages/logger/dist/index.js",
+    "limit": "2 kb"
   }
 ]

@@ -3,10 +3,12 @@
 این سند ساختار داخلی، پکیج‌ها، وابستگی‌ها و گزینه‌های (options) هر پکیج را شرح می‌دهد.
 همهٔ اعداد و جدول‌ها از کد مخزن استخراج شده‌اند. بخش‌های «مشکلات و پیشنهاد» تحلیل‌اند و نه واقعیت مستند.
 
-- مخزن: monorepo با npm workspaces (`packages/*`)، ۳۶ پوشه، ۳۵ بستهٔ دارای `package.json`
+- مخزن: monorepo با npm workspaces (`packages/*`)، ۳۸ پوشه، ۳۷ بستهٔ دارای `package.json`
 - حدود ۳۸ هزار خط TypeScript در `src` (`ES2022`، `strict`)
-- خروجی هر پکیج: ESM (`dist/index.js`)، CJS (`dist/index.cjs`)، `dist/index.d.ts`
-- نسخهٔ همهٔ پکیج‌ها `1.4.0` (lockstep) و لایسنس اعلام‌شده `MIT`
+- خروجی هر پکیج: ESM (`dist/index.js`)، CJS (`dist/index.cjs`)، `dist/index.d.ts`؛
+  پکیج‌های جدید موج ۲ (`shared` #141، `logger` #143) ESM-only هستند (DEC-027)
+- نسخهٔ پکیج‌های موجود `1.4.0` (lockstep)؛ متولدهای موج ۲ از `1.5.0` (DEC-026)؛
+  لایسنس اعلام‌شده `MIT`
 
 ---
 
@@ -41,6 +43,7 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `errors` | L0 | ۱ / ۶۷۸ | — | کلاس `ZenithError`، کدهای ZEN-001..999 + بازه‌های ۴رقمی/DEPR (#171) |
 | `shared` | L0 | ۷ / ۴۲۰ | errors | نوع‌ها/ابزارهای مشترک L0 (#141، DEC-021): Disposable/Cleanup، `Readable` ساختاری، mergeOptions امن، پارسر attribute، createId/secureId، invariant ZEN-1090 |
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
+| `logger` | L0 | ۹ / ۶۲۳ | errors, shared | لاگر مرکزی SPEC §۲.۳ (#143): createLogger/child/redact، consoleSink·bufferSink·beaconSink، warnOnce/deprecate (ZEN-DEPR)، محافظ sink خراب ZEN-1091؛ تنها مرز console ورک‌اسپیس |
 | `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |
 | `expressions` | L1 | ۸ / ۱۹۸۶ | errors | parser و evaluator امن عبارت‌ها (بدون `eval`) |

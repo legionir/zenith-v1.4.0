@@ -105,7 +105,7 @@ describe('getPackageOrder (#25)', () => {
     // The actual monorepo must order every package exactly once and never
     // throw; workspace devDep edges (e.g. runtime → permission) are honoured.
     const order = getPackageOrder({ packagesDir: join(process.cwd(), 'packages') });
-    expect(order).toHaveLength(36);
-    expect(new Set(order).size).toBe(36);
+    expect(order).toHaveLength(37);
+    expect(new Set(order).size).toBe(37);
   });
 });

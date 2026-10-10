@@ -11,7 +11,7 @@
 
 - ⚡ **Fine-grained reactivity** — فقط وابستگی‌های واقعی update می‌شوند (بدون diff درخت)
 - 🧲 **HTML-First** — قالب شما همان HTML است؛ compile اختیاری است، نه اجباری
-- 🧩 **۳۷ پکیج ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، i18n جلالی و devtools)
+- 🧩 **۳۸ پکیج ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، i18n جلالی و devtools)
 - 🔒 **مرزهای امنیتی** — sanitizer مستقل، expression evaluator بدون `eval` (سیاست: [SECURITY.md](SECURITY.md))
 - 🖥️ **SSR + Hydration** و پشتیبانی service-worker آفلاین
 
@@ -71,7 +71,7 @@ npm ci && npm run build && npm run build:browser
 
 ---
 
-## 📦 پکیج‌ها (۳۷)
+## 📦 پکیج‌ها (۳۸)
 
 لایه‌ها طبق [ARCHITECTURE.md §۱](ARCHITECTURE.md). تا پیش از انتشار رسمی npm (#66) همهٔ پکیج‌ها از راه source ورک‌اسپیس و باندل‌های مرورگری در دسترس‌اند.
 
@@ -80,6 +80,7 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/scheduler`](packages/scheduler) | L0 | زمان‌بند microtask و batching effectها | [📄](packages/scheduler/README.md) |
 | [`@zenith/errors`](packages/errors) | L0 | `ZenithError` و کدهای ZEN | [📄](packages/errors/README.md) |
 | [`@zenith/shared`](packages/shared) | L0 | نوع‌ها/ابزارهای مشترک L0 (Disposable، mergeOptions، پارسر attribute) | [📄](packages/shared/README.md) |
+| [`@zenith/logger`](packages/logger) | L0 | لاگر مرکزی: سطوح، sinkها، redact، deprecate (ZEN-DEPR) | [📄](packages/logger/README.md) |
 | [`@zenith/security`](packages/security) | L0 | sanitizer، CSP، TrustedTypes | [📄](packages/security/README.md) |
 | [`@zenith/i18n`](packages/i18n) | L0 | ارقام فارسی/عربی، تقویم جلالی | [📄](packages/i18n/README.md) |
 | [`@zenith/state`](packages/state) | L1 | signal / computed / effect / batch | [📄](packages/state/README.md) |

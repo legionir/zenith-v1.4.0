@@ -18,6 +18,7 @@
   "include": [],
   "references": [
     { "path": "./packages/shared" },
+    { "path": "./packages/logger" },
     { "path": "./packages/state" },
     { "path": "./packages/scheduler" },
     { "path": "./packages/expressions" },
