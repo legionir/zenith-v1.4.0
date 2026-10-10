@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #17
-issue در حال انجام: —
-بعدی: باقی موج ۱ (#19، #20، #23، #24، #64، #30، #62، #45، #46، #47)
+آخرین issue کامل: #19
+issue در حال انجام: #20
+بعدی: #23، #24، #64، #30، #62، #45، #46، #47 (باقی موج ۱)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 37911348280 (#17)
+آخرین run موفق CI: 37911851522 (#17) — run #19: 38013126559 (در انتظار)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -86,3 +86,8 @@ issue در حال انجام: —
   درج-حذف میانی پوشش داده شد؛ ۴ تست jsdom در
   `packages/virtual-list/test/controller-stale.test.ts` (red-before-fix؛
   آیتم بی‌تغییر دوباره رندر نمی‌شود = تست ضعیف‌شده مجاز نیست)؛ ۳۶۳/۳۶۳ سراسری.
+- #19 انجام شد (موج ۱): اجرای callbackهای کاربر در virtual-list داخل `untrack()`
+  (`getItemKey`/`itemSize(fn)`/`renderItem`/`onVisibleRangeChange`/`onScroll`)؛
+  تنها وابستگی effect خودِ signal آیتم‌هاست؛ حلقهٔ نوشتن در
+  onVisibleRangeChange حذف شد؛ ۴ تست در
+  `packages/virtual-list/test/controller-untrack.test.ts` (قرمز→سبز، سقف‌دار)؛ DEC-010.
