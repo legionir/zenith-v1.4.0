@@ -187,6 +187,7 @@ issue در حال انجام: —
     قفل می‌کند (واگرایی = خطای compile) + helper واحد `virtualListConfigToOptions`
     که wrapper دایرکتیو هم از همان عبور می‌کند؛ `config-options-unification.test.ts`
     (۵ تست، red-before-fix) — `npm test` 480 سبز.
+  - کامیت‌ها: 674f0a2 (wrapperها + زیرساخت) و 606fe51 (یکی‌سازی config).
   - dependencies جدید `@zenith/errors` در transition/virtual-list (lockfile بازتولید)؛
     importmap fixture اضافه‌شده به `@zenith/errors`؛ demos (transition/virtual-list) و
     READMEها/ARCHITECTURE §لایه‌های موازی/§۲ بازنویسی؛ DEC-019.
