@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #62
-issue در حال انجام: #45
-بعدی: #45، #46، #47 (باقی موج ۱) سپس موج ۲
+آخرین issue کامل: #45
+issue در حال انجام: #46
+بعدی: #46، #47 (باقی موج ۱) سپس موج ۲
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38016693234 (روی HEAD #62 — sha 67dd7fd)
+آخرین run موفق CI: 38017422885 (روی HEAD #45 — sha fa274c8)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -138,3 +138,14 @@ issue در حال انجام: #45
     red-before-fix؛ قفل refresh-race تک‌درخواست، retry پس از 503 بدون logout،
     پاک‌سازی logout، same-origin login، include+keepalive secureLogout fallback).
   - DEC-016 (چرا warn نه throw؛ چرا sessionStorage هم شامل شد). CI 38016693234 سبز.
+- #45 انجام شد (موج ۱، کامیت fa274c8):
+  - بازمطالعهٔ جدول issue: `auth→http` و `ssr→{router,runtime}` با dynamic
+    import **واقعاً استفاده می‌شوند** (نگه داشته شد — stale)؛ دو مورد افزوده:
+    `permission→router` و `service-worker→runtime` (فقط کامنت). در مجموع
+    ۱۴ اعلام بلااستفاده از ۱۱ پکیج حذف شد؛ lockfile بازتولید شد.
+  - گیت CI جدید: `scripts/unused-zenith-deps.mjs` (npm run deps:unused در
+    job deps؛ dynamic import شمرده می‌شود، کامنت نه — state-machine
+    حذف‌کامنت) + `scripts/test/unused-zenith-deps.test.mjs` (۵ تست شامل
+    شرط پذیرش «صفر بلااستفاده» روی ریپوی واقعی — red-before-fix).
+  - ARCHITECTURE §۴.۱ به‌روز شد؛ DEC-017 (چرا اسکریپت هدفمند به‌جای
+    depcheck/knip). CI 38017422885 سبز (deps:unused در لاگ CI تأیید شد).
