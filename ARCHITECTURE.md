@@ -171,7 +171,7 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 - فقط `exports["."]` تعریف شده؛ زیرمسیر یا `./package.json` نیست.
 - `index.ts` ها بیشتر export انبوه دارند (`runtime` ۳۵ مورد، `errors` ۲۰، `expressions` ۱۴)؛ مرز عمومی/داخلی علامت‌گذاری نشده است.
 - نام تکراری: `CompileOptions` در `compiler` (فقط `strict`) و در `vite-plugin` (`enabled`، `include`، `exclude`، `strict`) دو نوع متفاوتاند.
-- جفت‌های مبهم: `VirtualListConfig` / `VirtualListOptions<T>`، و `FormOptions` / `AdvancedFormOptions`.
+- جفت‌های مبهم: `VirtualListConfig`/`VirtualListOptions<T>` در #47 یکی شد (پل نوعی + helper ترجمهٔ واحد؛ config منسوخ است)؛ `FormOptions` / `AdvancedFormOptions` باقی مانده (#55/#52).
 - نام‌گذاری: `createX`، `defineX`، `processX`، `initX`، `installX` بدون قرارداد.
 
 ---
@@ -232,8 +232,8 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 `columns` (اجباری)، `data?`، `rowKey?`، `pagination?`، `sorting?`، `filtering?`، `selection?`، `editing?`، `columnGroups?`.
 
 ### `virtual-list`
-- `VirtualListOptions<T>` (API جدید): `items`، `itemSize`، `container`، `renderItem` (اجباری)؛ `overscan?` (۵)، `direction?`، `getItemKey?`، `onScroll?`، `onVisibleRangeChange?`
-- `VirtualListConfig` (API قدیمی): `itemHeight`، `buffer`، `dynamicHeights`، `direction`، `animateMount`، `animateUnmount`
+- `VirtualListOptions<T>` (API مبنا): `items`، `itemSize`، `container`، `renderItem` (اجباری)؛ `overscan?` (۵)، `direction?`، `getItemKey?`، `onScroll?`، `onVisibleRangeChange?`، `onNodeRemoved?`/`onItemUpdated?` (hookهای #47)
+- `VirtualListConfig` (API قدیمی، منسوخ): `itemHeight`، `buffer`، `dynamicHeights`، `direction`، `animateMount`، `animateUnmount` — پس از #47 ساختار مستقل نیست: فیلدهای مشترک با پل نوعی به `VirtualListOptions` قفل‌اند و تنها مسیر ترجمه `virtualListConfigToOptions` است (که خودِ wrapper دایرکتیو هم از آن عبور می‌کند)؛ `dynamicHeights`/`animate*` فقط در wrapper مصرف می‌شوند.
 
 ### `suspense` — `SuspenseOptions`
 `timeout?` (۰ یعنی بدون محدودیت)، `minDelay?`، `onTimeout?`.

@@ -12,6 +12,7 @@ export {
 
 export {
   processVirtualList,
+  virtualListConfigToOptions,
   type VirtualListConfig,
   type VirtualRange,
   type VirtualListController,

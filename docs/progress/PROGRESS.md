@@ -182,6 +182,11 @@ issue در حال انجام: —
     `packages/transition/test/transition-deprecation.test.ts` (6)،
     `packages/virtual-list/test/process-virtual-list-deprecation.test.ts` (5)،
     `packages/runtime/test/if-transition-deprecation.test.ts` (2). `npm test` 475 سبز.
+  - «یکی کردن VirtualListConfig و VirtualListOptions»: پل نوعی در `virtual-list.ts`
+    فیلدهای مشترک (itemHeight↔itemSize، buffer↔overscan، direction) را به options
+    قفل می‌کند (واگرایی = خطای compile) + helper واحد `virtualListConfigToOptions`
+    که wrapper دایرکتیو هم از همان عبور می‌کند؛ `config-options-unification.test.ts`
+    (۵ تست، red-before-fix) — `npm test` 480 سبز.
   - dependencies جدید `@zenith/errors` در transition/virtual-list (lockfile بازتولید)؛
     importmap fixture اضافه‌شده به `@zenith/errors`؛ demos (transition/virtual-list) و
     READMEها/ARCHITECTURE §لایه‌های موازی/§۲ بازنویسی؛ DEC-019.

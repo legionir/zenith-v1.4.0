@@ -32,20 +32,72 @@ import { deprecate } from '@zenith/errors';
 import {
   createVirtualList,
   registerVirtualListNodeDisposes,
+  type VirtualItemSize,
   type VirtualListApi,
   type VirtualListDirection,
+  type VirtualListOptions,
 } from './controller';
 
 // ── Types (قرارداد عمومی پکیج) ──
 
-/** @deprecated از VirtualListOptions/VirtualListApi استفاده کنید (#47). */
+/**
+ * @deprecated از `VirtualListOptions<T>` API مبنا استفاده کنید (#47، ZEN-DEPR-001).
+ *
+ * یکی‌سازی #47: این تایپ دیگر ساختار مستقلی نیست — صرفاً نمای قدیمی
+ * (`itemHeight`/`buffer`) از فیلدهای مشترک `VirtualListOptions` است و
+ * type-check تضمین می‌کند هر وقت دو طرف واگرا شوند اینجا می‌شکند.
+ * ترجمهٔ اجرایی با `virtualListConfigToOptions` انجام می‌شود.
+ */
 export interface VirtualListConfig {
   itemHeight: number;
   buffer: number;
+  /** فقط wrapper مصرف می‌کند (measure/height style) — خارج از options موتور. */
   dynamicHeights: boolean;
   direction: 'vertical' | 'horizontal';
+  /** فقط wrapper مصرف می‌کند (انیمیشن mount/unmount آیتم). */
   animateMount: string | null;
   animateUnmount: string | null;
+}
+
+/**
+ * #47 — پل نوعی: فیلدهای مشترک config قدیمی باید هم‌نوع با options موتور
+ * بمانند (itemHeight:number ↔ itemSize شامل number، buffer:number ↔
+ * overscan?: number، direction ↔ VirtualListDirection). واگرایی = خطای compile.
+ */
+const _configUnified: {
+  itemHeight: number extends VirtualItemSize<unknown> ? true : false;
+  buffer: number extends NonNullable<VirtualListOptions<unknown>['overscan']> ? true : false;
+  direction: 'vertical' | 'horizontal' extends VirtualListDirection ? true : false;
+} = { itemHeight: true, buffer: true, direction: true };
+void _configUnified;
+
+/**
+ * @deprecated ترجیحاً `createVirtualList(VirtualListOptions<T>)` مستقیم؛ این
+ * helper همان پل config→options است که داخل wrapper دایرکتیو هم استفاده می‌شود
+ * تا فقط یک مسیر ترجمه وجود داشته باشد (#47 — «یکی کردن VirtualListConfig و
+ * VirtualListOptions<T>»). فیلدهای فقط-wrapper (dynamicHeights/animateMount/
+ * animateUnmount) به options موتور ترجمه نمی‌شوند؛ موتور از آن‌ها بی‌خبر است.
+ */
+export function virtualListConfigToOptions<
+  T,
+  B extends Pick<VirtualListOptions<T>, 'items' | 'container'>,
+>(
+  config: VirtualListConfig,
+  base: B,
+): B & {
+  itemSize: VirtualItemSize<T>;
+  overscan: number;
+  direction: VirtualListDirection;
+} {
+  const itemSize: VirtualItemSize<T> = config.dynamicHeights
+    ? () => config.itemHeight
+    : config.itemHeight;
+  return {
+    ...base,
+    itemSize,
+    overscan: config.buffer,
+    direction: config.direction,
+  };
 }
 
 export interface VirtualRange {
@@ -185,6 +237,17 @@ export function processVirtualList(
   const animateMount = el.getAttribute('zen-animate-mount');
   const animateUnmount = el.getAttribute('zen-animate-unmount');
 
+  // #47 — attributeهای zen-* تنها در قالب config قدیمی پارس می‌شوند و از همان
+  // helper واحد به options موتور ترجمه می‌شوند (مسیر دوم ترجمه وجود ندارد).
+  const config: VirtualListConfig = {
+    itemHeight,
+    buffer,
+    dynamicHeights,
+    direction,
+    animateMount,
+    animateUnmount,
+  };
+
   // ── Template ──
   const templateEl = el.querySelector(':scope > template');
   const firstChild = el.firstElementChild as HTMLElement | null;
@@ -221,11 +284,11 @@ export function processVirtualList(
   const bindings = new WeakMap<HTMLElement, ItemBinding>();
 
   const api: VirtualListApi<unknown> = createVirtualList({
-    items,
-    itemSize: dynamicHeights ? () => itemHeight : itemHeight,
-    container: el,
-    overscan: buffer,
-    direction,
+    // T از items (Signal<unknown[]>) استنتاج می‌شود — مسیر ترجمه همان helper عمومی است.
+    ...virtualListConfigToOptions(config, {
+      items,
+      container: el,
+    }),
     renderItem: (item, index) => {
       const node = document.createElement('div');
       node.appendChild(templateContent.cloneNode(true));
