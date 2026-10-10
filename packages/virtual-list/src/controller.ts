@@ -1,4 +1,4 @@
-import { effect, signal, type ReadonlySignal, type Signal } from '@zenith/state';
+import { effect, signal, untrack, type ReadonlySignal, type Signal } from '@zenith/state';
 
 export type VirtualListDirection = 'vertical' | 'horizontal';
 export type ScrollAlignment = 'start' | 'center' | 'end';
@@ -105,7 +105,13 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   const visibleItems = signal<VirtualItem<T>[]>([]);
   const direction = options.direction ?? 'vertical';
   const overscan = Math.max(0, Math.floor(options.overscan ?? 5));
-  const keyFor = options.getItemKey ?? ((_item: T, index: number) => index);
+  // FIX (#19): همهٔ callbackهای کاربر (getItemKey، itemSize تابعی، renderItem،
+  // onScroll، onVisibleRangeChange) داخل untrack اجرا می‌شوند تا خواندن
+  // signal در آن‌ها وابستگی effect نسازد — وگرنه هر signal بیرونی باعث
+  // بازسازی کامل لیست می‌شد و نوشتن signal وابسته حلقهٔ بی‌نهایت می‌ساخت.
+  // تنها وابستگی reactive باقی‌مانده: خودِ signal آیتم‌ها (items.get()).
+  const keyFor = (item: T, index: number): string | number =>
+    options.getItemKey ? untrack(() => options.getItemKey!(item, index)) : index;
   const isVertical = direction === 'vertical';
   const scrollProperty = isVertical ? 'scrollTop' : 'scrollLeft';
   const clientProperty = isVertical ? 'clientHeight' : 'clientWidth';
@@ -146,8 +152,9 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const key = keyFor(item, index);
     const measured = measurements.get(key);
     if (measured !== undefined) return measured;
+    const sizeOption = options.itemSize;
     const estimated =
-      typeof options.itemSize === 'function' ? options.itemSize(item, index) : options.itemSize;
+      typeof sizeOption === 'function' ? untrack(() => sizeOption(item, index)) : sizeOption;
     return Number.isFinite(estimated) && estimated > 0 ? estimated : 1;
   };
 
@@ -225,7 +232,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         entry = undefined;
       }
       if (!entry) {
-        const node = options.renderItem(item, index);
+        const node = untrack(() => options.renderItem(item, index));
         node.style.position = 'absolute';
         node.dataset.zenVirtualIndex = String(index);
         content.appendChild(node);
@@ -259,17 +266,21 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     if (start !== previousStart || end !== previousEnd) {
       previousStart = start;
       previousEnd = end;
-      options.onVisibleRangeChange?.(start, end);
+      untrack(() => options.onVisibleRangeChange?.(start, end));
     }
   };
 
   const onScroll = () => {
-    options.onScroll?.({
-      offset: container[scrollProperty],
-      viewportSize: container[clientProperty],
-      totalSize,
-      direction,
-    });
+    // FIX (#19): onScroll یک event handler است؛ داخل effect نیست اما برای
+    // اطمینان از عدم track شدن (استفادهٔ مجدد در context) untrack می‌شود.
+    untrack(() =>
+      options.onScroll?.({
+        offset: container[scrollProperty],
+        viewportSize: container[clientProperty],
+        totalSize,
+        direction,
+      }),
+    );
     if (scrollFrame !== null) return;
     scrollFrame = requestAnimationFrame(() => {
       scrollFrame = null;
