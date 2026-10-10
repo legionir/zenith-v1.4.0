@@ -283,6 +283,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
   let timedOut = false;
   let disposed = false;
   let id = 0;
+  // FIX (#20): شمارندهٔ نسل/چرخه — هر reset() یک چرخهٔ جدید شروع می‌کند و
+  // تسویهٔ پرامیس‌های نسل قبلی نباید onReady/onError را فعال کند.
+  let generation = 0;
 
   const notifyReady = () => {
     for (const callback of [...readyCallbacks]) callback();
@@ -344,17 +347,25 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
     track(promise) {
       if (disposed) return;
       const loadingId = `promise-${++id}`;
+      const gen = generation; // FIX (#20): snapshot نسل این پرامیس
       context.startLoading(loadingId);
 
       Promise.resolve(promise).then(
         () => {
-          if (disposed) return;
+          // FIX (#20): پرامیس‌های نسل قدیمی (قبل از reset) کاملاً نادیده گرفته
+          // می‌شوند؛ در غیر این صورت onReady زودهنگام و در حالی که retry هنوز
+          // pending است فعال می‌شد.
+          if (disposed || gen !== generation) return;
           context.stopLoading(loadingId);
           const state = context.signal.get();
           if (!state.loading && !state.error && !state.timedOut) notifyReady();
         },
         (reason: unknown) => {
-          if (disposed) return;
+          if (disposed || gen !== generation) return;
+          // FIX (#20): حذف id ردشده از loadingSet پیش از گزارش خطا؛ وگرنه id
+          // کهنه در مجموعه می‌ماند و pendingCount/loading پس از آنکه سایر
+          // پرامیس‌ها تسویه شدند ناسازگار (boundary گیرکرده) می‌شد.
+          context.stopLoading(loadingId);
           const nextError = normalizeError(reason);
           error.set(nextError);
           context.reportError(nextError.message);
@@ -371,6 +382,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
       return () => errorCallbacks.delete(callback);
     },
     reset() {
+      // FIX (#20): شروع چرخهٔ جدید؛ همهٔ پرامیس‌های در حال انتظار نسل قبل
+      // بی‌اعتبار می‌شوند.
+      generation++;
       context.reset();
       error.set(null);
       timedOut = false;
