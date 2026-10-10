@@ -58,8 +58,8 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `events` | L2 | ۴ / ۱۱۷۱ | actions, error-boundary, expressions, router; peer: state, scheduler | event delegation |
 | `components` | L2 | ۴ / ۱۲۰۹ | expressions | کامپوننت Light DOM، props، slots |
 | `suspense` | L2 | ۲ / ۵۷۰ | error-boundary, security; peer: state | ردگیری promise و حالت loading |
-| `transition` | L2 | ۳ / ۹۰۹ | — | انیمیشن enter/leave |
-| `virtual-list` | L2 | ۳ / ۸۷۲ | expressions; peer: state | لیست مجازی |
+| `transition` | L2 | ۳ / ۹۰۹ | errors | انیمیشن enter/leave (API مبنا: `createTransition`) |
+| `virtual-list` | L2 | ۳ / ۸۷۲ | errors, expressions; peer: state | لیست مجازی (API مبنا: `createVirtualList`) |
 | `data-table` | L2 | ۲ / ۶۸۷ | peer: state | جدول reactive |
 | `runtime` | L3 | ۲۵ / ۶۷۰۵ | ۱۶ پکیج (بخش ۴) + peer: state, scheduler | walker، directiveها، hydrate، شیء `Zen` |
 | `ssr` | L3 | ۵ / ۱۴۸۷ | errors, router (dynamic), runtime (dynamic); peer: state, scheduler, jsdom | رندر سرور و استریم |
@@ -107,12 +107,14 @@ signal، computed، effect، batch و owner/context. `scheduler` را برای b
 ### `ssr`
 `render.ts` (رشته و استریم)، `hydrate.ts`، `dom-context.ts` (ایزولاسیون هر درخواست با `AsyncLocalStorage`)، `server-component.ts`. `jsdom` peer است.
 
-### `virtual-list`، `suspense`، `transition` (دو لایهٔ موازی)
-| پکیج | API جدید | API قدیمی |
+### `virtual-list`، `suspense`، `transition` (یک API — رفع‌شده در #47)
+| پکیج | API مبنا | لایهٔ سازگار (wrapper + ZEN-DEPR) |
 |---|---|---|
-| `virtual-list` | `controller.ts` — `createVirtualList` | `virtual-list.ts` — `processVirtualList` |
-| `transition` | `transition.ts` — controllerهای قابل‌استفادهٔ مجدد | `animate.ts` — WAAPI |
-| `suspense` | `suspense.ts` — `track()` و context | — |
+| `virtual-list` | `controller.ts` — `createVirtualList` | `virtual-list.ts` — `processVirtualList` (ZEN-DEPR-001) |
+| `transition` | `transition.ts` — `createTransition` (کلاس‌محور) | `enterTransition`/`leaveTransition`/`animateGroup` (ZEN-DEPR-002/003/004)؛ `animate.ts` (`zenAnimate`/`zen-animate`) قابلیت مجزای WAAPI است، نه پیاده‌سازی موازی |
+| `suspense` | `suspense.ts` — `createSuspenseContext` (هستهٔ واحد) | `createSuspense` و `processSuspense` هر دو روی همان context |
+
+دو حلقهٔ مجازی‌سازی و چهار موتور transition به یک مسیر تقلیل یافت؛ قدیمی‌ها فقط wrapperند و در dev یک‌بار هشدار `ZEN-DEPR-xxx` می‌دهند (حذف در major بعدی طبق #58). مصرف‌کنندهٔ داخلی (`runtime/directives/if.ts`) به `createTransition` مهاجرت کرد تا هشدار deprecation در برنامهٔ کاربر ظاهر نشود. جزئیات: `docs/decisions/DEC-019-*.md`.
 
 ---
 

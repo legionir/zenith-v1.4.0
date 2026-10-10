@@ -28,6 +28,25 @@ export interface VirtualListOptions<T> {
   getItemKey?: (item: T, index: number) => string | number;
   onScroll?: (info: ScrollInfo) => void;
   onVisibleRangeChange?: (start: number, end: number) => void;
+  /**
+   * #47: درست پیش از حذف نود یک آیتم از DOM (خروج از range یا dispose)
+   * فراخوانی می‌شود تا مصرف‌کننده (مثل wrapper دایرکتیو) بتواند disposeهای
+   * per-item و انیمیشن unmount را وصل کند.
+   */
+  onNodeRemoved?: (node: HTMLElement, item: T, index: number) => void;
+  /**
+   * #47: وقتی یک نود کش‌شده برای همان آیتم در index جدید باقی می‌ماند
+   * (مثلاً حذف آیتم قبلی)، درست پس از به‌روزرسانی index فراخوانی می‌شود تا
+   * wrapper بتواند signal `$index` آن آیتم را همگام نگه دارد.
+   */
+  onItemUpdated?: (node: HTMLElement, item: T, index: number) => void;
+}
+
+export interface VirtualListState {
+  start: number;
+  end: number;
+  totalSize: number;
+  offset: number;
 }
 
 export interface VirtualListApi<T> {
@@ -36,6 +55,8 @@ export interface VirtualListApi<T> {
   scrollToIndex(index: number, align?: ScrollAlignment): void;
   scrollToOffset(offset: number): void;
   refresh(): void;
+  /** #47: وضعیت جاری range/offset/totalSize — برای wrapper دایرکتیو (getRange). */
+  getState(): VirtualListState;
   dispose(): void;
 }
 
@@ -45,6 +66,19 @@ interface RenderedItem {
   // FIX (#17): نگه‌داشتن ارجاع آیتم رندرشده تا اگر همان key به آیتم جدیدی
   // نگاشت شد (مرتب‌سازی، جایگزینی شیء، درج/حذف میانی) نود کهنه دوباره رندر شود.
   item: unknown;
+}
+
+/**
+ * #47: disposeهای per-item که مصرف‌کننده (wrapper دایرکتیو) ثبت می‌کند؛ درست
+ * پیش از حذف نود (خروج از range یا dispose کامل) به‌ترتیب اجرا می‌شوند.
+ * تابع module-level است تا wrapper هنگام construction (داخل renderItem، پیش
+ * از بازگشت api) بدون TDZ بتواند disposeها را ثبت کند.
+ */
+const nodeDisposes = new WeakMap<HTMLElement, (() => void)[]>();
+
+/** #47: ثبت disposeهای یک نود رندرشده (برای wrapper دایرکتیو). */
+export function registerVirtualListNodeDisposes(node: HTMLElement, disposes: (() => void)[]): void {
+  nodeDisposes.set(node, disposes);
 }
 
 function resolveContainer(container: HTMLElement | string): HTMLElement {
@@ -206,6 +240,19 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const entry = rendered.get(key);
     if (!entry) return;
     itemResizeObserver?.unobserve(entry.node);
+    // #47: اجرای disposeهای per-item و اطلاع به wrapper پیش از حذف نود.
+    const disposes = nodeDisposes.get(entry.node);
+    if (disposes) {
+      nodeDisposes.delete(entry.node);
+      for (const dispose of disposes) {
+        try {
+          dispose();
+        } catch {
+          /* cleanup errors must not break the loop */
+        }
+      }
+    }
+    options.onNodeRemoved?.(entry.node, entry.item as T, entry.index);
     entry.node.remove();
     rendered.delete(key);
   };
@@ -246,6 +293,8 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         ? `translateY(${offsets[index] ?? 0}px)`
         : `translateX(${offsets[index] ?? 0}px)`;
       if (!isVertical) entry.node.style.height = '100%';
+      // #47: نود کش‌شده در index جدید — wrapper باید $index را همگام کند.
+      options.onItemUpdated?.(entry.node, item, index);
       nextVisible.push({ item, index, offset: offsets[index] ?? 0 });
     }
     visibleItems.set(nextVisible);
@@ -329,6 +378,14 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     },
     scrollToOffset,
     refresh,
+    getState: () => ({
+      // #47: range جاری حتی اگر هنوز تغییر نکرده (previous* با initial refresh
+      // در update() ست می‌شود؛ مقدار اولیه -1 نباید به بیرون نشت کند).
+      start: Math.max(0, previousStart),
+      end: Math.max(0, previousEnd),
+      totalSize,
+      offset: container[scrollProperty],
+    }),
     dispose() {
       if (disposed) return;
       disposed = true;

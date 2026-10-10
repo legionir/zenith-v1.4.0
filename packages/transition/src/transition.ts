@@ -35,6 +35,9 @@ const LEAVE_TO = 'zen-leave-to';
 const ENTER_ACTIVE = 'zen-enter-active';
 const LEAVE_ACTIVE = 'zen-leave-active';
 
+// #47: هشدار deprecation یک‌باره با کد ZEN-DEPR-xxx (سیاست #58).
+import { deprecate } from '@zenith/errors';
+
 export type TransitionDirection = 'enter' | 'leave';
 
 export interface TransitionClasses {
@@ -89,13 +92,28 @@ export interface TransitionController {
   dispose(): void;
 }
 
+// ── Single implementation path (#47) ──
+//
+// موتور مبنا `createTransition` (کلاس‌محور) است. `enterTransition` /
+// `leaveTransition` / `animateGroup` فقط wrapper روی همان موتورند و در dev
+// یک‌بار هشدار deprecation با کد ZEN-DEPR-002/003/004 می‌دهند.
+// موتور موازی WAAPI در این فایل حذف شده است؛ برای انیمیشن مبتنی بر
+// Web Animations API از `zenAnimate`/`processAnimate` (animate.ts) و
+// دایرکتیو `zen-animate` استفاده کنید — آن‌ها قابلیت جدا (keyframes جاوااسکریپتی)
+// هستند، نه پیاده‌سازی موازی transition کلاس‌محور.
+
 /**
- * وارد کردن یک عنصر با transition (enter).
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-002، #47).
+ *
+ * وارد کردن یک عنصر با transition (enter). صرفاً wrapper روی موتور کلاس‌محور
+ * `createTransition` است: کلاس‌های `name` + `zen-enter-from/active` همزمان،
+ * swap به `zen-enter-to` در دو rAF، پایان با transitionend/animationend
+ * (هدف‌چک‌شده) یا تایمر fallback، و پاک‌سازی کامل در cancel.
  *
  * @param el عنصری که به DOM اضافه شده.
  * @param name نام transition (مثل 'fade').
  * @param duration مدت زمان fallback به میلی‌ثانیه (پیش‌فرض: 300).
- * @param onComplete callback بعد از پایان transition.
+ * @param onComplete callback بعد از پایان transition (پایان موفق).
  * @returns تابع cancel.
  */
 export function enterTransition(
@@ -104,157 +122,13 @@ export function enterTransition(
   duration: number = 300,
   onComplete?: () => void,
 ): () => void {
-  // ── WAAPI-first: اگر مرورگر از Web Animations API پشتیبانی می‌کند،
-  // از آن استفاده کن (عملکرد بهتر، cancellation واقعی).
-  if (typeof el.animate === 'function') {
-    return enterTransitionWAAPI(el, name, duration, onComplete);
-  }
-  return enterTransitionCSS(el, name, duration, onComplete);
+  return runLegacyDirection(el, name, 'enter', duration, onComplete);
 }
 
 /**
- * پیاده‌سازی enter با Web Animations API.
- * مزایا: نیازی به force reflow ندارد، cancellation دقیق، عملکرد بهتر.
- */
-function enterTransitionWAAPI(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-
-  el.classList.add(name);
-  el.classList.add(ENTER_FROM);
-  el.classList.add(ENTER_ACTIVE);
-
-  const keyframes: Keyframe[] = [
-    { opacity: 0, transform: 'translateY(-10px)' },
-    { opacity: 1, transform: 'translateY(0)' },
-  ];
-
-  const anim = el.animate(keyframes, {
-    duration,
-    easing: 'ease-out',
-    fill: 'forwards',
-  });
-
-  anim.onfinish = () => {
-    if (cancelled) return;
-    try {
-      anim.commitStyles();
-    } catch {
-      /* noop */
-    }
-    anim.cancel();
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-    onComplete?.();
-  };
-
-  anim.oncancel = () => {
-    if (!cancelled) {
-      // cancellation خارجی (مثلاً display:none) → پاکسازی
-      el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-    }
-  };
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    anim.cancel();
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-  };
-}
-
-/**
- * پیاده‌سازی enter با کلاس‌های CSS (fallback برای مرورگرهای قدیمی).
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-003، #47).
  *
- * BUG FIX (v7.0): double requestAnimationFrame + reflow (getComputedStyle)
- * + گوش دادن به transitionend و transitioncancel (با setTimeout fallback).
- *
- * BUG FIX (BUG-TRN-01): transitionend listener پس از timeout پاک می‌شود.
- * BUG FIX (BUG-TRN-04): transitioncancel نیز مدیریت می‌شود.
- */
-function enterTransitionCSS(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-  let raf1 = 0;
-  let raf2 = 0;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let onEnd: ((e: TransitionEvent) => void) | null = null;
-  let onCancel: ((e: TransitionEvent) => void) | null = null;
-
-  el.classList.add(name);
-  el.classList.add(ENTER_FROM);
-  el.classList.add(ENTER_ACTIVE);
-
-  raf1 = requestAnimationFrame(() => {
-    if (cancelled) return;
-    raf2 = requestAnimationFrame(() => {
-      if (cancelled) return;
-      // BUG FIX (v1.3.0, BUG-TRN-02): استفاده از getComputedStyle به‌جای
-      // getBoundingClientRect — cheaper force reflow (فقط style resolution).
-      void getComputedStyle(el).transform; // intentional forced style resolution (reflow)
-
-      el.classList.remove(ENTER_FROM);
-      el.classList.add(ENTER_TO);
-
-      let done = false;
-      const finish = () => {
-        if (done || cancelled) return;
-        done = true;
-        if (onEnd) el.removeEventListener('transitionend', onEnd);
-        if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-        if (timer) clearTimeout(timer);
-        timer = null;
-        el.classList.remove(ENTER_TO);
-        el.classList.remove(ENTER_ACTIVE);
-        if (!cancelled && onComplete) onComplete();
-      };
-
-      onEnd = (e: TransitionEvent) => {
-        if (e.target === el) finish();
-      };
-      onCancel = (_e: TransitionEvent) => {
-        // transition توسط مرورگر لغو شد (display:none, etc)
-        finish();
-      };
-
-      el.addEventListener('transitionend', onEnd);
-      el.addEventListener('transitioncancel', onCancel);
-      timer = setTimeout(finish, duration + 50);
-    });
-  });
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    if (raf1) cancelAnimationFrame(raf1);
-    if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0;
-    raf2 = 0;
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (onEnd) el.removeEventListener('transitionend', onEnd);
-    if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-    onEnd = null;
-    onCancel = null;
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-  };
-}
-
-/**
- * خروج یک عنصر با transition (leave).
- *
- * @param el عنصری که باید از DOM حذف شود.
- * @param name نام transition.
- * @param duration مدت زمان fallback به میلی‌ثانیه (پیش‌فرض: 300).
- * @param onComplete callback بعد از پایان transition.
- * @returns تابع cancel.
+ * خروج یک عنصر با transition (leave) — wrapper روی موتور مبنا.
  */
 export function leaveTransition(
   el: HTMLElement,
@@ -262,132 +136,30 @@ export function leaveTransition(
   duration: number = 300,
   onComplete?: () => void,
 ): () => void {
-  if (typeof el.animate === 'function') {
-    return leaveTransitionWAAPI(el, name, duration, onComplete);
-  }
-  return leaveTransitionCSS(el, name, duration, onComplete);
+  return runLegacyDirection(el, name, 'leave', duration, onComplete);
 }
 
-/**
- * پیاده‌سازی leave با Web Animations API.
- */
-function leaveTransitionWAAPI(
+/** پیاده‌سازی مشترک wrapperهای enter/leave روی createTransition (#47). */
+function runLegacyDirection(
   el: HTMLElement,
   name: string,
+  direction: TransitionDirection,
   duration: number,
   onComplete?: () => void,
 ): () => void {
-  let cancelled = false;
-
-  el.classList.add(name);
-  el.classList.add(LEAVE_FROM);
-  el.classList.add(LEAVE_ACTIVE);
-
-  const keyframes: Keyframe[] = [
-    { opacity: 1, transform: 'translateY(0)' },
-    { opacity: 0, transform: 'translateY(-10px)' },
-  ];
-
-  const anim = el.animate(keyframes, {
+  deprecate(
+    direction === 'enter' ? 'ZEN-DEPR-002' : 'ZEN-DEPR-003',
+    direction === 'enter' ? 'enterTransition' : 'leaveTransition',
+    'createTransition(name, { duration, ... }).enter(el) / .leave(el)',
+  );
+  const controller = createTransition(name, {
     duration,
-    easing: 'ease-in',
-    fill: 'forwards',
+    onComplete: () => onComplete?.(),
   });
-
-  anim.onfinish = () => {
-    if (cancelled) return;
-    try {
-      anim.commitStyles();
-    } catch {
-      /* noop */
-    }
-    anim.cancel();
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-    onComplete?.();
-  };
-
-  anim.oncancel = () => {
-    if (!cancelled) {
-      el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-    }
-  };
-
+  const run = direction === 'enter' ? controller.enter(el) : controller.leave(el);
   return () => {
-    if (cancelled) return;
-    cancelled = true;
-    anim.cancel();
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-  };
-}
-
-/**
- * پیاده‌سازی leave با کلاس‌های CSS (fallback).
- */
-function leaveTransitionCSS(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-  let raf1 = 0;
-  let raf2 = 0;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let onEnd: ((e: TransitionEvent) => void) | null = null;
-  let onCancel: ((e: TransitionEvent) => void) | null = null;
-
-  el.classList.add(name);
-  el.classList.add(LEAVE_FROM);
-  el.classList.add(LEAVE_ACTIVE);
-
-  raf1 = requestAnimationFrame(() => {
-    if (cancelled) return;
-    raf2 = requestAnimationFrame(() => {
-      if (cancelled) return;
-      // BUG FIX (v1.3.0): استفاده از getComputedStyle به‌جای getBoundingClientRect
-      void getComputedStyle(el).transform; // intentional forced style resolution (reflow)
-
-      el.classList.remove(LEAVE_FROM);
-      el.classList.add(LEAVE_TO);
-
-      let done = false;
-      const finish = () => {
-        if (done || cancelled) return;
-        done = true;
-        if (onEnd) el.removeEventListener('transitionend', onEnd);
-        if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-        if (timer) clearTimeout(timer);
-        timer = null;
-        el.classList.remove(LEAVE_TO);
-        el.classList.remove(LEAVE_ACTIVE);
-        if (!cancelled && onComplete) onComplete();
-      };
-
-      onEnd = (e: TransitionEvent) => {
-        if (e.target === el) finish();
-      };
-      onCancel = () => finish();
-
-      el.addEventListener('transitionend', onEnd);
-      el.addEventListener('transitioncancel', onCancel);
-      timer = setTimeout(finish, duration + 50);
-    });
-  });
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    if (raf1) cancelAnimationFrame(raf1);
-    if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0;
-    raf2 = 0;
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (onEnd) el.removeEventListener('transitionend', onEnd);
-    if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-    onEnd = null;
-    onCancel = null;
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
+    run.cancel();
+    controller.dispose();
   };
 }
 
@@ -434,9 +206,11 @@ export function validateEasing(easing: string): EffectTiming['easing'] {
 }
 
 /**
- * اجرای group transition روی چند عنصر هم‌زمان.
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-004، #47).
  *
- * IMP-TRN-03: انیمیشن گروهی با delay پلکانی.
+ * اجرای group transition روی چند عنصر هم‌زمان با تأخیر پلکانی.
+ * روی موتور مبنا (`createTransition`) پیاده شده است — تنها یک مسیر
+ * پیاده‌سازی وجود دارد (#47).
  *
  * @param elements آرایه‌ای از عناصر
  * @param direction جهت transition ('enter' | 'leave')
@@ -452,6 +226,7 @@ export function animateGroup(
   duration: number = 300,
   staggerDelay: number = 50,
 ): Promise<void> {
+  deprecate('ZEN-DEPR-004', 'animateGroup', 'createTransition(name, { duration })');
   return new Promise((resolve) => {
     let remaining = elements.length;
     if (remaining === 0) {
@@ -459,21 +234,24 @@ export function animateGroup(
       return;
     }
 
-    const onDone = () => {
+    // یک کنترلر مشترک برای همه عناصر — همان موتور createTransition (#47).
+    const controller = createTransition(name, { duration });
+    const finishOne = () => {
       remaining--;
-      if (remaining <= 0) resolve();
+      if (remaining <= 0) {
+        controller.dispose();
+        resolve();
+      }
     };
 
     elements.forEach((el, i) => {
       setTimeout(() => {
-        const fn = direction === 'enter' ? enterTransition : leaveTransition;
-        const cancel = fn(el, name, duration, onDone);
-        // اگر تابع cancel بلافاصله صدا زده شود (مثلاً عنصر از DOM حذف شده)
-        // باید still resolve کنیم
         if (direction === 'leave' && !document.body.contains(el)) {
-          cancel();
-          onDone();
+          finishOne();
+          return;
         }
+        const run = direction === 'enter' ? controller.enter(el) : controller.leave(el);
+        void run.finished.then(finishOne, finishOne);
       }, i * staggerDelay);
     });
   });

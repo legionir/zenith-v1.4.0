@@ -556,7 +556,7 @@
       const stScrollHeight = stEl.scrollHeight - stEl.clientHeight;
       const stPercent = stScrollHeight > 0 ? (stScrollTop / stScrollHeight) * 100 : 0;
       const stVisible = Math.ceil(stEl.clientHeight / 40);
-      const stRendered = stEl.querySelectorAll('[data-zen-vlist-idx]').length;
+      const stRendered = stEl.querySelectorAll('[data-zen-virtual-index]').length;
 
       staticVisibleEl.textContent = String(stVisible);
       staticRenderedEl.textContent = String(stRendered);
@@ -569,7 +569,7 @@
       const dyScrollTop = dyEl.scrollTop;
       const dyScrollHeight = dyEl.scrollHeight - dyEl.clientHeight;
       const dyPercent = dyScrollHeight > 0 ? (dyScrollTop / dyScrollHeight) * 100 : 0;
-      const dyRendered = dyEl.querySelectorAll('[data-zen-vlist-idx]').length;
+      const dyRendered = dyEl.querySelectorAll('[data-zen-virtual-index]').length;
 
       // برای dynamic، تعداد visible تقریبی است (بر اساس ارتفاع متوسط)
       const dyVisible = Math.ceil(dyEl.clientHeight / 60);

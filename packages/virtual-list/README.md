@@ -15,10 +15,18 @@ import { createVirtualList } from '@zenith/virtual-list';
 
 const list = createVirtualList({
   container,
-  items, // signal آیتم‌ها (از @zenith/state)
+  items, // آرایه یا signal آیتم‌ها (از @zenith/state)
   itemSize: 40,
   overscan: 4,
+  renderItem: (item, index) => {
+    const el = document.createElement('div');
+    el.textContent = String(item.title);
+    return el;
+  },
 });
+
+list.scrollToIndex(100);
+list.dispose(); // پاک‌سازی listener/observer/نودها
 ```
 
 ```html
@@ -26,6 +34,11 @@ const list = createVirtualList({
   <li zen-text="$item.title"></li>
 </div>
 ```
+
+> دایرکتیوی `zen-virtual-list` (توسط `processVirtualList` پردازش می‌شود) در این
+> نسخه فقط wrapper روی `createVirtualList` است؛ استفاده مستقیم تابعی از آن در dev
+> یک‌بار هشدار `ZEN-DEPR-001` می‌دهد و در major بعدی حذف می‌شود (#47، سیاست #58).
+> برای کد دست‌کاری، API مبنا `createVirtualList` است.
 
 مشخصات کامل: [docs/packages/virtual-list.md](../../docs/packages/virtual-list.md)
 

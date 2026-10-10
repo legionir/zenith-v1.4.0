@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #46
-issue در حال انجام: #47
-بعدی: #47 (باقی موج ۱) سپس موج ۲
+آخرین issue کامل: #47
+issue در حال انجام: —
+بعدی: موج ۲ با #175 (RFC) سپس #171، #141، ...
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38018912934 (روی HEAD #46 — sha 6fe84ff)
 
@@ -161,3 +161,27 @@ issue در حال انجام: #47
     `peer-single-instance` سبز محلی و در CI.
   - ARCHITECTURE §۴.۳ بازنویسی + جدول §۲ به‌روز؛ DEC-018 (استثنا، caret، job مستقل).
     CI 38018912934 سبز (۱۲ job؛ peer-single-instance تأیید شد).
+- #47 انجام شد (موج ۱): تک‌مسیر API برای virtual-list/transition با wrapper منسوخ‌شونده:
+  - `deprecate(code, old, new, hint?)` + `resetDeprecationWarnings()` در `@zenith/errors`
+    (هشدار یک‌بار به‌ازای کد، خاموش وقتی `__ZENITH_DEV__ === false` — الگوی ZEN-404 انحصاری شد)؛
+    رجیستری کدها ZEN-DEPR-001..004 (DEC-019).
+  - transition: چهار موتور موازی (WAAPI/CSS × enter/leave) حذف شد؛ `enterTransition`/
+    `leaveTransition`/`animateGroup` حالا نازک‌wrapper روی `createTransition` (همان موتور
+    دارای رفع #23/#24) هستند و ZEN-DEPR-002/003/004 می‌دهند؛ `animate.ts` (zen-animate WAAPI
+    presets) ویژگی مستقل است و دست‌نخورده؛ suspense بررسی شد: از قبل تک‌هسته
+    (`createSuspenseContext`) — بدون تغییر.
+  - virtual-list: `processVirtualList` شد wrapper روی `createVirtualList` (engine دارای رفع
+    #17/#19) با ZEN-DEPR-001؛ engine توسعه یافت: `getState()`، `onItemUpdated`/`onNodeRemoved`،
+    `registerVirtualListNodeDisposes` (WeakMap) برای حفظ معنای dispose هر نود؛ مسیر SSR
+    (رندر کامل بدون virtualize) نگه داشته شد — دومین موتور virtualization نیست (DEC-019)؛
+    API عمومی (`VirtualListController`, scrollToIndex/rebuild/getRange) بدون تغییر.
+  - مصرف‌کنندهٔ داخلی رانتایم مهاجرت کرد: `zen-if` (`directives/if.ts`) مستقیم
+    `createTransition` می‌سازد (به ازای هر directive یک controller، dispose در teardown) —
+    کاربر نهایی هرگز ZEN-DEPR نمی‌بیند؛ تست رفت‌وبرگشت بدون هیچ warning.
+  - تست‌های جدید (red-before-fix همه): `packages/errors/test/deprecate.test.ts` (4)،
+    `packages/transition/test/transition-deprecation.test.ts` (6)،
+    `packages/virtual-list/test/process-virtual-list-deprecation.test.ts` (5)،
+    `packages/runtime/test/if-transition-deprecation.test.ts` (2). `npm test` 475 سبز.
+  - dependencies جدید `@zenith/errors` در transition/virtual-list (lockfile بازتولید)؛
+    importmap fixture اضافه‌شده به `@zenith/errors`؛ demos (transition/virtual-list) و
+    READMEها/ARCHITECTURE §لایه‌های موازی/§۲ بازنویسی؛ DEC-019.

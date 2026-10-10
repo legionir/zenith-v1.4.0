@@ -106,7 +106,7 @@
     .list-item.list-item-enter {
       animation: list-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    /* کلاس‌های leave برای list (manual via leaveTransition) */
+    /* کلاس‌های leave برای list (manual via createTransition) */
     /* BUG FIX (v0.5.0): padding/margin قبلاً در zen-leave-active به‌صورت ثابت
        (بدون transition) تنظیم می‌شدند → آیتم‌های زیر پرش می‌کردند. حالا
        padding/margin هم در transition هستند و در zen-leave-to به 0 می‌رسند. */
@@ -241,7 +241,7 @@
         <p class="desc">
           <code>zen-for</code> به‌صورت built-in از transition پشتیبانی نمی‌کند. اما می‌توان:
           <br>۱) برای <strong>enter</strong>: از CSS <code>@keyframes</code> روی آیتم استفاده کرد (auto-play هنگام mount).
-          <br>۲) برای <strong>leave</strong>: به‌صورت دستی <code>leaveTransition()</code> صدا زد و بعد از اتمام انیمیشن، آیتم را از آرایه حذف کرد.
+          <br>۲) برای <strong>leave</strong>: به‌صورت دستی <code>createTransition(...).leave(node)</code> را صدا زد و بعد از اتمام انیمیشن، آیتم را از آرایه حذف کرد.
         </p>
         <div class="row" style="margin-bottom: 12px;">
           <button class="primary" zen-action="addItem">+ افزودن آیتم</button>
@@ -267,12 +267,13 @@
 }
 .list-item { animation: list-enter 0.4s ...; }
 
-// Leave: manual via leaveTransition
-import { leaveTransition } from '@zenith/transition';
+// Leave: manual via createTransition (API مبنا)
+import { createTransition } from '@zenith/transition';
+const listLeave = createTransition('list-leave');
 Zen.action('removeItem', ({ state, element }) =&gt; {
   const id = Number(element.getAttribute('data-id'));
   const node = element.closest('.list-item');
-  leaveTransition(node, 'list-leave', 300, () =&gt; {
+  listLeave.leave(node).finished.then(() =&gt; {
     // بعد از اتمام انیمیشن، آیتم را از آرایه حذف کن
     const items = state.items.get();
     state.items.set(items.filter(i =&gt; i.id !== id));
@@ -318,7 +319,7 @@ Zen.action('removeItem', ({ state, element }) =&gt; {
           <code>zen-transition="name"</code> روی عنصر با <code>zen-if</code> باعث می‌شود به‌جای mount/unmount ناگهانی، انیمیشن CSS پخش شود.
           کلاس‌های <code>zen-enter-from/to</code>، <code>zen-leave-from/to</code> و <code>zen-enter-active</code>/<code>zen-leave-active</code> توسط پکیج <code>@zenith/transition</code> مدیریت می‌شوند.
           شما فقط CSS می‌نویسید — هر نام transition، هر property، هر مدت.
-          برای list transitions، enter با CSS animation و leave با فراخوانی دستی <code>leaveTransition()</code> کار می‌کند.
+          برای list transitions، enter با CSS animation و leave با فراخوانی دستی <code>createTransition(...).leave()</code> کار می‌کند.
         </p>
       </div>
     </div>
@@ -362,7 +363,8 @@ Zen.action('removeItem', ({ state, element }) =&gt; {
   <script type="module">
     import { signal } from '@zenith/state';
     import { Zen } from '@zenith/runtime';
-    import { leaveTransition } from '@zenith/transition';
+    import { createTransition } from '@zenith/transition';
+    const listLeave = createTransition('list-leave');
 
     // ── State ──
     const fadeVisible   = signal(true);
@@ -462,7 +464,7 @@ Zen.action('removeItem', ({ state, element }) =&gt; {
       }
       logEvent('removeItem:start', `id=${id} — playing leave animation (300ms)`);
       // پخش leave animation، سپس حذف از آرایه
-      leaveTransition(node, 'list-leave', 300, () => {
+      listLeave.leave(node).finished.then(() => {
         const items = state.items.get();
         state.items.set(items.filter(i => i.id !== id));
         logEvent('removeItem:done', `id=${id} removed from array`);

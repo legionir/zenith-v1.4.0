@@ -189,6 +189,44 @@ export const ErrorCode = {
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 // ─────────────────────────────────────────────────────────────
+// Deprecation Warnings (#47, #58)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * هشدار deprecation یک‌باره برای یک API قدیمی (مطابق سیاست #58: هشدار
+ * یک‌باره با کد ZEN-DEPR-xxx، حذف فقط در major بعدی).
+ *
+ * - فقط در dev فعال است (تا زمانی که `globalThis.__ZENITH_DEV__ === false`
+ *   تنظیم نشده باشد) — الگوی یکسان با ZEN-404 در auth (#62).
+ * - به‌ازای هر `code` حداکثر یک‌بار لاگ می‌شود (Set سراسری).
+ *
+ * @param code کد ZEN-DEPR-xxx
+ * @param oldName نام API قدیمی
+ * @param replacement نام/API جایگزین
+ * @param hint راهنمای اضافی اختیاری
+ */
+export function deprecate(code: string, oldName: string, replacement: string, hint?: string): void {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ === false) return;
+  if (warnedDeprecations.has(code)) return;
+  warnedDeprecations.add(code);
+  if (typeof console === 'undefined' || typeof console.warn !== 'function') return;
+  console.warn(
+    `[Zenith] ${code}: \`${oldName}\` is deprecated and will be removed in the next major ` +
+      `version. Use \`${replacement}\` instead.` +
+      (hint ? ` ${hint}` : ''),
+  );
+}
+
+const warnedDeprecations = new Set<string>();
+
+/**
+ * پاک‌سازی وضعیت «یک‌بار» هشدارها — فقط برای تست.
+ */
+export function resetDeprecationWarnings(): void {
+  warnedDeprecations.clear();
+}
+
+// ─────────────────────────────────────────────────────────────
 // Error Factory Functions
 // ─────────────────────────────────────────────────────────────
 

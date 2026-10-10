@@ -7,6 +7,7 @@ export {
   type VirtualListApi,
   type VirtualListDirection,
   type VirtualListOptions,
+  type VirtualListState,
 } from './controller';
 
 export {
