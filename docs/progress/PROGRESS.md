@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #142
-issue در حال انجام: (none — #145 در پیش است)
-بعدی: #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #145
+issue در حال انجام: (none)
+بعدی: #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38077852171 (روی HEAD bc1f584 — #142؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38094314128 (روی HEAD 34dda9e — #145؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -409,3 +409,33 @@ issue در حال انجام: (none — #145 در پیش است)
   - CI سبز: run 38077852171 روی bc1f584 (۱۲ job مسدودکننده)؛ issue با
     چک‌لیست تیک‌خورده (+ یادداشت: «schema همهٔ *Options» عمداً باز — در #52
     طبق متن خود issue) و کامنت شواهد بسته شد (status:done).
+- #145 انجام شد (موج ۲، SPEC §۲.۵): پکیج جدید `@zenith/storage` (L0، بدون DOM/state):
+  یکپارچه‌سازی localStorage/sessionStorage/cookie/memory پشت API واحد با رکورد
+  `{v,t,e,d}`، TTL تنبل، namespace (پیش‌فرض `zen`؛ `''` = کلید legacy دقیق)،
+  migrate+backfill برای JSON خام (v0)، سیاست quota (evict-oldest با regex `/"t":(\d+)/`
+  + یک retry)، sensitive ⇒ فقط memory/cookie، خطاهای ZEN-1101..1104 (+ZEN-1201 ttl)،
+  SyncBus تزریق‌پذیر (پیش‌فرض window storage event)، gzip ≤4KB سخت (ASCII؛ parity با
+  esbuild `--charset=utf8`). گزینه I در DEC-030: `zen-persist` در runtime ماند
+  (L0 نمی‌تواند DOM/state لمس کند) — `packages/runtime/src/directives/persist.ts`
+  (hydrate + debounce 300ms + cross-tab + path-copy مثل model.ts؛ اتریبیوت نامعتبر
+  فقط logger.warn طبق الگوی parseCacheAttr)، dispatch در walker بعد از zen-model.
+  - مصرف‌کننده‌ها: auth (remember-me روی storage، راهنمای security در README)،
+    store (`persistStore(store,{storage,key,selector})` — hydrate سنکرون + debounce؛
+    بدون تغییر رفتار قبلی)، ecommerce-demo مهاجرت کرد به storage (clone legacy
+    `zenith_cart`؛ persistCart/restoreCart حذف) و به JS خالص + importmap تبدیل شد
+    (مرورگر .ts خام load نمی‌کند؛ build pipeline نداشتیم) — سه باگ نهفتهٔ demo
+    (factory-vs-instance، `store.actions.*`، `this.cartCount.get()`) کشف/رفع شد.
+  - زیرساخت meta/e2e: seed + اسنپ‌شات zenith.meta (۴ directive، `--check` سبز)؛
+    e2e واقعی cross-tab با Chromium (fixture + spec؛ ۵ سبز؛ acceptance criterion).
+  - تست‌ها (red-before-fix، ۹۰ مورد جدید؛ npm test = ۹۹۶ از ۹۰۶): storage هسته/
+    drivers/quota/sync/size، zen-persist jsdom ۶، demo-cart ۳، auth-storage.
+  - شمارش‌ها/اسناد: ۴۲ دایرکتوری / ۴۱ پکیج قابل‌سفارش؛ runtime deps 18 (+logger
+    +storage)؛ root README ۴۲ ردیف؛ package-fields/package-order/ratchet/bundle به‌روز؛
+    ARCHITECTURE (۱۸ پکیج §۴ + persist در درخت directives)؛ storage README؛
+    DEC-030 (设计 + گزینه I).
+  - گیت‌های محلی سبز: lint ۰ error / format / typecheck 41 / test ۹۹۶ / coverage
+    exit 0 / build-all + browser bundle 49.51KB ≤ 50KB / storage size-limit 3.74KB ≤
+    4KB (بی‌تغییر آستانه) / deps:unused / peer-rule / peer:single-instance /
+    dependency-cruiser ۰ نقض / publint 41 / package-fields / license-sync / e2e ۵.
+  - CI سبز: run 38094314128 روی 34dda9e (۱۲ job مسدودکننده)؛ issue با چک‌لیست
+    تیک‌خورده + کامنت شواهد بسته شد (status:done).
