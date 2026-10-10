@@ -33,5 +33,10 @@
     "name": "@zenith/logger",
     "path": "packages/logger/dist/index.js",
     "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/cache",
+    "path": "packages/cache/dist/index.js",
+    "limit": "3 kb"
   }
 ]

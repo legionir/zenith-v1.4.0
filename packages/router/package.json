@@ -56,5 +56,8 @@
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
+  },
+  "dependencies": {
+    "@zenith/cache": "1.5.0"
   }
 }

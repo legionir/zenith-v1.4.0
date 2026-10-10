@@ -44,6 +44,8 @@
 import { signal, effect, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
+// #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
+import { createCache } from '@zenith/cache';
 
 /**
  * شکل وضعیت fetch.
@@ -66,7 +68,7 @@ function initialFetchState(): FetchState {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Cache Layer (IMP-DAT-02: SWR-like caching)
+// Cache Layer (IMP-DAT-02: SWR-like caching) — #144: روی @zenith/cache
 // ═══════════════════════════════════════════════════════════════════════
 
 interface CacheEntry {
@@ -74,10 +76,14 @@ interface CacheEntry {
   timestamp: number;
 }
 
-const _fetchCache = new Map<string, CacheEntry>();
-
 /** حداکثر تعداد entries در کش (eviction policy ساده). */
 const _CACHE_MAX_SIZE = 100;
+
+// ظرفیت و پاک‌سازی LRU به عهدهٔ @zenith/cache؛ TTL همچنان پارامتری است
+// ( getCachedData(url, ttl) معنی قدیمی را حفظ می‌کند: entry از ttl
+// گذشته باشد ⇒ null). entry در @zenith/cache با ttl='never' ذخیره می‌شود
+// و اعتبارسنجی سن همین‌جا انجام می‌گیرد تا معیار دقیقاً مثل قبل بماند.
+const _fetchCache = createCache<CacheEntry>({ ttl: 'never', maxSize: _CACHE_MAX_SIZE });
 
 /**
  * دریافت داده از کش در صورت معتبر بودن (داخل TTL).
@@ -87,7 +93,8 @@ const _CACHE_MAX_SIZE = 100;
  * @returns داده‌ی کش‌شده یا `null`.
  */
 export function getCachedData(url: string, ttl: number): any | null {
-  const entry = _fetchCache.get(url);
+  // peek: بدون تغییر ترتگی؛ انقضای پارامتری اینجاست (entry خودش never است)
+  const entry = _fetchCache.peek(url);
   if (entry && Date.now() - entry.timestamp < ttl) {
     return entry.data;
   }
@@ -96,16 +103,12 @@ export function getCachedData(url: string, ttl: number): any | null {
 
 /**
  * ذخیره‌سازی داده در کش.
- * اگر کش از حداکثر ظرفیت بیشتر شود، قدیمی‌ترین entry حذف می‌شود.
+ * اگر کش از حداکثر ظرفیت بیشتر شود، @zenith/cache قدیمی‌ترین را حذف می‌کند.
  *
  * @param url  کلید کش.
  * @param data داده‌ای که کش می‌شود.
  */
 export function setCachedData(url: string, data: any): void {
-  if (_fetchCache.size >= _CACHE_MAX_SIZE) {
-    const firstKey = _fetchCache.keys().next().value;
-    if (firstKey !== undefined) _fetchCache.delete(firstKey);
-  }
   _fetchCache.set(url, { data, timestamp: Date.now() });
 }
 

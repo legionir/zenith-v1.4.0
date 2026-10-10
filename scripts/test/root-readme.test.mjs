@@ -25,8 +25,8 @@ describe('root README.md (issue #69)', () => {
     expect(readme).toMatch(/Zen\.action\('inc'/);
   });
 
-  it('lists all 38 package directories in the table', () => {
-    expect(pkgDirs).toHaveLength(38);
+  it('lists all 39 package directories in the table', () => {
+    expect(pkgDirs).toHaveLength(39);
     for (const d of pkgDirs) {
       expect(readme, `table row for packages/${d}`).toContain(`(packages/${d})`);
     }

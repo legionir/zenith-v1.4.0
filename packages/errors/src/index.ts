@@ -730,6 +730,12 @@ export const DEPRECATION_CODES: Readonly<
     replacement: 'createTransition(name) shared controller',
     removedIn: '2.0.0',
   },
+  // #144 — نام یکتای clearHttpCache (رفع clearCache تکراری در http).
+  'ZEN-DEPR-005': {
+    api: 'clearCache (http)',
+    replacement: 'clearHttpCache',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

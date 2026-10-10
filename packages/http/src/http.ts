@@ -4,13 +4,15 @@
  * Features:
  *   - Request/response interceptors
  *   - Smart retry with exponential backoff
- *   - Response caching (memory + TTL)
+ *   - Response caching (memory + TTL) — از #144 روی @zenith/cache
  *   - Request timeout & cancellation
  *   - Centralized error handling
  */
 
 import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
+import { deprecate } from '@zenith/errors';
+import { createCache, type Cache } from '@zenith/cache';
 
 // ============================================================
 // Types & Interfaces
@@ -83,7 +85,11 @@ export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 const requestInterceptors: RequestInterceptor[] = [];
 const responseInterceptors: ResponseInterceptor[] = [];
 const errorInterceptors: ErrorInterceptor[] = [];
-const cacheStore = new Map<string, { data: any; expiresAt: number }>();
+// #144: کش پاسخ‌ها از Map دستی به @zenith/cache منتقل شد — TTL به‌ازای هر
+// ورودی با opts.ttl، برچسب‌ها با opts.tags و invalidate. انقضا lazy است
+// (بدون timer ⇒ SSR-safe). wrapper { data } می‌سازیم تا پاسخ `undefined`
+// با «نبود entry» اشتباه گرفته نشود.
+const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
 
 let defaultConfig: HttpRequestOptions = {
@@ -156,19 +162,28 @@ export function addErrorInterceptor(interceptor: ErrorInterceptor): () => void {
 // ============================================================
 
 /**
- * Clear cached responses, optionally filtered by tags
+ * Clear cached responses, optionally filtered by tags.
+ *
+ * نام یکتا طبق کار #3 از #144 (issue نام‌های تکراری): `clearHttpCache`.
  */
-export function clearCache(tags?: string[]): void {
+export function clearHttpCache(tags?: string[]): void {
   if (!tags) {
-    cacheStore.clear();
+    httpCache.clear();
     return;
   }
-  // Simple tag-based invalidation (tags stored in key prefix)
-  for (const key of Array.from(cacheStore.keys())) {
-    if (tags.some((tag) => key.includes(`__tag:${tag}`))) {
-      cacheStore.delete(key);
-    }
-  }
+  httpCache.invalidate(tags);
+  // سازگاری با قرارداد قدیمی http: کلیدهایی که خودشان `__tag:<x>` داشتند
+  // (حالا tags واقعی هم پشتیبانی می‌شوند).
+  httpCache.invalidate((key) => tags.some((tag) => key.includes(`__tag:${tag}`)));
+}
+
+/**
+ * @deprecated از `clearHttpCache` استفاده کنید (ZEN-DEPR-005، #144 — رفع
+ * نام تکراری cross-package). این alias در ۲.۰ حذف می‌شود (DEC-026).
+ */
+export function clearCache(tags?: string[]): void {
+  deprecate('ZEN-DEPR-005', 'clearCache (http)', 'clearHttpCache');
+  clearHttpCache(tags);
 }
 
 // ============================================================
@@ -209,8 +224,8 @@ export async function request<T = any>(
   // Check cache
   const cacheKey = config.cache?.key || `${config.method || 'GET'}:${fullUrl}`;
   if (config.cache?.enabled) {
-    const cached = cacheStore.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
+    const cached = httpCache.get(cacheKey);
+    if (cached) {
       return {
         data: cached.data,
         status: 200,
@@ -291,13 +306,10 @@ export async function request<T = any>(
       }
     }
 
-    // Store in cache
+    // Store in cache (TTL + tags per entry; lazy expiry in @zenith/cache)
     if (config.cache?.enabled) {
       const ttl = config.cache.ttl || 60000;
-      cacheStore.set(cacheKey, {
-        data: httpResponse.data,
-        expiresAt: Date.now() + ttl,
-      });
+      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: config.tags });
     }
 
     return httpResponse;

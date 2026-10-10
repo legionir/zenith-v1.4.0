@@ -11,6 +11,7 @@ export {
   addRequestInterceptor,
   addResponseInterceptor,
   addErrorInterceptor,
+  clearHttpCache,
   clearCache,
   cancelRequest,
   cancelAllRequests,

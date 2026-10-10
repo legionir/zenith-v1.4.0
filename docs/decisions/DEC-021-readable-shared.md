@@ -1,6 +1,6 @@
 # DEC-021: `Readable<T>` ساختاری در `shared` — ساخت روی brand موجود (DEC-009) + الزام تست نوع
 
-- وضعیت: پذیرفته‌شده • ۲۰۲۶-۱۰-۱۰ • issueهای مرتبط: #175 (main)، #141 (پکیج shared)، #187/DEC-009 (brand)، #117 (API-CONVENTIONS)
+- وضعیت: پذیرفته‌شده • ۲۰۲۶-۱۰-۱۰ • issueهای مرتبط: #175 (main)، #141 (پکیج shared)، #144 (پکیج cache + seam آداپتور سیگنال)، #187/DEC-009 (brand)، #117 (API-CONVENTIONS)
 
 ## زمینه
 
@@ -51,6 +51,43 @@
   از shared یال جدید در dist می‌ساخت (peer-single-instance همان دلیل را رد
   کرد)؛ canonical در shared برای پکیج‌های جدید #143+ است و مهاجرت مصرف‌کنندهٔ
   قدیمی با حذف‌های ۲.۰ (#58) انجام می‌شود.
+
+## اجرای #144 (۲۰۲۶-۱۰-۱۰) — `@zenith/cache`: seam آداپتور سیگنال + مهاجرت شش مصرف‌کننده
+
+- `packages/cache` ساخته شد (L0؛ deps فقط `errors@1.4.0` + `shared@1.5.0`؛
+  ESM-only/`1.5.0` طبق DEC-027/DEC-026؛ SPEC §۲.۴؛ ≤۲.۳۴KB brotli در gate).
+- **انحراف مستدل از SPEC («`cache.signal` زیرمسیر `./signal`»):** `setSignalAdapter`
+  از barrel اصلی export می‌شود، نه subpath — همان bundle و peer را دارد و
+  subpath جدید فقط سطح export را زیاد می‌کند (DEC-027 با یک نقطهٔ ورود می‌ماند).
+- **`cache.signal` بدون یال cache→state:** الگوی این DEC دقیقاً اجرا شد —
+  cache فقط `Readable` (از shared) را می‌شناسد و سازندهٔ آن در زمان اجرا با
+  `setSignalAdapter((key, cache) => Readable)` تزریق می‌شود؛ بدون adapter،
+  `signal()` با `ZEN-1090` (invariant — خطای برنامه‌نویس، نه داده) throw
+  می‌کند. یال ساختاری cache→state حتی type-only در dist می‌ماند و همان
+  استدلال «انحراف مستدل» بخش #141 را زنده می‌کرد.
+- **تحلیل یال‌های مهاجرت (قبل از شروع):** در #141 نگرانی peer-single-instance
+  مانع افزودن یال به مصرف‌کننده‌های publish‌شده بود. برای #144 بررسی شد:
+  `scripts/peer-single-instance.mjs` فقط `state/scheduler/store/form` را هدف
+  می‌گیرد و `peer-rule` فقط state/scheduler را — پس یال `cache` (publish‌نشده،
+  deps کامل اعلام‌شده) به http/data/resource/components/expressions/router
+  گیت‌ها را نمی‌شکند؛ هر سه گیت deps بعد از مهاجرت سبز اجرا شدند.
+- **نام‌های یکتا پاک‌سازی (کار #3 issue):** `clearHttpCache` در http اضافه شد و
+  `clearCache` به‌عنوان alias با `deprecate('ZEN-DEPR-005', …)` ماند (قاعدهٔ
+  no-breaking؛ ثبت در `DEPRECATION_CODES` errors — همان رجیستری DEC-019/#171).
+- حاشیه‌های رفتاری مهاجرت: http entryها wrapper `{ data }` می‌گیرند تا پاسخ
+  `undefined` با «نبود entry» اشتباه نشود و قرارداد قدیمی `__tag:` در
+  `invalidate` پشتیبانی backward می‌ماند؛ data چون TTL پارامترِ تابع است،
+  entryها `ttl:'never'` ذخیره و اعتبارسنجی سن در wrapper می‌ماند (peek ⇒
+  بدون تغییر ترتگی/آمار؛ eviction فقط FIFO-by-insertion مثل قبل)؛ resource
+  dedupe-در-flight روی pending map داخلی cache با delete در settle (هیچ
+  نتیجهٔ settled سرو نمی‌شود — رفتار `_inflightRequests` عیناً حفظ شد)؛
+  components errorCache با ttl=۳۰s و هویت خطای دست‌نخورده (بدون getOrLoad تا
+  AbortError آن‌چه هست بماند)؛ router timestamp استیل‌چک در Map جدا می‌ماند
+  (stale-refetch fire-and-forget با ttl cache ممکن نیست) و با `onEvict`
+  هم‌زمان پاک می‌شود (تست نشت).
+- گیت مهاجرت: `packages/cache/test/consumers.test.ts` — هر شش فایل src باید
+  `@zenith/cache` import کنند و هیچ `Map<...Entry>`/`LRUCache` دستی دریشان
+  نماند (معیار پذیرش «هیچ پیاده‌سازی cache مستقل دیگری»).
 
 ## پیامدها
 

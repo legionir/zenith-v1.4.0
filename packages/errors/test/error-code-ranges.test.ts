@@ -181,17 +181,19 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the four issued codes with api/replacement', () => {
+  it('contains exactly the five issued codes with api/replacement', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
       'ZEN-DEPR-003',
       'ZEN-DEPR-004',
+      'ZEN-DEPR-005',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');
     expect(DEPRECATION_CODES['ZEN-DEPR-003'].api).toBe('leaveTransition');
     expect(DEPRECATION_CODES['ZEN-DEPR-004'].api).toBe('animateGroup');
+    expect(DEPRECATION_CODES['ZEN-DEPR-005'].api).toBe('clearCache (http)'); // #144
     for (const meta of Object.values(DEPRECATION_CODES)) {
       expect(meta.removedIn).toBe('2.0.0'); // DEC-026
     }

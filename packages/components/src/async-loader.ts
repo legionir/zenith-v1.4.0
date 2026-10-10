@@ -25,6 +25,11 @@
 //   - DOM mutations are guarded with `typeof document` checks.
 
 import { registerComponent } from './registry';
+// #144: سه کش دستی (Map + timestamp + eviction) به @zenith/cache (L0) مهاجرت
+// کرد: entryهای template با ttl/maxSize (LRU)، رجیستری dedupe با پاک‌سازی در
+// settle، و errorCache با ttl=۳۰s. هویت خطاها دست‌نخورده می‌ماند (این‌جا
+// getOrLoad استفاده نشده تا AbortError همان AbortError بماند).
+import { createCache, type Cache } from '@zenith/cache';
 
 /**
  * Cache entry for a loaded component.
@@ -53,8 +58,14 @@ let cacheConfig: ComponentCacheConfig = {
   maxSize: 64,
 };
 
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<HTMLTemplateElement>>();
+// #144: ttl/maxSize/LRU به @zenith/cache سپرده شده؛ storedAt صرفاً برای
+// سازگاری شکل CacheEntry (export عمومی) در entry می‌ماند.
+let templateCache: Cache<CacheEntry> = createCache<CacheEntry>({
+  ttl: cacheConfig.ttl,
+  maxSize: cacheConfig.maxSize,
+});
+// رجیستری dedupe (در-flight promise؛ settle ⇒ delete — مثل قبل).
+const inflightCache = createCache<Promise<HTMLTemplateElement>>({ ttl: 'never', maxSize: 64 });
 
 // FIX (v1.2.8): P2-5 — errorCache for recently-failed URLs.
 //
@@ -73,11 +84,12 @@ const inflight = new Map<string, Promise<HTMLTemplateElement>>();
 // fix (redeploy) takes effect quickly, but long enough to break
 // thundering herds.
 const ERROR_CACHE_TTL_MS = 30_000;
+// #144: ttl خود entry (=۳۰s) + انقضای lazy ⇒ delete دستی لازم نیست.
 interface ErrorCacheEntry {
   error: Error;
   storedAt: number;
 }
-const errorCache = new Map<string, ErrorCacheEntry>();
+const errorCache = createCache<ErrorCacheEntry>({ ttl: ERROR_CACHE_TTL_MS, maxSize: 64 });
 
 /**
  * Configure the component cache (TTL + maxSize).
@@ -86,13 +98,19 @@ const errorCache = new Map<string, ErrorCacheEntry>();
  *   configureComponentCache({ ttl: 60_000, maxSize: 128 });
  */
 export function configureComponentCache(opts: Partial<ComponentCacheConfig>): void {
-  cacheConfig = { ...cacheConfig, ...opts };
-  // Evict anything that no longer fits.
-  if (cache.size > cacheConfig.maxSize) {
-    const keys = Array.from(cache.keys());
-    for (let i = 0; i < keys.length - cacheConfig.maxSize; i++) {
-      cache.delete(keys[i]!);
+  const prev = { ...cacheConfig, ...opts };
+  if (prev.ttl !== cacheConfig.ttl || prev.maxSize !== cacheConfig.maxSize) {
+    cacheConfig = prev;
+    // ttl/maxSize در @zenith_cache زمان ساخت خوانده می‌شوند ⇒ نمونهٔ تازه با
+    // انتقال entryهای زنده (peek ⇒ بدون تغییر آمار/ترتگی). trim داخلی
+    // همان «evict anything that no longer fits» قدیمی است.
+    const old = templateCache;
+    templateCache = createCache<CacheEntry>({ ttl: prev.ttl, maxSize: prev.maxSize });
+    for (const key of old.keys()) {
+      const entry = old.peek(key);
+      if (entry !== undefined) templateCache.set(key, entry);
     }
+    old.dispose();
   }
 }
 
@@ -100,8 +118,8 @@ export function configureComponentCache(opts: Partial<ComponentCacheConfig>): vo
  * Clear the entire component cache. Useful in tests and HMR.
  */
 export function clearComponentCache(): void {
-  cache.clear();
-  inflight.clear();
+  templateCache.clear();
+  inflightCache.clear();
   // FIX (v1.2.8): P2-5 — also clear the errorCache.
   errorCache.clear();
 }
@@ -144,30 +162,22 @@ export async function loadComponent(
   // FIX (v1.2.8): P2-5 — Check the errorCache first. If this URL recently
   // failed (within ERROR_CACHE_TTL_MS), re-throw the cached error
   // immediately without re-fetching. This prevents thundering-herd
-  // re-fetches of known-bad URLs. After the TTL expires the entry is
-  // evicted here and the URL is retried on the next call.
-  const errEntry = errorCache.get(src);
+  // re-fetches of known-bad URLs. #144: ttl entry = ۳۰s و انقضای lazy ⇒
+  // بعد از پنجره، peek مقدار undefined می‌دهد و URL retry می‌شود.
+  const errEntry = errorCache.peek(src);
   if (errEntry) {
-    const age = Date.now() - errEntry.storedAt;
-    if (age < ERROR_CACHE_TTL_MS) {
-      throw errEntry.error;
-    }
-    // Expired — evict and fall through to retry.
-    errorCache.delete(src);
+    throw errEntry.error;
   }
 
-  // Check the cache; evict expired entries.
-  const entry = cache.get(src);
+  // Check the cache. #144: انقضای ttl داخل @zenith/cache (lazy)؛ get روی
+  // entry منقضی‌شده undefined می‌دهد و eviction را انجام می‌دهد.
+  const entry = templateCache.get(src);
   if (entry) {
-    const age = Date.now() - entry.storedAt;
-    if (age < cacheConfig.ttl) {
-      return entry.template;
-    }
-    cache.delete(src);
+    return entry.template;
   }
 
   // De-duplicate concurrent fetches.
-  const existing = inflight.get(src);
+  const existing = inflightCache.peek(src);
   if (existing) return existing;
 
   const promise = (async () => {
@@ -193,25 +203,18 @@ export async function loadComponent(
 
     // Store in cache (cloned so the cached template is independent).
     const cloned = tpl.cloneNode(true) as HTMLTemplateElement;
-    cache.set(src, {
+    templateCache.set(src, {
       html,
       template: cloned,
       storedAt: Date.now(),
     });
-
-    // LRU eviction.
-    if (cache.size > cacheConfig.maxSize) {
-      const keys = Array.from(cache.keys());
-      const evictCount = keys.length - cacheConfig.maxSize;
-      for (let i = 0; i < evictCount; i++) {
-        cache.delete(keys[i]!);
-      }
-    }
+    // LRU eviction: داخل @zenith/cache (maxSize از cacheConfig).
 
     return cloned;
   })();
 
-  inflight.set(src, promise);
+  // #144: `set` مقدار (promise) را برمی‌گرداند ⇒ void برای no-floating-promises.
+  void inflightCache.set(src, promise);
   try {
     return await promise;
   } catch (err) {
@@ -227,7 +230,7 @@ export async function loadComponent(
     });
     throw err;
   } finally {
-    inflight.delete(src);
+    inflightCache.delete(src);
   }
 }
 

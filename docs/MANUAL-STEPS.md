@@ -7,7 +7,7 @@ the exact manual action.
 
 - [ ] تأیید مالک MIT با تیم حقوقی: فایل `LICENSE` با کپی‌رایت
       `2026 Zenith Team` ساخته شد. اگر شخص/شرکت حقیقی مالک است، نام و سال را
-      در **ریشه و هر ۳۷ پکیج** (یا با ویرایش ریشه + اجرای
+      در **ریشه و هر ۳۸ پکیج** (یا با ویرایش ریشه + اجرای
       `node scripts/sync-license.mjs`) اصلاح کنید.
 
 ## #59 — SECURITY.md: فعال‌سازی Private Vulnerability Reporting

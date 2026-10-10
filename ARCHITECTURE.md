@@ -3,7 +3,7 @@
 این سند ساختار داخلی، پکیج‌ها، وابستگی‌ها و گزینه‌های (options) هر پکیج را شرح می‌دهد.
 همهٔ اعداد و جدول‌ها از کد مخزن استخراج شده‌اند. بخش‌های «مشکلات و پیشنهاد» تحلیل‌اند و نه واقعیت مستند.
 
-- مخزن: monorepo با npm workspaces (`packages/*`)، ۳۸ پوشه، ۳۷ بستهٔ دارای `package.json`
+- مخزن: monorepo با npm workspaces (`packages/*`)، ۳۹ پوشه، ۳۸ بستهٔ دارای `package.json`
 - حدود ۳۸ هزار خط TypeScript در `src` (`ES2022`، `strict`)
 - خروجی هر پکیج: ESM (`dist/index.js`)، CJS (`dist/index.cjs`)، `dist/index.d.ts`؛
   پکیج‌های جدید موج ۲ (`shared` #141، `logger` #143) ESM-only هستند (DEC-027)
@@ -26,7 +26,7 @@ L2  سرویس‌ها و ویژگی‌ها     router · events · components ·
                            auth · permission · store · form · notifications
                            error-boundary · suspense · transition · virtual-list · data-table
 L1  هستهٔ reactive         state · expressions
-L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n
+L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n · shared · logger · cache
 ```
 
 قاعدهٔ مطلوب: هر لایه فقط به لایه‌های پایین‌تر وابسته باشد. وضعیت فعلی در بخش ۴ آمده است.
@@ -44,23 +44,24 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `shared` | L0 | ۷ / ۴۲۰ | errors | نوع‌ها/ابزارهای مشترک L0 (#141، DEC-021): Disposable/Cleanup، `Readable` ساختاری، mergeOptions امن، پارسر attribute، createId/secureId، invariant ZEN-1090 |
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `logger` | L0 | ۹ / ۶۲۳ | errors, shared | لاگر مرکزی SPEC §۲.۳ (#143): createLogger/child/redact، consoleSink·bufferSink·beaconSink، warnOnce/deprecate (ZEN-DEPR)، محافظ sink خراب ZEN-1091؛ تنها مرز console ورک‌اسپیس |
+| `cache` | L0 | ۵ / ۷۳۱ | errors, shared | کش مشترک SPEC §۲.۴ (#144): createCache با TTL/SWR/tags/LRU-FIFO/maxBytes، getOrLoad با dedupe، رجیستری listCaches، signal با adapter تزریقی (DEC-021)؛ تنها پیاده‌سازی cache ورک‌اسپیس |
 | `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |
-| `expressions` | L1 | ۸ / ۱۹۸۶ | errors | parser و evaluator امن عبارت‌ها (بدون `eval`) |
+| `expressions` | L1 | ۸ / ۱۹۸۶ | errors, cache | parser و evaluator امن عبارت‌ها (بدون `eval`) |
 | `dependency-graph` | L1 | ۲ / ۲۳۶ | expressions | استخراج وابستگی signalها از عبارت‌ها |
-| `http` | L2 | ۲ / ۴۱۶ | peer: state | کلاینت HTTP با interceptor، retry، cache |
+| `http` | L2 | ۲ / ۴۱۶ | cache, errors; peer: state | کلاینت HTTP با interceptor، retry، cache |
 | `actions` | L2 | ۲ / ۴۶۰ | — | رجیستری actionها برای `zen-action` |
 | `error-boundary` | L2 | ۳ / ۲۷۹ | peer: state | مرز خطا و handler سراسری |
 | `notifications` | L2 | ۲ / ۳۰۹ | peer: state | toast، alert، confirm |
-| `router` | L2 | ۳ / ۹۳۷ | peer: state | مسیریابی SPA با History API |
-| `resource` | L2 | ۳ / ۹۳۶ | errors, expressions; peer: state | دریافت داده با cache و dedup (شبیه TanStack Query) |
-| `data` | L2 | ۲ / ۴۹۶ | expressions; peer: state | دایرکتیو `zen-fetch` |
+| `router` | L2 | ۳ / ۹۳۷ | cache; peer: state | مسیریابی SPA با History API |
+| `resource` | L2 | ۳ / ۹۳۶ | cache, errors, expressions; peer: state | دریافت داده با cache و dedup (شبیه TanStack Query) |
+| `data` | L2 | ۲ / ۴۹۶ | cache, expressions; peer: state | دایرکتیو `zen-fetch` |
 | `auth` | L2 | ۲ / ۱۳۳۱ | http (dynamic); peer: state | ورود/خروج، توکن، refresh خودکار |
 | `permission` | L2 | ۳ / ۶۶۰ | security; peer: state | RBAC و `zen-permission` |
 | `store` | L2 | ۲ / ۴۵۵ | peer: state | store سراسری شبیه Pinia |
 | `form` | L2 | ۴ / ۱۶۹۶ | peer: state | فرم و اعتبارسنجی |
 | `events` | L2 | ۴ / ۱۱۷۱ | actions, error-boundary, expressions, router; peer: state, scheduler | event delegation |
-| `components` | L2 | ۴ / ۱۲۰۹ | expressions | کامپوننت Light DOM، props، slots |
+| `components` | L2 | ۴ / ۱۲۰۹ | cache, expressions | کامپوننت Light DOM، props، slots |
 | `suspense` | L2 | ۲ / ۵۷۰ | error-boundary, security; peer: state | ردگیری promise و حالت loading |
 | `transition` | L2 | ۳ / ۹۰۹ | errors | انیمیشن enter/leave (API مبنا: `createTransition`) |
 | `virtual-list` | L2 | ۳ / ۸۷۲ | errors, expressions; peer: state | لیست مجازی (API مبنا: `createVirtualList`) |

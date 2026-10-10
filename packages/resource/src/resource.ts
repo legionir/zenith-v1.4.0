@@ -30,6 +30,8 @@
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { resourceDestroyedError } from '@zenith/errors';
+// #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
+import { createCache, type Cache } from '@zenith/cache';
 
 /**
  * وضعیت یک Resource.
@@ -143,7 +145,13 @@ function createCacheKey(method: string, url: string, body?: any): string {
 export class Resource<T = any> {
   private _signal: Signal<ResourceState<T>>;
   private _config: Required<ResourceConfig>;
-  private _inflightRequests: Map<string, Promise<CrudResult<any>>> = new Map();
+  // #144: dedupe درخواست‌های هم‌زمان یکسان روی @zenith/cache (به‌جای Map
+  // دستی `_inflightRequests`) با ttl=۰ (بدون انقضا) و پاک‌سازی در settle؛
+  // join فقط تا زمانی است که promise در-flight است — نتیجهٔ settled هرگز
+  // سرو نمی‌شود چون loader در finally کلید را delete می‌کند. تازگی/سستی
+  // داده همان‌قبل با signal.lastUpdated + staleTime سنجیده می‌شود (معنای
+  // setData/invalidate بدون تغییر).
+  private _dedupeCache: Cache<Promise<CrudResult<any>>>;
   private _refreshTimer: ReturnType<typeof setInterval> | null = null;
   private _mutationQueue: Array<{ op: () => Promise<CrudResult<any>>; rollback?: () => void }> = [];
   // BUG-RES-02 (v1.3.0): Snapshot versioning for optimistic updates.
@@ -196,6 +204,11 @@ export class Resource<T = any> {
       swCacheName: config.swCacheName || '',
       ...config,
     };
+
+    // #144: رجیستری dedupe. ttl=never + پاک‌سازی در settle ⇒ فقط join
+    // هم‌زمانی (نتیجهٔ settled هرگز سرو نمی‌شود — رفتار `_inflightRequests`
+    // قبلی). ظرفیت 32 صرف دفاع در برابر نشت است (LRU).
+    this._dedupeCache = createCache<Promise<CrudResult<any>>>({ ttl: 'never', maxSize: 32 });
   }
 
   /** دریافت Signal وضعیت. */
@@ -334,7 +347,7 @@ export class Resource<T = any> {
       this._refreshTimer = null;
     }
     this._mutationQueue.length = 0;
-    this._inflightRequests.clear();
+    this._dedupeCache.clear(); // #144
     // FEATURE (v1.0.0): ساخت AbortController تازه — تا reset() بتواند
     // Resource را از حالت destroyed خارج کند و درخواست‌های جدید دوباره کار کنند.
     this._abortController = new AbortController();
@@ -413,8 +426,8 @@ export class Resource<T = any> {
       this._currentRequestController.abort();
       this._currentRequestController = null;
     }
-    // ۳. پاک‌سازی Map درخواست‌های در حال انجام.
-    this._inflightRequests.clear();
+    // ۳. پاک‌سازی رجیستری dedupe (#144 — @zenith/cache).
+    this._dedupeCache.clear();
     // ۴. پاک‌سازی صف mutation (تا پردازش در حال انجام متوقف شود).
     this._mutationQueue.length = 0;
     // ۵. تنظیم فلگ destroyed — جلوگیری از درخواست جدید پس از این نقطه.
@@ -664,8 +677,11 @@ export class Resource<T = any> {
     // BUG-RES-01 (v1.3.0): body را canonicalize می‌کنیم تا ترتیب کلیدهای JSON
     // باعث collision نشود. `{a:1,b:2}` و `{b:2,a:1}` حالا cacheKey یکسان دارند.
     const cacheKey = createCacheKey(method, url, body);
-    if (!force && this._inflightRequests.has(cacheKey)) {
-      return this._inflightRequests.get(cacheKey)!;
+    // #144: join روی درخواست هم‌زمان یکسان — peek چون entryها promise زنده
+    // هستند و delete در settle پاکشان می‌کند؛ هیچ نتیجهٔ settled سرو نمی‌شود.
+    if (!force) {
+      const inflight = this._dedupeCache.peek(cacheKey);
+      if (inflight) return inflight;
     }
 
     // ── Stale Check ──
@@ -682,7 +698,8 @@ export class Resource<T = any> {
 
     // ── ساخت Request ──
     const promise = this._executeWithRetry<R>(method, url, body);
-    this._inflightRequests.set(cacheKey, promise);
+    // #144: `set` مقدار (promise) را برمی‌گرداند ⇒ void برای no-floating-promises.
+    void this._dedupeCache.set(cacheKey, promise);
 
     // setLoading (فقط برای GET اولیه).
     if (method === 'GET' && !this._signal.get().data) {
@@ -691,7 +708,7 @@ export class Resource<T = any> {
 
     try {
       const result = await promise;
-      this._inflightRequests.delete(cacheKey);
+      this._dedupeCache.delete(cacheKey);
 
       if (result.success && result.data !== undefined) {
         this._signal.set({
@@ -714,7 +731,7 @@ export class Resource<T = any> {
 
       return result;
     } catch (err) {
-      this._inflightRequests.delete(cacheKey);
+      this._dedupeCache.delete(cacheKey);
       const message = err instanceof Error ? err.message : String(err);
       this._signal.set({
         ...this._signal.get(),

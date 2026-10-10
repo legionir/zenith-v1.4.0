@@ -3,20 +3,14 @@
 // Cache: مرحله‌ی چهارم از کامپایل Expression.
 // ASTهای Compile شده را در حافظه نگه می‌دارد تا از Parse مجدد جلوگیری شود.
 //
-// چرا Cache کردن مهم است؟
-//   - در یک اپلیکیشن Zenith، ممکن است هزاران Template Binding وجود داشته باشد.
-//   - مثلاً `zen-text="$user.name"` ممکن است ۱۰۰ بار در ۱۰۰ کامپوننت استفاده شود.
-//   - بدون Cache، هر بار که یک Effect اجرا می‌شود، باید این Expression دوباره Parse شود.
-//   - با Cache، فقط اولین بار Parse می‌شود و دفعات بعد فقط evaluate.
-//
-// استراتژی: LRU Cache با حداکثر اندازه
-//   - Map در JavaScript ترتیب insertion را حفظ می‌کند.
-//   - برای LRU: وقتی cache پر شد، اولین entry (oldest) حذف می‌شود.
-//   - وقتی یک entry hit می‌شود، حذف و دوباره اضافه می‌شود تا به آخر منتقل شود.
-//
-// امنیت:
-//   - قبل از Cache، validate اجرا می‌شود تا اگر Expression مخربی بود
-//     به جای cache، خطا پرتاب شود.
+// #144: این فایل روی @zenith/cache (L0, SPEC §۲.۴) مهاجرت کرد.
+// رفتار عمومی حفظ شده است:
+//   - LRU با حداکثر اندازه (پیش‌فرض ۵۰۰) — touched فقط در get (نه peek).
+//   - آمار hits/misses/hitRatio هم‌شکل گذشته (فیلدهای افزوده cache بیرون
+//     از این سازگاه حذف می‌شوند تا API عمومی expressions ثابت بماند).
+//   - امنیت: قبل از Cache، validate اجرا می‌شود؛ خطا ⇒ cache نمی‌شود
+//     (miss شمرده می‌شود، همان رفتار قبلی).
+import { createCache, type Cache } from '@zenith/cache';
 
 import { Parser, type ASTNode } from './parser';
 import { validate } from './validator';
@@ -32,24 +26,14 @@ import { sanitizeExpression } from './security-constants';
  */
 let MAX_CACHE_SIZE = 500;
 
-/**
- * Cache سراسری برای ASTها.
- *
- * استفاده از Map (نه Object) به این دلایل:
- *   - ترتیب insertion را حفظ می‌کند (برای LRU لازم است).
- *   - Performance بهتر برای تعداد زیاد entry.
- */
-// ── I-2: Cache Metrics ──
-let cacheHits = 0;
-let cacheMisses = 0;
-
-const cache = new Map<string, ASTNode>();
+/** کش ASTها — TTL ندارد (انقضای lazy هم لازم نیست؛ کرکرهٔ اندازه LRU). */
+let cache: Cache<ASTNode> = createCache<ASTNode>({ ttl: 'never', maxSize: MAX_CACHE_SIZE });
 
 /**
  * کامپایل یک Expression به AST.
  *
  * مراحل:
- *   1) اگر در Cache هست، برگردان (LRU touch).
+ *   1) اگر در Cache هست، برگردان (cache.get لمس LRU و آمار hit را انجام می‌دهد).
  *   2) وگرنه، parse کن، validate کن، cache کن، برگردان.
  *
  * @param expression رشته‌ی Expression.
@@ -60,17 +44,9 @@ export function compile(expression: string): ASTNode {
   // Sanitize expression before any processing
   const safeExpression = sanitizeExpression(expression);
 
-  // ── ۱. Cache Hit: فقط به آخر منتقلش کن (LRU touch) ──
-  if (cache.has(safeExpression)) {
-    cacheHits++;
-    const ast = cache.get(safeExpression)!;
-    // حذف و اضافه‌ی مجدد برای به‌روزرسانی ترتیب
-    cache.delete(safeExpression);
-    cache.set(safeExpression, ast);
-    return ast;
-  }
-
-  cacheMisses++;
+  // ── ۱. Cache Hit: get => LRU touch + hits++ (miss هم خودکار شمرده می‌شود) ──
+  const hit = cache.get(safeExpression);
+  if (hit !== undefined) return hit;
 
   // ── ۲. Cache Miss: parse و validate ──
   const parser = new Parser(safeExpression);
@@ -79,14 +55,7 @@ export function compile(expression: string): ASTNode {
   // اعتبارسنجی امنیتی (اگر شکست بخورد، cache نمی‌شود)
   validate(ast);
 
-  // ── ۳. اضافه به Cache با احترام به MAX_CACHE_SIZE ──
-  if (cache.size >= MAX_CACHE_SIZE) {
-    // حذف قدیمی‌ترین entry (اولین key در Map)
-    const oldestKey = cache.keys().next().value;
-    if (oldestKey !== undefined) {
-      cache.delete(oldestKey);
-    }
-  }
+  // ── ۳. اضافه به Cache؛ trim داخلی همان LRU با MAX_CACHE_SIZE است ──
   cache.set(safeExpression, ast);
 
   return ast;
@@ -108,19 +77,23 @@ export function getCacheSize(): number {
 
 // ── I-2: پیکربندی Cache ──
 export function configureCache(options: { maxSize?: number }): void {
-  if (options.maxSize !== undefined) {
+  if (options.maxSize !== undefined && options.maxSize !== MAX_CACHE_SIZE) {
     MAX_CACHE_SIZE = options.maxSize;
+    const prev = cache;
+    // maxSize در @zenith/cache زمان ساخت خوانده می‌شود ⇒ نمونه تازه با
+    // منتقل‌کردن entryهای زنده (peek ⇒ بدون تغییر آمار/ترتگی).
+    cache = createCache<ASTNode>({ ttl: 'never', maxSize: MAX_CACHE_SIZE });
+    for (const key of prev.keys()) {
+      const ast = prev.peek(key);
+      if (ast !== undefined) cache.set(key, ast);
+    }
+    prev.dispose();
   }
 }
 
 // ── I-3: آمار Cache ──
 export function getCacheStats() {
-  const total = cacheHits + cacheMisses;
-  return {
-    size: cache.size,
-    maxSize: MAX_CACHE_SIZE,
-    hits: cacheHits,
-    misses: cacheMisses,
-    hitRatio: total > 0 ? cacheHits / total : 0,
-  };
+  // سازگاه API عمومی expressions: بدون staleHits/pending/tagKeys/bytes
+  const { size, maxSize, hits, misses, hitRatio } = cache.stats();
+  return { size, maxSize, hits, misses, hitRatio };
 }
