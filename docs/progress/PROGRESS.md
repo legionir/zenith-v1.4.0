@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #171
-issue در حال انجام: #141 (پکیج shared)
-بعدی: #143، #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #141
+issue در حال انجام: #143 (پکیج logger)
+بعدی: #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38029181482 (روی HEAD a280f6e — بسته‌شدن #47)
 
@@ -215,3 +215,36 @@ issue در حال انجام: #141 (پکیج shared)
     (۶۲+۸ تست: یکتایی/بازه/عدم‌تداخل با legacy/نبود regex سه‌رقمی-محور در
     devtools+cli+vscode؛ red-before-fix). README errors + ARCHITECTURE §۲/§۹ به‌روز.
   - npm test = 570 سبز؛ build/publint/size/cruiser/e2e سبز.
+- #141 انجام شد (موج ۲، SPEC §۲.۱): پکیج جدید `@zenith/shared` (L0؛ deps فقط
+  `errors@1.4.0`؛ نسخهٔ تولد `1.5.0` DEC-026؛ ESM-only DEC-027؛ بودجه ۲KB با
+  `.size-limit.json` + گیت gzip در test/size-budget).
+  - API کامل بند ۲.۱: types.ts (Disposable/Cleanup/Readable ساختاری/
+    MaybeReactive/ZenithGlobals + declare global فلگ‌های __ZENITH_*)،
+    reactive.ts (toValue/isReadable/createDisposer LIFO+idempotent)،
+    options.ts (mergeOptions ضد prototype-pollution با own-key/UNSAFE_KEYS/
+    unknown-drop + defineDefaults deep-freeze)، parseDuration ("0"/"1.5s"
+    قابل؛ "-1"/"abc" ⇒ NaN؛ never sentinel)/parseBooleanAttr/parseNumberAttr
+    طبق گرامر §۰.۳، env.ts (isServer/hasDOM/hasWindow بدون import-effect)،
+    id.ts (createId شمارنده‌ای با resetIdCounter برای SSR deterministic +
+    secureId canonical CSPRNG/ZEN-403 #64)، assert.ts (invariant → ZEN-1090
+    از catalog #171 با [CODE] prefix و docsUrl).
+  - تست‌ها (red-before-fix، ۵۰ مورد): shared.test.ts (۳۸، jsdom)،
+    env-import.test.ts (Node خالص: import بدون window/document)،
+    layering.test.ts (۵: L0 deps-only-errors، ESM-only، freezeِ یال
+    state→shared — type-only هم ممنوع چون publish state را به dependency
+    جدید واداشت و peer-single-instance #46 را در نصب تمیز شکست — تجربه شد و
+    در DEC-021 «اجرای #141» مستند است)، size-budget.test.ts (۳)،
+    types.test-d.ts (expectTypeOf دوطرفه Signal/Computed/ReadonlySignal ≡
+    Readable و MaybeSignal ≡ MaybeReactive؛ دروازه با tsc -p
+    tsconfig.tests.json در scripts/test/shared-type-test.test.mjs).
+  - جایگزینی تکرارها: CleanupFn duplicate effect.ts حذف (import type از
+    context.ts منبع موجود)؛ MaybeSignal به‌عنوان alias محلی state export شد.
+  - زیرساخت: build-package.mjs — پکیج ESM-only دیگر index.cjs یتیم نمی‌سازد
+    (DEC-027؛ exports بدون require ⇒ skip CJS)؛ tsconfig references +
+    LICENSE sync + README ریشه ردیف shared (۳۷ دایرکتوری/۳۶ npm-pkg:
+    package-fields/package-order ۳۶، root-readme ۳۷)؛ ARCHITECTURE §۲.
+  - گیت‌های محلی سبز: lint (۰ error)/format/typecheck (36 pkg)/test 624/
+    coverage/deps+cruiser+deps:unused+peer-rule/peer:single-instance/build/
+    publint (36 clean)/size (shared 1.74KB≤2)/e2e (4)/attw (--pack: 🥴
+    InternalResolution فقط به‌خاطر unpublished بودن @zenith/* از registry در
+    sandbox — baseline virtual-list هم همین؛ #66/#74).

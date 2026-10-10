@@ -23,5 +23,10 @@
     "name": "@zenith/compiler",
     "path": "packages/compiler/dist/index.js",
     "limit": "8 kb"
+  },
+  {
+    "name": "@zenith/shared",
+    "path": "packages/shared/dist/index.js",
+    "limit": "2 kb"
   }
 ]

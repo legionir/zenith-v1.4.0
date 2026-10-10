@@ -39,6 +39,7 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 |---|---|---|---|---|
 | `scheduler` | L0 | ۲ / ۴۱۳ | — | زمان‌بند microtask و batching effectها |
 | `errors` | L0 | ۱ / ۶۷۸ | — | کلاس `ZenithError`، کدهای ZEN-001..999 + بازه‌های ۴رقمی/DEPR (#171) |
+| `shared` | L0 | ۷ / ۴۲۰ | errors | نوع‌ها/ابزارهای مشترک L0 (#141، DEC-021): Disposable/Cleanup، `Readable` ساختاری، mergeOptions امن، پارسر attribute، createId/secureId، invariant ZEN-1090 |
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |

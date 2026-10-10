@@ -36,6 +36,11 @@ import {
   setOwner,
   onCleanup,
   type Owner,
+  // #141 — یک منبع حقیقت برای type تابع پاکسازی در state: context.CleanupFn
+  // (معادل ساختاری `Cleanup` در @zenith/shared؛ از import مستقیم shared خودداری
+  // شده چون publish state نباید یال جدید state→shared بگیرد — همان دلیلی که
+  // MaybeSignal هم در index.ts alias محلی است).
+  type CleanupFn,
 } from './context';
 import { Priority, setEffectDisposal } from '@zenith/scheduler';
 import { emitError } from './error';
@@ -61,11 +66,6 @@ let globalEffectErrorHandler: ((err: unknown, effect: Function) => void) | null 
 export function onEffectError(handler: ((err: unknown, effect: Function) => void) | null): void {
   globalEffectErrorHandler = handler;
 }
-
-/**
- * نوع تابع پاکسازی (Cleanup).
- */
-type CleanupFn = () => void;
 
 /**
  * نوع تابع Effect.

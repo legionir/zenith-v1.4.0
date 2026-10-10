@@ -83,12 +83,25 @@ export async function buildPackage(pkgName) {
   // empty object and warn. Bundler-specific features guarded by
   // `import.meta.hot` (Vite HMR) are inherently ESM-only, so define it as
   // undefined here — the guards then fall through to their non-HMR paths.
-  await build({
-    ...sharedOptions,
-    outfile: join(outDir, 'index.cjs'),
-    format: 'cjs',
-    define: { 'import.meta': 'undefined' },
-  });
+  //
+  // #141 / DEC-027: new wave-2 packages are born ESM-only (exports map has no
+  // `require` condition and `main` is not a `.cjs`). Emitting an orphan
+  // `index.cjs` into `dist` would contradict their exports map and ship dead
+  // bytes. Skip the CJS build for such packages; existing dual packages keep
+  // emitting `.cjs` unchanged.
+  const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : null;
+  const rootExport = pkgJson?.exports?.['.'];
+  const declaresCjs =
+    (rootExport && typeof rootExport === 'object' && rootExport.require) ||
+    String(pkgJson?.main ?? '').endsWith('.cjs');
+  if (declaresCjs) {
+    await build({
+      ...sharedOptions,
+      outfile: join(outDir, 'index.cjs'),
+      format: 'cjs',
+      define: { 'import.meta': 'undefined' },
+    });
+  }
 
   // Type declarations via tsc
   const tsconfigPath = join(pkgPath, 'tsconfig.json');
