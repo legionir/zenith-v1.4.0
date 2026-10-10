@@ -185,6 +185,33 @@ export class Auth {
       ...config,
     };
 
+    // #62 (SEC): dev-mode warning for XSS-vulnerable token storage choices.
+    // localStorage/sessionStorage/cookie (client-side cookies cannot be
+    // HttpOnly) expose the token to any script on the page. The default
+    // 'memory' is not warned about. Pattern matches the rest of Zenith:
+    // dev unless globalThis.__ZENITH_DEV__ === false.
+    if (
+      this._config.tokenStorage === 'localStorage' ||
+      this._config.tokenStorage === 'sessionStorage' ||
+      this._config.tokenStorage === 'cookie'
+    ) {
+      if (
+        typeof globalThis !== 'undefined' &&
+        (globalThis as any).__ZENITH_DEV__ !== false &&
+        typeof console !== 'undefined' &&
+        typeof console.warn === 'function'
+      ) {
+        console.warn(
+          `[Zenith] ZEN-404: tokenStorage: '${this._config.tokenStorage}' stores auth tokens ` +
+            `where page JavaScript can read them (client-set cookies cannot be HttpOnly). ` +
+            `Any XSS in your app or dependencies leaks the session. Recommended: server-side ` +
+            `Set-Cookie with HttpOnly; Secure; SameSite=Lax/Strict + access token in memory. ` +
+            `See docs/security/auth.md. Set globalThis.__ZENITH_DEV__ = false in production ` +
+            `to silence.`,
+        );
+      }
+    }
+
     // Restore tokens from storage.
     this._restoreTokens();
 

@@ -155,6 +155,8 @@ export const ErrorCode = {
   SECURITY_SANITIZATION_FAILED: 'ZEN-402',
   // #64: CSPRNG در دسترس نیست — تولید شناسه‌ی امن با Math.random ممنوع است.
   SECURITY_RANDOM_SOURCE_UNAVAILABLE: 'ZEN-403',
+  // #62: انتخاب localStorage/cookie برای توکن حساس — در dev هشدار داده می‌شود.
+  SECURITY_INSECURE_TOKEN_STORAGE: 'ZEN-404',
 
   // Compiler (ZEN-500 to ZEN-599)
   COMPILE_UNKNOWN_DIRECTIVE: 'ZEN-501',

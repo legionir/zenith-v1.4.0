@@ -118,3 +118,19 @@ if (!result.allowed) {
 - `Auth.isAuthenticated` — Getter
 - `Auth.user` — Getter
 - `Auth.token` — Getter
+
+## Security
+
+Read the official guide before shipping: **[docs/security/auth.md](../../docs/security/auth.md)**
+(Persian) — recommended token storage pattern (server-side `HttpOnly; Secure; SameSite`
+cookie for refresh tokens, access token kept in memory), CSRF (double-submit /
+synchronizer tokens, `Origin` checks), refresh-token rotation with reuse detection,
+and `credentials: 'include'` / `withCredentials` semantics.
+
+Key defaults: `tokenStorage` defaults to `'memory'`; choosing `localStorage`,
+`sessionStorage` or `cookie` for sensitive tokens prints a dev-mode console warning
+with code **ZEN-404** (silenced by `globalThis.__ZENITH_DEV__ = false`). Auth fetches
+use `credentials: 'same-origin'`; the `secureLogout` fetch fallback uses
+`credentials: 'include'` so server-set HttpOnly cookies are invalidated even when
+`navigator.sendBeacon` is unavailable. Concurrent `refresh()` calls are single-flight
+(one network request) to keep token rotation race-free.
