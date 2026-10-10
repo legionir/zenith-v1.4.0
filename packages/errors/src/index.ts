@@ -693,7 +693,9 @@ export function createReservedError(
   return new ZenithError({
     code,
     category: meta.category,
-    message: meta.message,
+    // دستورالعمل §۱۰: پیام‌ها `[CODE] prefix` دارند تا assert/regex روی message
+    // کار کند (#112 لینک docs را اضافه می‌کند؛ #171 کاتالوگ).
+    message: `[${code}] ${meta.message}`,
     suggestion: meta.suggestion,
     docsUrl: errorDocsUrl(code),
     details: opts?.details,
@@ -734,6 +736,58 @@ export const DEPRECATION_CODES: Readonly<
   'ZEN-DEPR-005': {
     api: 'clearCache (http)',
     replacement: 'clearHttpCache',
+    removedIn: '2.0.0',
+  },
+  // #146 — توابع جلالی @zenith/i18n به @zenith/jalali منتقل شدند (SPEC §۲.۶
+  // «مهاجرت: alias + deprecate»؛ حذف فقط در 2.0 طبق DEC-026).
+  'ZEN-DEPR-006': {
+    api: 'toJalali (i18n)',
+    replacement: '@zenith/jalali toJalaliParts/formatJalali',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-007': {
+    api: 'fromJalali (i18n)',
+    replacement: '@zenith/jalali fromJalaliParts',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-008': {
+    api: 'parseJalaliParts (i18n)',
+    replacement: '@zenith/jalali toJalaliParts',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-009': {
+    api: 'formatJalali (i18n)',
+    replacement: '@zenith/jalali formatJalali',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-010': {
+    api: 'jalaliNow (i18n)',
+    replacement: '@zenith/jalali jalaliNow',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-011': {
+    api: 'jalaliMonthDays (i18n)',
+    replacement: '@zenith/jalali monthDays',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-012': {
+    api: 'jalaliMonthName (i18n)',
+    replacement: '@zenith/jalali monthName',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-013': {
+    api: 'isJalaliLeap (i18n)',
+    replacement: '@zenith/jalali isLeap',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-014': {
+    api: 'compareJalali (i18n)',
+    replacement: '@zenith/jalali compareJalali',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-015': {
+    api: 'addDaysJalali (i18n)',
+    replacement: '@zenith/jalali addDays',
     removedIn: '2.0.0',
   },
 };

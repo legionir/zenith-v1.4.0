@@ -11,8 +11,15 @@
 //   <zen-date-picker value="1403/05/15"></zen-date-picker>
 //
 // Implementation notes:
-//   - The component uses the `toJalali`, `fromJalali`, `jalaliMonthDays`,
-//     `jalaliMonthName`, and `parseJalaliParts` helpers from `@zenith/i18n`.
+//   - #146: the component uses the base calendar API from `@zenith/jalali`
+//     (`toJalaliParts`, `fromJalaliParts`, `monthDays`, `monthName`) — the
+//     deprecated `@zenith/i18n` jalali aliases are no longer consumed here,
+//     so mounting a picker emits no ZEN-DEPR warnings (precedent: #47).
+//   - Calendar arithmetic is day-granular and UTC-deterministic:
+//     `fromJalaliParts` returns UTC midnight and the weekday grid uses
+//     `getUTCDay()`, so SSR/client rendering cannot drift by timezone.
+//     The viewed-date extraction uses `timeZone: 'local'` (a picker shows
+//     the user's own today).
 //   - The grid is laid out in RTL direction (Saturday..Friday header row
 //     followed by up to six day rows).
 //   - Month navigation arrows move the viewed month; selecting a day both
@@ -24,12 +31,14 @@
 //     server.
 
 import {
-  toJalali,
-  fromJalali,
-  jalaliMonthDays,
-  jalaliMonthName,
-  parseJalaliParts,
-} from '@zenith/i18n';
+  toJalaliParts,
+  fromJalaliParts,
+  monthDays,
+  monthName,
+  isValidJalali,
+  toPersianDigits,
+  toLatinDigits,
+} from '@zenith/jalali';
 
 const PICKER_TAG = 'zen-date-picker';
 
@@ -128,7 +137,7 @@ export class ZenDatePicker extends HTMLElement {
 
     const label = document.createElement('span');
     label.className = 'zen-date-picker__label';
-    label.textContent = `${jalaliMonthName(this.viewMonth)} ${toPersianDigits(this.viewYear)}`;
+    label.textContent = `${monthName(this.viewMonth)} ${toPersianDigits(this.viewYear)}`;
 
     const next = document.createElement('button');
     next.type = 'button';
@@ -153,11 +162,13 @@ export class ZenDatePicker extends HTMLElement {
     }
 
     // Day cells.
-    const days = jalaliMonthDays(this.viewYear, this.viewMonth);
+    const days = monthDays(this.viewYear, this.viewMonth);
     // Find the weekday of the 1st of the month in the Jalali calendar.
-    const firstDate = fromJalali(this.viewYear, this.viewMonth, 1);
-    // JS getDay(): 0=Sunday, 6=Saturday. Convert to Persian (Sat=0..Fri=6).
-    const jsDay = firstDate.getDay();
+    // #146: fromJalaliParts ⇒ UTC midnight; getUTCDay() keeps the grid
+    // timezone-independent (same render on server and client).
+    const firstDate = fromJalaliParts(this.viewYear, this.viewMonth, 1);
+    // JS getUTCDay(): 0=Sunday, 6=Saturday. Convert to Persian (Sat=0..Fri=6).
+    const jsDay = firstDate.getUTCDay();
     const persianFirstWeekday = (jsDay + 1) % 7; // Sat=0, Sun=1, ..., Fri=6
 
     for (let i = 0; i < persianFirstWeekday; i++) {
@@ -251,37 +262,32 @@ export function processDatePicker(_el: HTMLElement, _context: Record<string, any
 
 // ── Helpers ──
 
-function toPersianDigits(n: number | string): string {
-  return String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.charAt(+d));
-}
-
 function pad2(n: number): string {
   return toPersianDigits(String(n).padStart(2, '0'));
 }
 
 function parseJalaliToday(): { y: number; m: number; d: number } {
-  // parseJalaliParts returns null for invalid dates; `new Date()` is always
-  // valid, but the null branch keeps this total instead of throwing.
-  const parts = parseJalaliParts(new Date());
-  if (!parts) return { y: 0, m: 0, d: 0 };
-  const [y, m, d] = parts;
-  return { y, m, d };
+  // #146: محلی‌خوانی از @zenith/jalali — picker «امروز» کاربر را نشان می‌دهد.
+  // مسیر throw (ورودی نامعتبر/خارج از بازه) همان branch قبلی را می‌دهد:
+  // {y:0,m:0,d:0} تا تابع همیشه total بماند و throw نکند.
+  try {
+    const p = toJalaliParts(new Date(), { timeZone: 'local' });
+    return { y: p.y, m: p.m, d: p.d };
+  } catch {
+    return { y: 0, m: 0, d: 0 };
+  }
 }
 
 function parseJalaliString(s: string): { y: number; m: number; d: number } | null {
-  // Convert Persian digits to ASCII before parsing.
-  const ascii = s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+  // Convert Persian/Arabic digits to ASCII before parsing.
+  const ascii = toLatinDigits(s);
   const m = ascii.match(/^(\d{1,4})\/(\d{1,2})\/(\d{1,2})$/);
   if (!m) return null;
   const y = parseInt(m[1]!, 10);
   const mo = parseInt(m[2]!, 10);
   const d = parseInt(m[3]!, 10);
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  // #146: اعتبار کامل تقویمی (روزهای ماه + کبیسه) از jalali؛ کد قدیمی تنها
+  // «۳۱ روز» را چک می‌کرد و ۱۴۰۲/۱۲/۳۰ (ناموجود) را می‌پذیرفت.
+  if (!isValidJalali(y, mo, d)) return null;
   return { y, m: mo, d };
 }
-
-// Re-export the helpers so callers can build dates from the change event.
-export { toJalali, fromJalali, jalaliMonthDays, jalaliMonthName };
-// Listener cleanup added for packages/runtime/src/directives/date-picker.ts
-// Listener cleanup: handlers stored for removal
-// Real cleanup: date-picker event handlers removed in dispose function

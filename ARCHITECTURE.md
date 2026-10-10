@@ -3,7 +3,7 @@
 این سند ساختار داخلی، پکیج‌ها، وابستگی‌ها و گزینه‌های (options) هر پکیج را شرح می‌دهد.
 همهٔ اعداد و جدول‌ها از کد مخزن استخراج شده‌اند. بخش‌های «مشکلات و پیشنهاد» تحلیل‌اند و نه واقعیت مستند.
 
-- مخزن: monorepo با npm workspaces (`packages/*`)، ۳۹ پوشه، ۳۸ بستهٔ دارای `package.json`
+- مخزن: monorepo با npm workspaces (`packages/*`)، ۴۰ پوشه، ۳۹ بستهٔ دارای `package.json`
 - حدود ۳۸ هزار خط TypeScript در `src` (`ES2022`، `strict`)
 - خروجی هر پکیج: ESM (`dist/index.js`)، CJS (`dist/index.cjs`)، `dist/index.d.ts`؛
   پکیج‌های جدید موج ۲ (`shared` #141، `logger` #143) ESM-only هستند (DEC-027)
@@ -26,7 +26,7 @@ L2  سرویس‌ها و ویژگی‌ها     router · events · components ·
                            auth · permission · store · form · notifications
                            error-boundary · suspense · transition · virtual-list · data-table
 L1  هستهٔ reactive         state · expressions
-L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n · shared · logger · cache
+L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i18n · jalali · shared · logger · cache
 ```
 
 قاعدهٔ مطلوب: هر لایه فقط به لایه‌های پایین‌تر وابسته باشد. وضعیت فعلی در بخش ۴ آمده است.
@@ -45,7 +45,8 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `logger` | L0 | ۹ / ۶۲۳ | errors, shared | لاگر مرکزی SPEC §۲.۳ (#143): createLogger/child/redact، consoleSink·bufferSink·beaconSink، warnOnce/deprecate (ZEN-DEPR)، محافظ sink خراب ZEN-1091؛ تنها مرز console ورک‌اسپیس |
 | `cache` | L0 | ۵ / ۷۳۱ | errors, shared | کش مشترک SPEC §۲.۴ (#144): createCache با TTL/SWR/tags/LRU-FIFO/maxBytes، getOrLoad با dedupe، رجیستری listCaches، signal با adapter تزریقی (DEC-021)؛ تنها پیاده‌سازی cache ورک‌اسپیس |
-| `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
+| `jalali` | L0 | ۵ / ۷۶۹ | errors, shared | تقویم جلالی SPEC §۲.۶ (#146، DEC-028): هستۀ Borkowski (چرخهٔ ۳۳‌ساله؛ تساوی با Intl در ۱۲۰۱..۱۵۰۰)، toJalaliParts/fromJalaliParts/formatJalali/parseJalali/add*/diffDays/isLeap/monthDays/نام‌ها/ارقام؛ timeZone صریح (UTC پیش‌فرض — قطعی در SSR)؛ ZEN-1301/1302/1303؛ ESM-only 1.5.0 (DEC-026/027) |
+| `i18n` | L0 | ۱ / ۳۰۱ | errors, jalali | ارقام فارسی/عربی، قالب عدد و قیمت؛ alias سازگار تقویم جلالی با ZEN-DEPR-006..015 (#146؛ حذف در 2.0) |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |
 | `expressions` | L1 | ۸ / ۱۹۸۶ | errors, cache | parser و evaluator امن عبارت‌ها (بدون `eval`) |
 | `dependency-graph` | L1 | ۲ / ۲۳۶ | expressions | استخراج وابستگی signalها از عبارت‌ها |
@@ -150,7 +151,7 @@ signal، computed، effect، batch و owner/context. `scheduler` را برای b
 - `events` → `router`، `error-boundary`؛ `permission` → `router`: ویژگی به ویژگی.
 - `crud`، `stateful` → `runtime`: باید به هستهٔ کوچک وابسته باشند، نه بستهٔ جامع.
 - `devtools` → `components`.
-- `runtime` به ۱۸ پکیج وابسته است: `actions, auth, components, data, devtools, error-boundary, errors, events, expressions, i18n, notifications, resource, router, scheduler, security, state, suspense, transition`.
+- `runtime` به ۱۸ پکیج وابسته است: `actions, auth, components, data, devtools, error-boundary, errors, events, expressions, jalali, notifications, resource, router, scheduler, security, state, suspense, transition` (#146: `i18n` با `jalali` جایگزین شد — date-picker روی API مبنا).
 
 ### ۴.۳ قاعدهٔ peer برای singletonهای `state`/`scheduler` — اعمال‌شده در #46
 پیش‌تر `form`/`http`/`notifications`/`testing` آن را peer می‌گرفتند ولی `auth`،
@@ -242,6 +243,8 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 
 ### `suspense` — `SuspenseOptions`
 `timeout?` (۰ یعنی بدون محدودیت)، `minDelay?`، `onTimeout?`.
+
+### `jalali` — `JalaliOptions` (SPEC §۲.۶، #146)`digits?` (`'latin'|'persian'|'arabic'` — latin)، `locale?` (`'fa'|'en'` — fa)، `useIntl?` (false؛ cross-check با ICU)، `range?` (`{min,max}` — ۱۰۰۰..۳۰۰۰؛ خارج ⇒ ZEN-1301)، `timeZone?` (`'utc'|'local'|<IANA>` — utc برای قطعی بودن SSR)، `clock?` (فقط `jalaliNow`؛ قابل‌تزریق برای تست).
 
 ### `transition` — `TransitionOptions`
 `duration?` (۳۰۰)، `name?`، `classes?`، `onComplete?`، `onBeforeEnter?`، `onAfterEnter?`، `onBeforeLeave?`، `onAfterLeave?`.

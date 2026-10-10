@@ -24,6 +24,10 @@ export default defineConfig({
   resolve: { alias },
   test: {
     environment: 'node',
+    // #146: تست‌های سنگین تقویمی (۱۲۰٬۰۰۰ مقایسه با Intl + اسکن رفت‌وبرگشت
+    // ۱۰۰۰..۳۰۰۰) از آستانهٔ پیش‌فرض ۵ ثانیه عبور می‌کنند؛ deterministic و بدون
+    // network — فقط طولانی‌اند.
+    testTimeout: 20_000,
     include: [
       'packages/*/test/**/*.test.ts',
       'packages/*/test/**/*.test.mjs',
