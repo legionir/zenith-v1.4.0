@@ -1,11 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #30
-issue در حال انجام: #62
-بعدی: #62، #45، #46، #47 (باقی موج ۱) سپس موج ۲
-بعدی: #64، #30، #62، #45، #46، #47 (باقی موج ۱)
+آخرین issue کامل: #62
+issue در حال انجام: #45
+بعدی: #45، #46، #47 (باقی موج ۱) سپس موج ۲
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38015190108 (روی HEAD #64/#23/#24)
+آخرین run موفق CI: 38016693234 (روی HEAD #62 — sha 67dd7fd)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -127,3 +126,15 @@ issue در حال انجام: #62
   long-string؛ هیچ crash/hang/pollution)؛ workflow `fuzz-nightly.yml` (۲M ورودی،
   seed چرخشی با run_number، artifact لاگ)؛ DEC-015. fuzz بخشی از unit job CI است
   و شکستش merge را بلاک می‌کند.
+- #62 انجام شد (موج ۱، کامیت 67dd7fd):
+  - هشدار dev با کد **ZEN-404** در `Auth` constructor هنگام
+    `tokenStorage: 'localStorage'|'sessionStorage'|'cookie'` (الگو
+    `__ZENITH_DEV__ !== false`؛ `memory` بی‌صدا)؛ `ErrorCode.
+    SECURITY_INSECURE_TOKEN_STORAGE` در `@zenith/errors`.
+  - راهنمای `docs/security/auth.md` (کوکی HttpOnly سمت سرور + access در حافظه،
+    CSRF double-submit/synchronizer + Origin، rotation/reuse detection،
+    credentials include/withCredentials، CORS) + لینک از `packages/auth/README.md`.
+  - تست `packages/auth/test/auth-security.test.ts` (۹ مورد؛ ۲ مورد هشدار
+    red-before-fix؛ قفل refresh-race تک‌درخواست، retry پس از 503 بدون logout،
+    پاک‌سازی logout، same-origin login، include+keepalive secureLogout fallback).
+  - DEC-016 (چرا warn نه throw؛ چرا sessionStorage هم شامل شد). CI 38016693234 سبز.
