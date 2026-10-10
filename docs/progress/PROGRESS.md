@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #45
-issue در حال انجام: #46
-بعدی: #46، #47 (باقی موج ۱) سپس موج ۲
+آخرین issue کامل: #46
+issue در حال انجام: #47
+بعدی: #47 (باقی موج ۱) سپس موج ۲
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38017422885 (روی HEAD #45 — sha fa274c8)
+آخرین run موفق CI: 38018912934 (روی HEAD #46 — sha 6fe84ff)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -149,3 +149,15 @@ issue در حال انجام: #46
     شرط پذیرش «صفر بلااستفاده» روی ریپوی واقعی — red-before-fix).
   - ARCHITECTURE §۴.۱ به‌روز شد؛ DEC-017 (چرا اسکریپت هدفمند به‌جای
     depcheck/knip). CI 38017422885 سبز (deps:unused در لاگ CI تأیید شد).
+- #46 انجام شد (موج ۱، کامیت 6fe84ff):
+  - ۲۲ مصرف‌کننده: state/scheduler فقط peer با `^1.4.0` (استثنای state→
+    scheduler به‌عنوان dependency هسته حفظ شد)؛ lockfile بازتولید.
+  - `scripts/peer-rule.mjs` در job deps CI (dependencies ممنوع، caret range،
+    import در src ⇒ peer اعلام‌شده لازم؛ reuse collectUsed #45)؛
+    `scripts/peer-single-instance.mjs` job مستقل needs-build (npm pack + نصب
+    واقعی → state=1/scheduler=1 + پروب reactivity بین‌پکیجی)؛
+    `standardize-packages.mjs` fixPeers تا caret خراب نشود.
+  - `scripts/test/peer-rule.test.mjs` (۷ تست، acceptance روی ریپو red-before-fix)؛
+    `peer-single-instance` سبز محلی و در CI.
+  - ARCHITECTURE §۴.۳ بازنویسی + جدول §۲ به‌روز؛ DEC-018 (استثنا، caret، job مستقل).
+    CI 38018912934 سبز (۱۲ job؛ peer-single-instance تأیید شد).
