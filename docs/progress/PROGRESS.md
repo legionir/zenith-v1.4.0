@@ -432,7 +432,7 @@ issue در حال انجام: (none)
   - شمارش‌ها/اسناد: ۴۲ دایرکتوری / ۴۱ پکیج قابل‌سفارش؛ runtime deps 18 (+logger
     +storage)؛ root README ۴۲ ردیف؛ package-fields/package-order/ratchet/bundle به‌روز؛
     ARCHITECTURE (۱۸ پکیج §۴ + persist در درخت directives)؛ storage README؛
-    DEC-030 (设计 + گزینه I).
+    DEC-030 (طراحی + گزینه I).
   - گیت‌های محلی سبز: lint ۰ error / format / typecheck 41 / test ۹۹۶ / coverage
     exit 0 / build-all + browser bundle 49.51KB ≤ 50KB / storage size-limit 3.74KB ≤
     4KB (بی‌تغییر آستانه) / deps:unused / peer-rule / peer:single-instance /
