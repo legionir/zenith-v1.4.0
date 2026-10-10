@@ -14,6 +14,15 @@ const alias: AliasEntry[] = [
     find: /^@zenith\/service-worker\/sw$/,
     replacement: join(packagesDir, 'service-worker/src/sw.ts'),
   },
+  // #142 — زیرمسیرهای SPEC §۲.۲: @zenith/schema/zod و @zenith/schema/json-schema
+  {
+    find: /^@zenith\/schema\/zod$/,
+    replacement: join(packagesDir, 'schema/src/zod.ts'),
+  },
+  {
+    find: /^@zenith\/schema\/json-schema$/,
+    replacement: join(packagesDir, 'schema/src/json-schema.ts'),
+  },
 ];
 for (const dir of readdirSync(packagesDir)) {
   const src = join(packagesDir, dir, 'src', 'index.ts');

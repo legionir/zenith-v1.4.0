@@ -6,7 +6,14 @@
 //   - JSON Schema (ساده)
 //   - Zod adapter (optional)
 //   - Schema-based form generation
+//
+// #142 (SPEC §۲.۲ «مهاجرت»): منطق خالص این سه API به @zenith/schema منتقل شد
+// (`fromZod`/`validateWithZod` در زیرمسیر /zod؛ `fromJsonSchema` در /json-schema).
+// امضاهای قدیمی که FormStore می‌ساختند — که لایهٔ L0 نمی‌تواند بسازد — اینجا
+// می‌مانند و deprecated هستند (ZEN-DEPR-016..018؛ حذف در 2.0 طبق DEC-026).
 
+import { deprecate } from '@zenith/errors';
+import { validateWithZod as schemaValidateWithZod } from '@zenith/schema/zod';
 import { defineRule, type FormSchema, type SchemaField, schemaToFormConfig } from './validator';
 import { createForm, type FormStore } from './form';
 
@@ -43,6 +50,14 @@ export function fromZod(
   zodSchema: ZodSchema,
   fieldConfig?: Record<string, Partial<SchemaField>>,
 ): FormStore {
+  // #142: امضای FormStore-saver در form می‌ماند (L0 نمی‌تواند FormStore بسازد)؛
+  // جایگزین خالص: fromZod در @zenith/schema/zod که گرهٔ Schema می‌دهد.
+  deprecate(
+    'ZEN-DEPR-016',
+    'fromZod (form)',
+    '@zenith/schema/zod fromZod + createForm',
+    'این alias در 2.0 حذف می‌شود (DEC-026).',
+  );
   // Test با یک sample تا قوانین استخراج کنیم.
   const sampleValues: Record<string, any> = {};
   if (fieldConfig) {
@@ -123,19 +138,28 @@ export function fromZod(
 /**
  * اعتبارسنجی کل فرم با Zod schema.
  * مفید برای cross-field validation که در قوانین ساده قابل بیان نیست.
+ *
+ * #142: چک خالص safeParse به `@zenith/schema/zod` واگذار می‌شود؛ این wrapper
+ * فقط FormStore را update می‌کند و در 2.0 حذف می‌شود.
  */
 export async function validateWithZod(form: FormStore, zodSchema: ZodSchema): Promise<boolean> {
+  deprecate(
+    'ZEN-DEPR-017',
+    'validateWithZod (form)',
+    '@zenith/schema/zod validateWithZod',
+    'امضای جدید (zodSchema, input) ⇒ SafeResult؛ این alias در 2.0 حذف می‌شود (DEC-026).',
+  );
   const values = form.getValues();
-  const result = zodSchema.safeParse(values);
+  const result = schemaValidateWithZod(zodSchema as never, values);
 
-  if (result.success) {
+  if (result.ok) {
     form.setFormError(null);
     return true;
   }
 
   // Set form-level error.
-  const firstError = result.error?.issues[0];
-  form.setFormError(firstError ? firstError.message : 'Validation failed');
+  const first = result.issues[0];
+  form.setFormError(first ? first.message : 'Validation failed');
 
   return false;
 }
@@ -163,11 +187,21 @@ export interface JsonSchema {
 
 /**
  * تبدیل JSON Schema به Zenith form config.
+ *
+ * #142: تبدیل خالص JSON Schema → Schema در @zenith/schema/json-schema قرار
+ * دارد؛ اینجا mapping به rules فرم (قالب FormStore — خارج از L0) است و
+ * deprecated شده (ZEN-DEPR-018؛ حذف در 2.0).
  */
 export function fromJsonSchema(
   jsonSchema: JsonSchema,
   initialValues?: Record<string, any>,
 ): FormStore {
+  deprecate(
+    'ZEN-DEPR-018',
+    'fromJsonSchema (form)',
+    '@zenith/schema/json-schema fromJsonSchema + createForm',
+    'این alias در 2.0 حذف می‌شود (DEC-026).',
+  );
   const config: Record<string, { initial: any; rules?: string }> = {};
   const required = new Set(jsonSchema.required || []);
 

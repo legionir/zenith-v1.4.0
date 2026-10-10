@@ -790,6 +790,23 @@ export const DEPRECATION_CODES: Readonly<
     replacement: '@zenith/jalali addDays',
     removedIn: '2.0.0',
   },
+  // #142 — adapters ساخت schema در @zenith/form به @zenith/schema منتقل شدند
+  // (SPEC §۲.۲ «مهاجرت: alias + deprecate»؛ منطق خالص در /zod و /json-schema).
+  'ZEN-DEPR-016': {
+    api: 'fromZod (form)',
+    replacement: '@zenith/schema/zod fromZod',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-017': {
+    api: 'validateWithZod (form)',
+    replacement: '@zenith/schema/zod validateWithZod',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-018': {
+    api: 'fromJsonSchema (form)',
+    replacement: '@zenith/schema/json-schema fromJsonSchema',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

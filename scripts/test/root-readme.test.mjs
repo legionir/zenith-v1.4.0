@@ -25,8 +25,8 @@ describe('root README.md (issue #69)', () => {
     expect(readme).toMatch(/Zen\.action\('inc'/);
   });
 
-  it('lists all 40 package directories in the table', () => {
-    expect(pkgDirs).toHaveLength(40); // #146: jalali (39 → 40)
+  it('lists all 41 package directories in the table', () => {
+    expect(pkgDirs).toHaveLength(41); // #142: schema (40 → 41)
     for (const d of pkgDirs) {
       expect(readme, `table row for packages/${d}`).toContain(`(packages/${d})`);
     }

@@ -74,6 +74,13 @@ describe('typecheck-all (#26)', () => {
     expect(cfg.compilerOptions.paths['@zenith/service-worker/sw']).toEqual([
       '../packages/service-worker/src/sw.ts',
     ]);
+    // #142 — زیرمسیرهای @zenith/schema.
+    expect(cfg.compilerOptions.paths['@zenith/schema/zod']).toEqual([
+      '../packages/schema/src/zod.ts',
+    ]);
+    expect(cfg.compilerOptions.paths['@zenith/schema/json-schema']).toEqual([
+      '../packages/schema/src/json-schema.ts',
+    ]);
   });
 
   it('stale dist declarations cannot mask a downstream type error', () => {

@@ -103,6 +103,27 @@ export async function buildPackage(pkgName) {
     });
   }
 
+  // Subpath entry points (#142): packages whose exports map declares `./x`
+  // entries pointing at `dist/x.js` get their own esbuild bundle from
+  // `src/x.ts`. tsc below emits matching `dist/x.d.ts` (src tree compiles
+  // every module). Packages without such subpaths are unaffected.
+  const subpaths = Object.entries(pkgJson?.exports ?? {}).filter(
+    ([key]) => key.startsWith('./') && key !== './package.json',
+  );
+  for (const [key, val] of subpaths) {
+    const importTarget = val && typeof val === 'object' ? val.import : val;
+    if (typeof importTarget !== 'string' || !importTarget.startsWith('./dist/')) continue;
+    const name = key.slice(2); // './zod' → 'zod'
+    const subEntry = join(pkgPath, 'src', `${name}.ts`);
+    if (!existsSync(subEntry)) continue;
+    await build({
+      ...sharedOptions,
+      entryPoints: [subEntry],
+      outfile: join(outDir, `${name}.js`),
+      format: 'esm',
+    });
+  }
+
   // Type declarations via tsc
   const tsconfigPath = join(pkgPath, 'tsconfig.json');
   if (existsSync(tsconfigPath)) {

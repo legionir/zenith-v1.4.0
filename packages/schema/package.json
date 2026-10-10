@@ -1,17 +1,25 @@
 {
-  "name": "@zenith/form",
-  "version": "1.4.0",
-  "description": "Zenith framework — Form handling + validation engine (Phase 3). Signal-based form state with reactive validation.",
+  "name": "@zenith/schema",
+  "version": "1.5.0",
+  "description": "Zenith framework — L0 options/config validation (SPEC §۲.۲): s builders, validate/safeValidate, defineOptions, parseConfigAttr, directive metadata and JSON Schema Draft 2020-12 generation; ZEN-1001/1002/1003/1004. zod is never a runtime dependency (duck-typed via /zod).",
   "type": "module",
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+      "import": "./dist/index.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js"
+    },
+    "./json-schema": {
+      "types": "./dist/json-schema.d.ts",
+      "import": "./dist/json-schema.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -24,15 +32,16 @@
   },
   "keywords": [
     "zenith",
-    "form",
+    "schema",
     "validation",
-    "reactive"
+    "options",
+    "json-schema"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
-    "directory": "packages/form"
+    "directory": "packages/schema"
   },
   "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
   "bugs": {
@@ -48,13 +57,6 @@
   },
   "dependencies": {
     "@zenith/errors": "1.4.0",
-    "@zenith/schema": "1.5.0"
-  },
-  "peerDependencies": {
-    "@zenith/state": "^1.4.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.11.0"
+    "@zenith/shared": "1.5.0"
   }
 }

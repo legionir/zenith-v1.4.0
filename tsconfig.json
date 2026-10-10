@@ -21,6 +21,7 @@
     { "path": "./packages/logger" },
     { "path": "./packages/cache" },
     { "path": "./packages/jalali" },
+    { "path": "./packages/schema" },
     { "path": "./packages/state" },
     { "path": "./packages/scheduler" },
     { "path": "./packages/expressions" },

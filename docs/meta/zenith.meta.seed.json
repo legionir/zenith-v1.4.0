@@ -1,0 +1,25 @@
+{
+  "comment": "seed متادیتای directiveها (#142) — ورودی scripts/gen-zenith-meta.mjs. هر ورودی باید با defineDirectiveMeta (kebab-case + description غیرخالی) سازگار باشد. فهرست کامل در #173 (گرامر attribute) و #52 (اعمال schema) گسترده می‌شود؛ این seed سه directive پایهٔ هستوی را رسمی می‌کند.",
+  "directives": [
+    {
+      "name": "zen-if",
+      "description": "رندر شرطی: المان فقط وقتی expression truthy است در DOM می‌ماند.",
+      "syntax": "<div zen-if=\"isLoggedIn\">…</div>",
+      "attributes": ["zen-else", "zen-else-if"],
+      "docs": "https://zenith.dev/docs/runtime#zen-if"
+    },
+    {
+      "name": "zen-for",
+      "description": "تکرار المان روی هر آیتم یک collection؛ باید با zen-key همراه باشد.",
+      "syntax": "<li zen-for=\"item in items\" zen-key=\"item.id\">{{ item.name }}</li>",
+      "attributes": ["zen-key"],
+      "docs": "https://zenith.dev/docs/runtime#zen-for"
+    },
+    {
+      "name": "zen-model",
+      "description": "دوطرفه binding بین مقدار ورودی فرم و signal.",
+      "syntax": "<input zen-model=\"form.name\" />",
+      "docs": "https://zenith.dev/docs/runtime#zen-model"
+    }
+  ]
+}

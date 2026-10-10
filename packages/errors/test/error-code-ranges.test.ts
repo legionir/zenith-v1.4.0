@@ -181,7 +181,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (15 after #146 jalali migration)', () => {
+  it('contains exactly the issued codes with api/replacement (18 after #142 form schema migration)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -199,6 +199,10 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       'ZEN-DEPR-013',
       'ZEN-DEPR-014',
       'ZEN-DEPR-015',
+      // #142 — سه adapter ساخت schema در @zenith/form
+      'ZEN-DEPR-016',
+      'ZEN-DEPR-017',
+      'ZEN-DEPR-018',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');

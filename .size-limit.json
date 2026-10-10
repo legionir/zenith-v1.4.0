@@ -43,5 +43,10 @@
     "name": "@zenith/jalali",
     "path": "packages/jalali/dist/index.js",
     "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/schema",
+    "path": "packages/schema/dist/index.js",
+    "limit": "4 kb"
   }
 ]

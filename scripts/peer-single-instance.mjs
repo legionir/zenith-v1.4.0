@@ -20,7 +20,9 @@ import { mkdtempSync, rmSync, readdirSync, existsSync, writeFileSync, mkdirSync 
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const PACKAGES = ['state', 'scheduler', 'store', 'form'];
+// #142: form حالا errors+schema را dependency دارد (و schema → shared)؛ همهٔ
+// یالهای transitive باید tarball شوند وگرنه npm install به registry می‌زند.
+const PACKAGES = ['state', 'scheduler', 'store', 'form', 'errors', 'schema', 'shared'];
 const SINGLETONS = ['state', 'scheduler'];
 
 function sh(cmd, args, opts = {}) {

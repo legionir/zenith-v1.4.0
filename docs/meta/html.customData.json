@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "tags": [],
+  "globalAttributes": {
+    "zen-for": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-for`\n\n```html\n<li zen-for=\"item in items\" zen-key=\"item.id\">{{ item.name }}</li>\n```\n\nتکرار المان روی هر آیتم یک collection؛ باید با zen-key همراه باشد.\n\nsub-attributes: `zen-key`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-for"
+        }
+      ]
+    },
+    "zen-if": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-if`\n\n```html\n<div zen-if=\"isLoggedIn\">…</div>\n```\n\nرندر شرطی: المان فقط وقتی expression truthy است در DOM می‌ماند.\n\nsub-attributes: `zen-else`, `zen-else-if`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-if"
+        }
+      ]
+    },
+    "zen-model": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-model`\n\n```html\n<input zen-model=\"form.name\" />\n```\n\nدوطرفه binding بین مقدار ورودی فرم و signal."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-model"
+        }
+      ]
+    }
+  }
+}

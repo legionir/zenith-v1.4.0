@@ -55,6 +55,9 @@ export function typecheckConfigFor(dir) {
         '@zenith/*': ['../packages/*/src'],
         // Subpath exports that exist today (see vitest.config.ts #27).
         '@zenith/service-worker/sw': ['../packages/service-worker/src/sw.ts'],
+        // #142 — زیرمسیرهای @zenith/schema (SPEC §۲.۲).
+        '@zenith/schema/zod': ['../packages/schema/src/zod.ts'],
+        '@zenith/schema/json-schema': ['../packages/schema/src/json-schema.ts'],
       },
     },
     include: [`../packages/${dir}/src/**/*.ts`],

@@ -77,7 +77,7 @@ function stripComments(code) {
  * (خارج‌شده برای استفادهٔ scripts/peer-rule.mjs — #46)
  */
 const USED_RE =
-  /(?:\bimport\b|\bexport\b|\brequire\s*\()?[^'"`;]{0,80}?['"]@zenith\/([a-z0-9-]+)['"]/g;
+  /(?:\bimport\b|\bexport\b|\brequire\s*\()?[^'"`;]{0,80}?['"]@zenith\/([a-z0-9-]+(?:\/[^'"`;]*)?)['"]/g;
 
 export function collectUsed(pkgDir, subs = ['src', 'test']) {
   const used = new Set();
@@ -100,7 +100,11 @@ export function collectUsed(pkgDir, subs = ['src', 'test']) {
       if (!/\b(?:import|export|require)\b|from\s*['"]/.test(line)) continue;
       let m;
       USED_RE.lastIndex = 0;
-      while ((m = USED_RE.exec(line)) !== null) used.add(m[1]);
+      while ((m = USED_RE.exec(line)) !== null) {
+        // زیرمسیرها به پکیج والد نگاشت می‌شوند: '@zenith/schema/zod' → 'schema'
+        // ('@zenith/service-worker/sw' → 'service-worker').
+        used.add(m[1].split('/')[0]);
+      }
     }
   }
   return used;
