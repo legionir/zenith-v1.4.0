@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #146
-issue در حال انجام: #142 (@zenith/schema) — پیاده‌سازی کامل، گیت‌های محلی سبز؛ در انتظار CI
+آخرین issue کامل: #142
+issue در حال انجام: (none — #145 در پیش است)
 بعدی: #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38071497936 (روی HEAD 069c7c6 — #146؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38077852171 (روی HEAD bc1f584 — #142؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -365,3 +365,47 @@ issue در حال انجام: #142 (@zenith/schema) — پیاده‌سازی ک
     size-limit (jalali 3.52kB≤4)/e2e (۴ با playwright install در sandbox).
   - CI سبز: run 38071497936 روی 069c7c6 (۱۲ job)؛ issue با چک‌لیست تیک‌خورده
     + کامنت شواهد بسته شد (status:done).
+- #142 انجام شد: @zenith/schema (L0، SPEC §۲.۲) — پکیج تازه v1.5.0 ESM-only
+  (DEC-027)، deps فقط errors+shared (گیت layering). API کامل: s.* (۱۵ kind)،
+  validate/safeValidate با ValidateOptions (mode throw|warn|result؛
+  `__ZENITH_DEV__`؛ strict/coerce/abortEarly/name)، defineOptions ⇒ DEFAULTS
+  فریزشده + resolve، parseConfigAttr (ZEN-1003)، ZEN-1001/1002/1004 فقط با
+  createReservedError کاتالوگ #171. حالت warn **بدون console** (دروازهٔ
+  #143/ratchet): `setSchemaWarnReporter` duck-seam (DEC-021)؛ بدون reporter
+  = سکوت prod؛ وصل‌کردن به logger در #148.
+  - زیرمسیرها: /zod (دونگی ZodLike؛ zod هیچ‌وقت dep نیست) و /json-schema
+    (toJsonSchema Draft 2020-12 + fromJsonSchema subset). build-package.mjs
+    برای subpathهای exports map باندل esbuild + d.ts می‌سازد (الگوی
+    service-worker/sw)؛ alias vitest + paths typecheck-all.
+  - متادیتای directive: defineDirectiveMeta (رجیستری، kebab-case+description،
+    فریز عمیق)، toDirectiveManifest، toHtmlCustomData؛
+    scripts/gen-zenith-meta.mjs از seed `docs/meta/zenith.meta.seed.json`
+    اسنپ‌شات zenith.meta.json + html.customData.json؛ گیت تازگی --check در
+    scripts/test/meta-snapshot.test.mjs (۳ directive هستوی؛ گسترش در #52/#148/#173).
+  - مهاجرت form: سه API با همان امضای FormStore-sاز ماندند (L0 نمی‌تواند
+    FormStore بسازد) + delegate به schema/zod هرجا layer-clean بود +
+    deprecate() با ZEN-DEPR-016..018 (رجیستری ۱۵→۱۸؛ حذف 2.0 — DEC-026)؛
+    form deps: errors + schema. الگو: #47/#146.
+  - گیت‌های زیرساختی: unused-zenith-deps زیرمسیر را به والد نگاشت می‌کند
+    (`'@zenith/x/y' → x`)؛ peer-single-instance ترانزیتی‌های form را هم pack
+    می‌کند (errors/schema/shared)؛ ajv@8.20.0 devDep ریشه فقط برای تست
+    meta-schema (eslint با ajv@6 تودرتو — بررسی شد).
+  - تست‌ها (red-before-fix، ۷۷ مورد جدید): schema.test ۲۶ (primitives/مسیر/
+    strict/coerce/abortEarly/name/defineOptions/parseConfigAttr)،
+    json-schema.test ۷ (اعتبار meta-schema ajv همهٔ kindها + round-trip +
+    subset fromJsonSchema)، zod.test ۴، manifest.test ۶، layering.test ۶،
+    env-import.test ۵، size-budget.test ۳؛ form/schema-deprecation.test ۴؛
+    meta-snapshot.test ۴؛ errors DEPR ۱۵→۱۸. npm test = ۹۰۶ سبز (از ۸۳۶).
+  - شمارش‌ها/اسناد: package-fields/package-order ۴۰، root-readme ۴۱،
+    rfc max DEC 029؛ README ردیف schema + ۴۱؛ ARCHITECTURE هدر ۴۱/۴۰ +
+    خط L0 + ردیف schema/form (§۴.۲) + §۶ ValidateOptions؛ docs/README و
+    MANUAL-STEPS «۴۰ پکیج»؛ tsconfig ref؛ .size-limit ۴kB (واقعی ۳٫۷۵kB
+    brotli)؛ LICENSE sync (۴۰)؛ DEC-029 (reporter seam / zod دونگی /
+    امضای form / subpath build / seed snapshot).
+  - گیت‌های محلی سبز: lint (۰ error)/format/typecheck (40)/test ۹۰۶/
+    coverage/build (39)/deps:unused (۰)/peer-rule/peer:single-instance/
+    dependency-cruiser (۱۷۵ یال ۰ نقض)/publint (40 پاک؛ vscode compile)/
+    size-limit/e2e (playwright ۴).
+  - CI سبز: run 38077852171 روی bc1f584 (۱۲ job مسدودکننده)؛ issue با
+    چک‌لیست تیک‌خورده (+ یادداشت: «schema همهٔ *Options» عمداً باز — در #52
+    طبق متن خود issue) و کامنت شواهد بسته شد (status:done).
