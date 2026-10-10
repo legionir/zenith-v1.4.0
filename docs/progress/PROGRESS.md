@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #19
-issue در حال انجام: #20
-بعدی: #23، #24، #64، #30، #62، #45، #46، #47 (باقی موج ۱)
+آخرین issue کامل: #20
+issue در حال انجام: #23
+بعدی: #24، #64، #30، #62، #45، #46، #47 (باقی موج ۱)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 37911851522 (#17) — run #19: 38013126559 (در انتظار)
+آخرین run موفق CI: 38013159499 (روی HEAD #19/#20)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -91,3 +91,9 @@ issue در حال انجام: #20
   تنها وابستگی effect خودِ signal آیتم‌هاست؛ حلقهٔ نوشتن در
   onVisibleRangeChange حذف شد؛ ۴ تست در
   `packages/virtual-list/test/controller-untrack.test.ts` (قرمز→سبز، سقف‌دار)؛ DEC-010.
+- #20 انجام شد (موج ۱): شمارندهٔ نسل/چرخه در `createSuspense.track()` —
+  `reset()` نسل را زیاد می‌کند و تسویهٔ پرامیس‌های نسل قبل (resolve و reject)
+  کاملاً نادیده گرفته می‌شود (رفع onReady زودهنگام در retry)؛ در شاخهٔ reject
+  id پیش از reportError از loadingSet حذف می‌شود (رفع نشت/گیرکردن boundary)؛
+  ۶ تست در `packages/suspense/test/suspense-generation.test.ts` (۲ مورد قرمز
+  قبل از رفع)؛ DEC-011.
