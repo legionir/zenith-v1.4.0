@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
 آخرین issue کامل: #20
-issue در حال انجام: #23
-بعدی: #24، #64، #30، #62، #45، #46، #47 (باقی موج ۱)
+issue در حال انجام: #23/#24 (رفع کامیت‌شده a4c9414+؛ در انتظار CI)
+بعدی: #64، #30، #62، #45، #46، #47 (باقی موج ۱)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38013159499 (روی HEAD #19/#20)
+آخرین run موفق CI: 38013588836 (روی HEAD #20)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -97,3 +97,15 @@ issue در حال انجام: #23
   id پیش از reportError از loadingSet حذف می‌شود (رفع نشت/گیرکردن boundary)؛
   ۶ تست در `packages/suspense/test/suspense-generation.test.ts` (۲ مورد قرمز
   قبل از رفع)؛ DEC-011.
+- #23/#24 انجام شد (موج ۱، کامیت a4c9414 + 87855c0):
+  - #23: measureTransitionDuration از getComputedStyle (بیشینهٔ delay+duration
+    transitionها و delay+duration×iterations animationها، سقف ایمن ۳۰s/۱۰۰
+    دور)؛ رویداد زودرس با elapsedTime<deadline run را تمام نمی‌کند؛ رویدادهای
+    فرزندان نادیده گرفته می‌شوند؛ DEC-012؛ ۴ تست jsdom + ۲ e2e Chromium واقعی
+    (e2e/transition.spec.ts + transition-fixture.html).
+  - #24: fallback timer همزمان با شروع run (نه بعد از دو rAF) — تب پس‌زمینه
+    finished را معلق نگه نمی‌دارد؛ تمدید در rAF دوم؛ clearTimeout در
+    finish/cancel؛ DEC-013؛ ۳ تست (rAF متوقف‌شده، cancel بدون callback دیرهنگام،
+    پاک‌سازی تایمر پس از پایان طبیعی).
+  - رفع جانبی: e2e-server حالا به /favicon.ico پاسخ 204 می‌دهد (Chrome دسکتاپ
+    404 را به‌عنوان page error به smoke test تزریق می‌کرد).
