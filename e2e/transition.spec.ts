@@ -5,7 +5,6 @@
 import { test, expect } from '@playwright/test';
 
 test('leave completes only after the longest transition (0.5s transform)', async ({ page }) => {
-  test.skip(process.env.ZENITH_E2E_NO_BROWSER === '1', 'browser opt-out for local unit runs');
   await page.goto('/e2e/transition-fixture.html');
   await page.waitForFunction(() => window.__ZENITH_TRN_READY__ === true);
 
@@ -21,7 +20,6 @@ test('leave completes only after the longest transition (0.5s transform)', async
 });
 
 test('child animation events do not end the parent transition early', async ({ page }) => {
-  test.skip(process.env.ZENITH_E2E_NO_BROWSER === '1', 'browser opt-out for local unit runs');
   await page.goto('/e2e/transition-fixture.html');
   await page.waitForFunction(() => window.__ZENITH_TRN_READY__ === true);
 

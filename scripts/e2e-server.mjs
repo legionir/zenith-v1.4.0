@@ -23,6 +23,14 @@ const CONTENT_TYPES = new Map([
 ]);
 
 const server = createServer(async (req, res) => {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    // Browsers automatically request /favicon.ico; it is not a fixture
+    // resource, so answer it without letting it surface as a 404 error.
+    if (decodeURIComponent((req.url ?? '/').split('?')[0]) === '/favicon.ico') {
+      res.writeHead(204).end();
+      return;
+    }
+  }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405).end();
     return;
