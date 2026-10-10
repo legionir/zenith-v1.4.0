@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #175
-issue در حال انجام: #171 (بازه‌های کد خطا)
-بعدی: #141، #143، #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #171
+issue در حال انجام: #141 (پکیج shared)
+بعدی: #143، #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38029181482 (روی HEAD a280f6e — بسته‌شدن #47)
 
@@ -204,3 +204,14 @@ issue در حال انجام: #171 (بازه‌های کد خطا)
     «docs/adr/» بدنۀ issue به `docs/decisions/` دستورالعمل §4 تطبیق یافت (ثبت در تست).
   - NEW-PACKAGES-SPEC «ریسک‌ها و تصمیم‌های باز» به «بسته‌شده» با لینک ADR هر بند به‌روز شد؛
     ARCHITECTURE §۹ لینک ADRها. npm test = 496 سبز.
+- #171 انجام شد (موج ۲، DEC-020): فضای کد خطا در `@zenith/errors`:
+  - `ERROR_CODE_PATTERN` (ZEN-NNN | ZEN-NNNN | ZEN-DEPR-NNN)، `ERROR_CODE_RANGES`
+    (۱۶ بازهٔ SPEC §۰.۴)، کاتالوگ `RESERVED_ERROR_CODES` (۶۲ کد issue با
+    message فارسی/suggestion/domain)، `createReservedError()` + `errorDocsUrl()`
+    + `docsUrl` روی ZenithError (toUserString/toJSON)، `DEPRECATION_CODES`
+    (ZEN-DEPR-001..004، removedIn 2.0.0).
+  - دو دستهٔ افزودنی `Validation`/`Network` به ErrorCategory (بازطراحی کامل=#115).
+  - بدون renumber کدهای موجود؛ گیت `packages/errors/test/error-code-ranges.test.ts`
+    (۶۲+۸ تست: یکتایی/بازه/عدم‌تداخل با legacy/نبود regex سه‌رقمی-محور در
+    devtools+cli+vscode؛ red-before-fix). README errors + ARCHITECTURE §۲/§۹ به‌روز.
+  - npm test = 570 سبز؛ build/publint/size/cruiser/e2e سبز.

@@ -3,7 +3,7 @@
 // @zenith/errors — کتابخانه‌ی پیام‌های خطای Zenith
 //
 // این پکیج یک سیستم ساختاریافته برای خطاها فراهم می‌کند:
-//   - کدهای خطای منظم (ZEN-001 تا ZEN-999)
+//   - کدهای خطای منظم (ZEN-001 تا ZEN-999 + بازه‌های ۴رقمی پکیج‌های جدید، #171)
 //   - پیام‌های فارسی قابل‌فهم برای کاربر
 //   - پیشنهادها (suggestions) برای رفع خطا
 //   - جزئیات (details) برای دیباگ
@@ -21,6 +21,12 @@
 // ZEN-700 تا ZEN-799: خطاهای Form / Validation
 // ZEN-800 تا ZEN-899: خطاهای Component
 // ZEN-900 تا ZEN-999: خطاهای عمومی / Internal
+//
+// ZEN-1000 تا ZEN-2599: بازه‌های ۴رقمی پکیج‌های جدید (#171، DEC-020؛ جدول
+// ERROR_CODE_RANGES + کاتالوگ RESERVED_ERROR_CODES) — کدهای سه‌رقمی موجود
+// هرگز renumber نمی‌شوند.
+// ZEN-DEPR-000 تا ZEN-DEPR-999: هشدارهای deprecation (DEC-019؛ رجیستری
+// DEPRECATION_CODES؛ حذف در ۲.۰ طبق DEC-026).
 
 // ─────────────────────────────────────────────────────────────
 // ZenithError Class
@@ -43,6 +49,8 @@ export class ZenithError extends Error {
   readonly details?: Record<string, unknown>;
   readonly context?: Record<string, unknown>;
   readonly isDevMode: boolean;
+  /** لینک مستندات خطا (SPEC §۰.۴: `https://zenith.dev/errors/<code>`) — #171 */
+  readonly docsUrl?: string;
 
   constructor(opts: {
     code: string;
@@ -51,6 +59,7 @@ export class ZenithError extends Error {
     suggestion?: string;
     details?: Record<string, unknown>;
     context?: Record<string, unknown>;
+    docsUrl?: string;
     cause?: unknown;
   }) {
     super(opts.message, { cause: opts.cause });
@@ -60,6 +69,7 @@ export class ZenithError extends Error {
     this.suggestion = opts.suggestion;
     this.details = opts.details;
     this.context = opts.context;
+    this.docsUrl = opts.docsUrl;
     this.isDevMode =
       typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false;
 
@@ -76,6 +86,9 @@ export class ZenithError extends Error {
     let out = `❌ [${this.code}] ${this.category}: ${this.message}`;
     if (this.suggestion) {
       out += `\n\n💡 پیشنهاد: ${this.suggestion}`;
+    }
+    if (this.docsUrl) {
+      out += `\n\n📖 مستندات: ${this.docsUrl}`;
     }
     if (this.isDevMode && this.details) {
       out += `\n\n🔍 جزئیات: ${JSON.stringify(this.details, null, 2)}`;
@@ -94,6 +107,7 @@ export class ZenithError extends Error {
       message: this.message,
       suggestion: this.suggestion,
       details: this.isDevMode ? this.details : undefined,
+      docsUrl: this.docsUrl,
     };
   }
 }
@@ -112,7 +126,11 @@ export type ErrorCategory =
   | 'Router'
   | 'Form'
   | 'Component'
-  | 'Internal';
+  | 'Internal'
+  // #171 (DEC-020): دو دستهٔ جدید برای کاتالوگ ۴رقمی — افزودنی و سازگار؛
+  // بازطراحی کامل مدل خطا موضوع #115 است.
+  | 'Validation'
+  | 'Network';
 
 // ─────────────────────────────────────────────────────────────
 // Error Codes
@@ -187,6 +205,532 @@ export const ErrorCode = {
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+
+// ─────────────────────────────────────────────────────────────
+// Error-code space & ranges (#171، مصوب DEC-020)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * الگوی رسمی کد خطا (دوآهنگ، DEC-020):
+ *  - `ZEN-NNN` سه‌رقمی: کدهای کلاسیک موجود — هرگز renumber نمی‌شوند.
+ *  - `ZEN-NNNN` چهاررقمی: بازه‌های پکیج‌های جدید (جدول `ERROR_CODE_RANGES`).
+ *  - `ZEN-DEPR-NNN`: هشدارهای deprecation (DEC-019/DEC-026؛ حذف در ۲.۰).
+ * هیچ regex قالب‌محور سه‌رقمی در مصرف‌کننده‌ها مجاز نیست (تست گیت #171).
+ */
+export const ERROR_CODE_PATTERN = /^ZEN-(?:\d{3}|\d{4}|DEPR-\d{3})$/;
+
+/** لینک مستندات هر کد (SPEC §۰.۴). */
+export function errorDocsUrl(code: string): string {
+  return `https://zenith.dev/errors/${code}`;
+}
+
+export interface ErrorCodeRange {
+  /** دامنه (نام پکیج/حوزه) — با `domain` هر catalog entry یکی باید باشد. */
+  domain: string;
+  from: number;
+  to: number;
+}
+
+/** جدول بازه‌های ۴رقمی — عیناً SPEC §۰.۴ (DEC-020). */
+export const ERROR_CODE_RANGES: readonly ErrorCodeRange[] = [
+  { domain: 'schema', from: 1000, to: 1099 },
+  { domain: 'storage', from: 1100, to: 1199 },
+  { domain: 'cache', from: 1200, to: 1299 },
+  { domain: 'i18n', from: 1300, to: 1399 },
+  { domain: 'a11y', from: 1400, to: 1499 },
+  { domain: 'head', from: 1500, to: 1599 },
+  { domain: 'ui', from: 1600, to: 1699 },
+  { domain: 'realtime', from: 1700, to: 1799 },
+  { domain: 'adapters', from: 1800, to: 1899 },
+  { domain: 'analytics', from: 1900, to: 1999 },
+  { domain: 'theme', from: 2000, to: 2099 },
+  { domain: 'auth-oauth', from: 2100, to: 2199 },
+  { domain: 'feature-flags', from: 2200, to: 2299 },
+  { domain: 'runtime-core', from: 2300, to: 2399 },
+  { domain: 'devtools-core', from: 2400, to: 2499 },
+  { domain: 'tooling', from: 2500, to: 2599 },
+] as const;
+
+export interface ReservedErrorMeta {
+  domain: string;
+  category: ErrorCategory;
+  message: string;
+  suggestion: string;
+}
+
+/**
+ * کاتالوگ کدهای رزورشدهٔ ۴رقمی (بندهای پکیج‌ها در NEW-PACKAGES-SPEC).
+ * پکیج‌های جدید همین‌ها را مصرف می‌کنند (#141–#149، موج ۴)؛ افزودن کد جدید
+ * فقط با بازهٔ درست و تست یکتایی/#171 مجاز است.
+ */
+export const RESERVED_ERROR_CODES: Readonly<Record<string, ReservedErrorMeta>> = {
+  // schema / options validation (ZEN-1000..1099)
+  'ZEN-1001': {
+    domain: 'schema',
+    category: 'Validation',
+    message: 'گزینهٔ نامعتبر: نوع یا مقدار در مسیر مشخص‌شده انتظار schema را برآورده نمی‌کند.',
+    suggestion: 'مقدار را با نوع موردانتظار در schema تطبیق دهید؛ مسیر خطا در details آمده است.',
+  },
+  'ZEN-1002': {
+    domain: 'schema',
+    category: 'Validation',
+    message: 'کلید ناشناخته در گزینه‌ها.',
+    suggestion: 'املای کلید را بررسی کنید؛ فهرست کلیدهای مجاز در details است.',
+  },
+  'ZEN-1003': {
+    domain: 'schema',
+    category: 'Validation',
+    message: 'JSON خراب در attribute.',
+    suggestion: 'مقدار attribute باید JSON معتبر باشد (بدون کامای انتهایی و نقل‌قول تک).',
+  },
+  'ZEN-1004': {
+    domain: 'schema',
+    category: 'Validation',
+    message: 'مقدار خارج از بازهٔ مجاز.',
+    suggestion: 'مقدار را بین کمینه و بیشینهٔ اعلام‌شده در details قرار دهید.',
+  },
+  'ZEN-1090': {
+    domain: 'schema',
+    category: 'Internal',
+    message: 'آرگومان نامعتبر به تابع اعتبارسنجی گزینه‌ها.',
+    suggestion: 'امضای تابع را از مستندات schema ببینید؛ آرگومان دوم باید schema معتبر باشد.',
+  },
+  'ZEN-1091': {
+    domain: 'schema',
+    category: 'Internal',
+    message: 'sink لاگر خراب است (خطا هنگام نوشتن گزارش).',
+    suggestion: 'sink را جایگزین یا remove کنید؛ خطا فقط یک‌بار گزارش می‌شود و حلقهٔ لاگ نمی‌سازد.',
+  },
+  // storage (ZEN-1100..1199)
+  'ZEN-1101': {
+    domain: 'storage',
+    category: 'Runtime',
+    message: 'ذخیره‌گاه در دسترس نیست (مثلاً حالت private مرورگر).',
+    suggestion:
+      'fallback به memory فعال شد؛ در صورت نیاز به persist از ذخیره‌گاه جایگزین استفاده کنید.',
+  },
+  'ZEN-1102': {
+    domain: 'storage',
+    category: 'Runtime',
+    message: 'سهمیهٔ ذخیره‌گاه پر است (quota).',
+    suggestion: 'کلیدهای قدیمی را پاک کنید یا از IndexedDB adapter استفاده کنید.',
+  },
+  'ZEN-1103': {
+    domain: 'storage',
+    category: 'Runtime',
+    message: 'مهاجرت (migrate) نسخهٔ داده شکست خورد.',
+    suggestion: 'تابع migrate را بررسی کنید؛ دادهٔ کهنه حذف یا نسخه‌بندی مجدد شود.',
+  },
+  'ZEN-1104': {
+    domain: 'storage',
+    category: 'Runtime',
+    message: 'دادهٔ ذخیره‌شده خراب/غیرقابل‌تجزیه است.',
+    suggestion: 'کلید آسیب‌دیده حذف می‌شود؛ منبع داده را بازسازی کنید.',
+  },
+  // cache + i18n/jalali (ZEN-1200..1399)
+  'ZEN-1201': {
+    domain: 'cache',
+    category: 'Validation',
+    message: 'ttl نامعتبر است.',
+    suggestion: 'ttl باید عدد صحیح ≥ ۰ (میلی‌ثانیه) باشد؛ ۰ یعنی بدون انقضا.',
+  },
+  'ZEN-1202': {
+    domain: 'cache',
+    category: 'Runtime',
+    message: 'loader کش شکست خورد.',
+    suggestion: 'خطای اصلی در cause است؛ retry یا fallback را بررسی کنید.',
+  },
+  'ZEN-1301': {
+    domain: 'i18n',
+    category: 'Validation',
+    message: 'تاریخ خارج از بازهٔ پشتیبانی‌شدهٔ تقویم جلالی است.',
+    suggestion: 'بازهٔ مجاز ۱۲۰۱..۱۵۰۰ هجری شمسی است (DEC-020: به‌جای هشدار، throw).',
+  },
+  'ZEN-1302': {
+    domain: 'i18n',
+    category: 'Validation',
+    message: 'قالب تاریخ نامعتبر.',
+    suggestion: 'توکن‌های مجاز: YYYY YY MM M DD D MMM MMMM؛ ترکیب ناشناخته را حذف کنید.',
+  },
+  'ZEN-1303': {
+    domain: 'i18n',
+    category: 'Validation',
+    message: 'تاریخ نامعتبر (وجود ندارد).',
+    suggestion: 'روز/ماه را بررسی کنید (مثلاً ۱۵ اسفند ۳۰ روز نیست).',
+  },
+  'ZEN-1311': {
+    domain: 'i18n',
+    category: 'Runtime',
+    message: 'کلید پیام پیدا نشد.',
+    suggestion: 'کلید را به bundle اضافه کنید یا missing策略 (throw/warn/empty) را تغییر دهید.',
+  },
+  'ZEN-1312': {
+    domain: 'i18n',
+    category: 'Validation',
+    message: 'قالب ICU نامعتبر است.',
+    suggestion: 'ساختار {plural, select, ...} را با مستندات i18n بسنجید.',
+  },
+  'ZEN-1313': {
+    domain: 'i18n',
+    category: 'Validation',
+    message: 'locale پشتیبانی‌نشده.',
+    suggestion: 'locale را در فهرست fallback ثبت کنید یا bundle آن را بارگذاری کنید.',
+  },
+  'ZEN-1314': {
+    domain: 'i18n',
+    category: 'Runtime',
+    message: 'بارگذاری پیام‌ها شکست خورد.',
+    suggestion: 'مسیر loader و شبکه را بررسی کنید؛ خطای اصلی در cause است.',
+  },
+  // a11y (ZEN-1400..1499)
+  'ZEN-1401': {
+    domain: 'a11y',
+    category: 'Runtime',
+    message: 'المان focusable برای focus-trap پیدا نشد.',
+    suggestion: 'حداقل یک عنصر focusable داخل container بگذارید یا trap را غیرفعال کنید.',
+  },
+  'ZEN-1402': {
+    domain: 'a11y',
+    category: 'Runtime',
+    message: 'trap تودرتو با ترتیب پشتیبانی‌نشده.',
+    suggestion: 'از پشتهٔ داخلی trap استفاده کنید؛ المان‌های trap را تودرتوی دستی نکنید.',
+  },
+  'ZEN-1403': {
+    domain: 'a11y',
+    category: 'Validation',
+    message: 'ویژگی aria-* با نقش المان ناسازگار است.',
+    suggestion: 'ترکیب role/aria را با WAI-ARIA ARIA in HTML تطبیق دهید.',
+  },
+  // head (ZEN-1500..1599)
+  'ZEN-1501': {
+    domain: 'head',
+    category: 'Validation',
+    message: 'تگ مجاز نیست.',
+    suggestion: 'فهرست allowlist §head را ببینید؛ تگ‌های بدنه در head ممنوع‌اند.',
+  },
+  'ZEN-1502': {
+    domain: 'head',
+    category: 'Validation',
+    message: 'JSON-LD نامعتبر.',
+    suggestion: 'object را با JSON.stringify serializable کنید و schema.org را بررسی نمایید.',
+  },
+  'ZEN-1503': {
+    domain: 'head',
+    category: 'Validation',
+    message: 'تعداد تگ‌ها از maxTags بیشتر شد.',
+    suggestion: 'تگ‌ها را ادغام کنید یا maxTags را آگاهانه افزایش دهید.',
+  },
+  // ui (ZEN-1600..1699)
+  'ZEN-1601': {
+    domain: 'ui',
+    category: 'Runtime',
+    message: 'المان trigger پیدا نشد.',
+    suggestion: 'selector trigger را اصلاح یا وقت render بودن آن را بررسی کنید.',
+  },
+  'ZEN-1602': {
+    domain: 'ui',
+    category: 'Validation',
+    message: 'zen-tab بدون zen-tabpanel متناظر.',
+    suggestion: 'برای هر tab یک panel با aria-controls هم‌نام بگذارید.',
+  },
+  'ZEN-1603': {
+    domain: 'ui',
+    category: 'Validation',
+    message: 'مقدار value خارج از گزینه‌ها.',
+    suggestion: 'value باید یکی از مقادیر options باشد (یا placeholder مجاز است).',
+  },
+  'ZEN-1604': {
+    domain: 'ui',
+    category: 'Runtime',
+    message: 'portal مقصد ندارد.',
+    suggestion: 'target portal باید به المان موجود در DOM اشاره کند.',
+  },
+  // realtime (ZEN-1700..1799)
+  'ZEN-1701': {
+    domain: 'realtime',
+    category: 'Network',
+    message: 'اتصال برقراری نشد.',
+    suggestion: 'URL/شبکه را بررسی کنید؛ backoff خودکار در حال تلاش مجدد است.',
+  },
+  'ZEN-1702': {
+    domain: 'realtime',
+    category: 'Network',
+    message: 'پیام نامعتبر (parse شکست).',
+    suggestion: 'فرمت پیام (default: JSON) را با parser سرویس تطبیق دهید.',
+  },
+  'ZEN-1703': {
+    domain: 'realtime',
+    category: 'Security',
+    message: 'پروتکل ناامن: ws:// در صفحهٔ https.',
+    suggestion: 'از wss:// استفاده کنید (mixed-content).',
+  },
+  'ZEN-1704': {
+    domain: 'realtime',
+    category: 'Runtime',
+    message: 'صف ارسال پر است.',
+    suggestion: 'نرخ ارسال را کم یا maxQueueSize را افزایش دهید؛ پیام‌های drop‌شده در details‌اند.',
+  },
+  'ZEN-1705': {
+    domain: 'realtime',
+    category: 'Network',
+    message: 'heartbeat timeout.',
+    suggestion: 'heartbeatInterval سرویس و اتصال را بررسی کنید؛ reconnect خودکار آغاز می‌شود.',
+  },
+  // adapters / ssg (ZEN-1800..1899)
+  'ZEN-1801': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'رندر SSR با timeout متوقف شد.',
+    suggestion: 'renderTimeoutMs را افزایش یا داده‌های کندِ path را به suspense ببرید.',
+  },
+  'ZEN-1802': {
+    domain: 'adapters',
+    category: 'Validation',
+    message: 'template نامعتبر: نشانگر خروجی نیست.',
+    suggestion: '<!--zen-outlet--> (یا کانفیگ marker) داخل template بگذارید.',
+  },
+  'ZEN-1803': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'AsyncLocalStorage در این runtime در دسترس نیست.',
+    suggestion: 'context صریح (domImpl/ALS-free مسیر #92) را فعال کنید (DEC-022).',
+  },
+  'ZEN-1811': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'runtime پشتیبانی نمی‌شود.',
+    suggestion: 'Node ≥18.19، Cloudflare Workers یا Deno (DEC-027) را انتخاب کنید.',
+  },
+  'ZEN-1812': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'DOM implementation نصب نیست.',
+    suggestion: 'linkedom یا happy-dom را به‌عنوان dependency نصب کنید (domImpl).',
+  },
+  'ZEN-1821': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'مسیر در SSG رندر نشد.',
+    suggestion: 'path در routes/paths پیکربندی وجود دارد و prerender سبز شد را بررسی کنید.',
+  },
+  'ZEN-1822': {
+    domain: 'adapters',
+    category: 'Runtime',
+    message: 'داده در زمان build در دسترس نیست.',
+    suggestion: 'منبع داده را در build stage در دسترس کنید یا مسیر را CSR/ISR کنید.',
+  },
+  // analytics (ZEN-1900..1999)
+  'ZEN-1901': {
+    domain: 'analytics',
+    category: 'Runtime',
+    message: 'ارائه‌دهندهٔ آنالیتیکس شکست خورد (خطا بلعیده نمی‌شود؛ جدا از برنامه گزارش شد).',
+    suggestion: 'provider را موقتاً غیرفعال کنید؛ خطای اصلی در cause است.',
+  },
+  'ZEN-1902': {
+    domain: 'analytics',
+    category: 'Security',
+    message: 'رضایت کاربر لازم است.',
+    suggestion: 'قبل از track، consent manager را فعال کنید (GDPR).',
+  },
+  // theme (ZEN-2000..2099)
+  'ZEN-2001': {
+    domain: 'theme',
+    category: 'Validation',
+    message: 'token تم نامعتبر.',
+    suggestion: 'نام token در تعریف theme وجود دارد و مقدار CSS-valid است.',
+  },
+  'ZEN-2002': {
+    domain: 'theme',
+    category: 'Runtime',
+    message: 'ذخیره‌گاه تم در دسترس نیست.',
+    suggestion: 'storage تم را memory یا جایگزین قرار دهید.',
+  },
+  // auth-oauth (ZEN-2100..2199)
+  'ZEN-2101': {
+    domain: 'auth-oauth',
+    category: 'Security',
+    message: 'state مطابق نیست (احتمال CSRF).',
+    suggestion: 'flow را از همان مرورگر/تب ادامه دهید؛ state یک‌بارمصرف است (RFC 6749 §10.12).',
+  },
+  'ZEN-2102': {
+    domain: 'auth-oauth',
+    category: 'Security',
+    message: 'id_token نامعتبر.',
+    suggestion: 'issuer/audience و امضا (JWKS) را بررسی کنید.',
+  },
+  'ZEN-2103': {
+    domain: 'auth-oauth',
+    category: 'Network',
+    message: 'discovery شکست خورد.',
+    suggestion: 'آدرس /.well-known/openid-configuration سرویس را بررسی کنید.',
+  },
+  'ZEN-2104': {
+    domain: 'auth-oauth',
+    category: 'Security',
+    message: 'refresh منقضی.',
+    suggestion: 'کاربر را مجدداً وارد کنید (re-auth)؛ refresh token را تمدید سیاست‌پذیر کنید.',
+  },
+  'ZEN-2105': {
+    domain: 'auth-oauth',
+    category: 'Security',
+    message: 'callback بدون code.',
+    suggestion: 'response_type=code را در authorize بگذارید؛ error را از query parse کنید.',
+  },
+  // feature-flags (ZEN-2200..2299)
+  'ZEN-2201': {
+    domain: 'feature-flags',
+    category: 'Runtime',
+    message: 'پرچم تعریف نشده (فقط dev).',
+    suggestion: 'flag را در registry ثبت کنید؛ در prod مقدار default مصرف می‌شود.',
+  },
+  'ZEN-2202': {
+    domain: 'feature-flags',
+    category: 'Runtime',
+    message: 'بارگذاری source پرچم‌ها شکست خورد.',
+    suggestion: 'منبع (remote/file) و شبکه را بررسی کنید؛ fallback cached در کار است.',
+  },
+  // createApp / runtime-core (ZEN-2300..2399)
+  'ZEN-2301': {
+    domain: 'runtime-core',
+    category: 'Runtime',
+    message: 'onMount/onUnmount/onUpdate خارج از محدودهٔ directive/کامپوننت.',
+    suggestion: 'این قلاب‌ها فقط حین اجرای تابع directive یا setup کامپوننت مجازند.',
+  },
+  'ZEN-2302': {
+    domain: 'runtime-core',
+    category: 'Validation',
+    message: 'تعارض directive ساختاری روی یک المان.',
+    suggestion:
+      'zen-if و zen-for (و همتایان else) را روی المان‌های جدا بگذارید (SPEC §۲.۸ priority).',
+  },
+  'ZEN-2303': {
+    domain: 'runtime-core',
+    category: 'Validation',
+    message: 'zen-for بدون zen-key.',
+    suggestion: 'zen-key یکتا و پایدار برای هر آیتم بگذارید (همان ZEN-101؛ برای API جدید core).',
+  },
+  'ZEN-2310': {
+    domain: 'runtime-core',
+    category: 'Runtime',
+    message: 'عدم تطابق hydration.',
+    suggestion:
+      'در dev diff چاپ می‌شود؛ در prod بازرندر موضعی انجام می‌گیرد. خروجی SSR/client را یکسان کنید.',
+  },
+  'ZEN-2320': {
+    domain: 'runtime-core',
+    category: 'Runtime',
+    message: 'نسخهٔ پکیج‌ها lockstep نیست (assertCompatible).',
+    suggestion:
+      'همهٔ @zenith/* را به یک نسخه (DEC-026) برسانید؛ نسخه‌های مشاهده‌شده در details است.',
+  },
+  // devtools-core (ZEN-2400..2499)
+  'ZEN-2401': {
+    domain: 'devtools-core',
+    category: 'Runtime',
+    message: 'نسخهٔ hook ناسازگار.',
+    suggestion: 'devtools و runtime را هم‌نسخه کنید (lockstep، DEC-026).',
+  },
+  'ZEN-2402': {
+    domain: 'devtools-core',
+    category: 'Runtime',
+    message: 'snapshot نامعتبر.',
+    suggestion: 'ساختار snapshot §devtools-core را رعایت کنید؛ فیلدهای اجباری را بفرستید.',
+  },
+  // tooling: cli / language-server / unplugin / mock (ZEN-2500..2599)
+  'ZEN-2501': {
+    domain: 'tooling',
+    category: 'Validation',
+    message: 'نام پروژه نامعتبر.',
+    suggestion: 'فقط [a-z0-9-_.]؛ بدون ..، مسیر مطلق یا جداکننده (create-zenith §۳.۹).',
+  },
+  'ZEN-2510': {
+    domain: 'tooling',
+    category: 'Runtime',
+    message: 'متادیتا (zenith.meta.json) بارگذاری نشد.',
+    suggestion: 'build با meta:true اجرا شده و مسیر فایل درست است؟',
+  },
+  'ZEN-2520': {
+    domain: 'tooling',
+    category: 'Runtime',
+    message: 'پلاگین روی این bundler پشتیبانی نمی‌شود.',
+    suggestion: 'unplugin فقط rollup/vite/webpack/rspack را پشتیبانی می‌کند (SPEC §۴.۴).',
+  },
+  'ZEN-2521': {
+    domain: 'tooling',
+    category: 'Runtime',
+    message: 'HMR ناسازگار.',
+    suggestion: 'نسخهٔ bundler/پلاگین را تطبیق یا HMR را غیرفعال کنید.',
+  },
+  'ZEN-2530': {
+    domain: 'tooling',
+    category: 'Runtime',
+    message: 'درخواست بدون handler (mock).',
+    suggestion: 'handler متناظر ثبت یا onUnhandledRequest را bypass کنید؛ مسیر/متد در details است.',
+  },
+  'ZEN-2531': {
+    domain: 'tooling',
+    category: 'Runtime',
+    message: 'handler دوبار پاسخ داد (mock).',
+    suggestion: 'هر resolver فقط یک respond() صدا بزند (passthrough با respond ترکیب نشود).',
+  },
+};
+
+/**
+ * خطای ZenithError از کاتالوگ رزروشده (۴رقمی) — پیام/suggestion/docsUrl خودکار.
+ * @throws اگر code در catalog نباشد (جلوگیری از مصرف کد ثبت‌نشده).
+ */
+export function createReservedError(
+  code: keyof typeof RESERVED_ERROR_CODES | string,
+  opts?: { details?: Record<string, unknown>; context?: Record<string, unknown>; cause?: unknown },
+): ZenithError {
+  const meta = RESERVED_ERROR_CODES[code];
+  if (!meta) {
+    throw new Error(
+      `[errors] کد «${String(code)}» در catalog رزورشده (#171) ثبت نشده؛ ` +
+        `ابتدا آن را با بازهٔ درست اضافه کنید (DEC-020).`,
+    );
+  }
+  return new ZenithError({
+    code,
+    category: meta.category,
+    message: meta.message,
+    suggestion: meta.suggestion,
+    docsUrl: errorDocsUrl(code),
+    details: opts?.details,
+    context: opts?.context,
+    cause: opts?.cause,
+  });
+}
+
+/**
+ * رجیستری رسمی هشدارهای deprecation (DEC-019؛ سیاست #58؛ حذف در ۲.۰ طبق DEC-026).
+ * `deprecate()` همین کدها را مصرف می‌کند؛ ثبت‌کردنشان در errors یعنی #171
+ * فضای `ZEN-DEPR-xxx` را رسمی کرده است.
+ */
+export const DEPRECATION_CODES: Readonly<
+  Record<string, { api: string; replacement: string; removedIn: string }>
+> = {
+  'ZEN-DEPR-001': {
+    api: 'processVirtualList',
+    replacement: 'createVirtualList',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-002': {
+    api: 'enterTransition',
+    replacement: 'createTransition(name).enter(el)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-003': {
+    api: 'leaveTransition',
+    replacement: 'createTransition(name).leave(el)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-004': {
+    api: 'animateGroup',
+    replacement: 'createTransition(name) shared controller',
+    removedIn: '2.0.0',
+  },
+};
 
 // ─────────────────────────────────────────────────────────────
 // Deprecation Warnings (#47, #58)

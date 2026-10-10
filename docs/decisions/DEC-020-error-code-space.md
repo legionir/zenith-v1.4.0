@@ -22,3 +22,4 @@
 - `docs/api/error-codes.md` (در #171) هر دو فضا را مستند می‌کند؛ تست گیت #171 تداخل بازه‌ها را رد می‌کند.
 - لینک مستندات جدید form `https://zenith.dev/errors/ZEN-1001` (SPEC) با کدهای قدیمی `ZEN-004` هم‌زی است (path-param بدون فرض طول).
 - `ZEN-DEPR-001..004` (DEC-019) نخستین ساکنان فضای deprecation‌اند؛ هر deprecation جدید یک کد رزرو می‌گیرد و در ۲.۰ با حذف wrapper آزاد می‌شود.
+- اجرای #171: `ERROR_CODE_PATTERN`، `ERROR_CODE_RANGES`، کاتالوگ `RESERVED_ERROR_CODES` (۶۲ کد) + `createReservedError`/`errorDocsUrl` و `DEPRECATION_CODES` در `@zenith/errors`؛ دو دستهٔ `Validation`/`Network` افزودنی به `ErrorCategory` (بازطراحی مدل خطا = #115)؛ گیت `packages/errors/test/error-code-ranges.test.ts` (یکتا/بازه/عدم‌تداخل/نبود regex سه‌رقمی-محور در devtools/cli/vscode). جدول `docs/api/error-codes.md` به‌جای فایل جدا در README پکیج + ARCHITECTURE مستند شد ( zenith.dev هنوز راه‌اندازی نشده — docsUrl الگوی SPEC است و لینک شکسته‌ای به مخزن اضافه نمی‌شود).

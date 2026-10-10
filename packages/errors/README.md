@@ -1,6 +1,6 @@
 # @zenith/errors — Error Messages Library
 
-کتابخانه‌ی پیام‌های خطای Zenith با کدهای منظم (ZEN-001 تا ZEN-999)، پیشنهادهای فارسی، و test coverage.
+کتابخانه‌ی پیام‌های خطای Zenith با کدهای منظم (سه‌رقمی کلاسیک + بازه‌های ۴رقمی پکیج‌های جدید، #171/DEC-020)، پیشنهادهای فارسی، docsUrl و test coverage.
 
 ## نصب
 
@@ -44,6 +44,31 @@ try {
 | ZEN-800 to ZEN-899 | Component              | ZEN-801 (slot not found)                                     |
 | ZEN-900 to ZEN-999 | Internal               | ZEN-901 (unknown)                                            |
 
+### بازه‌های ۴رقمی (پکیج‌های جدید — #171، DEC-020)
+
+کدهای سه‌رقمی موجود هرگز renumber نمی‌شوند. جدول `ERROR_CODE_RANGES`:
+
+| بازه | دامنه | بازه | دامنه |
+| --- | --- | --- | --- |
+| 1000–1099 | schema | 1800–1899 | adapters / ssg |
+| 1100–1199 | storage | 1900–1999 | analytics |
+| 1200–1299 | cache | 2000–2099 | theme |
+| 1300–1399 | i18n / jalali | 2100–2199 | auth-oauth |
+| 1400–1499 | a11y | 2200–2299 | feature-flags |
+| 1500–1599 | head | 2300–2399 | createApp / runtime-core |
+| 1600–1699 | ui | 2400–2499 | devtools-core |
+| 1700–1799 | realtime | 2500–2599 | tooling (cli / unplugin / mock) |
+
+`ZEN-DEPR-xxx` — فضای هشدارهای deprecation (DEC-019؛ رجیستری `DEPRECATION_CODES`؛ حذف در ۲.۰ طبق DEC-026).
+
+### API بازه‌ها (#171)
+
+- `ERROR_CODE_PATTERN` — الگوی رسمی `ZEN-NNN | ZEN-NNNN | ZEN-DEPR-NNN`
+- `RESERVED_ERROR_CODES` — کاتالوگ کدهای رزورشده با message فارسی + suggestion + domain
+- `createReservedError(code, { details?, context?, cause? })` — ZenithError کامل با `docsUrl` (خطا اگر code ثبت‌نشده باشد)
+- `errorDocsUrl(code)` — `https://zenith.dev/errors/<code>`
+- `ERROR_CODE_RANGES` / `DEPRECATION_CODES` — جدول‌های مرجع
+
 ## API
 
 ### `ZenithError`
@@ -57,6 +82,7 @@ class ZenithError extends Error {
   suggestion?: string; // راهنمای رفع
   details?: Record<string, unknown>; // جزئیات دیباگ
   context?: Record<string, unknown>; // context در زمان خطا
+  docsUrl?: string; // لینک مستندات (createReservedError خودکار ست می‌کند)
 
   toUserString(): string; // فرمت کاربرپسند
   toJSON(): Record<string, unknown>; // فرمت API

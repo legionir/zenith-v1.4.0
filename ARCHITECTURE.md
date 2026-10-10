@@ -38,7 +38,7 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 | پکیج | لایه | فایل/خط | وابستگی‌های `@zenith` | نقش |
 |---|---|---|---|---|
 | `scheduler` | L0 | ۲ / ۴۱۳ | — | زمان‌بند microtask و batching effectها |
-| `errors` | L0 | ۱ / ۶۷۸ | — | کلاس `ZenithError` و کدهای ZEN-001..999 |
+| `errors` | L0 | ۱ / ۶۷۸ | — | کلاس `ZenithError`، کدهای ZEN-001..999 + بازه‌های ۴رقمی/DEPR (#171) |
 | `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |
