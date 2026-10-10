@@ -51,13 +51,15 @@
     "@zenith/actions": "1.4.0",
     "@zenith/error-boundary": "1.4.0",
     "@zenith/expressions": "1.4.0",
-    "@zenith/router": "1.4.0",
-    "@zenith/scheduler": "1.4.0",
-    "@zenith/state": "1.4.0"
+    "@zenith/router": "1.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "jsdom": "^25.0.1",
     "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
   }
 }

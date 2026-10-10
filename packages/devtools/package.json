@@ -48,10 +48,12 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/state": "1.4.0",
     "@zenith/components": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
   }
 }

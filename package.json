@@ -23,7 +23,9 @@
     "publint": "node scripts/publint-all.mjs",
     "size": "size-limit",
     "deps": "dependency-cruiser packages",
-    "deps:unused": "node scripts/unused-zenith-deps.mjs"
+    "deps:unused": "node scripts/unused-zenith-deps.mjs",
+    "peer-rule": "node scripts/peer-rule.mjs",
+    "peer:single-instance": "node scripts/peer-single-instance.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

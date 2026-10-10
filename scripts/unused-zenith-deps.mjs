@@ -74,11 +74,12 @@ function stripComments(code) {
  * ست nameهای کوتاه @zenith/<name> که در فایل‌های import شده‌اند.
  * pattern فقط کانتکست import/export/require را می‌گیرد تا رشته‌های
  * تصادفی (مثلاً در template) شمارش نشوند.
+ * (خارج‌شده برای استفادهٔ scripts/peer-rule.mjs — #46)
  */
 const USED_RE =
   /(?:\bimport\b|\bexport\b|\brequire\s*\()?[^'"`;]{0,80}?['"]@zenith\/([a-z0-9-]+)['"]/g;
 
-function collectUsed(pkgDir) {
+export function collectUsed(pkgDir, subs = ['src', 'test']) {
   const used = new Set();
   const files = [];
   const walk = (dir) => {
@@ -89,7 +90,7 @@ function collectUsed(pkgDir) {
       else if (/\.(?:m?js|ts)$/.test(e.name) && statSync(p).isFile()) files.push(p);
     }
   };
-  for (const sub of ['src', 'test']) walk(join(pkgDir, sub));
+  for (const sub of subs) walk(join(pkgDir, sub));
 
   for (const f of files) {
     const stripped = stripComments(readFileSync(f, 'utf8'));

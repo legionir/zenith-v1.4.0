@@ -55,9 +55,20 @@ for (const dir of pkgDirs) {
     }
   };
 
+  // #46: peerDependencies of @zenith/* use caret ranges (^1.4.0) so a single
+  // instance can satisfy every consumer; fixDeps must not flatten them back.
+  const fixPeers = (peers) => {
+    if (!peers) return;
+    for (const key of Object.keys(peers)) {
+      if (zenithPackages.has(key)) {
+        peers[key] = '^1.4.0';
+      }
+    }
+  };
+
   fixDeps(pkg.dependencies);
   fixDeps(pkg.devDependencies);
-  fixDeps(pkg.peerDependencies);
+  fixPeers(pkg.peerDependencies);
 
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
   console.log(`Standardized ${pkg.name}`);

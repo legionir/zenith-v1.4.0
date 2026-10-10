@@ -39,42 +39,43 @@ L0  بنیاد (بدون وابستگی)    scheduler · errors · security · i
 |---|---|---|---|---|
 | `scheduler` | L0 | ۲ / ۴۱۳ | — | زمان‌بند microtask و batching effectها |
 | `errors` | L0 | ۱ / ۶۷۸ | — | کلاس `ZenithError` و کدهای ZEN-001..999 |
-| `security` | L0 | ۳ / ۸۰۰ | — | sanitizer، CSP، TrustedTypes |
+| `security` | L0 | ۳ / ۸۰۰ | errors | sanitizer، CSP، TrustedTypes |
 | `i18n` | L0 | ۱ / ۲۳۸ | — | ارقام فارسی/عربی، تقویم جلالی، قالب عدد و قیمت |
 | `state` | L1 | ۱۰ / ۱۶۱۳ | scheduler | signal / computed / effect |
 | `expressions` | L1 | ۸ / ۱۹۸۶ | errors | parser و evaluator امن عبارت‌ها (بدون `eval`) |
 | `dependency-graph` | L1 | ۲ / ۲۳۶ | expressions | استخراج وابستگی signalها از عبارت‌ها |
 | `http` | L2 | ۲ / ۴۱۶ | peer: state | کلاینت HTTP با interceptor، retry، cache |
 | `actions` | L2 | ۲ / ۴۶۰ | — | رجیستری actionها برای `zen-action` |
-| `error-boundary` | L2 | ۳ / ۲۷۹ | state | مرز خطا و handler سراسری |
+| `error-boundary` | L2 | ۳ / ۲۷۹ | peer: state | مرز خطا و handler سراسری |
 | `notifications` | L2 | ۲ / ۳۰۹ | peer: state | toast، alert، confirm |
-| `router` | L2 | ۳ / ۹۳۷ | state | مسیریابی SPA با History API |
-| `resource` | L2 | ۳ / ۹۳۶ | errors, expressions, state | دریافت داده با cache و dedup (شبیه TanStack Query) |
-| `data` | L2 | ۲ / ۴۹۶ | state, expressions | دایرکتیو `zen-fetch` |
-| `auth` | L2 | ۲ / ۱۳۳۱ | state, scheduler*, http* | ورود/خروج، توکن، refresh خودکار |
-| `permission` | L2 | ۳ / ۶۶۰ | router, security, state | RBAC و `zen-permission` |
-| `store` | L2 | ۲ / ۴۵۵ | state | store سراسری شبیه Pinia |
-| `form` | L2 | ۴ / ۱۶۹۶ | state (peer و dependency) | فرم و اعتبارسنجی |
-| `events` | L2 | ۴ / ۱۱۷۱ | actions, error-boundary, expressions, router, scheduler, state | event delegation |
+| `router` | L2 | ۳ / ۹۳۷ | peer: state | مسیریابی SPA با History API |
+| `resource` | L2 | ۳ / ۹۳۶ | errors, expressions; peer: state | دریافت داده با cache و dedup (شبیه TanStack Query) |
+| `data` | L2 | ۲ / ۴۹۶ | expressions; peer: state | دایرکتیو `zen-fetch` |
+| `auth` | L2 | ۲ / ۱۳۳۱ | http (dynamic); peer: state | ورود/خروج، توکن، refresh خودکار |
+| `permission` | L2 | ۳ / ۶۶۰ | security; peer: state | RBAC و `zen-permission` |
+| `store` | L2 | ۲ / ۴۵۵ | peer: state | store سراسری شبیه Pinia |
+| `form` | L2 | ۴ / ۱۶۹۶ | peer: state | فرم و اعتبارسنجی |
+| `events` | L2 | ۴ / ۱۱۷۱ | actions, error-boundary, expressions, router; peer: state, scheduler | event delegation |
 | `components` | L2 | ۴ / ۱۲۰۹ | expressions | کامپوننت Light DOM، props، slots |
-| `suspense` | L2 | ۲ / ۵۷۰ | error-boundary, expressions*, state | ردگیری promise و حالت loading |
+| `suspense` | L2 | ۲ / ۵۷۰ | error-boundary, security; peer: state | ردگیری promise و حالت loading |
 | `transition` | L2 | ۳ / ۹۰۹ | — | انیمیشن enter/leave |
-| `virtual-list` | L2 | ۳ / ۸۷۲ | state, expressions | لیست مجازی |
-| `data-table` | L2 | ۲ / ۶۸۷ | state | جدول reactive |
-| `runtime` | L3 | ۲۵ / ۶۷۰۵ | ۱۸ پکیج (جدول بخش ۴) | walker، directiveها، hydrate، شیء `Zen` |
-| `ssr` | L3 | ۵ / ۱۴۸۷ | errors, router*, runtime*, scheduler, state; peer: jsdom | رندر سرور و استریم |
-| `crud` | L4 | ۳ / ۱۴۰۲ | actions, permission, resource, runtime, state | موتور CRUD |
-| `stateful` | L4 | ۴ / ۱۰۲۴ | runtime, resource, state, auth, actions, expressions* | کامپوننت‌های loading/error/empty |
-| `devtools` | L4 | ۴ / ۱۱۱۶ | state, components | hook برای افزونهٔ مرورگر |
-| `service-worker` | L4 | ۳ / ۱۴۴۸ | runtime | استراتژی‌های cache و sync |
-| `testing` | L4 | ۲ / ۳۴۸ | peer: state, scheduler, runtime* | ابزار تست |
-| `compiler` | tooling | ۳ / ۱۱۲۵ | dependency-graph, expressions* | پیش‌کامپایل قالب‌ها |
-| `vite-plugin` | tooling | ۲ / ۸۵۷ | compiler, expressions, runtime, security, state; peer: vite | HMR و تزریق devtools |
-| `cli` | tooling | ۴ / ۱۹۸۱ | expressions, runtime, state, vite-plugin | scaffold، `check`، lighthouse |
+| `virtual-list` | L2 | ۳ / ۸۷۲ | expressions; peer: state | لیست مجازی |
+| `data-table` | L2 | ۲ / ۶۸۷ | peer: state | جدول reactive |
+| `runtime` | L3 | ۲۵ / ۶۷۰۵ | ۱۶ پکیج (بخش ۴) + peer: state, scheduler | walker، directiveها، hydrate، شیء `Zen` |
+| `ssr` | L3 | ۵ / ۱۴۸۷ | errors, router (dynamic), runtime (dynamic); peer: state, scheduler, jsdom | رندر سرور و استریم |
+| `crud` | L4 | ۳ / ۱۴۰۲ | actions, permission, resource, runtime; peer: state | موتور CRUD |
+| `stateful` | L4 | ۴ / ۱۰۲۴ | runtime, resource, auth, actions; peer: state | کامپوننت‌های loading/error/empty |
+| `devtools` | L4 | ۴ / ۱۱۱۶ | components; peer: state | hook برای افزونهٔ مرورگر |
+| `service-worker` | L4 | ۳ / ۱۴۴۸ | — | استراتژی‌های cache و sync |
+| `testing` | L4 | ۲ / ۳۴۸ | peer: state, scheduler | ابزار تست |
+| `compiler` | tooling | ۳ / ۱۱۲۵ | dependency-graph | پیش‌کامپایل قالب‌ها |
+| `vite-plugin` | tooling | ۲ / ۸۵۷ | compiler, expressions, runtime, security; peer: state, vite | HMR و تزریق devtools |
+| `cli` | tooling | ۴ / ۱۹۸۱ | expressions, runtime, vite-plugin; peer: state | scaffold، `check`، lighthouse |
 | `vscode-extension` | tooling | ۱ / ۱۰۹۷ | runtime | پشتیبانی زبان |
 | `devtools-extension` | tooling | بدون `package.json` | — | افزونهٔ مرورگر (JS ساده) |
 
-\* وابستگی اعلام‌شده که در `src` استفاده نمی‌شود (بخش ۴).
+state/scheduler همیشه `peer`اند (قاعدهٔ singleton — بخش ۴.۳). `http` در `auth` و
+`router`/`runtime` در `ssr` با dynamic `import()` وارد می‌شوند و dependency واقعی‌اند.
 
 ---
 
@@ -144,8 +145,22 @@ signal، computed، effect، batch و owner/context. `scheduler` را برای b
 - `devtools` → `components`.
 - `runtime` به ۱۸ پکیج وابسته است: `actions, auth, components, data, devtools, error-boundary, errors, events, expressions, i18n, notifications, resource, router, scheduler, security, state, suspense, transition`.
 
-### ۴.۳ ناهماهنگی peer و dependency برای `state`
-`form`، `http`، `notifications`، `testing` آن را peer می‌گیرند. `auth`، `data`، `store`، `router`، `resource`، `suspense`، … مستقیم dependency دارند. اگر نسخه‌ها از هم جدا شوند دو signal graph مستقل ساخته می‌شود. **قاعده:** پکیج‌هایی که نمونهٔ مشترک (singleton) دارند (`state`، `scheduler`) همیشه peer باشند.
+### ۴.۳ قاعدهٔ peer برای singletonهای `state`/`scheduler` — اعمال‌شده در #46
+پیش‌تر `form`/`http`/`notifications`/`testing` آن را peer می‌گرفتند ولی `auth`،
+`data`، `store`، `router`، `resource`، `suspense`، … مستقیم dependency داشتند؛
+جداسازی نسخه دو signal graph مستقل می‌ساخت و reactivity را می‌شکست.
+
+**قاعدهٔ اجرایی (CI: `npm run peer-rule` + job `peer-single-instance`):**
+هر پکیجی جز خودِ `state`/`scheduler` باید این دو را **فقط** به‌صورت
+`peerDependencies` با بازهٔ caret (`^1.4.0`) بگیرد و هرگز در `dependencies`.
+تنها استثنای runtime لبهٔ `state → scheduler` است (هستهٔ پایین‌تر؛ DEC-018).
+اگر `src/` پکیجی state/scheduler را import کند ولی هیچ peer/dependency برای آن
+اعلام نشده باشد، peer-rule خطا می‌دهد.
+
+`scripts/peer-single-instance.mjs` با `npm pack` روی state/scheduler + store + form
+و نصب در پروژهٔ موقت اثبات می‌کند دقیقاً **یک** کپی از هر singleton در درخت
+node_modules حاصل می‌شود و یک getter store به signal بیرونی (همان نمونهٔ state)
+واکنش نشان می‌دهد.
 
 ---
 
