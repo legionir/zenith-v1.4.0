@@ -1,11 +1,11 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #64
-issue در حال انجام: —
-بعدی: #30، #62، #45، #46، #47 (باقی موج ۱) سپس موج ۲
+آخرین issue کامل: #30
+issue در حال انجام: #62
+بعدی: #62، #45، #46، #47 (باقی موج ۱) سپس موج ۲
 بعدی: #64، #30، #62، #45، #46، #47 (باقی موج ۱)
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38013588836 (روی HEAD #20)
+آخرین run موفق CI: 38015190108 (روی HEAD #64/#23/#24)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -110,10 +110,20 @@ issue در حال انجام: —
     پاک‌سازی تایمر پس از پایان طبیعی).
   - رفع جانبی: e2e-server حالا به /favicon.ico پاسخ 204 می‌دهد (Chrome دسکتاپ
     404 را به‌عنوان page error به smoke test تزریق می‌کرد).
-- #23/#24 در انتظار CI (کامیت‌ها: a4c9414، 87855c0 «fix(e2e)»، f2155f7 «docs(progress)»).
+- #23/#24 بسته شدند (CI سبز 38015190108؛ کامیت‌ها a4c9414، 229feb6).
 - #64 انجام شد (موج ۱): `secureId(bytes)` در `@zenith/security` (crypto.getRandomValues،
   ZenithError ZEN-403 در نبود crypto، بدون fallback غیرامن)؛ suspense innerId به
   secureId(4)؛ jitter سرویس‌ورکر با کامنت NON-SECURITY + eslint-disable؛ قانون
   ESLint no-restricted-syntax روی Math.random در packages/**/src (اثبات: probe
   خطا می‌دهد، repo سبز)؛ security→errors و suspense→security edgeها بدون چرخه
   (dependency-cruiser سبز)؛ ۴ تست `packages/security/test/secure-id.test.ts`؛ DEC-014.
+- #30 انجام شد (موج ۱): corpus امنیتی مشترک `packages/security/test/xss-corpus.mjs`
+  (۴۴ payload: OWASP XSS + mXSS template/svg/math/noscript + javascript:/data: +
+  CSS injection)؛ تست jsdom `xss-corpus.test.ts` (۵۱ مورد incl. sanitizeCSS و
+  generateCSP)؛ تست مرورگر واقعی `e2e/xss-corpus.spec.ts` + `e2e/xss-fixture.html`
+  با positive control (خام MUST اجرا شود، sanitized MUST NOT) — سبز در Chromium؛
+  fuzz قطعی `packages/expressions/test/fuzz-security.test.ts` (mulberry32 seed
+  ثابت، ۱۰۰٬۰۰۰ ورودی در ~۳s، ساخت‌یافته: proto-pollution/depth/truncation/
+  long-string؛ هیچ crash/hang/pollution)؛ workflow `fuzz-nightly.yml` (۲M ورودی،
+  seed چرخشی با run_number، artifact لاگ)؛ DEC-015. fuzz بخشی از unit job CI است
+  و شکستش merge را بلاک می‌کند.
