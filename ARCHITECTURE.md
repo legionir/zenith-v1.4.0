@@ -311,3 +311,5 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 8. **اعتبارسنجی گزینه‌ها:** schema برای `AuthConfig`، `HttpRequestOptions`، `SWConfig`، `ZenithPluginOptions`، `ZenStartOptions`، با پیام خطای ZEN-xxx.
 9. **API عمومی رسمی:** TSDoc با `@public/@internal`، `api-extractor` و snapshot در CI، `exports` شرطی (`development`/`production`، `browser`/`node`/`worker`).
 10. **پکیج‌های ابزار** (`vscode-extension`، `devtools-extension`) به `tools/` منتقل شوند.
+
+تصمیم‌های باز این معماری در #175 بسته شدند (۸ ADR): فضای کد خطا DEC-020، `Readable<T>`/shared DEC-021، تعویق adapter-edge DEC-022، ترتیب ui DEC-023، charts/icons جامعه DEC-024، تقسیم runtime-core با parity DEC-025، نسخه‌گذاری lockstep DEC-026، حداقل Node و فرمت ESM-first DEC-027 — همه در `docs/decisions/`.

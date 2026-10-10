@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #47 (موج ۱ تمام شد)
-issue در حال انجام: #175 (موج ۲)
-بعدی: #171، #141، #143، #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #175
+issue در حال انجام: #171 (بازه‌های کد خطا)
+بعدی: #141، #143، #144، #146، #142، #145، #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38029181482 (روی HEAD a280f6e — بسته‌شدن #47)
 
@@ -191,3 +191,16 @@ issue در حال انجام: #175 (موج ۲)
   - dependencies جدید `@zenith/errors` در transition/virtual-list (lockfile بازتولید)؛
     importmap fixture اضافه‌شده به `@zenith/errors`؛ demos (transition/virtual-list) و
     READMEها/ARCHITECTURE §لایه‌های موازی/§۲ بازنویسی؛ DEC-019.
+- #175 انجام شد (موج ۲، RFC): هر ۸ تصمیم باز NEW-PACKAGES-SPEC بسته شد —
+  DEC-020 (کد خطا: بدون renumber؛ بازه ۴رقمی SPEC برای جدیدها + ZEN-DEPR رسمی)،
+  DEC-021 (Readable<T> در shared روی brand DEC-009 + تست نوع expectTypeOf؛ tsd نه — vitest typecheck)،
+  DEC-022 (adapter-edge به تعویق تا #92 — قید فنی: ssr وابستگی hard به jsdom+AsyncLocalStorage دارد)،
+  DEC-023 (ترتیب ui: dialog→popover→tooltip→tabs؛ مبنای WAI-ARIA APG)،
+  DEC-024 (charts/icons: community/اختیاری؛ در رسمی‌شدن باز)،
+  DEC-025 (runtime-core: parity-first؛ تا snapshot parity سبز نشود هیچ فایلی منتقل نمی‌شود؛ #148)،
+  DEC-026 (lockstep 1.5.0؛ حذف API قدیمی فقط 2.0.0 پس از یک نسخه deprecation؛ #58)،
+  DEC-027 (Node floor همان ≥18.19 تا 2.0 طبق DEC-007؛ ESM-first و CJS فقط ابزارها طبق §۰.۶).
+  - گیت: `scripts/test/rfc-decisions.test.mjs` (۱۶ تست؛ red-before-fix: ۱۶ شکست قبل از ADRها)؛
+    «docs/adr/» بدنۀ issue به `docs/decisions/` دستورالعمل §4 تطبیق یافت (ثبت در تست).
+  - NEW-PACKAGES-SPEC «ریسک‌ها و تصمیم‌های باز» به «بسته‌شده» با لینک ADR هر بند به‌روز شد؛
+    ARCHITECTURE §۹ لینک ADRها. npm test = 496 سبز.
