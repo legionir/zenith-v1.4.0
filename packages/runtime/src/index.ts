@@ -35,6 +35,7 @@ import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
 // #115: مقدار class ZenithError + ErrorCode برای throw در مسیر framework.
 // state هم ZenithError را به‌عنوان type از errors re-export می‌کند؛ یک کلاس واحد است.
 import { ZenithError, ErrorCode } from '@zenith/errors';
+import { s, defineOptions } from '@zenith/schema';
 import type { ErrorHandler } from '@zenith/state';
 
 /**
@@ -300,6 +301,40 @@ export interface ZenStartOptions {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `ZenStartOptions`.
+ */
+export const zenStartOptions = defineOptions<ZenStartOptions>(
+  'ZenStartOptions',
+  s.object({
+    devtools: s.default(s.boolean(), true),
+    delegationRoot: s.optional(
+      s.custom<Document | ShadowRoot | HTMLElement>(
+        (v) =>
+          typeof v === 'object' &&
+          v !== null &&
+          typeof (v as { nodeType?: unknown }).nodeType === 'number' &&
+          [1, 9, 11].includes((v as { nodeType: number }).nodeType),
+        'Document | ShadowRoot | HTMLElement (nodeType 1|9|11)',
+      ),
+    ),
+    ssr: s.default(
+      s.object({
+        preloadState: s.default(s.boolean(), true),
+        validateHydration: s.default(s.boolean(), false),
+      }),
+      { preloadState: true, validateHydration: false },
+    ),
+    onError: s.optional(s.fn() as any),
+    strictParity: s.default(s.boolean(), false),
+  }),
+);
+
+export const ZEN_START_OPTIONS_DEFAULTS = zenStartOptions.DEFAULTS;
+export const zenStartOptionsSchema = zenStartOptions.schema;
+export const resolveZenStartOptions = (opts?: unknown): ZenStartOptions =>
+  zenStartOptions.resolve(opts);
+
+/**
  * Runtime API interface (prevents circular `typeof Zen` inference issues).
  */
 interface ZenApi {
@@ -414,6 +449,10 @@ export const Zen: ZenApi = {
           '  - SSR hydration: In SSR, ensure the root element exists in the hydrated HTML.',
       });
     }
+
+    // #52 — اعتبارسنجی گزینه‌های Zen.start در مرز ورودی (ZEN-1001/1002/1004)
+    const resolvedOptions = zenStartOptions.resolve(options);
+    options = resolvedOptions;
 
     // BUG-RUNT-05 FIX: If start was already called on this root without stop,
     // clean up the previous instance first to prevent resource leaks.

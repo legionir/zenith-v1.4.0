@@ -45,6 +45,7 @@
 
 import { signal, type Signal } from '@zenith/state';
 import { developerError, resourceHttpError, deprecate, ErrorCode } from '@zenith/errors';
+import { s, defineOptions } from '@zenith/schema';
 import type { Disposable } from '@zenith/shared';
 
 /**
@@ -126,6 +127,37 @@ export interface AuthConfig {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `AuthConfig` در مرز ورودی.
+ */
+export const authConfigOptions = defineOptions<Required<AuthConfig>>(
+  'AuthConfig',
+  s.object({
+    loginUrl: s.string({ min: 1 }),
+    logoutUrl: s.default(s.string(), ''),
+    refreshUrl: s.default(s.string(), ''),
+    meUrl: s.default(s.string(), ''),
+    tokenStorage: s.default(
+      s.enum(['localStorage', 'sessionStorage', 'cookie', 'memory'] as const),
+      'memory',
+    ),
+    tokenKey: s.default(s.string({ min: 1 }), 'zenith_token'),
+    refreshTokenKey: s.default(s.string({ min: 1 }), 'zenith_refresh_token'),
+    autoRefresh: s.default(s.boolean(), true),
+    refreshThreshold: s.default(s.number({ min: 0 }), 300),
+    tokenField: s.default(s.string({ min: 1 }), 'token'),
+    refreshTokenField: s.default(s.string({ min: 1 }), 'refreshToken'),
+    userField: s.default(s.string({ min: 1 }), 'user'),
+    expiresInField: s.default(s.string({ min: 1 }), 'expiresIn'),
+    headers: s.default(s.record(s.string()), {}),
+  }),
+);
+
+export const AUTH_CONFIG_DEFAULTS = authConfigOptions.DEFAULTS;
+export const authConfigSchema = authConfigOptions.schema;
+export const resolveAuthConfig = (config: unknown): Required<AuthConfig> =>
+  authConfigOptions.resolve(config);
+
+/**
  * IMP-AUT-02 (v1.3.0): رویدادهای Auth.
  */
 export type AuthEvent = 'login' | 'logout' | 'token-refresh' | 'token-expired' | 'error';
@@ -156,6 +188,9 @@ export class Auth implements Disposable {
   private _listeners = new Map<AuthEvent, Set<AuthEventListener>>();
 
   constructor(config: AuthConfig) {
+    // #52 — اعتبارسنجی در مرز ورودی (ZEN-1001/1002/1004)
+    this._config = authConfigOptions.resolve(config);
+
     this._signal = signal<AuthState>({
       user: null,
       loading: false,
@@ -165,30 +200,6 @@ export class Auth implements Disposable {
       tokenExpiry: null,
       error: null,
     });
-
-    this._config = {
-      logoutUrl: '',
-      refreshUrl: '',
-      meUrl: '',
-      // SEC FIX (v1.2.6): SEC-A8 — default tokenStorage changed from
-      // 'localStorage' to 'memory'. localStorage is XSS-vulnerable: any script
-      // running in the page (including third-party dependencies) can read the
-      // user's token out of it. memory keeps the token in JS heap and dies
-      // with the tab, which is the safest default. Callers who explicitly
-      // opt into localStorage/sessionStorage/cookie should understand the
-      // trade-off.
-      tokenStorage: 'memory',
-      tokenKey: 'zenith_token',
-      refreshTokenKey: 'zenith_refresh_token',
-      autoRefresh: true,
-      refreshThreshold: 300,
-      tokenField: 'token',
-      refreshTokenField: 'refreshToken',
-      userField: 'user',
-      expiresInField: 'expiresIn',
-      headers: {},
-      ...config,
-    };
 
     // #62 (SEC): dev-mode warning for XSS-vulnerable token storage choices.
     // localStorage/sessionStorage/cookie (client-side cookies cannot be
@@ -1044,19 +1055,44 @@ export interface FunctionalAuthConfig {
 
 const FUNCTIONAL_STORAGE_KEY = 'zenith_auth_tokens';
 
+/**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `FunctionalAuthConfig` در مرز ورودی.
+ */
+export const functionalAuthConfigOptions = defineOptions<Required<FunctionalAuthConfig>>(
+  'FunctionalAuthConfig',
+  s.object({
+    endpoints: s.default(
+      s.object({
+        login: s.default(s.string({ min: 1 }), '/api/auth/login'),
+        logout: s.default(s.string({ min: 1 }), '/api/auth/logout'),
+        register: s.default(s.string({ min: 1 }), '/api/auth/register'),
+        refresh: s.default(s.string({ min: 1 }), '/api/auth/refresh'),
+        me: s.default(s.string({ min: 1 }), '/api/auth/me'),
+      }),
+      {
+        login: '/api/auth/login',
+        logout: '/api/auth/logout',
+        register: '/api/auth/register',
+        refresh: '/api/auth/refresh',
+        me: '/api/auth/me',
+      },
+    ),
+    storageKey: s.default(s.string({ min: 1 }), FUNCTIONAL_STORAGE_KEY),
+    autoRefresh: s.default(s.boolean(), true),
+    loginRedirect: s.default(s.string({ min: 1 }), '/dashboard'),
+    logoutRedirect: s.default(s.string({ min: 1 }), '/'),
+    loginPath: s.default(s.string({ min: 1 }), '/login'),
+  }),
+);
+
+export const FUNCTIONAL_AUTH_CONFIG_DEFAULTS = functionalAuthConfigOptions.DEFAULTS;
+export const functionalAuthConfigSchema = functionalAuthConfigOptions.schema;
+export const resolveFunctionalAuthConfig = (cfg?: unknown): Required<FunctionalAuthConfig> =>
+  functionalAuthConfigOptions.resolve(cfg);
+
 let functionalConfig: FunctionalAuthConfig = {
-  endpoints: {
-    login: '/api/auth/login',
-    logout: '/api/auth/logout',
-    register: '/api/auth/register',
-    refresh: '/api/auth/refresh',
-    me: '/api/auth/me',
-  },
-  storageKey: FUNCTIONAL_STORAGE_KEY,
-  autoRefresh: true,
-  loginRedirect: '/dashboard',
-  logoutRedirect: '/',
-  loginPath: '/login',
+  ...FUNCTIONAL_AUTH_CONFIG_DEFAULTS,
+  endpoints: { ...FUNCTIONAL_AUTH_CONFIG_DEFAULTS.endpoints },
 };
 
 const functionalUser = signal<User | null>(null);
@@ -1074,11 +1110,23 @@ let functionalRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let functionalInitialized = false;
 
 export function configureAuth(cfg: Partial<FunctionalAuthConfig>): void {
-  functionalConfig = {
+  if (cfg === undefined || cfg === null || typeof cfg !== 'object' || Array.isArray(cfg)) {
+    functionalConfig = functionalAuthConfigOptions.resolve(cfg);
+    return;
+  }
+  const candidate: Record<string, unknown> = {
     ...functionalConfig,
     ...cfg,
-    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints },
   };
+  if (
+    cfg.endpoints !== undefined &&
+    cfg.endpoints !== null &&
+    typeof cfg.endpoints === 'object' &&
+    !Array.isArray(cfg.endpoints)
+  ) {
+    candidate.endpoints = { ...functionalConfig.endpoints, ...cfg.endpoints };
+  }
+  functionalConfig = functionalAuthConfigOptions.resolve(candidate);
 }
 
 export function getAuthConfig(): FunctionalAuthConfig {

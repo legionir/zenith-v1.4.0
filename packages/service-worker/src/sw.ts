@@ -22,7 +22,17 @@
 // رفتنِ mutationها پس از restartِ SW جلوگیری شود. همچنین retry با exponential
 // backoff و jitter انجام می‌شود تا سرور تحت فشار قرار نگیرد.
 
+import { s, defineOptions } from '@zenith/schema';
 import { applyStrategy, type CacheStrategyName } from './strategies.js';
+
+const SW_CACHE_STRATEGIES = [
+  'cacheFirst',
+  'networkFirst',
+  'staleWhileRevalidate',
+  'networkOnly',
+  'cacheOnly',
+  'cacheThenNetwork',
+] as const satisfies readonly CacheStrategyName[];
 
 /**
  * FEATURE (v0.4.0): RouteMatcher — تطبیق‌دهنده‌ی مسیر.
@@ -148,16 +158,42 @@ let _queue: QueuedMutation[] = [];
  *
  * بعد از این، event listenerهای install/activate/fetch/sync ثبت می‌شوند.
  */
+export const routeMatcherOptions = defineOptions<RouteMatcher>(
+  'RouteMatcher',
+  s.object({
+    urlPattern: s.union([
+      s.string({ min: 1 }),
+      s.custom<RegExp>((v) => v instanceof RegExp, 'RegExp'),
+    ]),
+    method: s.optional(s.string({ min: 1 })),
+    strategy: s.enum(SW_CACHE_STRATEGIES),
+    cacheName: s.optional(s.string({ min: 1 })),
+    timeout: s.optional(s.duration({ min: 0 })),
+  }),
+);
+
+export const swRuntimeConfigOptions = defineOptions<SWRuntimeConfig>(
+  'SWRuntimeConfig',
+  s.object({
+    precache: s.default(s.array(s.string({ min: 1 })), []),
+    routes: s.default(s.array(routeMatcherOptions.schema), []),
+    defaultCacheName: s.default(s.string({ min: 1 }), 'zenith-cache'),
+    cachePrefix: s.default(s.string(), 'zenith-'),
+    defaultStrategy: s.default(s.enum(SW_CACHE_STRATEGIES), 'networkOnly'),
+    backgroundSyncQueueName: s.default(s.string({ min: 1 }), 'zenith-bg-sync'),
+    skipWaiting: s.default(s.boolean(), false),
+    clientsClaim: s.default(s.boolean(), false),
+  }),
+);
+
+export const SW_RUNTIME_CONFIG_DEFAULTS = swRuntimeConfigOptions.DEFAULTS;
+export const swRuntimeConfigSchema = swRuntimeConfigOptions.schema;
+export const resolveSWRuntimeConfig = (cfg?: unknown): SWRuntimeConfig =>
+  swRuntimeConfigOptions.resolve(cfg);
+
 export function setupSW(config: SWRuntimeConfig): void {
-  _config = {
-    defaultCacheName: 'zenith-cache',
-    cachePrefix: 'zenith-',
-    defaultStrategy: 'networkOnly',
-    backgroundSyncQueueName: 'zenith-bg-sync',
-    skipWaiting: false,
-    clientsClaim: false,
-    ...config,
-  };
+  // #52 — اعتبارسنجی در مرز ورودی پیش از guard محیط
+  _config = swRuntimeConfigOptions.resolve(config);
 
   // فقط در صورتی که واقعاً در SW context هستیم، listenerها را ثبت کن.
   // این guard باعث می‌شود کد در Node.js (تست) یا main thread بدون خطا import شود.

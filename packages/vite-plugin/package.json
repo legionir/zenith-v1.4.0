@@ -57,6 +57,7 @@
     "@zenith/compiler": "1.4.0",
     "@zenith/expressions": "1.4.0",
     "@zenith/runtime": "1.4.0",
+    "@zenith/schema": "1.5.0",
     "@zenith/security": "1.4.0"
   },
   "devDependencies": {

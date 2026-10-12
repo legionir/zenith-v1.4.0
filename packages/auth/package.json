@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@zenith/http": "1.4.0",
+    "@zenith/schema": "1.5.0",
     "@zenith/storage": "1.5.0",
     "@zenith/errors": "1.4.0",
     "@zenith/shared": "1.5.0"

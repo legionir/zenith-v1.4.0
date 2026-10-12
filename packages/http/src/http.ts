@@ -13,6 +13,7 @@ import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
 import { deprecate } from '@zenith/errors';
 import { createCache, type Cache } from '@zenith/cache';
+import { s, defineOptions } from '@zenith/schema';
 
 // ============================================================
 // Types & Interfaces
@@ -79,6 +80,87 @@ export type ResponseInterceptor = (response: HttpResponse) => HttpResponse | Pro
 export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 
 // ============================================================
+// Options Schemas & Defaults (#52)
+// ============================================================
+
+export const retryConfigOptions = defineOptions<Required<RetryConfig>>(
+  'RetryConfig',
+  s.object({
+    maxAttempts: s.default(s.number({ int: true, min: 0 }), 3),
+    initialDelay: s.default(s.duration({ min: 0 }), 500),
+    backoffMultiplier: s.default(s.number({ min: 1 }), 2),
+    retryOn: s.default(
+      s.array(s.number({ int: true, min: 100, max: 599 })),
+      [408, 429, 500, 502, 503, 504],
+    ),
+  }),
+);
+
+export const RETRY_CONFIG_DEFAULTS = retryConfigOptions.DEFAULTS;
+export const retryConfigSchema = retryConfigOptions.schema;
+export const resolveRetryConfig = (cfg?: unknown): Required<RetryConfig> =>
+  retryConfigOptions.resolve(cfg);
+
+export const cacheConfigOptions = defineOptions<CacheConfig>(
+  'CacheConfig',
+  s.object({
+    enabled: s.default(s.boolean(), false),
+    ttl: s.default(s.duration({ min: 0 }), 60000),
+    key: s.optional(s.string({ min: 1 })),
+  }),
+);
+
+export const CACHE_CONFIG_DEFAULTS = cacheConfigOptions.DEFAULTS;
+export const cacheConfigSchema = cacheConfigOptions.schema;
+export const resolveCacheConfig = (cfg?: unknown): CacheConfig => cacheConfigOptions.resolve(cfg);
+
+export const httpRequestOptions = defineOptions<HttpRequestOptions>(
+  'HttpRequestOptions',
+  s.object({
+    baseURL: s.optional(s.string()),
+    timeout: s.default(s.duration({ min: 0 }), 30000),
+    retry: s.default(retryConfigOptions.schema, {
+      maxAttempts: 3,
+      initialDelay: 500,
+      backoffMultiplier: 2,
+      retryOn: [408, 429, 500, 502, 503, 504],
+    }),
+    cache: s.default(cacheConfigOptions.schema, {
+      enabled: false,
+      ttl: 60000,
+    }),
+    tags: s.optional(s.array(s.string({ min: 1 }))),
+    skipInterceptors: s.default(s.boolean(), false),
+    // Standard RequestInit fields
+    method: s.optional(s.string({ min: 1 })),
+    headers: s.optional(
+      s.custom<HeadersInit>((v) => typeof v === 'object' && v !== null, 'HeadersInit'),
+    ),
+    body: s.optional(s.custom<BodyInit | null>(() => true, 'BodyInit | null')),
+    mode: s.optional(s.enum(['cors', 'no-cors', 'same-origin', 'navigate'] as const)),
+    credentials: s.optional(s.enum(['omit', 'same-origin', 'include'] as const)),
+    redirect: s.optional(s.enum(['follow', 'error', 'manual'] as const)),
+    referrer: s.optional(s.string()),
+    referrerPolicy: s.optional(s.string() as any),
+    integrity: s.optional(s.string()),
+    keepalive: s.optional(s.boolean()),
+    signal: s.optional(
+      s.custom<AbortSignal | null>(
+        (v) => v === null || (typeof v === 'object' && 'aborted' in (v as object)),
+        'AbortSignal | null',
+      ),
+    ),
+    priority: s.optional(s.enum(['high', 'low', 'auto'] as const)),
+    window: s.optional(s.custom<null>((v) => v === null, 'null')),
+  }),
+);
+
+export const HTTP_REQUEST_OPTIONS_DEFAULTS = httpRequestOptions.DEFAULTS;
+export const httpRequestOptionsSchema = httpRequestOptions.schema;
+export const resolveHttpRequestOptions = (opts?: unknown): HttpRequestOptions =>
+  httpRequestOptions.resolve(opts);
+
+// ============================================================
 // Internal State
 // ============================================================
 
@@ -92,19 +174,41 @@ const errorInterceptors: ErrorInterceptor[] = [];
 const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
 
-let defaultConfig: HttpRequestOptions = {
-  timeout: 30000,
-  retry: {
-    maxAttempts: 3,
-    initialDelay: 500,
-    backoffMultiplier: 2,
-    retryOn: [408, 429, 500, 502, 503, 504],
-  },
-  cache: {
-    enabled: false,
-    ttl: 60000,
-  },
-};
+let defaultConfig: HttpRequestOptions = httpRequestOptions.resolve();
+
+function mergeAndValidateHttpOptions(
+  base: HttpRequestOptions,
+  override: unknown,
+): HttpRequestOptions {
+  if (override === undefined || override === null) {
+    return httpRequestOptions.resolve(base);
+  }
+  if (typeof override !== 'object' || Array.isArray(override)) {
+    return httpRequestOptions.resolve(override);
+  }
+  const raw = override as Record<string, unknown>;
+  const candidate: Record<string, unknown> = {
+    ...base,
+    ...raw,
+  };
+  if (
+    raw.retry !== undefined &&
+    raw.retry !== null &&
+    typeof raw.retry === 'object' &&
+    !Array.isArray(raw.retry)
+  ) {
+    candidate.retry = { ...base.retry, ...(raw.retry as Record<string, unknown>) };
+  }
+  if (
+    raw.cache !== undefined &&
+    raw.cache !== null &&
+    typeof raw.cache === 'object' &&
+    !Array.isArray(raw.cache)
+  ) {
+    candidate.cache = { ...base.cache, ...(raw.cache as Record<string, unknown>) };
+  }
+  return httpRequestOptions.resolve(candidate);
+}
 
 // ============================================================
 // Configuration & Interceptors
@@ -115,10 +219,12 @@ let defaultConfig: HttpRequestOptions = {
  *
  * #116 cleanup protocol: تنظیمات «ثبت» محسوب می‌شود؛ خروجی یک `Cleanup`
  * idempotent است که مقدار قبلی defaultConfig را بازمی‌گرداند.
+ * #52: اعتبارسنجی در مرز ورودی با `httpRequestOptions`.
  */
 export function setHttpConfig(config: Partial<HttpRequestOptions>): () => void {
+  const next = mergeAndValidateHttpOptions(defaultConfig, config);
   const previous = defaultConfig;
-  defaultConfig = { ...defaultConfig, ...config };
+  defaultConfig = next;
   let restored = false;
   return () => {
     if (restored) return;
@@ -207,14 +313,14 @@ export async function request<T = any>(
   url: string,
   options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
-  // Merge with defaults
+  // #52 — Validate and merge with defaults at entry boundary
+  const resolved = mergeAndValidateHttpOptions(defaultConfig, options);
   const config: HttpRequestOptions = {
-    ...defaultConfig,
-    ...options,
+    ...resolved,
     headers: {
       'Content-Type': 'application/json',
-      ...defaultConfig.headers,
-      ...options.headers,
+      ...(defaultConfig.headers as Record<string, string> | undefined),
+      ...(resolved.headers as Record<string, string> | undefined),
     },
   };
 

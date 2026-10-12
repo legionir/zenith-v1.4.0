@@ -26,6 +26,7 @@
 
 import { compileTemplate, type CompiledTemplate } from '@zenith/compiler';
 import { compile as compileExpression } from '@zenith/expressions';
+import { s, defineOptions } from '@zenith/schema';
 
 /**
  * لیست مشترک directiveهای دارای expression که باید در compile-time اعتبارسنجی شوند.
@@ -91,6 +92,24 @@ export interface CompileOptions {
    */
   strict?: boolean;
 }
+
+/**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `CompileOptions`.
+ */
+export const compileOptions = defineOptions<Required<CompileOptions>>(
+  'CompileOptions',
+  s.object({
+    enabled: s.default(s.boolean(), true),
+    include: s.default(s.array(s.string({ min: 1 })), ['**/*.html']),
+    exclude: s.default(s.array(s.string({ min: 1 })), ['node_modules/**']),
+    strict: s.default(s.boolean(), false),
+  }),
+);
+
+export const COMPILE_OPTIONS_DEFAULTS = compileOptions.DEFAULTS;
+export const compileOptionsSchema = compileOptions.schema;
+export const resolveCompileOptions = (opts?: unknown): Required<CompileOptions> =>
+  compileOptions.resolve(opts);
 
 /**
  * نتیجه‌ی transform یک فایل HTML.
@@ -172,6 +191,8 @@ export async function transformHtml(
   htmlPath: string,
   options: CompileOptions = {},
 ): Promise<TransformResult> {
+  // #52 — اعتبارسنجی CompileOptions در مرز ورودی
+  const resolvedOptions = compileOptions.resolve(options);
   const warnings: string[] = [];
 
   // اگر directive ندارد، چیزی برای compile نیست.
@@ -210,7 +231,7 @@ export async function transformHtml(
       } catch (e) {
         const errMsg = `Expression error in ${name}="${value}" at offset ${match.index}: ${(e as Error).message}`;
         warnings.push(errMsg);
-        if (options.strict) {
+        if (resolvedOptions.strict) {
           console.error(`[Zenith Compile] ❌ ${errMsg}`);
           console.error(e);
           throw e;
@@ -230,11 +251,11 @@ export async function transformHtml(
   // استفاده از compiler برای تولید کد.
   let compiled: CompiledTemplate;
   try {
-    compiled = await compileTemplate(html, { strict: options.strict });
+    compiled = await compileTemplate(html, { strict: resolvedOptions.strict });
   } catch (e) {
     const errMsg = `Compiler error: ${(e as Error).message}`;
     warnings.push(errMsg);
-    if (options.strict) {
+    if (resolvedOptions.strict) {
       console.error(`[Zenith Compile] ❌ ${errMsg}`);
       console.error(e);
       throw e;

@@ -55,6 +55,7 @@
   },
   "dependencies": {
     "@zenith/cache": "1.5.0",
-    "@zenith/errors": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/schema": "1.5.0"
   }
 }
