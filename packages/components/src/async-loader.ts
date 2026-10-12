@@ -30,6 +30,7 @@ import { registerComponent } from './registry';
 // settle، و errorCache با ttl=۳۰s. هویت خطاها دست‌نخورده می‌ماند (این‌جا
 // getOrLoad استفاده نشده تا AbortError همان AbortError بماند).
 import { createCache, type Cache } from '@zenith/cache';
+import { developerError, resourceHttpError, ZenithError, ErrorCode } from '@zenith/errors';
 
 /**
  * Cache entry for a loaded component.
@@ -156,7 +157,7 @@ export async function loadComponent(
   signal?: AbortSignal,
 ): Promise<HTMLTemplateElement> {
   if (!src) {
-    throw new Error('[Zenith async-loader] src is required.');
+    throw developerError('async-loader: src is required.', ErrorCode.INTERNAL_DEVELOPER_ERROR);
   }
 
   // FIX (v1.2.8): P2-5 — Check the errorCache first. If this URL recently
@@ -182,23 +183,34 @@ export async function loadComponent(
 
   const promise = (async () => {
     if (typeof fetch !== 'function') {
-      throw new Error('[Zenith async-loader] fetch is not available (SSR?).');
+      throw new ZenithError({
+        code: ErrorCode.RESOURCE_HTTP_ERROR,
+        category: 'Network',
+        message: 'async-loader: fetch is not available (SSR?).',
+        suggestion: 'در SSR از @zenith/ssr یا loader دستی استفاده کنید.',
+      });
     }
     if (typeof DOMParser !== 'function') {
-      throw new Error('[Zenith async-loader] DOMParser is not available (SSR?).');
+      throw new ZenithError({
+        code: ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+        category: 'Runtime',
+        message: 'async-loader: DOMParser is not available (SSR?).',
+        suggestion: 'async-loader فقط در مرورگر کار می‌کند.',
+      });
     }
     const res = await fetch(src, signal ? { signal } : undefined);
     if (!res.ok) {
-      throw new Error(
-        `[Zenith async-loader] Failed to fetch "${src}": ${res.status} ${res.statusText}`,
-      );
+      throw resourceHttpError(src, res.status, res.statusText);
     }
     const html = await res.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const tpl = doc.querySelector('template');
     if (!tpl) {
-      throw new Error(`[Zenith async-loader] No <template> found in "${src}".`);
+      throw developerError(
+        `async-loader: No <template> found in "${src}".`,
+        ErrorCode.COMPONENT_SLOT_NOT_FOUND,
+      );
     }
 
     // Store in cache (cloned so the cached template is independent).

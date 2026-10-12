@@ -68,8 +68,11 @@ describe('no-console rule + ratchet (#143)', () => {
     );
   });
 
-  it('baseline is exactly the 62 legacy files recorded at #143 time', () => {
-    expect(NO_CONSOLE_RATCHET.length).toBe(62);
+  it('baseline shrinks only via real migration (#143=62 → #115 unified hub sink)', () => {
+    // #115 (DEC-031): error-path console.* now lives solely in the errors hub sink.
+    // boundary.ts/state error.ts migrated off console; errors index.ts→core.ts +
+    // hub.ts (the sink). Net 62→61 is genuine debt reduction, not a loosened gate.
+    expect(NO_CONSOLE_RATCHET.length).toBe(61);
     // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
     expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
   });

@@ -1,4 +1,5 @@
 // packages/actions/src/registry.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // Action Registry — ثبت و بازیابی توابع Business Logic.
 //
@@ -146,7 +147,7 @@ export class ActionRegistry {
   async execute(name: string, ctx: ActionContext): Promise<void> {
     const entry = this._actions.get(name);
     if (!entry) {
-      throw new Error(`[Zenith] Action "${name}" not found.`);
+      throw developerError(`Action "${name}" not found.`, ErrorCode.RUNTIME_COMPONENT_NOT_FOUND);
     }
 
     const handler = entry.fn;
@@ -282,27 +283,27 @@ export class ActionRegistry {
    */
   private _validateName(name: string): void {
     if (typeof name !== 'string' || name.length === 0) {
-      throw new Error(`[Zenith] Action name must be a non-empty string. Received: ${String(name)}`);
+      throw developerError(`Action name must be a non-empty string. Received: ${String(name)}`);
     }
     // FEATURE (v1.3.0): Allow `.` for namespacing (e.g. `cart.save`).
     // Disallow leading/trailing dot, double dots, and unsafe chars.
     if (!/^[a-zA-Z_$][a-zA-Z0-9_$.-]*$/.test(name)) {
-      throw new Error(
-        `[Zenith] Invalid action name "${name}". Names must start with a letter, ` +
+      throw developerError(
+        `Invalid action name "${name}". Names must start with a letter, ` +
           `underscore, or $, and may contain letters, digits, underscores, $, ` +
           `dots (for namespaces), and hyphens.`,
       );
     }
     if (name.startsWith('.') || name.endsWith('.') || name.includes('..')) {
-      throw new Error(
-        `[Zenith] Invalid action name "${name}". Dots cannot be leading, trailing, or doubled.`,
+      throw developerError(
+        `Invalid action name "${name}". Dots cannot be leading, trailing, or doubled.`,
       );
     }
   }
 
   private _validateFn(fn: ActionFn): void {
     if (typeof fn !== 'function') {
-      throw new Error(`[Zenith] Action handler must be a function. Received: ${typeof fn}`);
+      throw developerError(`Action handler must be a function. Received: ${typeof fn}`);
     }
   }
 }

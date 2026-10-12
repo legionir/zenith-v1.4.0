@@ -1,4 +1,5 @@
 // packages/ssr/src/server-component.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
 // رندر می‌شوند و در کلاینت hydrate نمی‌شوند. این مزیت بزرگ Zenith نسبت
@@ -67,11 +68,15 @@ const serverComponentRegistry = new Map<string, ServerComponent>();
  */
 export function registerServerComponent(comp: ServerComponent): void {
   if (!comp || typeof comp.name !== 'string' || comp.name.length === 0) {
-    throw new Error('[Zenith SSR] Invalid ServerComponent: name is required.');
+    throw developerError(
+      'Invalid ServerComponent: name is required.',
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+    );
   }
   if (typeof comp.render !== 'function') {
-    throw new Error(
-      `[Zenith SSR] Invalid ServerComponent "${comp.name}": render() must be a function.`,
+    throw developerError(
+      `Invalid ServerComponent "${comp.name}": render() must be a function.`,
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
     );
   }
   // BUG-SSR-03 FIX (v1.3.0): اگر کامپوننتی با همین نام از قبل ثبت شده باشد،

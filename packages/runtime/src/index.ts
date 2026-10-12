@@ -32,7 +32,10 @@ import { auth, initAuth } from '@zenith/auth';
 // نشت حافظه‌ی resource در SPA (که در گزارش قبلی مطرح شد) برطرف شود.
 import { resetResourceRegistry } from '@zenith/resource';
 import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
-import type { ZenithError, ErrorHandler } from '@zenith/state';
+// #115: مقدار class ZenithError + ErrorCode برای throw در مسیر framework.
+// state هم ZenithError را به‌عنوان type از errors re-export می‌کند؛ یک کلاس واحد است.
+import { ZenithError, ErrorCode } from '@zenith/errors';
+import type { ErrorHandler } from '@zenith/state';
 
 /**
  * FEATURE (v0.6.0): شناسه‌ی یکتای تگ <style> تزریق‌شده برای ضد-FOUC.
@@ -350,14 +353,19 @@ export const Zen: ZenApi = {
   getErrors: getErrorHistory,
 
   /**
-   * Emit a custom error through Zenith's error system.
+   * Emit a custom error through Zenith's unified error system (#115 / DEC-031).
+   *
+   * @param message متن خطا
+   * @param options partial از فیلدهای `ZenithError` (code/category/severity/…)
    */
-  reportError: (message: string, options: Partial<ZenithError> = {}) => {
+  reportError: (
+    message: string,
+    options: Partial<ZenithError> & { severity?: 'error' | 'warning' | 'info' } = {},
+  ) => {
     emitError({
       message,
-      category: options.category || 'runtime',
+      category: options.category || 'Runtime',
       severity: options.severity || 'error',
-      recoverable: options.recoverable !== false,
       ...options,
     });
   },
@@ -393,13 +401,16 @@ export const Zen: ZenApi = {
     Zen.perf.mark('zen.start');
     // IMP-RUNT-06: Enhanced error message with helpful debugging hints
     if (!root) {
-      throw new Error(
-        '[Zen.start] Root element is required.\n' +
+      throw new ZenithError({
+        code: ErrorCode.RUNTIME_ZEN_IF_NO_PARENT,
+        category: 'Runtime',
+        message:
+          '[Zen.start] Root element is required.\n' +
           '  Common causes:\n' +
           '  - DOM not fully loaded: Ensure Zen.start runs after DOMContentLoaded or place script at end of body.\n' +
           '  - Selector mismatch: Check document.getElementById("app") matches your HTML element ID.\n' +
           '  - SSR hydration: In SSR, ensure the root element exists in the hydrated HTML.',
-      );
+      });
     }
 
     // BUG-RUNT-05 FIX: If start was already called on this root without stop,

@@ -77,6 +77,9 @@ describe('sideEffects truthfulness (#70)', () => {
     // @zenith/scheduler bundle; the rest of the module must not survive.
     // The unit CI job has no dist/, so build the scheduler package here.
     const { buildPackage } = await import('../build-package.mjs');
+    // scheduler now imports @zenith/errors (#115); its declarations must exist
+    // before scheduler's tsc emit. errors is L0 (no deps) → builds standalone.
+    await buildPackage('errors');
     await buildPackage('scheduler');
     const esbuild = await import('esbuild');
     const consumer = join(await import('node:os').then((os) => os.tmpdir()), 'sl-consumer.js');

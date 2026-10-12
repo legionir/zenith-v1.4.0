@@ -27,6 +27,7 @@ import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup }
 // #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
 // بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
 import { ZENITH_READABLE } from './readable';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -99,8 +100,14 @@ export class Signal<T> {
    */
   set(newValue: T): void {
     if (this._readonly) {
-      throw new Error(
-        '[Zenith] Cannot set a readonly signal. Use writable signals for mutable state.',
+      // #115: خطای programmer با کد ZEN-907 (misuse عمومی API).
+      throw developerError(
+        'Cannot set a readonly signal. Use writable signals for mutable state.',
+        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+        {
+          suggestion:
+            'برای مقدار قابل‌تغییر signal writable بسازید؛ برای مقدار مشتق از computed استفاده کنید.',
+        },
       );
     }
     // جلوگیری از آپدیت‌های غیرضروری (Reference Equality + NaN handling)

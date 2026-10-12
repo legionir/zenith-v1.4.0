@@ -1,4 +1,5 @@
 // packages/events/src/modifiers.ts
+import { developerError } from '@zenith/errors';
 //
 // تجزیه و اعمال Modifier های رویداد.
 //
@@ -187,27 +188,25 @@ export const BUILTIN_MODIFIERS = new Set<string>([
  */
 export function registerEventModifier(name: string, handler: EventModifierHandler): void {
   if (typeof name !== 'string' || name.length === 0) {
-    throw new Error(
-      `[Zenith] Event modifier name must be a non-empty string. Received: ${String(name)}`,
+    throw developerError(
+      `Event modifier name must be a non-empty string. Received: ${String(name)}`,
     );
   }
   // امنیت: نام modifier فقط شامل حروف/اعداد/خط تیره باشد تا با parsing
   // modifier ها (`split('.')`) تداخل نداشته باشد.
   if (!/^[a-zA-Z][a-zA-Z0-9-]*$/.test(name)) {
-    throw new Error(
-      `[Zenith] Invalid event modifier name "${name}". Names must start with a letter ` +
+    throw developerError(
+      `Invalid event modifier name "${name}". Names must start with a letter ` +
         `and may contain letters, digits, and hyphens.`,
     );
   }
   if (BUILTIN_MODIFIERS.has(name)) {
-    throw new Error(
-      `[Zenith] Cannot register built-in modifier "${name}". Built-in modifiers are reserved.`,
+    throw developerError(
+      `Cannot register built-in modifier "${name}". Built-in modifiers are reserved.`,
     );
   }
   if (typeof handler !== 'function') {
-    throw new Error(
-      `[Zenith] Event modifier handler must be a function. Received: ${typeof handler}`,
-    );
+    throw developerError(`Event modifier handler must be a function. Received: ${typeof handler}`);
   }
   _customModifiers.set(name, handler);
 }

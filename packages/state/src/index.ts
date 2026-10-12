@@ -52,6 +52,8 @@ export {
   errorBoundary,
   getErrorHistory,
   clearErrorHistory,
+  setErrorLogger,
+  resetErrorHubForTesting,
   setDevMode,
   isDevMode,
 } from './error';

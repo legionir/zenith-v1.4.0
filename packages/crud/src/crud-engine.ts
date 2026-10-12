@@ -48,6 +48,7 @@ import { getResource, type Resource } from '@zenith/resource';
 import { Zen } from '@zenith/runtime';
 import { getAction } from '@zenith/actions';
 import { processPermission, getPermissionManager } from '@zenith/permission';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 // ─────────────────────────────────────────────────────────────────────────
 // FEATURE (v0.3.0): CrudEngineConfig
@@ -161,9 +162,10 @@ export class CrudEngine {
     // ── Validation: Resource باید از قبل ثبت شده باشد ──
     const resource = getResource(config.resource);
     if (!resource) {
-      throw new Error(
-        `[CrudEngine] Resource "${config.resource}" not found. ` +
+      throw developerError(
+        `Resource "${config.resource}" not found. ` +
           `Before using zen-crud, call createResource("${config.resource}", { url: '...' }).`,
+        ErrorCode.RESOURCE_SIGNAL_NOT_FOUND,
       );
     }
     this.resource = resource;

@@ -5,7 +5,7 @@
 //   `any`s in public APIs (documented in DEC-003). All other errors are
 //   enforced (lint fails the build on them).
 // - no-console: 'error' for package src since #143 (@zenith/logger); the
-//   62 legacy files listed in scripts/no-console-ratchet.mjs stay exempt
+//   the legacy files listed in scripts/no-console-ratchet.mjs stay exempt
 //   until their migration in #39 (the ratchet only shrinks — enforced by
 //   scripts/test/no-console-ratchet.test.mjs). DEC-003's «off until #39»
 //   row is superseded by this two-step: rule ON now, code migrated in #39.

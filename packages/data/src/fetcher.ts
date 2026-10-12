@@ -46,6 +46,7 @@ import { signal, effect, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 // #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
 import { createCache } from '@zenith/cache';
+import { resourceHttpError } from '@zenith/errors';
 
 /**
  * شکل وضعیت fetch.
@@ -278,7 +279,7 @@ async function performFetch(
     }
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      throw resourceHttpError(url, res.status, res.statusText);
     }
 
     // تلاش برای parse کردن JSON. اگر نشد، text برمی‌گردانیم.

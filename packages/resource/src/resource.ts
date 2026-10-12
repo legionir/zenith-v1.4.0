@@ -29,7 +29,7 @@
 
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { resourceDestroyedError } from '@zenith/errors';
+import { resourceDestroyedError, resourceHttpError } from '@zenith/errors';
 // #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
 import { createCache, type Cache } from '@zenith/cache';
 
@@ -808,7 +808,7 @@ export class Resource<T = any> {
         const res = await fetch(url, options);
 
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          throw resourceHttpError(url, res.status, res.statusText);
         }
 
         // برای DELETE، ممکن است response خالی باشد.

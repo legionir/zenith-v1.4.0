@@ -54,5 +54,8 @@
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0"
   }
 }

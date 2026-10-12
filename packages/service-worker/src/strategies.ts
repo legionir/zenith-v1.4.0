@@ -1,4 +1,5 @@
 // packages/service-worker/src/strategies.ts
+import { ZenithError, developerError, ErrorCode } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): استراتژی‌های کشِ Service Worker (بدون وابستگی).
 //
@@ -314,7 +315,12 @@ export async function cacheThenNetwork(
     })
     .catch(() => {
       // خطای fetch پس‌زمینه نادیده گرفته می‌شود (cache همچنان معتبر است).
-      throw new Error('background fetch failed');
+      throw new ZenithError({
+        code: ErrorCode.RESOURCE_HTTP_ERROR,
+        category: 'Network',
+        message: 'background fetch failed',
+        suggestion: 'اتصال شبکه را بررسی کنید؛ cache همچنان معتبر است.',
+      });
     });
 
   if (cached) {
@@ -370,7 +376,10 @@ export async function applyStrategy(
       // TypeScript exhaustiveness check — اگر در آینده نوع استراتژی اضافه شد،
       // اینجا خطای compile-time بگیرد.
       const _exhaustive: never = strategyName;
-      throw new Error(`Unknown strategy: ${String(_exhaustive)}`);
+      throw developerError(
+        `Unknown strategy: ${String(_exhaustive)}`,
+        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+      );
     }
   }
 }

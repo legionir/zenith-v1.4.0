@@ -31,6 +31,10 @@
 //   Aging: taskهای قدیمی‌تر اولویتشان به تدریج افزایش می‌یابد تا از
 //   گرسنگی (starvation) جلوگیری شود.
 
+// #115 (DEC-031): مسیر واحد انتشار خطا — hub در @zenith/errors (dependency
+// مستقیم؛ مجاز چون errors هیچ وابستگی ندارد و چرخه‌ای نمی‌سازد).
+import { ZenithError, emitError, isErrorRouted, ErrorCode } from '@zenith/errors';
+
 /**
  * سطح اولویت یک Effect — عدد پایین‌تر = اولویت بالاتر.
  */
@@ -211,9 +215,14 @@ function flushQueue(): void {
   try {
     while (queue.size > 0) {
       if (++iterations > MAX_FLUSH_ITERATIONS) {
-        console.error(
-          `[Zenith Scheduler] Infinite loop detected after ${MAX_FLUSH_ITERATIONS} iterations. ` +
-            `Clearing queue to prevent browser freeze. Pending effects are discarded.`,
+        // #115: از طریق hub (دیگر console.error مستقیم نیست).
+        emitError(
+          new ZenithError({
+            code: ErrorCode.INTERNAL_RUNTIME_FAILURE,
+            category: 'Runtime',
+            message: `[Zenith Scheduler] Infinite loop detected after ${MAX_FLUSH_ITERATIONS} iterations. Clearing queue to prevent browser freeze. Pending effects are discarded.`,
+            context: { source: 'scheduler', iterations },
+          }),
         );
         queue.clear();
         hitMaxIterations = true;
@@ -241,7 +250,22 @@ function flushQueue(): void {
         try {
           task.fn();
         } catch (error) {
-          console.error('[Zenith Scheduler] Error in effect:', error);
+          // #115 (DEC-031): انتشار از طریق hub (@zenith/errors)؛ no console.* مستقیم.
+          // اگر خطا خودش از effect آمده (effect قبلاً emit کرده و rethrow کرده)،
+          // دوباره emit نمی‌کنیم (markErrorRouted). Scheduler hook فقط observer است.
+          if (!isErrorRouted(error)) {
+            emitError(
+              error instanceof ZenithError
+                ? error
+                : new ZenithError({
+                    code: ErrorCode.INTERNAL_REACTIVITY_FAILURE,
+                    category: 'Runtime',
+                    message: error instanceof Error ? error.message : String(error),
+                    cause: error,
+                    context: { source: 'scheduler' },
+                  }),
+            );
+          }
           if (_hooks?.onError) {
             try {
               _hooks.onError(task.fn, error);
@@ -261,7 +285,18 @@ function flushQueue(): void {
       try {
         cb();
       } catch (e) {
-        console.error('[Scheduler] afterFlush error:', e);
+        // #115: مسیر واحد hub.
+        emitError(
+          e instanceof ZenithError
+            ? e
+            : new ZenithError({
+                code: ErrorCode.INTERNAL_RUNTIME_FAILURE,
+                category: 'Runtime',
+                message: e instanceof Error ? e.message : String(e),
+                cause: e,
+                context: { source: 'scheduler.afterFlush' },
+              }),
+        );
       }
     }
 

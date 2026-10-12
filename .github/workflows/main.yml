@@ -118,6 +118,9 @@ jobs:
       # must take them as peerDependencies (^range), never as dependencies
       # (state→scheduler core edge excepted), and any src import must be declared.
       - run: npm run peer-rule
+      # #115 (DEC-031): unified error model — throw-allowlist, single ZenithError,
+      # single onError implementation, console.error/warn ceiling (ratchet down only).
+      - run: npm run error-hygiene
 
   package-lint:
     name: Package lint (publint)

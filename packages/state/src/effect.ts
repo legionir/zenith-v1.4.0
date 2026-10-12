@@ -44,6 +44,9 @@ import {
 } from './context';
 import { Priority, setEffectDisposal } from '@zenith/scheduler';
 import { emitError } from './error';
+// #115 (DEC-031): علامت routed تا scheduler خطای rethrowشدهٔ effect را دوباره
+// emit نکند (history تکراری نشود).
+import { markErrorRouted } from '@zenith/errors';
 
 /**
  * IMP-07 (v1.3.0): Global error handler برای Effectها.
@@ -237,7 +240,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
       });
       cleanupQueue = [];
 
-      // Route through centralized error system
+      // Route through the unified error hub (#115 / DEC-031).
       if (typeof options === 'object' && options?.onError) {
         options.onError(err instanceof Error ? err : new Error(String(err)));
       }
@@ -245,10 +248,12 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
         message: err instanceof Error ? err.message : String(err),
         category: 'reactivity',
         severity: 'error',
-        recoverable: true,
         stack: err instanceof Error ? err.stack : undefined,
         context: { effectOwnerId: owner.id },
       });
+      // علامت routed: اگر این Effect از flush سنتزالی scheduler صدا زده شده
+      // و خطا را rethrow کنیم، scheduler دوباره همان را emit نمی‌کند (#115).
+      markErrorRouted(err);
 
       // IMP-07: اگر global error handler تنظیم شده، خطا را به آن بده و
       // Effect را از گراف حذف کن (به جای throw کردن).

@@ -24,7 +24,9 @@ npm install @zenith/error-boundary
 import { showFallback, recoverFromError } from '@zenith/error-boundary';
 ```
 
-> هم‌راستا با `ZenithError` در آینده یکسان می‌شود (issue #115).
+> #115 (DEC-031): مدل خطا یکپارچه شد — این پکیج دیگر listener/history موازی ندارد.
+> `onError`/`reportError`/`errorSignal`/`clearError` wrapper روی hub واحد در
+> `@zenith/errors` هستند و `ZenithError` همان کلاس `@zenith/errors` است.
 
 ## مستندات مرتبط
 

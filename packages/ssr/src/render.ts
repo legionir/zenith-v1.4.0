@@ -19,7 +19,7 @@
 import { flushSync } from '@zenith/scheduler';
 import { inlineServerComponents } from './server-component';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { ssrEnvironmentError } from '@zenith/errors';
+import { ssrEnvironmentError, ZenithError, ErrorCode } from '@zenith/errors';
 // FEATURE (v1.0.0): AsyncLocalStorage برای isolation per-request.
 // به‌جای patch کردن globalThis، globals در یک async-context store ذخیره
 // می‌شوند و globalThis.document و سایر globals به‌عنوان getter تعریف
@@ -266,7 +266,13 @@ export async function renderToString(
   // این تابع داخل runWithRoute (اگر route مشخص شده) اجرا می‌شود.
   const doRender = (): SSRResult => {
     const root = dom.window.document.body.firstElementChild as HTMLElement;
-    if (!root) throw new Error('[Zenith SSR] No root element found.');
+    if (!root)
+      throw new ZenithError({
+        code: ErrorCode.SSR_NO_ROOT_ELEMENT,
+        category: 'SSR',
+        message: 'No root element found.',
+        suggestion: 'root باید به یک element معتبر (مثلاً document.getElementById) اشاره کند.',
+      });
 
     Zen.start(root, state);
     flushSync(); // synchronous — no await gap
@@ -285,9 +291,13 @@ export async function renderToString(
       stateJson = safeScriptValue(JSON.stringify(s));
       // SEC FIX (v1.2.6): SEC-A1 — also reject unsafe routes at the source.
       if (!isRouteSafe(options.route)) {
-        throw new Error(
-          '[Zenith SSR] Refusing to render: route contains `</` which could break out of the hydration script.',
-        );
+        throw new ZenithError({
+          code: ErrorCode.SECURITY_XSS_BLOCKED,
+          category: 'Security',
+          message:
+            'Refusing to render: route contains `</` which could break out of the hydration script.',
+          suggestion: 'route باید از isRouteSafe عبور کند؛ کاراکترهای `</` را حذف/encode کنید.',
+        });
       }
     }
 

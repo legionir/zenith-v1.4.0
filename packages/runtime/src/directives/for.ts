@@ -29,7 +29,12 @@ import { effect, signal, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { zenForNoZenKeyError, zenForInvalidSyntaxError } from '@zenith/errors';
+import {
+  zenForNoZenKeyError,
+  zenForInvalidSyntaxError,
+  ZenithError,
+  ErrorCode,
+} from '@zenith/errors';
 
 /**
  * اطلاعات هر آیتم رندرشده در حلقه.
@@ -359,7 +364,13 @@ export function processFor(
   // این comment به عنوان anchor برای insert/move/delete عمل می‌کند.
   const parent = el.parentElement;
   if (!parent) {
-    throw new Error('[zen-for] Element must have a parent node.');
+    throw new ZenithError({
+      code: ErrorCode.RUNTIME_ZEN_FOR_NO_PARENT,
+      category: 'Runtime',
+      message: 'Element must have a parent node.',
+      suggestion:
+        'عنصر zen-for باید فرزند یک element باشد؛ روی ریشهٔ مستقیم از zen-for استفاده نکنید.',
+    });
   }
   const placeholder = document.createComment(`zen-for: ${listExpr}`);
   parent.replaceChild(placeholder, el);

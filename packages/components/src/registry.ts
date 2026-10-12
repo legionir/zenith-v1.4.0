@@ -1,4 +1,5 @@
 // packages/components/src/registry.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // Component Registry — ثبت و بازیابی قالب‌های کامپوننت‌ها.
 //
@@ -81,12 +82,16 @@ function isHTMLTemplateElement(value: any): value is HTMLTemplateElement {
  */
 export function registerComponent(name: string, template: HTMLTemplateElement): void {
   if (typeof name !== 'string' || name.length === 0) {
-    throw new Error(
-      `[Zenith] Component name must be a non-empty string. Received: ${String(name)}`,
+    throw developerError(
+      `Component name must be a non-empty string. Received: ${String(name)}`,
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
     );
   }
   if (!isHTMLTemplateElement(template)) {
-    throw new Error(`[Zenith] Component "${name}" requires an HTMLTemplateElement.`);
+    throw developerError(
+      `Component "${name}" requires an HTMLTemplateElement.`,
+      ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+    );
   }
   componentRegistry.set(name.toLowerCase(), template);
 }

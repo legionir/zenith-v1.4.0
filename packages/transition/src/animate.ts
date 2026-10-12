@@ -1,4 +1,5 @@
 // packages/transition/src/animate.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // FEATURE (v0.5.0): zen-animate — انیمیشن مبتنی بر Web Animations API.
 //
@@ -182,16 +183,19 @@ export function parseAnimateAttr(value: string): ParsedAnimateAttr {
     .filter((p) => p.length > 0);
 
   if (parts.length === 0) {
-    throw new Error(`[zen-animate] Empty attribute value.`);
+    throw developerError(
+      '[zen-animate] Empty attribute value.',
+      ErrorCode.RUNTIME_DIRECTIVE_EXPRESSION_FAILED,
+    );
   }
 
   // اولین بخش همیشه نام preset است.
   const preset = parts[0]!;
   const keyframes = ANIMATE_PRESETS[preset];
   if (!keyframes) {
-    throw new Error(
-      `[zen-animate] Unknown preset '${preset}'. ` +
-        `Available: ${Object.keys(ANIMATE_PRESETS).join(', ')}.`,
+    throw developerError(
+      `[zen-animate] Unknown preset '${preset}'. Available: ${Object.keys(ANIMATE_PRESETS).join(', ')}.`,
+      ErrorCode.RUNTIME_DIRECTIVE_EXPRESSION_FAILED,
     );
   }
 

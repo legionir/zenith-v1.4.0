@@ -1,136 +1,114 @@
 // packages/error-boundary/src/boundary.ts
 //
-// Error Boundary — قابلیت غایب فاز ۹ (فاز ۱۱).
+// #115 (DEC-031) — error-boundary دیگر سیستم خطای موازی نیست:
+// listener/history/devMode همه در hub (`@zenith/errors`) زندگی می‌کنند و
+// این فایل فقط دو چیز اضافه می‌کند:
+//   1) `errorSignal` — signal سراسری «آخرین خطا» (وابسته به state؛ peer).
+//   2) `reportError(error, source, context)` — enrich کردن خطا با
+//      source/expression/element و feed کردنش به hub (بدون listener محلی).
 //
-// این ماژول دو قابلیت فراهم می‌کند:
-//   1) Global Error Handler: تمام خطاهای runtime در دایرکتیوها و Effectها
-//      به یک handler سراسری گزارش می‌شوند.
-//   2) zen-error Directive: یک boundary محلی که اگر Expression داخلش خطا دهد،
-//      fallback UI نمایش می‌دهد.
-//
-// ── نحوه کار ──
-//
-// Error Boundary با wrap کردن `evaluateExpression` و `effect` کار می‌کند.
-// وقتی خطایی رخ می‌دهد:
-//   1) به global handler گزارش می‌شود (برای logging).
-//   2) اگر در محدوده‌ی یک zen-error باشد، fallback UI نمایش داده می‌شود.
-//   3) اگر نباشد، خطا به console.error می‌رسد (رفتار قبلی).
+// `ZenithError` محلی (interface قدیمی) حذف شد؛ نوع INFO = همان کلاس
+// `ZenithError` از @zenith/errors با فیلدهای اختیاری source/expression/element
+// که reportError ست می‌کند.
 
 import { signal, type Signal } from '@zenith/state';
+import {
+  ZenithError,
+  onError as onErrorFrom,
+  reportError as hubReport,
+  clearErrorHistory,
+  getErrorHistory,
+  errorHubGeneration,
+} from '@zenith/errors';
 
 /**
- * اطلاعات یک خطای رخ‌داده.
+ * اطلاعات یک خطای رخ‌داده — مدل واحد (#115): همان کلاس `ZenithError` از
+ * `@zenith/errors`. فیلدهای مسیر (source/expression/element) همان‌جا
+ * تعریف شده‌اند (element به‌صورت `unknown` تا errors DOM-free بماند؛
+ * مصرف‌کننده‌های DOM آن را به HTMLElement نگاشت می‌کنند).
  */
-export interface ZenithError {
-  /** پیام خطا. */
-  message: string;
-  /** شیء خطای اصلی. */
-  error: Error;
-  /** محل خطا (مثلاً 'expression', 'effect', 'directive'). */
-  source: string;
-  /** Expression که خطا داده (اگر قابل تشخیص باشد). */
-  expression?: string;
-  /** عنصر مرتبط (اگر موجود باشد). */
-  element?: HTMLElement;
-  /** زمان خطا. */
-  timestamp: number;
+export type ZenithErrorInfo = ZenithError;
+
+// #115: کلاس واحد از @zenith/errors re-export می‌شود (همان آبجکت؛ نه wrapper).
+export { ZenithError };
+
+/**
+ * Signal سراسری خطای فعلی. اگر null باشد خطایی وجود ندارد.
+ * listener داخلی روی hub پرش می‌کند — یعنی هر خطایی (directive، effect،
+ * scheduler، emitError مستقیم) errorSignal را آپدیت می‌کند.
+ */
+export const errorSignal: Signal<ZenithErrorInfo | null> = signal<ZenithErrorInfo | null>(null);
+
+// فید داخلی: هر خطای hub روی errorSignal منعکس می‌شود. lazy ثبت می‌شود
+// (sideEffects:false — بدون effect در زمان import): اولین باری که از مسیر
+// boundary (reportError/onError/clearErrorBoundary) عبور می‌کنیم فید ساخته
+// می‌شود؛ اگر hub بین تست‌ها بازنشانی شود (clearErrorHandlers/
+// resetErrorHubForTesting)، ضمانت نسل (generation) فید را دوباره ثبت می‌کند.
+let hubUnsub: (() => void) | null = null;
+let feedGeneration = -1;
+function ensureSignalFeed(): void {
+  const gen = errorHubGeneration();
+  if (hubUnsub && feedGeneration === gen) return;
+  // hub بازنشانی شده (تست‌ها) یا هنوز فید نگرفته‌ایم — دوباره ثبت می‌کنیم.
+  hubUnsub?.();
+  feedGeneration = gen;
+  hubUnsub = onErrorFrom((err) => {
+    errorSignal.set(err);
+  });
 }
 
 /**
- * Signal سراسری خطای فعلی (برای global error handler).
+ * ثبت یک callback برای خطاها — wrapper روی hub (`onError` واحد #115) که
+ * فید errorSignal را هم (lazy) فعال نگه می‌دارد.
  *
- * اگر null باشد، خطایی وجود ندارد.
- * اگر یک ZenithError باشد، می‌توان در UI آن را نمایش داد.
+ * @returns تابع unsubscribe (Cleanup) — idempotent.
  */
-export const errorSignal: Signal<ZenithError | null> = signal<ZenithError | null>(null);
-
-/**
- * لیست callback هایی که روی هر خطا فراخوانی می‌شوند.
- */
-const errorListeners: Array<(error: ZenithError) => void> = [];
-
-/**
- * ثبت یک callback برای خطاها.
- *
- * @param callback تابعی که روی هر خطا فراخوانی شود.
- * @returns تابع unsubscribe.
- */
-export function onError(callback: (error: ZenithError) => void): () => void {
-  errorListeners.push(callback);
-  return () => {
-    const idx = errorListeners.indexOf(callback);
-    if (idx >= 0) errorListeners.splice(idx, 1);
-  };
+export function onError(
+  handler: Parameters<typeof onErrorFrom>[0],
+): ReturnType<typeof onErrorFrom> {
+  ensureSignalFeed();
+  return onErrorFrom(handler);
 }
 
 /**
- * BUG-EB-01: گزارش یک خطا به Error Boundary.
+ * گزارش یک خطا (unknown) به hub با enrich کردن source/expression/element.
  *
- * این تابع:
- *   1) errorSignal را آپدیت می‌کند.
- *   2) تمام listeners را فراخوانی می‌کند.
- *   3) خطا را در console چاپ می‌کند (اگر در development mode باشد).
- *
- * BUG-EB-01: اکنون `unknown` می‌پذیرد و به طور خودکار به `ZenithError`
- * تبدیل می‌کند. این از crash در صورت دریافت مقدار غیر Error جلوگیری می‌کند.
- *
- * @param error   شیء خطا (هر نوعی).
- * @param source  محل خطا.
- * @param context اطلاعات اضافی.
+ * #115: دیگر listener موازی ندارد؛ دقیقاً همان مسیری که directive/effect/
+ * scheduler می‌روند: hub.reportError → emitError → همهٔ onError listenerها
+ * + history + (به‌واسطهٔ فید داخلی) errorSignal. همان instance کلون نمی‌شود.
  */
 export function reportError(
   error: unknown,
   source: string,
   context?: { expression?: string; element?: HTMLElement },
 ): void {
-  const zenithError: ZenithError = {
-    message: error instanceof Error ? error.message : String(error),
-    error: error instanceof Error ? error : new Error(String(error)),
-    source,
-    expression: context?.expression,
-    element: context?.element,
-    timestamp: Date.now(),
-  };
-
-  // آپدیت signal سراسری.
-  errorSignal.set(zenithError);
-
-  // فراخوانی listeners.
-  for (const listener of errorListeners) {
-    try {
-      listener(zenithError);
-    } catch (err) {
-      // خطا در listener نباید کل سیستم را خراب کند.
-      console.error('[Zenith Error Boundary] Error in error listener:', err);
-    }
-  }
-
-  // در development mode، خطا را در console چاپ کن.
-  if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false) {
-    console.error(
-      `[Zenith] Error in ${source}:`,
-      error instanceof Error ? error.message : String(error),
-      {
-        expression: context?.expression,
-        element: context?.element,
-      },
-    );
-  }
+  // بازنشانی فید در صورتی که hub (مثلاً بین تست‌ها) پاک شده باشد.
+  ensureSignalFeed();
+  hubReport(error, source, context);
 }
 
 /**
- * پاکسازی خطای فعلی.
- *
- * این تابع errorSignal را null می‌کند.
+ * پاکسازی خطای فعلی (signal). تاریخچهٔ hub دست‌نخورده می‌ماند
+ * (رفتار قبلی هم همین بود — `clearError` فقط signal را null می‌کرد).
  */
 export function clearError(): void {
   errorSignal.set(null);
 }
 
 /**
- * پاکسازی کامل Error Boundary (برای تست‌ها).
+ * پاکسازی کامل Error Boundary (برای تست‌ها): history + listenerهای hub
+ * + signal. مصرف‌کنندهٔ production نباید صدا بزند.
  */
 export function clearErrorBoundary(): void {
+  if (hubUnsub) {
+    hubUnsub();
+    hubUnsub = null;
+    feedGeneration = -1;
+  }
+  clearErrorHistory();
   errorSignal.set(null);
-  errorListeners.length = 0;
+  ensureSignalFeed();
 }
+
+// دسترسی‌های کمکی برای تست/ادیباگ (#115 شواهد).
+export { getErrorHistory };

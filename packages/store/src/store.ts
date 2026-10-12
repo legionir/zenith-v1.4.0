@@ -51,6 +51,7 @@
 // این الگو شبیه به Vue 3 reactivity است.
 
 import { signal, computed, type Signal } from '@zenith/state';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 /**
  * تعریف یک Store.
@@ -330,7 +331,11 @@ export function defineStore<
         // FIX (v1.2.3): قبلاً فقط console.warn چاپ می‌شد که بی‌سر و صدا نادیده
         // گرفته می‌شد و توسعه‌دهنده متوجه نمی‌شد. حالا throw می‌کند تا خطا
         // زودتر و واضح‌تر دیده شود.
-        throw new Error('[Zenith Store] Cannot reassign store.state. Use $patch() instead.');
+        throw developerError(
+          'Cannot reassign store.state. Use $patch() instead.',
+          ErrorCode.INTERNAL_DEVELOPER_ERROR,
+          { suggestion: 'برای تغییر state از $patch یا اکشن‌ها استفاده کنید.' },
+        );
       },
       $reset() {
         // FIX (v1.2.8): P1-2 — Previously $reset only re-wrapped top-level keys

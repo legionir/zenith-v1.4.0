@@ -2,9 +2,9 @@
 // #143 — فهرست مجاز مرحله‌ای (ratchet) برای قاعدهٔ ESLint `no-console`.
 //
 // SPEC §۲.۳ (قانون ESLint): `no-console` برای src همهٔ پکیج‌ها؛ استثنا فقط
-// consoleSink داخل @zenith/logger. مهاجرت ۶۲ فایل قدیمی (حدود ۳۷۰ فراخوانی
-// console.*) در issue جدا (#39) انجام می‌شود؛ تا آن موقع این فایل *منبع واحد*
-// معافیت‌هاست:
+// consoleSink داخل @zenith/logger. مهاجرت فایل‌های قدیمی (در مبدأ ۶۲ فایل،
+// حدود ۳۷۰ فراخوانی console.*) در issue جدا (#39) انجام می‌شود؛ تا آن موقع
+// این فایل *منبع واحد* معافیت‌هاست:
 //   • eslint.config.mjs این مسیرها را با `no-console: 'off'` override می‌کند.
 //   • scripts/test/no-console-ratchet.test.mjs بررسی می‌کند که فهرست دقیقاً
 //     برابرِ فایل‌های دارای console در src باشد (نه بیشتر — کهنه، نه کمتر —
@@ -30,9 +30,9 @@ export const NO_CONSOLE_RATCHET = [
   'packages/devtools/src/api.ts',
   'packages/devtools/src/graph.ts',
   'packages/devtools/src/hook.ts',
-  'packages/error-boundary/src/boundary.ts',
   'packages/error-boundary/src/directive.ts',
-  'packages/errors/src/index.ts',
+  'packages/errors/src/core.ts',
+  'packages/errors/src/hub.ts',
   'packages/events/src/delegation.ts',
   'packages/events/src/modifiers.ts',
   'packages/form/src/form.ts',
@@ -64,7 +64,6 @@ export const NO_CONSOLE_RATCHET = [
   'packages/ssr/src/server-component.ts',
   'packages/state/src/batch.ts',
   'packages/state/src/effect.ts',
-  'packages/state/src/error.ts',
   'packages/state/src/registry.ts',
   'packages/stateful/src/action-button.ts',
   'packages/stateful/src/auth-view.ts',

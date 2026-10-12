@@ -68,7 +68,8 @@ export function processErrorBoundary(
   // …) bubble up to the global error handler but the boundary never
   // actually swaps in its fallback — leaving the broken UI visible.
   const unsubscribe = onError((zenithError) => {
-    const errEl = zenithError.element;
+    // #115: مدل واحد — element روی ZenithError به‌صورت unknown است (L0 DOM-free).
+    const errEl = zenithError.element as HTMLElement | undefined;
     if (errEl && el.contains(errEl)) {
       // Dispose children first so their effects/observers stop firing.
       for (const d of childDisposes) {

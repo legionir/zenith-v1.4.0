@@ -36,6 +36,7 @@
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { getComponent, trackComponentLifecycle } from './registry';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 // ─────────────────────────────────────────────────────────────────────────
 // BUG-COM-04 (v1.3.0): Circular Dependency Detection
@@ -321,11 +322,12 @@ export function processComponent(
   // reference each other (A → B → A). Throw a clear error immediately
   // instead of recursing into a stack overflow.
   if (_processingStack.has(tagName)) {
-    throw new Error(
-      `[Zenith] Circular component dependency detected: "${tagName}" ` +
+    throw developerError(
+      `Circular component dependency detected: "${tagName}" ` +
         `is already being processed. Check your component nesting — ` +
         `component "${tagName}" should not reference itself ` +
         `(directly or indirectly).`,
+      ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
     );
   }
   _processingStack.add(tagName);

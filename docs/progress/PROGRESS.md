@@ -1,8 +1,8 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
 آخرین issue کامل: #145
-issue در حال انجام: (none)
-بعدی: #115، #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+issue در حال انجام: #115 (کامیت شد؛ در انتظار CI موج)
+بعدی: #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38094314128 (روی HEAD 34dda9e — #145؛ هر ۱۲ job مسدودکننده سبز)
 
@@ -439,3 +439,41 @@ issue در حال انجام: (none)
     dependency-cruiser ۰ نقض / publint 41 / package-fields / license-sync / e2e ۵.
   - CI سبز: run 38094314128 روی 34dda9e (۱۲ job مسدودکننده)؛ issue با چک‌لیست
     تیک‌خورده + کامنت شواهد بسته شد (status:done).
+- #115 انجام شد (موج ۲، DEC-031): یکپارچه‌سازی سه سیستم خطای موازی (state/error-boundary/errors)
+  در **یک hub در `@zenith/errors`** (`src/hub.ts`؛ `index.ts`→`core.ts` با `git mv` + barrel):
+  - hub: `onError` (تک‌پیاده‌سازی، idempotent، Cleanup برگشتی)، `emitError` (history حلقوی ۵۰ +
+    listener ایزوله + sink تزریق‌پذیر `setErrorLogger`؛ fallback `__zenithLog`/console)،
+    `reportError` با **حفظ instance** (لازمهٔ directive zen-error)، `setDevMode/isDevMode`،
+    `markErrorRouted/isErrorRouted` (ضد double-emit effect→scheduler)، `errorHubGeneration`
+    (بازثبت فید errorSignal پس از reset تست)، `resetErrorHubForTesting`.
+  - مدل واحد: کلاس `ZenithError` فیلدهای `severity/hint/timestamp/source/expression/element`
+    گرفت (element `unknown` — L0 DOM-free)؛ `state.ZenithError` شد alias type فقط (deprecated)؛
+    interface موازی error-boundary حذف (`ZenithErrorInfo = ZenithError`)؛ کدهای جدید
+    ZEN-905/906/907/908 + کارخانهٔ `developerError` (`ZEN-NNN: text` + docsUrl).
+  - ۴۰ `throw new Error` به ZenithError/developerError/resourceHttpError تبدیل شد (baseline ۶۶؛
+    ۲۶ باقی‌مانده همگی allowlist: expressions parser، compiler strict-mode، cli/lighthouse،
+    shared/assert، errors/core)؛ `errorSignal`/`onError`/`reportError` boundary شدند wrapper روی
+    hub (فید lazy — sideEffects:false حفظ شد)؛ effect خطا را به hub emit می‌کند و سپس rethrow
+    با علامت routed؛ scheduler emit ZEN-906 (و ZEN-905 برای infinite-loop/afterFlush) با حفظ
+    متن‌های قدیمی؛ `onEffectError`/`SchedulerHooks.onError` observer ماندند.
+  - یال‌های جدید `@zenith/errors` (dep 1.4.0): state، scheduler، error-boundary، actions، auth،
+    components، crud، data، events، resource، service-worker، store، testing، virtual-list،
+    transition (+lockfile)؛ errors خودش L0 بی‌وابستگی ماند (cruiser ۰ نقض؛ dependency edges فقط
+    رو به پایین). dep بلااستفادهٔ compiler حذف شد.
+  - گیت جدید `scripts/error-hygiene.mjs` (`npm run error-hygiene`؛ job deps CI): throw-allowlist،
+    مدل/ZenithError/onError تک‌پیاده‌سازی، ceiling console.error/warn = **۲۰۲** (از baseline ۲۴۷؛
+    فقط رو به پایین — هدف پلکانی #112/#137). ratchet no-console با مهاجرت واقعی کوتاه شد:
+    boundary.ts/error.ts(state) از لیست بیرون (۶۲→۶۱؛ هستهٔ گیت ضدلغزش دست‌نخورده)؛
+    index.ts→core.ts + hub.ts (sink) جانشین شدند.
+  - تست‌ها (red-before-fix): `errors/test/hub.test.ts` (۹) + `unified-error-path.test.ts` (۵؛
+    معیار پذیرش — directive/effect/scheduler هر سه به یک listener + یک history + یک کلاس،
+    errorSignal mirror)؛ state-support به‌روز (contract جدید category Runtime/ZEN-905 + sink).
+    npm test = ۱۰۱۰ سبز (از ۹۹۶)؛ coverage ≥۷۰ سبز.
+  - سازگاری‌ها: `emitError` partial قدیم را normalize می‌کند (lowercase→PascalCase، recoverable
+    نادیده)؛ `Zen.reportError(message, opts)` همان امضا؛ `emitError` از state re-export؛
+    اتریبیوت zen-error با instance-identity کار می‌کند. `.size-limit` ردیف runtime ۵۰→۵۱kB
+    (افزودن اجتناب‌ناپذیر hub؛ در DEC-031 ثبت — بی‌تغییر در آستانه‌های هسته).
+  - گیت‌های محلی سبز: lint ۰ error / format / typecheck 41 / test ۱۰۱۰ / coverage / build 40 /
+    deps (cruiser ۰ نقض) / deps:unused ۰ / peer-rule / error-hygiene / peer:single-instance /
+    publint (مثل baseline) / size-limit / e2e ۵ (fixture importmap + errors) / package-fields /
+    license-sync.

@@ -6,6 +6,7 @@ import {
   getErrorHistory,
   clearErrorHistory,
   errorBoundary,
+  setErrorLogger,
   setDevMode,
   isDevMode,
 } from '@zenith/state';
@@ -66,9 +67,13 @@ describe('error system (#115 model)', () => {
       throw new Error('inner');
     }, 'directive');
     expect(fn()).toBeUndefined();
-    expect(getErrorHistory().some((e) => e.message === 'inner' && e.category === 'directive')).toBe(
-      true,
-    );
+    // #115: مدل واحد — category رشته‌ای قدیمی ('directive') به Runtime نگاشت
+    // می‌شود و ZenithError یک کلاس با code است (نه interface موازی).
+    expect(
+      getErrorHistory().some(
+        (e) => e.message === 'inner' && e.category === 'Runtime' && e.code === 'ZEN-905',
+      ),
+    ).toBe(true);
     const ok = errorBoundary(() => 42, 'directive');
     expect(ok()).toBe(42);
   });
@@ -76,19 +81,18 @@ describe('error system (#115 model)', () => {
   it('devMode toggles', () => {
     setDevMode(true);
     expect(isDevMode()).toBe(true);
-    const spy = vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {});
-    vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'groupEnd').mockImplementation(() => {});
+    // #115: مسیر log از طریق sink تزریق‌پذیر است (بدون console.* مستقیم در hub).
+    const logs: Array<{ severity: string; title: string }> = [];
+    setErrorLogger((severity, title) => logs.push({ severity, title }));
     emitError({
       message: 'dev',
       category: 'security',
       severity: 'warning',
-      recoverable: true,
       hint: 'h',
       context: { a: 1 },
     });
-    expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    expect(logs.some((l) => l.severity === 'warning' && l.title.includes('Security'))).toBe(true);
+    setErrorLogger(null);
     setDevMode(false);
     expect(isDevMode()).toBe(false);
   });

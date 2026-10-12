@@ -44,6 +44,7 @@
 //   </div>
 
 import { signal, type Signal } from '@zenith/state';
+import { developerError, resourceHttpError, ErrorCode } from '@zenith/errors';
 
 /**
  * وضعیت کاربر فعلی.
@@ -270,7 +271,9 @@ export class Auth {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
-        throw new Error(errorData.message || 'Login failed');
+        throw developerError(errorData.message || 'Login failed', ErrorCode.RESOURCE_HTTP_ERROR, {
+          category: 'Network',
+        });
       }
 
       const data = await res.json();
@@ -282,7 +285,10 @@ export class Auth {
       const expiresIn = data[this._config.expiresInField];
 
       if (!token) {
-        throw new Error('No token in response');
+        throw developerError('No token in response', ErrorCode.RESOURCE_HTTP_ERROR, {
+          category: 'Network',
+          suggestion: 'پاسخ login باید فیلد token را داشته باشد (tokenField در config).',
+        });
       }
 
       const expiry = expiresIn ? Date.now() + expiresIn * 1000 : null;
@@ -440,7 +446,7 @@ export class Auth {
           await this.logout();
           return false;
         }
-        throw new Error(`HTTP ${res.status}`);
+        throw resourceHttpError(this._config.meUrl, res.status, res.statusText);
       }
 
       const user = await res.json();
@@ -1067,7 +1073,13 @@ function tokenStorage(): ZenithStorage {
     migrate: (old) => old,
     validate: (v) => {
       if (!v || typeof v !== 'object' || typeof (v as AuthTokens).accessToken !== 'string') {
-        throw new Error('invalid AuthTokens shape');
+        throw developerError(
+          'invalid AuthTokens shape',
+          ErrorCode.SECURITY_INSECURE_TOKEN_STORAGE,
+          {
+            category: 'Security',
+          },
+        );
       }
       return v;
     },
@@ -1203,7 +1215,10 @@ export async function logout(notifyServer = true): Promise<void> {
 export async function refreshToken(): Promise<AuthTokens | null> {
   const currentTokens = functionalTokens.get();
   if (!currentTokens?.refreshToken) {
-    throw new Error('No refresh token available');
+    throw developerError('No refresh token available', ErrorCode.RESOURCE_DESTROYED, {
+      category: 'Resource',
+      suggestion: 'ابتدا login کنید تا refreshToken ذخیره شود.',
+    });
   }
 
   try {

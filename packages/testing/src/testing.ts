@@ -10,6 +10,7 @@
 import { signal, effect, computed, createRoot } from '@zenith/state';
 import type { Signal, ReadonlySignal } from '@zenith/state';
 import { flushSync, nextTick } from '@zenith/scheduler';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 // ============================================================
 // Test Harness - isolated reactivity environment
@@ -119,7 +120,10 @@ export async function waitFor(
     await new Promise((r) => setTimeout(r, interval));
   }
 
-  throw new Error(`waitFor timed out after ${timeout}ms`);
+  throw developerError(`waitFor timed out after ${timeout}ms`, ErrorCode.INTERNAL_UNKNOWN, {
+    category: 'Internal',
+    suggestion: 'مهلت را زیاد کنید یا شرط را بررسی کنید.',
+  });
 }
 
 // ============================================================

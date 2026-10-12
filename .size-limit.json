@@ -2,7 +2,7 @@
   {
     "name": "runtime browser bundle (minified, gzipped)",
     "path": "browser-bundles/zenith-runtime.js",
-    "limit": "50 kb"
+    "limit": "51 kb"
   },
   {
     "name": "@zenith/state",

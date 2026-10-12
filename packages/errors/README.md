@@ -42,7 +42,22 @@ try {
 | ZEN-600 to ZEN-699 | Router                 | ZEN-601 (route not found)                                    |
 | ZEN-700 to ZEN-799 | Form                   | ZEN-701 (validation failed)                                  |
 | ZEN-800 to ZEN-899 | Component              | ZEN-801 (slot not found)                                     |
-| ZEN-900 to ZEN-999 | Internal               | ZEN-901 (unknown)                                            |
+| ZEN-900 to ZEN-999 | Internal               | ZEN-901 (unknown), ZEN-905 (runtime), ZEN-906 (reactivity), ZEN-907 (developer), ZEN-908 (hydration) |
+
+## hub خطای سراسری (#115، DEC-031)
+
+`@zenith/errors` تنها مسیر انتشار خطاست (state/error-boundary wrapper روی همین hub دارند):
+
+- `onError(handler): () => void` — ثبت listener؛ برگشتی unsubscribe (idempotent).
+- `emitError(input)` — انتشار ZenithError (یا partial سازگار-با-قدیم؛ normalize می‌شود) به
+  listenerها + history حلقوی (۵۰) + logger.
+- `reportError(error, source, context?)` — تبدیل/engrich خطای unknown با حفظ **همان instance**
+  (لازمهٔ directive `zen-error`) و انتشار از مسیر `emitError`.
+- `setErrorLogger(fn | null)` — تزریق sink لاگ (پیش‌فرض: `globalThis.__zenithLog` یا console).
+- `developerError(message, code?, opts?)` — خطای misuse با فرمت `ZEN-NNN: text` + docsUrl.
+- `getErrorHistory/clearErrorHistory/clearErrorHandlers/setDevMode/isDevMode`.
+- `markErrorRouted/isErrorRouted` — علامت‌گذاری برای جلوگیری از double-emit (effect→scheduler).
+- `resetErrorHubForTesting()` — بازنشانی کامل بین تست‌ها (نسل hub را افزایش می‌دهد).
 
 ### بازه‌های ۴رقمی (پکیج‌های جدید — #171، DEC-020)
 

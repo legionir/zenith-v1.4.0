@@ -1,4 +1,5 @@
 import { effect, signal, untrack, type ReadonlySignal, type Signal } from '@zenith/state';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 export type VirtualListDirection = 'vertical' | 'horizontal';
 export type ScrollAlignment = 'start' | 'center' | 'end';
@@ -84,7 +85,12 @@ export function registerVirtualListNodeDisposes(node: HTMLElement, disposes: (()
 function resolveContainer(container: HTMLElement | string): HTMLElement {
   if (typeof container !== 'string') return container;
   const element = document.querySelector<HTMLElement>(container);
-  if (!element) throw new Error(`[virtual-list] Container '${container}' was not found.`);
+  if (!element)
+    throw developerError(
+      `Container '${container}' was not found.`,
+      ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+      { suggestion: 'کانتینر باید قبل از createVirtualList در DOM موجود باشد.' },
+    );
   return element;
 }
 
@@ -131,7 +137,11 @@ function itemChanged(a: unknown, b: unknown): boolean {
  */
 export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualListApi<T> {
   if (typeof document === 'undefined') {
-    throw new Error('[virtual-list] createVirtualList requires a browser DOM.');
+    throw developerError(
+      'createVirtualList requires a browser DOM.',
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+      { suggestion: 'در SSR از @zenith/ssr استفاده کنید یا ساخت لیست را به مرورگر موکول کنید.' },
+    );
   }
 
   const container = resolveContainer(options.container);
