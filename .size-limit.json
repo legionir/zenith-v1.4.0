@@ -58,5 +58,10 @@
     "name": "@zenith/devtools-core",
     "path": "packages/devtools-core/dist/index.js",
     "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/runtime-core",
+    "path": "packages/runtime-core/dist/index.js",
+    "limit": "8 kb"
   }
 ]

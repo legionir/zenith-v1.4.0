@@ -1327,3 +1327,36 @@ export {
   type FunctionalAuthConfig,
   type RouteGuard,
 } from '@zenith/auth';
+
+/**
+ * #148 (SPEC §۲.۸): بازصادرات API مدل createApp از `@zenith/runtime-core`.
+ */
+export {
+  createApp,
+  defaultApp,
+  resetDefaultAppForTesting,
+  defineDirective,
+  definePlugin,
+  onMount,
+  onUnmount,
+  onUpdate,
+  provide,
+  inject,
+  useApp,
+  assertCompatible,
+  hydrate,
+  startFromSSR,
+  appOptions,
+  APP_OPTIONS_DEFAULTS,
+  appOptionsSchema,
+  resolveAppOptions,
+  type App,
+  type AppOptions,
+  type ResolvedAppOptions,
+  type DirectiveDefinition,
+  type BindContext,
+  type SsrContext,
+  type Plugin as RuntimeCorePlugin,
+  type HydrationResult,
+  type HydrationMismatch,
+} from '@zenith/runtime-core';
