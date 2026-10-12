@@ -21,10 +21,16 @@ npm install @zenith/stateful
 حالت‌های loading/error/empty به‌صورت خودکار بین slotهای داخلی سوییچ می‌شوند؛ در success تمپلیت کاربر روی هر آیتم clone می‌شود.
 
 ```typescript
-import { installStatefulComponents } from '@zenith/stateful';
+// مسیر canonical (#117 — تک‌مسیر نصب):
+import { Zen } from '@zenith/runtime';
+import { ZenithStatefulPlugin } from '@zenith/stateful';
 
-const dispose = installStatefulComponents();
+Zen.use(ZenithStatefulPlugin);
 ```
+
+> `installStatefulComponents()` همچنان کار می‌کند اما alias منسوخ‌شونده است
+> (**ZEN-DEPR-026** — هشدار یک‌بار در dev؛ حذف در ۲.۰ طبق DEC-026) و یک
+> `Cleanup` idempotent برای unregister برمی‌گرداند.
 
 ## مستندات مرتبط
 

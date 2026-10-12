@@ -49,7 +49,9 @@
 - اسکریپت گیت `scripts/error-hygiene.mjs`: `throw new Error` بدون allowlist، `export interface ZenithError`،
   export عمومی `onError` خارج از errors/hub، و ceiling شمارش `console.error/warn` در packages/*/src
   را در CI بررسی می‌کند. ceiling واقعی: **۲۰۲** (از baseline ۲۴۷ در این موج کاهش یافت؛ هدف‌های
-  پلکانی ۱۲۰/۸۰/۴۰ در #112/#137 و موج‌های بعدی — فقط رو به پایین).
+  پلکانی ۱۲۰/۸۰/۴۰ در #112/#137 و موج‌های بعدی — فقط رو به پایین). به‌روزرسانی #117: ceiling به
+  **۲۰۱** پایین آمد (تک‌مسیر نصب stateful ⇒ حذف یک `console.warn` تکراری؛ #116 هم دو لاگ
+  dispose-catch را به hub منتقل کرد — ۲۰۲ حفظ شد).
 
 گزینه‌ها: (الف) hub در `state` — رد: state L1 است و L0ها (logger/http/i18n…) نمی‌توانند import
 کنند؛ (ب) پکیج جدید `@zenith/error-hub` — رد: حجم API کوچک است و errors همین حالا مرجع کد/کلاس

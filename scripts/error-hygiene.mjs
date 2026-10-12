@@ -35,11 +35,12 @@ const THROW_ALLOWLIST = {
 
 // ceiling شمارش console.error/console.warn در src — فقط رو به پایین (DEC-031:
 // «حذف پیشوندهای اختصاصی و console.* مستقیم در error-path»؛ ۲۰۲ از baseline ۲۴۷
-// در #115؛ هدف‌های ۱۲۰/۸۰/۴۰ پلکانی در #112/#137 و موج‌های بعدی).
+// در #115؛ ۲۰۱ در #117 (تک‌مسیر نصب stateful ⇒ حذف یک console.warn تکراری)؛
+// هدف‌های ۱۲۰/۸۰/۴۰ پلکانی در #112/#137 و موج‌های بعدی).
 // پایین‌آوردن ceiling آزاد، بالا بردن آن باید در DEC ثبت شود.
 // توجه: باقی‌مانده‌ها عمدتاً لاگ‌های غیرerror-path (debug/diagnostic) یا فایل‌های
 // allowlist-شده (cli/compiler/vite-plugin tooling) هستند که در #137 هدف‌گیری می‌شوند.
-const CONSOLE_CEILING = 202;
+const CONSOLE_CEILING = 201;
 
 function listSources(dir) {
   const out = [];

@@ -33,7 +33,7 @@
 
 // #115 (DEC-031): مسیر واحد انتشار خطا — hub در @zenith/errors (dependency
 // مستقیم؛ مجاز چون errors هیچ وابستگی ندارد و چرخه‌ای نمی‌سازد).
-import { ZenithError, emitError, isErrorRouted, ErrorCode } from '@zenith/errors';
+import { ZenithError, emitError, isErrorRouted, ErrorCode, deprecate } from '@zenith/errors';
 
 /**
  * سطح اولویت یک Effect — عدد پایین‌تر = اولویت بالاتر.
@@ -185,9 +185,18 @@ export function scheduleEffect(
 }
 
 /**
- * Alias سازگار با diff — schedule همان scheduleEffect است.
+ * @deprecated #117 — یک نام مبنا برای ثبت Effect: `scheduleEffect`.
+ * `schedule` تنها یک alias سازگار است که یک‌بار ZEN-DEPR-025 هشدار می‌دهد و
+ * به `scheduleEffect` delegate می‌کند (حذف در ۲.۰ — DEC-026).
  */
-export const schedule = scheduleEffect;
+export function schedule(
+  effectFn: () => void,
+  priority: PriorityInput = Priority.normal,
+  disposed?: () => boolean,
+): void {
+  deprecate('ZEN-DEPR-025', 'schedule()', 'scheduleEffect()');
+  scheduleEffect(effectFn, priority, disposed);
+}
 
 /**
  * ثبت callback disposed برای یک Effect function.

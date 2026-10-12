@@ -181,7 +181,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (24 after #116 cleanup protocol)', () => {
+  it('contains exactly the issued codes with api/replacement (26 after #117 naming unification)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -210,6 +210,9 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       'ZEN-DEPR-022',
       'ZEN-DEPR-023',
       'ZEN-DEPR-024',
+      // #117 — یکدست‌سازی نام/مسیر (schedule→scheduleEffect، stateful تک‌مسیر نصب)
+      'ZEN-DEPR-025',
+      'ZEN-DEPR-026',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');

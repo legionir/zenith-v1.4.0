@@ -872,6 +872,17 @@ export const DEPRECATION_CODES: Readonly<
     replacement: 'SWController.dispose()',
     removedIn: '2.0.0',
   },
+  // #117 — یکدست‌سازی نام/مسیر: schedule alias شد؛ نصب stateful تک‌مسیر.
+  'ZEN-DEPR-025': {
+    api: 'schedule() (@zenith/scheduler)',
+    replacement: 'scheduleEffect()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-026': {
+    api: 'installStatefulComponents()',
+    replacement: 'Zen.use(ZenithStatefulPlugin)',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
