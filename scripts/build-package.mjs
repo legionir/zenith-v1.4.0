@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
-import { existsSync, rmSync, mkdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
 
 /**
@@ -122,6 +123,42 @@ export async function buildPackage(pkgName) {
       outfile: join(outDir, `${name}.js`),
       format: 'esm',
     });
+
+    // #149: Browser IIFE bundle (window.Zenith) + external sourcemap + SRI
+    if (name === 'browser') {
+      const iifeOut = join(outDir, 'browser.global.js');
+      const workspaceSourcePlugin = {
+        name: 'zenith-workspace-src',
+        setup(b) {
+          b.onResolve({ filter: /^@zenith\// }, (args) => {
+            const sub = args.path.slice('@zenith/'.length);
+            const parts = sub.split('/');
+            const slug = parts[0];
+            const rest = parts.slice(1).join('/') || 'index';
+            const candidate = resolve('./packages', slug, 'src', `${rest}.ts`);
+            if (existsSync(candidate)) {
+              return { path: candidate };
+            }
+            return null;
+          });
+        },
+      };
+      await build({
+        entryPoints: [subEntry],
+        bundle: true,
+        outfile: iifeOut,
+        format: 'iife',
+        globalName: 'Zenith',
+        platform: 'browser',
+        target: 'es2022',
+        minify: true,
+        sourcemap: 'external',
+        plugins: [workspaceSourcePlugin],
+      });
+      const bytes = readFileSync(iifeOut);
+      const sri = 'sha384-' + createHash('sha384').update(bytes).digest('base64');
+      writeFileSync(`${iifeOut}.sri`, `${sri}\n`, 'utf8');
+    }
   }
 
   // Type declarations via tsc

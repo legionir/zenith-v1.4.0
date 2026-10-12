@@ -63,5 +63,25 @@
     "name": "@zenith/runtime-core",
     "path": "packages/runtime-core/dist/index.js",
     "limit": "8 kb"
+  },
+  {
+    "name": "zenith (core)",
+    "path": "packages/zenith/dist/core.js",
+    "limit": "3 kb"
+  },
+  {
+    "name": "zenith (preset: minimal)",
+    "path": "packages/zenith/dist/presets/minimal.js",
+    "limit": "3 kb"
+  },
+  {
+    "name": "zenith (preset: spa)",
+    "path": "packages/zenith/dist/presets/spa.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "zenith (preset: full)",
+    "path": "packages/zenith/dist/presets/full.js",
+    "limit": "5 kb"
   }
 ]

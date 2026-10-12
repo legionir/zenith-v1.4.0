@@ -28,6 +28,19 @@ const alias: AliasEntry[] = [
     find: /^@zenith\/storage\/signal$/,
     replacement: join(packagesDir, 'storage/src/signal.ts'),
   },
+  // #149 — پکیج چتر `zenith` و زیرمسیرهای SPEC §۲.۹
+  {
+    find: /^zenith\/presets\/(minimal|spa|full)$/,
+    replacement: join(packagesDir, 'zenith/src/presets/$1.ts'),
+  },
+  {
+    find: /^zenith\/(core|ssr|testing|browser)$/,
+    replacement: join(packagesDir, 'zenith/src/$1.ts'),
+  },
+  {
+    find: /^zenith$/,
+    replacement: join(packagesDir, 'zenith/src/index.ts'),
+  },
 ];
 for (const dir of readdirSync(packagesDir)) {
   const src = join(packagesDir, dir, 'src', 'index.ts');

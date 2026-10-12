@@ -385,10 +385,12 @@ export function definePlugin<O = any>(plugin: Plugin<O>): Plugin<O> {
   return plugin;
 }
 
+export const ZENITH_RUNTIME_CORE_VERSION = '1.5.0';
+
 /**
  * بررسی سازگاری lockstep نسخه‌های پکیج‌های `@zenith/*` (SPEC §۲.۸؛ خطای `ZEN-2320`).
  */
-export function assertCompatible(versions: Record<string, string>): void {
+export function assertCompatible(versions: Record<string, string> = {}): void {
   const entries = Object.entries(versions);
   if (entries.length <= 1) return;
   const parseMajorMinor = (v: string): string | null => {
@@ -1192,13 +1194,18 @@ export function createApp(options?: AppOptions): App {
       if (def.meta) {
         defineDirectiveMeta(def.meta);
       }
+      const attrKey = def.name.startsWith('zen-') ? def.name : `zen-${def.name}`;
       directives.set(def.name, def);
+      directives.set(attrKey, def);
       let removed = false;
       return () => {
         if (removed) return;
         removed = true;
         if (directives.get(def.name) === def) {
           directives.delete(def.name);
+        }
+        if (directives.get(attrKey) === def) {
+          directives.delete(attrKey);
         }
       };
     },

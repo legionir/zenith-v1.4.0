@@ -33,7 +33,7 @@ export function checkPeerRule(packagesDir, currentVersion = '1.4.0') {
   for (const dir of dirs) {
     const pkgPath = join(packagesDir, dir, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-    if (pkg.name !== `@zenith/${dir}`) continue;
+    if (pkg.name !== `@zenith/${dir}` && !(dir === 'zenith' && pkg.name === 'zenith')) continue;
     if (TARGETS.includes(pkg.name)) continue; // خودِ state/scheduler بررسی نمی‌شوند
 
     // فقط src (runtime) — import در test در ورک‌اسپس اجرا می‌شود و peer لازم ندارد.

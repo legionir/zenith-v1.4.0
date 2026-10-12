@@ -124,7 +124,7 @@ export function findUnused(packagesDir, dirsOverride) {
     const pkgPath = join(packagesDir, dir, 'package.json');
     if (!existsSync(pkgPath)) continue;
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-    if (pkg.name !== `@zenith/${dir}`) continue; // فقط پکیج‌های zenith
+    if (pkg.name !== `@zenith/${dir}` && !(dir === 'zenith' && pkg.name === 'zenith')) continue; // فقط پکیج‌های zenith
     checked += 1;
     const used = collectUsed(join(packagesDir, dir));
     for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
