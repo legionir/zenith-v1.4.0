@@ -1,4 +1,5 @@
 // packages/ssr/src/server-component.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
 // رندر می‌شوند و در کلاینت hydrate نمی‌شوند. این مزیت بزرگ Zenith نسبت
@@ -64,13 +65,21 @@ const serverComponentRegistry = new Map<string, ServerComponent>();
  * اگر قبلاً با همین نام ثبت شده، overwrite می‌شود (برای HMR مفید است).
  *
  * @throws اگر comp نامعتبر باشد (بدون name یا render).
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           comp را حذف می‌کند که همان name هنوز به همین comp نگاشت شده باشد.
  */
-export function registerServerComponent(comp: ServerComponent): void {
+export function registerServerComponent(comp: ServerComponent): () => void {
   if (!comp || typeof comp.name !== 'string' || comp.name.length === 0) {
-    throw new Error('[Zenith SSR] Invalid ServerComponent: name is required.');
+    throw developerError(
+      'Invalid ServerComponent: name is required.',
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+    );
   }
   if (typeof comp.render !== 'function') {
-    throw new Error(`[Zenith SSR] Invalid ServerComponent "${comp.name}": render() must be a function.`);
+    throw developerError(
+      `Invalid ServerComponent "${comp.name}": render() must be a function.`,
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+    );
   }
   // BUG-SSR-03 FIX (v1.3.0): اگر کامپوننتی با همین نام از قبل ثبت شده باشد،
   // در حالت توسعه یک هشدار چاپ کن. این برای HMR مفید است اما overwrite
@@ -78,11 +87,19 @@ export function registerServerComponent(comp: ServerComponent): void {
   if (serverComponentRegistry.has(comp.name)) {
     console.warn(
       `[Zenith SSR] ServerComponent "${comp.name}" is being overwritten. ` +
-      `This is expected during HMR, but if it happens at startup, ` +
-      `check for duplicate registrations or conflicting component names.`
+        `This is expected during HMR, but if it happens at startup, ` +
+        `check for duplicate registrations or conflicting component names.`,
     );
   }
   serverComponentRegistry.set(comp.name, comp);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (serverComponentRegistry.get(comp.name) === comp) {
+      serverComponentRegistry.delete(comp.name);
+    }
+  };
 }
 
 /**
@@ -178,7 +195,11 @@ export async function renderServerComponent(
   // اگر render خالی برگرداند یا non-string، آن را به string تبدیل کن.
   if (html == null) html = '';
   if (typeof html !== 'string') {
-    try { html = String(html); } catch { html = ''; }
+    try {
+      html = String(html);
+    } catch {
+      html = '';
+    }
   }
 
   return `${open}${html}${close}`;
@@ -466,8 +487,7 @@ async function singlePass(
     const tag = tags[i]!;
     const replacement = rendered[i];
     if (typeof replacement !== 'string') continue;
-    result =
-      result.slice(0, tag.start) + replacement + result.slice(tag.end);
+    result = result.slice(0, tag.start) + replacement + result.slice(tag.end);
   }
 
   return result;

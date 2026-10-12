@@ -36,7 +36,7 @@ import { getAction } from '@zenith/actions';
 import { flushSync } from '@zenith/scheduler';
 import { navigate } from '@zenith/router';
 // Bug Fix #2: اولویت urgent برای event handlers.
-import { setCurrentPriority } from '@zenith/state';
+import { setCurrentPriority, isReadable } from '@zenith/state';
 // FIX (v1.2.7): Action errors now reported to error boundary so a
 // zen-error ancestor can show its fallback UI when an action throws.
 import { reportError } from '@zenith/error-boundary';
@@ -213,13 +213,9 @@ function createContextForEval(state: Record<string, any>): Record<string, any> {
   for (const key in state) {
     const ctxKey = key.startsWith('$') ? key : `$${key}`;
     const item = state[key];
-    if (
-      item !== null &&
-      typeof item === 'object' &&
-      typeof item.get === 'function' &&
-      typeof item.set === 'function'
-    ) {
-      // Signal: به getter تبدیل می‌شود تا در حین ارزیابی unwrap شود.
+    if (isReadable(item)) {
+      // Signal / Computed (#187: فقط get کافی است): به getter تبدیل می‌شود تا
+      // در حین ارزیابی unwrap شود.
       Object.defineProperty(context, ctxKey, {
         get: () => item.get(),
         enumerable: true,
@@ -447,7 +443,7 @@ function delegateEvent(
       event.preventDefault();
       const path = linkEl.getAttribute('zen-link') || linkEl.getAttribute('href');
       if (path) {
-        navigate(path);
+        void navigate(path);
         flushSync();
       } else {
         console.warn('[Zenith] <a zen-link> has no path (neither zen-link nor href attribute).');
@@ -491,10 +487,7 @@ function delegateEvent(
           const ctx = createContextForEval(state);
           args = parsed.argExprs.map((expr) => evaluateExpression(expr, ctx));
         } catch (err) {
-          console.error(
-            `[Zenith] Failed to evaluate args for action "${actionName}":`,
-            err,
-          );
+          console.error(`[Zenith] Failed to evaluate args for action "${actionName}":`, err);
           reportError(err as Error, 'action', { element });
           flushSync();
           return;
@@ -541,7 +534,11 @@ function delegateEvent(
           const cached = timedHandlerCache.get(element);
           if (cached) {
             for (const [, wrapper] of cached) {
-              try { wrapper.cancel(); } catch { /* ignore */ }
+              try {
+                wrapper.cancel();
+              } catch {
+                /* ignore */
+              }
             }
             cached.clear();
           }
@@ -554,8 +551,7 @@ function delegateEvent(
     };
 
     // FIX (v1.2.7): wire applyTimingModifiers for .debounce / .throttle.
-    const hasTiming =
-      modifiers.includes('debounce') || modifiers.includes('throttle');
+    const hasTiming = modifiers.includes('debounce') || modifiers.includes('throttle');
     if (hasTiming) {
       const cacheKey = `${eventName}:${actionName}`;
       let elementCache = timedHandlerCache.get(element);
@@ -657,7 +653,11 @@ export function initEventDelegation(
     // FIX (v1.2.7): cancel pending debounce/throttle timers.
     for (const elementCache of timedHandlerCache.values()) {
       for (const wrapped of elementCache.values()) {
-        try { wrapped.cancel(); } catch { /* ignore */ }
+        try {
+          wrapped.cancel();
+        } catch {
+          /* ignore */
+        }
       }
       elementCache.clear();
     }

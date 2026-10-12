@@ -44,6 +44,9 @@
 import { signal, effect, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
+// #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
+import { createCache } from '@zenith/cache';
+import { resourceHttpError } from '@zenith/errors';
 
 /**
  * شکل وضعیت fetch.
@@ -66,7 +69,7 @@ function initialFetchState(): FetchState {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Cache Layer (IMP-DAT-02: SWR-like caching)
+// Cache Layer (IMP-DAT-02: SWR-like caching) — #144: روی @zenith/cache
 // ═══════════════════════════════════════════════════════════════════════
 
 interface CacheEntry {
@@ -74,10 +77,14 @@ interface CacheEntry {
   timestamp: number;
 }
 
-const _fetchCache = new Map<string, CacheEntry>();
-
 /** حداکثر تعداد entries در کش (eviction policy ساده). */
 const _CACHE_MAX_SIZE = 100;
+
+// ظرفیت و پاک‌سازی LRU به عهدهٔ @zenith/cache؛ TTL همچنان پارامتری است
+// ( getCachedData(url, ttl) معنی قدیمی را حفظ می‌کند: entry از ttl
+// گذشته باشد ⇒ null). entry در @zenith/cache با ttl='never' ذخیره می‌شود
+// و اعتبارسنجی سن همین‌جا انجام می‌گیرد تا معیار دقیقاً مثل قبل بماند.
+const _fetchCache = createCache<CacheEntry>({ ttl: 'never', maxSize: _CACHE_MAX_SIZE });
 
 /**
  * دریافت داده از کش در صورت معتبر بودن (داخل TTL).
@@ -87,7 +94,8 @@ const _CACHE_MAX_SIZE = 100;
  * @returns داده‌ی کش‌شده یا `null`.
  */
 export function getCachedData(url: string, ttl: number): any | null {
-  const entry = _fetchCache.get(url);
+  // peek: بدون تغییر ترتگی؛ انقضای پارامتری اینجاست (entry خودش never است)
+  const entry = _fetchCache.peek(url);
   if (entry && Date.now() - entry.timestamp < ttl) {
     return entry.data;
   }
@@ -96,16 +104,12 @@ export function getCachedData(url: string, ttl: number): any | null {
 
 /**
  * ذخیره‌سازی داده در کش.
- * اگر کش از حداکثر ظرفیت بیشتر شود، قدیمی‌ترین entry حذف می‌شود.
+ * اگر کش از حداکثر ظرفیت بیشتر شود، @zenith/cache قدیمی‌ترین را حذف می‌کند.
  *
  * @param url  کلید کش.
  * @param data داده‌ای که کش می‌شود.
  */
 export function setCachedData(url: string, data: any): void {
-  if (_fetchCache.size >= _CACHE_MAX_SIZE) {
-    const firstKey = _fetchCache.keys().next().value;
-    if (firstKey !== undefined) _fetchCache.delete(firstKey);
-  }
   _fetchCache.set(url, { data, timestamp: Date.now() });
 }
 
@@ -131,9 +135,11 @@ export function processFetchWithCache(url: string, ttl: number = 30000): Promise
   if (cached !== null) {
     // بازگشت فوری داده + به‌روزرسانی در پس‌زمینه
     fetch(url)
-      .then(res => res.json())
-      .then(data => setCachedData(url, data))
-      .catch(() => { /* سکوت — داده قدیمی هنوز موجود است */ });
+      .then((res) => res.json())
+      .then((data) => setCachedData(url, data))
+      .catch(() => {
+        /* سکوت — داده قدیمی هنوز موجود است */
+      });
     return Promise.resolve(cached);
   }
   return fetch(url).then(async (res) => {
@@ -260,11 +266,20 @@ async function performFetch(
       await new Promise((resolve) => setTimeout(resolve, delay));
       // اگر در حین تأخیر، fetch دیگری شروع شده، تلاش مجدد را لغو کن.
       if (fetchId !== getCurrentFetchId()) return;
-      return performFetch(url, signal, fetchId, getCurrentFetchId, new AbortController(), method, body, retryCount + 1);
+      return performFetch(
+        url,
+        signal,
+        fetchId,
+        getCurrentFetchId,
+        new AbortController(),
+        method,
+        body,
+        retryCount + 1,
+      );
     }
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      throw resourceHttpError(url, res.status, res.statusText);
     }
 
     // تلاش برای parse کردن JSON. اگر نشد، text برمی‌گردانیم.
@@ -319,7 +334,8 @@ async function performFetch(
  * @param context         Context والد.
  * @param processChildren callback برای walk فرزندان.
  *                        امضا: (node, context, disposes) => void
- * @param disposes        آرایه‌ی dispose functions والد.
+ * @param disposes        آرایه‌ی dispose functions والد (سازگاری — #116).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` → `Cleanup`).
  */
 export function processFetch(
   el: HTMLElement,
@@ -331,13 +347,14 @@ export function processFetch(
     disposes: (() => void)[],
   ) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   // ── ۱. گرفتن attributeها ──
   // HTML attribute names case-insensitive هستند و DOM آن‌ها را lowercase می‌کند.
   const stateName = el.getAttribute('zen-state') || 'data';
 
   // BUG-DAT-03: متد HTTP (GET, POST, PUT, DELETE)
-  const method = (el.getAttribute('zen-fetch-method')?.toUpperCase() as RequestInit['method']) ?? 'GET';
+  const method =
+    (el.getAttribute('zen-fetch-method')?.toUpperCase() as RequestInit['method']) ?? 'GET';
   // BUG-DAT-03: بدنه درخواست (برای POST/PUT)
   const body = el.getAttribute('zen-fetch-body') ?? null;
 
@@ -383,10 +400,7 @@ export function processFetch(
     try {
       url = evalFn(context);
     } catch (err) {
-      console.error(
-        `[Zenith Fetch] Failed to evaluate URL expression "${expr}":`,
-        err,
-      );
+      console.error(`[Zenith Fetch] Failed to evaluate URL expression "${expr}":`, err);
       fetchStateSignal.set({
         loading: false,
         error: `Invalid URL expression: ${(err as Error).message}`,
@@ -459,7 +473,15 @@ export function processFetch(
     const abortController = new AbortController();
     currentAbortController = abortController;
 
-    performFetch(finalUrl, fetchStateSignal, fetchId, () => currentFetchId, abortController, method, body);
+    void performFetch(
+      finalUrl,
+      fetchStateSignal,
+      fetchId,
+      () => currentFetchId,
+      abortController,
+      method,
+      body,
+    );
   });
 
   // ── ۶. ثبت dispose ──
@@ -467,8 +489,10 @@ export function processFetch(
   //   1) fetch در حال انجام را abort می‌کند (صرفه‌جویی bandwidth).
   //   2) Effect را dispose می‌کند (جلوگیری از fetch بعد از unmount).
   //   3) تمام effectهای فرزندان را dispose می‌کند.
-  disposes.push(() => {
-    currentFetchId++;  // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
+  // #116 cleanup protocol: Cleanup idempotent برگردانده می‌شود و همزمان
+  // به آرایهٔ disposes اضافه می‌شود (سازگاری با گذشته).
+  const cleanup = (): void => {
+    currentFetchId++; // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
     // abort fetch در حال انجام.
     if (currentAbortController) {
       currentAbortController.abort();
@@ -483,5 +507,13 @@ export function processFetch(
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }

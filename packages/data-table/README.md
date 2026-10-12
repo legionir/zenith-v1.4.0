@@ -20,19 +20,31 @@ const columns: ColumnDef<User>[] = [
   { key: 'id', title: 'ID', sortable: true, width: 80, align: 'center' },
   { key: 'name', title: 'Name', sortable: true, filterable: true, editable: true, editor: 'text' },
   { key: 'email', title: 'Email', sortable: true, filterable: true },
-  { key: 'role', title: 'Role', sortable: true, filterable: true, editable: true, editor: 'select',
+  {
+    key: 'role',
+    title: 'Role',
+    sortable: true,
+    filterable: true,
+    editable: true,
+    editor: 'select',
     editorOptions: [
       { label: 'Admin', value: 'admin' },
       { label: 'User', value: 'user' },
-      { label: 'Guest', value: 'guest' }
-    ]
+      { label: 'Guest', value: 'guest' },
+    ],
   },
-  { key: 'status', title: 'Status', sortable: true,
-    render: (value) => value === 'active' ? '✅ Active' : '❌ Inactive'
+  {
+    key: 'status',
+    title: 'Status',
+    sortable: true,
+    render: (value) => (value === 'active' ? '✅ Active' : '❌ Inactive'),
   },
-  { key: 'createdAt', title: 'Created', sortable: true,
-    render: (value) => new Date(value).toLocaleDateString('fa-IR')
-  }
+  {
+    key: 'createdAt',
+    title: 'Created',
+    sortable: true,
+    render: (value) => new Date(value).toLocaleDateString('fa-IR'),
+  },
 ];
 
 const usersTable = createDataTable<User>({
@@ -48,8 +60,8 @@ const usersTable = createDataTable<User>({
     mode: 'cell',
     onSave: async (row, changes) => {
       await api.updateUser(row.id, changes);
-    }
-  }
+    },
+  },
 });
 
 // Load data
@@ -103,6 +115,7 @@ usersTable.reset();
 ## API Reference
 
 ### Data
+
 - `data` — Raw data Signal
 - `filteredData` — Data after filtering/sorting (ReadonlySignal)
 - `pageData` — Current page data (ReadonlySignal)
@@ -112,22 +125,26 @@ usersTable.reset();
 - `removeRows(keys)` — Remove rows by key
 
 ### Columns
+
 - `columns` — Column definitions Signal
 - `visibleColumns` — Non-hidden columns (ReadonlySignal)
 - `toggleColumn(key, visible?)` — Toggle column visibility
 
 ### Sorting
+
 - `sortState` — Current sort state Signal
 - `sort(key, direction?)` — Sort by column
 - `clearSort()` — Clear all sorts
 
 ### Filtering
+
 - `globalSearch` — Global search text Signal
 - `columnFilters` — Column filters Signal
 - `setColumnFilter(key, value, operator?)` — Set column filter
 - `clearFilters()` — Clear all filters
 
 ### Pagination
+
 - `currentPage` — Current page Signal
 - `pageSize` — Page size Signal
 - `totalPages` — Total pages (ReadonlySignal)
@@ -137,6 +154,7 @@ usersTable.reset();
 - `setPageSize(size)` — Change page size
 
 ### Selection
+
 - `selectedRows` — Selected row keys Signal
 - `selectedRowData` — Selected row data (ReadonlySignal)
 - `isRowSelected(key)` — Check if row is selected
@@ -145,16 +163,19 @@ usersTable.reset();
 - `clearSelection()` — Clear selection
 
 ### Editing
+
 - `editingCell` — Currently editing cell Signal
 - `startEditing(rowKey, columnKey)` — Start editing
 - `cancelEditing()` — Cancel editing
 - `saveEditing(value)` — Save edited value
 
 ### Export
+
 - `exportToCSV(filename?, options?)` — Export to CSV
 - `exportToJSON(filename?)` — Export to JSON
 
 ### State
+
 - `getState()` — Get serializable state
 - `loadState(state)` — Restore state
 - `reset()` — Reset to defaults

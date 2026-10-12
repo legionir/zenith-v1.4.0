@@ -21,7 +21,6 @@
  */
 export function isDevtoolsEnabled(): boolean {
   return (
-    (globalThis as any).__ZENITH_DEVTOOLS__ === true ||
-    (globalThis as any).__ZENITH_DEV__ !== false
+    (globalThis as any).__ZENITH_DEVTOOLS__ === true || (globalThis as any).__ZENITH_DEV__ !== false
   );
 }

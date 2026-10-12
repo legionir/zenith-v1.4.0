@@ -1,0 +1,53 @@
+{
+  "name": "@zenith/shared",
+  "version": "1.5.0",
+  "description": "Zenith framework — L0 shared types and pure utilities: Disposable/Cleanup, Readable/MaybeReactive, toValue, createDisposer, safe mergeOptions, attribute parsers, env checks, createId/secureId, invariant, ZenithGlobals.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "shared",
+    "types",
+    "utilities",
+    "isomorphic"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0"
+  }
+}

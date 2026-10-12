@@ -17,36 +17,161 @@ import * as path from 'path';
  * لیست همه‌ی directive های Zenith با توضیحات.
  */
 const ZENITH_DIRECTIVES: Array<{ name: string; description: string; snippet: string }> = [
-  { name: 'zen-text', description: 'Reactive text rendering. Sets textContent.\n\nExample: `<span zen-text="$user.name">`', snippet: 'zen-text="$${1:variable}"' },
-  { name: 'zen-html', description: 'HTML rendering (sanitized). Sets innerHTML with XSS protection.\n\nExample: `<div zen-html="$richContent">`', snippet: 'zen-html="$${1:content}"' },
-  { name: 'zen-if', description: 'Conditional rendering. Removes element from DOM when false.\n\nExample: `<div zen-if="$count > 0">`', snippet: 'zen-if="$${1:condition}"' },
-  { name: 'zen-for', description: 'List rendering with keyed diffing.\n\nExample: `<li zen-for="item in $items" zen-key="item.id">`', snippet: 'zen-for="${1:item} in $${2:items}"' },
-  { name: 'zen-bind', description: 'One-way attribute binding.\n\nExample: `<button zen-bind:disabled="$isProcessing">`', snippet: 'zen-bind:${1:disabled}="$${2:value}"' },
-  { name: 'zen-model', description: 'Two-way binding for inputs.\n\nExample: `<input zen-model="$user.name">`', snippet: 'zen-model="$${1:user}.${2:name}"' },
-  { name: 'zen-action', description: 'Event handler (default: click).\n\nExample: `<button zen-action="save">`', snippet: 'zen-action="${1:actionName}"' },
-  { name: 'zen-action:click', description: 'Click event with modifiers.\n\nExample: `<button zen-action:click.prevent="submit">`', snippet: 'zen-action:${1:click}.${2:prevent}="${3:actionName}"' },
-  { name: 'zen-action:keydown', description: 'Keyboard event with key modifiers.\n\nExample: `<input zen-action:keydown.enter="submit">`', snippet: 'zen-action:${1:keydown}.${2:enter}="${3:actionName}"' },
-  { name: 'zen-link', description: 'SPA navigation link.\n\nExample: `<a zen-link="/about">About</a>`', snippet: 'zen-link="${1:/path}"' },
-  { name: 'zen-key', description: 'Key for zen-for diffing.\n\nExample: `zen-key="item.id"`', snippet: 'zen-key="${1:item}.id"' },
-  { name: 'zen-fetch', description: 'Declarative data fetching.\n\nExample: `<div zen-fetch="\'/api/users\'" zen-state="users">`', snippet: 'zen-fetch="\'${1:/api/users}\'"' },
-  { name: 'zen-state', description: 'Variable name for zen-fetch state.\n\nExample: `zen-state="product"`', snippet: 'zen-state="${1:data}"' },
-  { name: 'zen-resource', description: 'CRUD resource binding.\n\nExample: `<div zen-resource="\'/api/users\'" zen-state="users">`', snippet: 'zen-resource="\'${1:/api/users}\'"' },
-  { name: 'zen-permission', description: 'Permission-based conditional rendering.\n\nExample: `<div zen-permission="users:edit">`', snippet: 'zen-permission="${1:permission}"' },
-  { name: 'zen-role', description: 'Role-based conditional rendering.\n\nExample: `<div zen-role="admin">`', snippet: 'zen-role="${1:admin}"' },
-  { name: 'zen-error', description: 'Error boundary with fallback UI.\n\nExample: `<div zen-error>...</div>`', snippet: 'zen-error' },
-  { name: 'zen-validate', description: 'Form validation rules.\n\nExample: `<input zen-validate="required,email">`', snippet: 'zen-validate="${1:required}"' },
+  {
+    name: 'zen-text',
+    description:
+      'Reactive text rendering. Sets textContent.\n\nExample: `<span zen-text="$user.name">`',
+    snippet: 'zen-text="$${1:variable}"',
+  },
+  {
+    name: 'zen-html',
+    description:
+      'HTML rendering (sanitized). Sets innerHTML with XSS protection.\n\nExample: `<div zen-html="$richContent">`',
+    snippet: 'zen-html="$${1:content}"',
+  },
+  {
+    name: 'zen-if',
+    description:
+      'Conditional rendering. Removes element from DOM when false.\n\nExample: `<div zen-if="$count > 0">`',
+    snippet: 'zen-if="$${1:condition}"',
+  },
+  {
+    name: 'zen-for',
+    description:
+      'List rendering with keyed diffing.\n\nExample: `<li zen-for="item in $items" zen-key="item.id">`',
+    snippet: 'zen-for="${1:item} in $${2:items}"',
+  },
+  {
+    name: 'zen-bind',
+    description:
+      'One-way attribute binding.\n\nExample: `<button zen-bind:disabled="$isProcessing">`',
+    snippet: 'zen-bind:${1:disabled}="$${2:value}"',
+  },
+  {
+    name: 'zen-model',
+    description: 'Two-way binding for inputs.\n\nExample: `<input zen-model="$user.name">`',
+    snippet: 'zen-model="$${1:user}.${2:name}"',
+  },
+  {
+    name: 'zen-action',
+    description: 'Event handler (default: click).\n\nExample: `<button zen-action="save">`',
+    snippet: 'zen-action="${1:actionName}"',
+  },
+  {
+    name: 'zen-action:click',
+    description:
+      'Click event with modifiers.\n\nExample: `<button zen-action:click.prevent="submit">`',
+    snippet: 'zen-action:${1:click}.${2:prevent}="${3:actionName}"',
+  },
+  {
+    name: 'zen-action:keydown',
+    description:
+      'Keyboard event with key modifiers.\n\nExample: `<input zen-action:keydown.enter="submit">`',
+    snippet: 'zen-action:${1:keydown}.${2:enter}="${3:actionName}"',
+  },
+  {
+    name: 'zen-link',
+    description: 'SPA navigation link.\n\nExample: `<a zen-link="/about">About</a>`',
+    snippet: 'zen-link="${1:/path}"',
+  },
+  {
+    name: 'zen-key',
+    description: 'Key for zen-for diffing.\n\nExample: `zen-key="item.id"`',
+    snippet: 'zen-key="${1:item}.id"',
+  },
+  {
+    name: 'zen-fetch',
+    description:
+      'Declarative data fetching.\n\nExample: `<div zen-fetch="\'/api/users\'" zen-state="users">`',
+    snippet: 'zen-fetch="\'${1:/api/users}\'"',
+  },
+  {
+    name: 'zen-state',
+    description: 'Variable name for zen-fetch state.\n\nExample: `zen-state="product"`',
+    snippet: 'zen-state="${1:data}"',
+  },
+  {
+    name: 'zen-resource',
+    description:
+      'CRUD resource binding.\n\nExample: `<div zen-resource="\'/api/users\'" zen-state="users">`',
+    snippet: 'zen-resource="\'${1:/api/users}\'"',
+  },
+  {
+    name: 'zen-permission',
+    description:
+      'Permission-based conditional rendering.\n\nExample: `<div zen-permission="users:edit">`',
+    snippet: 'zen-permission="${1:permission}"',
+  },
+  {
+    name: 'zen-role',
+    description: 'Role-based conditional rendering.\n\nExample: `<div zen-role="admin">`',
+    snippet: 'zen-role="${1:admin}"',
+  },
+  {
+    name: 'zen-error',
+    description: 'Error boundary with fallback UI.\n\nExample: `<div zen-error>...</div>`',
+    snippet: 'zen-error',
+  },
+  {
+    name: 'zen-validate',
+    description: 'Form validation rules.\n\nExample: `<input zen-validate="required,email">`',
+    snippet: 'zen-validate="${1:required}"',
+  },
   // FIX (B-8): prop:* یک attribute خاص برای binding property دلخواه به المان است.
   // کاربر می‌تواند prop:propertyName="value" بنویسد.
-  { name: 'prop:*', description: 'Dynamic property binding. Binds to any HTML property.\n\nExample: `<div prop:scrollTop="0">`', snippet: 'prop:${1:propertyName}="$${2:value}"' },
+  {
+    name: 'prop:*',
+    description:
+      'Dynamic property binding. Binds to any HTML property.\n\nExample: `<div prop:scrollTop="0">`',
+    snippet: 'prop:${1:propertyName}="$${2:value}"',
+  },
   // IMPROVEMENT (I-1): Directives اضافی برای autocomplete
-  { name: 'zen-show', description: 'Visibility toggling with display CSS.\n\nExample: `<div zen-show="$isActive">`', snippet: 'zen-show="$${1:condition}"' },
-  { name: 'zen-cloak', description: 'Prevents FOUC (Flash of Unstyled Content). Removes `[zen-cloak]` after compile.\n\nExample: `<div zen-cloak>`', snippet: 'zen-cloak' },
-  { name: 'zen-html-trusted', description: 'UNSAFE HTML rendering (no sanitization). Use only for trusted content.\n\nExample: `<div zen-html-trusted="$rawHtml">`', snippet: 'zen-html-trusted="$${1:content}"' },
-  { name: 'zen-slot', description: 'Named slot reference in component templates.\n\nExample: `<template zen-slot="header">`', snippet: 'zen-slot="${1:name}"' },
-  { name: 'zen-fallback', description: 'Fallback UI template for zen-error, zen-permission, zen-role.\n\nExample: `<template zen-fallback>...</template>`', snippet: 'zen-fallback' },
-  { name: 'zen-suspense', description: 'Suspense wrapper for async/lazy content.\n\nExample: `<div zen-suspense>$loadingPlaceholder</div>`', snippet: 'zen-suspense="$${1:loadingCondition}"' },
-  { name: 'zen-transition', description: 'Animation/transition directive.\n\nExample: `<div zen-transition="fade">`', snippet: 'zen-transition="${1:fade}"' },
-  { name: 'zen-css', description: 'Reactive CSS variable binding.\n\nExample: `<div zen-css="backgroundColor: $color">`', snippet: 'zen-css="${1:cssProperty}: $${2:value}"' },
+  {
+    name: 'zen-show',
+    description: 'Visibility toggling with display CSS.\n\nExample: `<div zen-show="$isActive">`',
+    snippet: 'zen-show="$${1:condition}"',
+  },
+  {
+    name: 'zen-cloak',
+    description:
+      'Prevents FOUC (Flash of Unstyled Content). Removes `[zen-cloak]` after compile.\n\nExample: `<div zen-cloak>`',
+    snippet: 'zen-cloak',
+  },
+  {
+    name: 'zen-html-trusted',
+    description:
+      'UNSAFE HTML rendering (no sanitization). Use only for trusted content.\n\nExample: `<div zen-html-trusted="$rawHtml">`',
+    snippet: 'zen-html-trusted="$${1:content}"',
+  },
+  {
+    name: 'zen-slot',
+    description:
+      'Named slot reference in component templates.\n\nExample: `<template zen-slot="header">`',
+    snippet: 'zen-slot="${1:name}"',
+  },
+  {
+    name: 'zen-fallback',
+    description:
+      'Fallback UI template for zen-error, zen-permission, zen-role.\n\nExample: `<template zen-fallback>...</template>`',
+    snippet: 'zen-fallback',
+  },
+  {
+    name: 'zen-suspense',
+    description:
+      'Suspense wrapper for async/lazy content.\n\nExample: `<div zen-suspense>$loadingPlaceholder</div>`',
+    snippet: 'zen-suspense="$${1:loadingCondition}"',
+  },
+  {
+    name: 'zen-transition',
+    description: 'Animation/transition directive.\n\nExample: `<div zen-transition="fade">`',
+    snippet: 'zen-transition="${1:fade}"',
+  },
+  {
+    name: 'zen-css',
+    description:
+      'Reactive CSS variable binding.\n\nExample: `<div zen-css="backgroundColor: $color">`',
+    snippet: 'zen-css="${1:cssProperty}: $${2:value}"',
+  },
 ];
 
 // ════════════════════════════════════════════════════════════════════════
@@ -89,13 +214,12 @@ function levenshtein(a: string, b: string): number {
     const aCh = a.charCodeAt(i - 1);
     for (let j = 1; j <= n; j++) {
       const cost = aCh === b.charCodeAt(j - 1) ? 0 : 1;
-      /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
       curr[j] = Math.min(
-        prev[j]! + 1,          // deletion
-        curr[j - 1]! + 1,      // insertion
-        prev[j - 1]! + cost    // substitution
+        prev[j]! + 1, // deletion
+        curr[j - 1]! + 1, // insertion
+        prev[j - 1]! + cost, // substitution
       );
-      /* eslint-enable */
     }
     // swap rows
     [prev, curr] = [curr, prev];
@@ -116,11 +240,19 @@ function extractBracedBody(src: string, openBraceIndex: number): string | null {
   while (i < src.length && depth > 0) {
     const c = src[i];
     if (inStr) {
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') {
+        i += 2;
+        continue;
+      }
       if (c === inStr) inStr = null;
-      i++; continue;
+      i++;
+      continue;
     }
-    if (c === '"' || c === "'" || c === '`') { inStr = c; i++; continue; }
+    if (c === '"' || c === "'" || c === '`') {
+      inStr = c;
+      i++;
+      continue;
+    }
     if (c === '/' && src[i + 1] === '/') {
       while (i < src.length && src[i] !== '\n') i++;
       continue;
@@ -128,7 +260,8 @@ function extractBracedBody(src: string, openBraceIndex: number): string | null {
     if (c === '/' && src[i + 1] === '*') {
       i += 2;
       while (i < src.length - 1 && !(src[i] === '*' && src[i + 1] === '/')) i++;
-      i += 2; continue;
+      i += 2;
+      continue;
     }
     if (c === '{') depth++;
     else if (c === '}') depth--;
@@ -151,11 +284,19 @@ function walkObject(body: string, name: string, signals: Map<string, string[]>):
   while (i < body.length) {
     const c = body[i];
     if (inStr) {
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') {
+        i += 2;
+        continue;
+      }
       if (c === inStr) inStr = null;
-      i++; continue;
+      i++;
+      continue;
     }
-    if (c === '"' || c === "'" || c === '`') { inStr = c; i++; continue; }
+    if (c === '"' || c === "'" || c === '`') {
+      inStr = c;
+      i++;
+      continue;
+    }
     if (c === '/' && body[i + 1] === '/') {
       while (i < body.length && body[i] !== '\n') i++;
       continue;
@@ -163,10 +304,19 @@ function walkObject(body: string, name: string, signals: Map<string, string[]>):
     if (c === '/' && body[i + 1] === '*') {
       i += 2;
       while (i < body.length - 1 && !(body[i] === '*' && body[i + 1] === '/')) i++;
-      i += 2; continue;
+      i += 2;
+      continue;
     }
-    if (c === '{' || c === '[' || c === '(') { depth++; i++; continue; }
-    if (c === '}' || c === ']' || c === ')') { depth--; i++; continue; }
+    if (c === '{' || c === '[' || c === '(') {
+      depth++;
+      i++;
+      continue;
+    }
+    if (c === '}' || c === ']' || c === ')') {
+      depth--;
+      i++;
+      continue;
+    }
     if (depth === 0) {
       // کلید identifier با ":" (مثل name: ...)
       const idMatch = /^([a-zA-Z_$][\w$]*)\s*:/.exec(body.slice(i));
@@ -232,7 +382,7 @@ function collectKnownSignals(document: vscode.TextDocument): Map<string, string[
     if (companion !== fsPath && fs.existsSync(companion)) {
       try {
         // بررسی کن که فایل در VSCode باز است (بدون blocking I/O)
-        const openDoc = vscode.workspace.textDocuments.find(d => d.uri.fsPath === companion);
+        const openDoc = vscode.workspace.textDocuments.find((d) => d.uri.fsPath === companion);
         if (openDoc) {
           sources.push(openDoc.getText());
         } else {
@@ -248,7 +398,8 @@ function collectKnownSignals(document: vscode.TextDocument): Map<string, string[
 
   // ۳) برای هر source، الگوهای `const X = { ... }` یا `const X = signal({ ... })` را پیدا کن.
   for (const src of sources) {
-    const assignRegex = /\b(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:signal\s*\(\s*)?\{/g;
+    const assignRegex =
+      /\b(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:signal\s*\(\s*)?\{/g;
     let am: RegExpExecArray | null;
     while ((am = assignRegex.exec(src)) !== null) {
       const varName = am[1]!;
@@ -272,7 +423,7 @@ function collectKnownSignals(document: vscode.TextDocument): Map<string, string[
  */
 function checkSignalPropertyAccess(
   expr: string,
-  knownSignals: Map<string, string[]>
+  knownSignals: Map<string, string[]>,
 ): Array<{ message: string; start: number; end: number; code: string }> {
   const results: Array<{ message: string; start: number; end: number; code: string }> = [];
   let i = 0;
@@ -280,11 +431,19 @@ function checkSignalPropertyAccess(
   while (i < expr.length) {
     const c = expr[i];
     if (inStr) {
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') {
+        i += 2;
+        continue;
+      }
       if (c === inStr) inStr = null;
-      i++; continue;
+      i++;
+      continue;
     }
-    if (c === '"' || c === "'" || c === '`') { inStr = c; i++; continue; }
+    if (c === '"' || c === "'" || c === '`') {
+      inStr = c;
+      i++;
+      continue;
+    }
     if (c === '$') {
       const m = /^\$([a-zA-Z_$][\w$]*)\.([a-zA-Z_$][\w$]*)/.exec(expr.slice(i));
       if (m) {
@@ -343,8 +502,6 @@ function createCompletionProvider(): vscode.Disposable {
     ['html', 'zenith-html'],
     {
       provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
-        const linePrefix = document.lineAt(position).text.slice(0, position.character);
-
         // FIX (B-3): تشخیص بهتر اینکه آیا داخل attribute value هستیم.
         // از position و textLine برای بررسی وجود = قبل از cursor و
         // قرار گرفتن داخل quotation استفاده می‌کند.
@@ -373,17 +530,23 @@ function createCompletionProvider(): vscode.Disposable {
         }
 
         // Component tags.
-        const componentItem = new vscode.CompletionItem('zen-component', vscode.CompletionItemKind.Snippet);
+        const componentItem = new vscode.CompletionItem(
+          'zen-component',
+          vscode.CompletionItemKind.Snippet,
+        );
         componentItem.insertText = new vscode.SnippetString(
-          '<zen-component name="${1:app-name}">\n  <template>\n    <div class="${1}">\n      <slot></slot>\n    </div>\n  </template>\n</zen-component>'
+          '<zen-component name="${1:app-name}">\n  <template>\n    <div class="${1}">\n      <slot></slot>\n    </div>\n  </template>\n</zen-component>',
         );
         componentItem.detail = 'Zenith Component Definition';
         items.push(componentItem);
 
         // Router.
-        const routerItem = new vscode.CompletionItem('zen-router', vscode.CompletionItemKind.Snippet);
+        const routerItem = new vscode.CompletionItem(
+          'zen-router',
+          vscode.CompletionItemKind.Snippet,
+        );
         routerItem.insertText = new vscode.SnippetString(
-          '<zen-router>\n  <zen-route path="${1:/}" src="${2:/pages/home.html}"></zen-route>\n  <zen-route path="**" src="${3:/pages/404.html}"></zen-route>\n</zen-router>'
+          '<zen-router>\n  <zen-route path="${1:/}" src="${2:/pages/home.html}"></zen-route>\n  <zen-route path="**" src="${3:/pages/404.html}"></zen-route>\n</zen-router>',
         );
         routerItem.detail = 'Zenith SPA Router';
         items.push(routerItem);
@@ -391,7 +554,9 @@ function createCompletionProvider(): vscode.Disposable {
         return items;
       },
     },
-    'z', 'e', 'n' // trigger characters
+    'z',
+    'e',
+    'n', // trigger characters
   );
 }
 
@@ -399,24 +564,24 @@ function createCompletionProvider(): vscode.Disposable {
  * Hover provider برای zen-* attributes.
  */
 function createHoverProvider(): vscode.Disposable {
-  return vscode.languages.registerHoverProvider(
-    ['html', 'zenith-html'],
-    {
-      provideHover(document: vscode.TextDocument, position: vscode.Position) {
-        const range = document.getWordRangeAtPosition(position, /zen-[a-z:-]+/);
-        if (!range) return undefined;
+  return vscode.languages.registerHoverProvider(['html', 'zenith-html'], {
+    provideHover(document: vscode.TextDocument, position: vscode.Position) {
+      const range = document.getWordRangeAtPosition(position, /zen-[a-z:-]+/);
+      if (!range) return undefined;
 
-        const word = document.getText(range);
-        const directive = ZENITH_DIRECTIVES.find(d => d.name === word || word.startsWith(d.name));
+      const word = document.getText(range);
+      const directive = ZENITH_DIRECTIVES.find((d) => d.name === word || word.startsWith(d.name));
 
-        if (directive) {
-          return new vscode.Hover(new vscode.MarkdownString(`**${directive.name}**\n\n${directive.description}`), range);
-        }
+      if (directive) {
+        return new vscode.Hover(
+          new vscode.MarkdownString(`**${directive.name}**\n\n${directive.description}`),
+          range,
+        );
+      }
 
-        return undefined;
-      },
-    }
-  );
+      return undefined;
+    },
+  });
 }
 
 /**
@@ -455,7 +620,8 @@ function createDiagnosticsProvider(): vscode.Disposable {
     // FIX (B-7): پشتیبانی از هر دو نوع quotation (double و single).
     // از alternation برای quote استفاده می‌کند تا هم "..." و هم '...' پشتیبانی شود.
     // FIX (B-8): prop:* هم به regex اضافه شد تا diagnostics روی آن هم کار کند.
-    const attrRegex = /(prop:[a-zA-Z_]\w*|zen-(?:text|if|for|bind(?::\w+)?|model|action(?::[\w.]+)?|fetch|html|key|resource|validate))(?:="([^"]*)"|='([^']*)')/g;
+    const attrRegex =
+      /(prop:[a-zA-Z_]\w*|zen-(?:text|if|for|bind(?::\w+)?|model|action(?::[\w.]+)?|fetch|html|key|resource|validate))(?:="([^"]*)"|='([^']*)')/g;
     let match: RegExpExecArray | null;
 
     while ((match = attrRegex.exec(text)) !== null) {
@@ -485,7 +651,7 @@ function createDiagnosticsProvider(): vscode.Disposable {
           severity: vscode.DiagnosticSeverity.Hint,
           range: new vscode.Range(
             document.positionAt(exprStartOffset + issue.start),
-            document.positionAt(exprStartOffset + issue.end)
+            document.positionAt(exprStartOffset + issue.end),
           ),
           message: issue.message,
           source: 'zenith',
@@ -551,11 +717,22 @@ function validateExpression(expr: string, attrName: string): string[] {
 
   // بررسی template literal (پشتیبانی نمی‌شود).
   if (expr.includes('`') && expr.includes('${')) {
-    errors.push('Template literals with ${} are not supported. Use string concatenation: \'text\' + $var');
+    errors.push(
+      "Template literals with ${} are not supported. Use string concatenation: 'text' + $var",
+    );
   }
 
   // بررسی access به globals ممنوعه.
-  const forbidden = ['window', 'document', 'eval', 'Function', 'globalThis', '__proto__', 'constructor', 'prototype'];
+  const forbidden = [
+    'window',
+    'document',
+    'eval',
+    'Function',
+    'globalThis',
+    '__proto__',
+    'constructor',
+    'prototype',
+  ];
   for (const f of forbidden) {
     if (new RegExp(`\\b${f}\\b`).test(expr)) {
       errors.push(`Access to "${f}" is forbidden in Zenith expressions`);
@@ -574,7 +751,19 @@ function validateExpression(expr: string, attrName: string): string[] {
     const parts = attrName.split(':');
     if (parts.length > 2) {
       const modifiers = parts[2]!.split('.');
-      const validModifiers = ['prevent', 'stop', 'immediate', 'enter', 'escape', 'tab', 'space', 'shift', 'ctrl', 'alt', 'meta'];
+      const validModifiers = [
+        'prevent',
+        'stop',
+        'immediate',
+        'enter',
+        'escape',
+        'tab',
+        'space',
+        'shift',
+        'ctrl',
+        'alt',
+        'meta',
+      ];
       for (const m of modifiers) {
         if (!validModifiers.includes(m)) {
           errors.push(`Unknown modifier "${m}". Valid: ${validModifiers.join(', ')}`);
@@ -593,7 +782,7 @@ function createCreateComponentCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('zenith.createComponent', async () => {
     const name = await vscode.window.showInputBox({
       prompt: 'Component name (PascalCase, e.g. UserCard)',
-      validateInput: (v) => /^[A-Z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be PascalCase',
+      validateInput: (v) => (/^[A-Z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be PascalCase'),
     });
     if (!name) return;
 
@@ -639,7 +828,7 @@ function createCreatePageCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('zenith.createPage', async () => {
     const name = await vscode.window.showInputBox({
       prompt: 'Page name (PascalCase, e.g. About)',
-      validateInput: (v) => /^[A-Z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be PascalCase',
+      validateInput: (v) => (/^[A-Z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be PascalCase'),
     });
     if (!name) return;
 
@@ -680,7 +869,7 @@ function createCreateActionCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('zenith.createAction', async () => {
     const name = await vscode.window.showInputBox({
       prompt: 'Action name (camelCase, e.g. saveUser)',
-      validateInput: (v) => /^[a-z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be camelCase',
+      validateInput: (v) => (/^[a-z][a-zA-Z0-9]*$/.test(v) ? null : 'Must be camelCase'),
     });
     if (!name) return;
 
@@ -724,44 +913,43 @@ Zen.action('${name}', ({ state, element, event }) => {
  * این پرایدور نوع آن signal را از companion .ts/.js استخراج کرده و نمایش می‌دهد.
  */
 function createSignalHoverProvider(): vscode.Disposable {
-  return vscode.languages.registerHoverProvider(
-    ['html', 'zenith-html'],
-    {
-      provideHover(document: vscode.TextDocument, position: vscode.Position) {
-        const range = document.getWordRangeAtPosition(position, /\$[a-zA-Z_]\w*(?:\.\w+)*/);
-        if (!range) return undefined;
+  return vscode.languages.registerHoverProvider(['html', 'zenith-html'], {
+    provideHover(document: vscode.TextDocument, position: vscode.Position) {
+      const range = document.getWordRangeAtPosition(position, /\$[a-zA-Z_]\w*(?:\.\w+)*/);
+      if (!range) return undefined;
 
-        const word = document.getText(range);
-        if (!word.startsWith('$')) return undefined;
+      const word = document.getText(range);
+      if (!word.startsWith('$')) return undefined;
 
-        const signalName = word.slice(1);
-        const signals = collectKnownSignals(document);
-        const parts = signalName.split('.');
-        const rootName = parts[0]!;
+      const signalName = word.slice(1);
+      const signals = collectKnownSignals(document);
+      const parts = signalName.split('.');
+      const rootName = parts[0]!;
 
-        if (signals.has(rootName)) {
-          const types = signals.get(rootName)!;
-          const md = new vscode.MarkdownString();
-          const typeStr = types.length > 0 ? types.join(', ') : 'unknown';
+      if (signals.has(rootName)) {
+        const types = signals.get(rootName)!;
+        const md = new vscode.MarkdownString();
+        const typeStr = types.length > 0 ? types.join(', ') : 'unknown';
 
-          if (parts.length === 1) {
-            md.appendCodeblock(`Signal<${typeStr}>`, 'typescript');
-            md.appendMarkdown(`Signal \`${rootName}\` با نوع \`${typeStr}\``);
-          } else {
-            const propPath = parts.slice(1).join('.');
-            md.appendCodeblock(`typeof ${rootName}.${propPath}`, 'typescript');
-            md.appendMarkdown(`دسترسی به \`${propPath}\` از \`${rootName}: Signal<${typeStr}>\``);
-          }
-          return new vscode.Hover(md, range);
+        if (parts.length === 1) {
+          md.appendCodeblock(`Signal<${typeStr}>`, 'typescript');
+          md.appendMarkdown(`Signal \`${rootName}\` با نوع \`${typeStr}\``);
+        } else {
+          const propPath = parts.slice(1).join('.');
+          md.appendCodeblock(`typeof ${rootName}.${propPath}`, 'typescript');
+          md.appendMarkdown(`دسترسی به \`${propPath}\` از \`${rootName}: Signal<${typeStr}>\``);
         }
+        return new vscode.Hover(md, range);
+      }
 
-        return new vscode.Hover(
-          new vscode.MarkdownString(`Signal reference \`${word}\` — type unknown. Define in companion .ts file.`),
-          range,
-        );
-      },
-    }
-  );
+      return new vscode.Hover(
+        new vscode.MarkdownString(
+          `Signal reference \`${word}\` — type unknown. Define in companion .ts file.`,
+        ),
+        range,
+      );
+    },
+  });
 }
 
 /**
@@ -776,7 +964,7 @@ function createCodeActionProvider(): vscode.Disposable {
       provideCodeActions(
         document: vscode.TextDocument,
         _range: vscode.Range,
-        context: vscode.CodeActionContext
+        context: vscode.CodeActionContext,
       ): vscode.CodeAction[] | undefined {
         const actions: vscode.CodeAction[] = [];
         for (const diag of context.diagnostics) {
@@ -793,14 +981,14 @@ function createCodeActionProvider(): vscode.Disposable {
           const dotIdx = oldText.indexOf('.');
           if (dotIdx < 0) continue;
           const prefix = oldText.slice(0, dotIdx + 1); // "$user."
-          const newText = prefix + suggestedProp;       // "$user.name"
+          const newText = prefix + suggestedProp; // "$user.name"
 
           const edit = new vscode.WorkspaceEdit();
           edit.replace(document.uri, diag.range, newText);
 
           const action = new vscode.CodeAction(
             `Replace with ${newText}`,
-            vscode.CodeActionKind.QuickFix
+            vscode.CodeActionKind.QuickFix,
           );
           action.edit = edit;
           action.diagnostics = [diag];
@@ -812,7 +1000,7 @@ function createCodeActionProvider(): vscode.Disposable {
     },
     {
       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
-    }
+    },
   );
 }
 
@@ -860,7 +1048,11 @@ export function activate(context: vscode.ExtensionContext): void {
         (msg) => {
           if (msg.type === 'refresh') {
             const editor = vscode.window.activeTextEditor;
-            if (editor && (editor.document.languageId === 'html' || editor.document.languageId === 'zenith-html')) {
+            if (
+              editor &&
+              (editor.document.languageId === 'html' ||
+                editor.document.languageId === 'zenith-html')
+            ) {
               const doc = editor.document;
               const text = doc.getText();
 
@@ -899,7 +1091,8 @@ export function activate(context: vscode.ExtensionContext): void {
           if (msg.type === 'connect') {
             panel.webview.postMessage({
               type: 'status',
-              message: 'CDP connection not yet implemented. For real-time data, run app with --remote-debugging-port=9222',
+              message:
+                'CDP connection not yet implemented. For real-time data, run app with --remote-debugging-port=9222',
             });
           }
         },
@@ -924,12 +1117,15 @@ export function activate(context: vscode.ExtensionContext): void {
  * تولید می‌کند تا در VSCode با رنگ متفاوت نمایش داده شوند.
  */
 class ZenithSemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
-  async provideDocumentSemanticTokens(document: vscode.TextDocument): Promise<vscode.SemanticTokens> {
+  async provideDocumentSemanticTokens(
+    document: vscode.TextDocument,
+  ): Promise<vscode.SemanticTokens> {
     const tokensBuilder = new vscode.SemanticTokensBuilder(zenithLegend);
     const text = document.getText();
 
     // الگوی تطبیق $variableName در داخل attribute values directiveها
-    const varRegex = /(?:zen-(?:text|if|show|html|html-trusted|model|bind(?::\w+)?)="[^"]*)\$([a-zA-Z_]\w*(?:\.\w+)*)/g;
+    const varRegex =
+      /(?:zen-(?:text|if|show|html|html-trusted|model|bind(?::\w+)?)="[^"]*)\$([a-zA-Z_]\w*(?:\.\w+)*)/g;
     let match: RegExpExecArray | null;
     while ((match = varRegex.exec(text)) !== null) {
       const varName = match[1]!;
@@ -942,7 +1138,13 @@ class ZenithSemanticTokensProvider implements vscode.DocumentSemanticTokensProvi
         const signalEnd = startGlobalIndex + dotIndex;
         tokensBuilder.push(startPos.line, startPos.character, dotIndex, 0 /* variable */, 0);
         const propStart = document.positionAt(signalEnd + 1);
-        tokensBuilder.push(propStart.line, propStart.character, varName.length - dotIndex - 1, 1 /* property */, 0);
+        tokensBuilder.push(
+          propStart.line,
+          propStart.character,
+          varName.length - dotIndex - 1,
+          1 /* property */,
+          0,
+        );
       } else {
         // signal به تنهایی
         tokensBuilder.push(startPos.line, startPos.character, varName.length, 0 /* variable */, 0);

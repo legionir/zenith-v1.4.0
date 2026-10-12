@@ -1,0 +1,54 @@
+{
+  "name": "@zenith/jalali",
+  "version": "1.5.0",
+  "description": "Zenith framework — L0 pure Jalali (Persian/Solar Hijri) calendar (SPEC §۲.۶): toJalaliParts/fromJalaliParts/formatJalali/parseJalali, leap/month/weekday names, add*/diffDays, digit converters; Borkowski arithmetic cycle validated against Intl over 120k random dates; SSR-deterministic (explicit timeZone); ZEN-1301/1302/1303.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "jalali",
+    "persian",
+    "calendar",
+    "hijri-solar"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/jalali"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/shared": "1.5.0"
+  }
+}

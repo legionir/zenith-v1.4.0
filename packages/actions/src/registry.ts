@@ -1,4 +1,6 @@
 // packages/actions/src/registry.ts
+import { deprecate, developerError, ErrorCode } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 //
 // Action Registry — ثبت و بازیابی توابع Business Logic.
 //
@@ -115,7 +117,10 @@ export interface ActionMetadata {
  * کار می‌کند (از طریق `_defaultRegistry`)، اما حالا برنامه‌های متعدد
  * در یک صفحه می‌توانند Registry های مستقل داشته باشند.
  */
-export class ActionRegistry {
+export class ActionRegistry implements Disposable {
+  // #116: فلگ dispose برای idempotency (alias destroy همان را می‌خواند).
+  private _disposed = false;
+
   /** مخزن داخلی actions. */
   private readonly _actions = new Map<string, { fn: ActionFn; metadata?: ActionMetadata }>();
 
@@ -146,7 +151,7 @@ export class ActionRegistry {
   async execute(name: string, ctx: ActionContext): Promise<void> {
     const entry = this._actions.get(name);
     if (!entry) {
-      throw new Error(`[Zenith] Action "${name}" not found.`);
+      throw developerError(`Action "${name}" not found.`, ErrorCode.RUNTIME_COMPONENT_NOT_FOUND);
     }
 
     const handler = entry.fn;
@@ -241,9 +246,20 @@ export class ActionRegistry {
    * و آماده GC شدن است. بعد از destroy، نباید از Registry استفاده شود.
    * برای HMR و unmount کامپوننت مناسب است.
    */
-  destroy(): void {
+  dispose(): void {
+    if (this._disposed) return; // #116: idempotency
+    this._disposed = true;
     this._actions.clear();
     this._middlewares = [];
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-019؛ حذف در ۲.۰ — DEC-026).
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-019', 'registry.destroy()', 'registry.dispose()');
+    this.dispose();
   }
 
   /**
@@ -282,31 +298,27 @@ export class ActionRegistry {
    */
   private _validateName(name: string): void {
     if (typeof name !== 'string' || name.length === 0) {
-      throw new Error(
-        `[Zenith] Action name must be a non-empty string. Received: ${String(name)}`,
-      );
+      throw developerError(`Action name must be a non-empty string. Received: ${String(name)}`);
     }
     // FEATURE (v1.3.0): Allow `.` for namespacing (e.g. `cart.save`).
     // Disallow leading/trailing dot, double dots, and unsafe chars.
-    if (!/^[a-zA-Z_$][a-zA-Z0-9_$.\-]*$/.test(name)) {
-      throw new Error(
-        `[Zenith] Invalid action name "${name}". Names must start with a letter, ` +
+    if (!/^[a-zA-Z_$][a-zA-Z0-9_$.-]*$/.test(name)) {
+      throw developerError(
+        `Invalid action name "${name}". Names must start with a letter, ` +
           `underscore, or $, and may contain letters, digits, underscores, $, ` +
           `dots (for namespaces), and hyphens.`,
       );
     }
     if (name.startsWith('.') || name.endsWith('.') || name.includes('..')) {
-      throw new Error(
-        `[Zenith] Invalid action name "${name}". Dots cannot be leading, trailing, or doubled.`,
+      throw developerError(
+        `Invalid action name "${name}". Dots cannot be leading, trailing, or doubled.`,
       );
     }
   }
 
   private _validateFn(fn: ActionFn): void {
     if (typeof fn !== 'function') {
-      throw new Error(
-        `[Zenith] Action handler must be a function. Received: ${typeof fn}`,
-      );
+      throw developerError(`Action handler must be a function. Received: ${typeof fn}`);
     }
   }
 }
@@ -325,13 +337,20 @@ const _defaultRegistry = new ActionRegistry();
  * @param name     نام اکشن — همان رشته‌ای که در HTML نوشته می‌شود.
  * @param fn       تابعی که هنگام رخ دادن رویداد اجرا می‌شود.
  * @param metadata FEATURE (v1.3.0): متادیتای اختیاری برای DevTools.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           اکشن را حذف می‌کند که هنوز همین تابع ثبت باشد (بازنویسی
+ *           بعدی محافظت می‌شود).
  */
-export function registerAction(
-  name: string,
-  fn: ActionFn,
-  metadata?: ActionMetadata,
-): void {
+export function registerAction(name: string, fn: ActionFn, metadata?: ActionMetadata): () => void {
   _defaultRegistry.register(name, fn, metadata);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (_defaultRegistry.get(name) === fn) {
+      _defaultRegistry.unregister(name);
+    }
+  };
 }
 
 /**

@@ -65,7 +65,11 @@ export function deserializeState(serializedState: Record<string, any>): Record<s
   // اگر `__ZENITH_STATE__` یک آرایه یا null یا primitive باشد، for-in loop
   // یا خطا می‌دهد یا کلیدهای اشتباه (مثل `0`, `1`, … برای آرایه) تولید
   // می‌کند. در این حالت، state خالی برمی‌گردانیم و خطا را log می‌کنیم.
-  if (typeof serializedState !== 'object' || serializedState === null || Array.isArray(serializedState)) {
+  if (
+    typeof serializedState !== 'object' ||
+    serializedState === null ||
+    Array.isArray(serializedState)
+  ) {
     console.error('[Zenith hydrate] __ZENITH_STATE__ must be a plain object');
     return state;
   }
@@ -134,14 +138,18 @@ export async function hydrate(
       try {
         const { routeSignal } = await import('@zenith/router');
         routeSignal.set({ path: initialRoute, params: {} });
-      } catch { /* router not available */ }
+      } catch {
+        /* router not available */
+      }
     }
 
     // User init: register actions, etc.
     if (initFn) initFn(state);
 
     // Count elements before hydration.
-    const elementsBefore = root.querySelectorAll('[zen-text], [zen-if], [zen-for], [zen-bind], [zen-model], [zen-html], [zen-action], [zen-fetch]').length;
+    const elementsBefore = root.querySelectorAll(
+      '[zen-text], [zen-if], [zen-for], [zen-bind], [zen-model], [zen-html], [zen-action], [zen-fetch]',
+    ).length;
 
     // FEATURE (v0.4.0): skip server-component subtrees.
     // قبل از Zen.start، تمام attributeهای zen-* را از عناصر داخل
@@ -234,18 +242,12 @@ function skipServerComponents(root: HTMLElement): number {
   }
 
   // جمع‌آوری تمام commentهای server-component به ترتیب document.
-  const commentWalker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_COMMENT,
-  );
+  const commentWalker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
   const comments: Comment[] = [];
   let node: Node | null;
   while ((node = commentWalker.nextNode()) !== null) {
     const text = (node as Comment).data || '';
-    if (
-      text.startsWith(SC_OPEN_PREFIX) ||
-      text.startsWith(SC_CLOSE_PREFIX)
-    ) {
+    if (text.startsWith(SC_OPEN_PREFIX) || text.startsWith(SC_CLOSE_PREFIX)) {
       comments.push(node as Comment);
     }
   }

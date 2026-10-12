@@ -29,7 +29,10 @@
 
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { resourceDestroyedError } from '@zenith/errors';
+import { deprecate, resourceDestroyedError, resourceHttpError } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
+// #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
+import { createCache, type Cache } from '@zenith/cache';
 
 /**
  * وضعیت یک Resource.
@@ -115,10 +118,12 @@ export interface CrudResult<T = any> {
 function canonicalize(obj: any): any {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(canonicalize);
-  return Object.keys(obj).sort().reduce((acc: any, key: string) => {
-    acc[key] = canonicalize(obj[key]);
-    return acc;
-  }, {});
+  return Object.keys(obj)
+    .sort()
+    .reduce((acc: any, key: string) => {
+      acc[key] = canonicalize(obj[key]);
+      return acc;
+    }, {});
 }
 
 /**
@@ -138,10 +143,16 @@ function createCacheKey(method: string, url: string, body?: any): string {
  * هر Resource یک Signal دارد که وضعیت (loading/error/data) را نگه می‌دارد.
  * عملیات‌های CRUD می‌توانند روی آن انجام شوند.
  */
-export class Resource<T = any> {
+export class Resource<T = any> implements Disposable {
   private _signal: Signal<ResourceState<T>>;
   private _config: Required<ResourceConfig>;
-  private _inflightRequests: Map<string, Promise<CrudResult<any>>> = new Map();
+  // #144: dedupe درخواست‌های هم‌زمان یکسان روی @zenith/cache (به‌جای Map
+  // دستی `_inflightRequests`) با ttl=۰ (بدون انقضا) و پاک‌سازی در settle؛
+  // join فقط تا زمانی است که promise در-flight است — نتیجهٔ settled هرگز
+  // سرو نمی‌شود چون loader در finally کلید را delete می‌کند. تازگی/سستی
+  // داده همان‌قبل با signal.lastUpdated + staleTime سنجیده می‌شود (معنای
+  // setData/invalidate بدون تغییر).
+  private _dedupeCache: Cache<Promise<CrudResult<any>>>;
   private _refreshTimer: ReturnType<typeof setInterval> | null = null;
   private _mutationQueue: Array<{ op: () => Promise<CrudResult<any>>; rollback?: () => void }> = [];
   // BUG-RES-02 (v1.3.0): Snapshot versioning for optimistic updates.
@@ -194,6 +205,11 @@ export class Resource<T = any> {
       swCacheName: config.swCacheName || '',
       ...config,
     };
+
+    // #144: رجیستری dedupe. ttl=never + پاک‌سازی در settle ⇒ فقط join
+    // هم‌زمانی (نتیجهٔ settled هرگز سرو نمی‌شود — رفتار `_inflightRequests`
+    // قبلی). ظرفیت 32 صرف دفاع در برابر نشت است (LRU).
+    this._dedupeCache = createCache<Promise<CrudResult<any>>>({ ttl: 'never', maxSize: 32 });
   }
 
   /** دریافت Signal وضعیت. */
@@ -226,7 +242,11 @@ export class Resource<T = any> {
   async list(force = false): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, 'list()', this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        'list()',
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -236,7 +256,11 @@ export class Resource<T = any> {
   async read(id: string | number, force = false): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `read(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `read(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -249,7 +273,11 @@ export class Resource<T = any> {
   async create(body: any): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, 'create()', this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        'create()',
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -262,7 +290,11 @@ export class Resource<T = any> {
   async update(id: string | number, body: any): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `update(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `update(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -275,7 +307,11 @@ export class Resource<T = any> {
   async delete(id: string | number): Promise<CrudResult<T>> {
     // FEATURE (v1.0.0): پیام خطای بهبودیافته با stack trace.
     if (this._destroyed) {
-      const err = resourceDestroyedError(this._config.url, `delete(${id})`, this._destroyStack || undefined);
+      const err = resourceDestroyedError(
+        this._config.url,
+        `delete(${id})`,
+        this._destroyStack || undefined,
+      );
       console.error(err.toUserString());
       return { success: false, error: err.toUserString() };
     }
@@ -307,9 +343,12 @@ export class Resource<T = any> {
    * Reset کامل Resource.
    */
   reset(): void {
-    if (this._refreshTimer) { clearInterval(this._refreshTimer); this._refreshTimer = null; }
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer);
+      this._refreshTimer = null;
+    }
     this._mutationQueue.length = 0;
-    this._inflightRequests.clear();
+    this._dedupeCache.clear(); // #144
     // FEATURE (v1.0.0): ساخت AbortController تازه — تا reset() بتواند
     // Resource را از حالت destroyed خارج کند و درخواست‌های جدید دوباره کار کنند.
     this._abortController = new AbortController();
@@ -364,13 +403,21 @@ export class Resource<T = any> {
     this._domCleanups.delete(cb);
   }
 
-  destroy(): void {
-    // FEATURE (v1.0.0): ذخیره‌ی stack trace هنگام destroy() برای پیام‌های خطای بعدی.
+  dispose(): void {
+    // #116: idempotent — dispose دوباره بی‌اثر است (reset() فلگ را پاک می‌کند).
+    if (this._destroyed) return;
+    // FEATURE (v1.0.0): ذخیره‌ی stack trace هنگام dispose() برای پیام‌های خطای بعدی.
     this._destroyStack = new Error().stack || '(stack unavailable)';
     // BUG-RES-04 (v1.3.0): پاک‌سازی callbackهای DOM قبل از هر چیز.
     // این کار ارجاعات المان‌ها را حذف می‌کند تا garbage collector بتواند
     // DOM nodeها را جمع‌آوری کند حتی اگر Resource همچنان در memory زنده باشد.
-    this._domCleanups.forEach(fn => { try { fn(); } catch { /* ignore */ } });
+    this._domCleanups.forEach((fn) => {
+      try {
+        fn();
+      } catch {
+        /* ignore */
+      }
+    });
     this._domCleanups.clear();
     // ۱. توقف تایمر auto-refresh (clearInterval).
     this.stopAutoRefresh();
@@ -382,8 +429,8 @@ export class Resource<T = any> {
       this._currentRequestController.abort();
       this._currentRequestController = null;
     }
-    // ۳. پاک‌سازی Map درخواست‌های در حال انجام.
-    this._inflightRequests.clear();
+    // ۳. پاک‌سازی رجیستری dedupe (#144 — @zenith/cache).
+    this._dedupeCache.clear();
     // ۴. پاک‌سازی صف mutation (تا پردازش در حال انجام متوقف شود).
     this._mutationQueue.length = 0;
     // ۵. تنظیم فلگ destroyed — جلوگیری از درخواست جدید پس از این نقطه.
@@ -406,6 +453,15 @@ export class Resource<T = any> {
     }
   }
 
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-023؛ حذف در ۲.۰ — DEC-026). `reset()` دوباره قابل-dispose می‌کند.
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-023', 'resource.destroy()', 'resource.dispose()');
+    this.dispose();
+  }
+
   // ── SWR (Stale-While-Revalidate) ──
   /**
    * Start background refresh on interval.
@@ -425,13 +481,16 @@ export class Resource<T = any> {
       if (this._signal.get().data) {
         // SWR: return stale data immediately, revalidate in background
         this._signal.set({ ...this._signal.get(), isStale: true });
-        this.list(true).then(() => {});
+        void this.list(true).then(() => {});
       }
     }, interval);
   }
 
   stopAutoRefresh(): void {
-    if (this._refreshTimer) { clearInterval(this._refreshTimer); this._refreshTimer = null; }
+    if (this._refreshTimer) {
+      clearInterval(this._refreshTimer);
+      this._refreshTimer = null;
+    }
   }
 
   // ── Optimistic Updates ──
@@ -447,7 +506,7 @@ export class Resource<T = any> {
     // Optimistic: add to list immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => [...(old as any[]), { ...body, id: tempId, _optimistic: true }] as any);
+      this.setData((old) => [...(old as any[]), { ...body, id: tempId, _optimistic: true }] as any);
     }
 
     // Actual request
@@ -458,13 +517,15 @@ export class Resource<T = any> {
     } else if (Array.isArray(this._signal.get().data) && result.data) {
       this._finalizeSnapshot(version);
       // Replace temp item with real one
-      this.setData(old => (old as any[]).map(item => item.id === tempId ? result.data : item) as any);
+      this.setData(
+        (old) => (old as any[]).map((item) => (item.id === tempId ? result.data : item)) as any,
+      );
     } else if (Array.isArray(this._signal.get().data) && result.data === undefined) {
       this._finalizeSnapshot(version);
       // FIX (v1.2.3): سرور ۲۰۴ (No Content) برگردانده — یعنی آیتم ساخته شد ولی
       // body ندارد. قبلاً در این حالت tempId در UI باقی می‌ماند. حالا tempId را
       // از لیست فیلتر می‌کنیم (به‌جای map کردن).
-      this.setData(old => (old as any[]).filter(item => item.id !== tempId) as any);
+      this.setData((old) => (old as any[]).filter((item) => item.id !== tempId) as any);
     } else {
       this._finalizeSnapshot(version);
     }
@@ -481,9 +542,12 @@ export class Resource<T = any> {
     // Optimistic: update immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => ((old as any[]).map(item =>
-        String(item.id) === String(id) ? { ...item, ...body } : item) as any
-      ));
+      this.setData(
+        (old) =>
+          (old as any[]).map((item) =>
+            String(item.id) === String(id) ? { ...item, ...body } : item,
+          ) as any,
+      );
     }
 
     const result = await this.update(id, body);
@@ -506,7 +570,7 @@ export class Resource<T = any> {
     // Optimistic: remove immediately
     const snapshot = this._optimisticSnapshots.get(version);
     if (Array.isArray(snapshot)) {
-      this.setData(old => (old as any[]).filter(item => String(item.id) !== String(id)) as any);
+      this.setData((old) => (old as any[]).filter((item) => String(item.id) !== String(id)) as any);
     }
 
     const result = await this.delete(id);
@@ -532,7 +596,7 @@ export class Resource<T = any> {
    */
   enqueueMutation(op: () => Promise<CrudResult<any>>, rollback?: () => void): void {
     this._mutationQueue.push({ op, rollback });
-    this._processQueue();
+    void this._processQueue();
   }
 
   private _processing = false;
@@ -625,8 +689,11 @@ export class Resource<T = any> {
     // BUG-RES-01 (v1.3.0): body را canonicalize می‌کنیم تا ترتیب کلیدهای JSON
     // باعث collision نشود. `{a:1,b:2}` و `{b:2,a:1}` حالا cacheKey یکسان دارند.
     const cacheKey = createCacheKey(method, url, body);
-    if (!force && this._inflightRequests.has(cacheKey)) {
-      return this._inflightRequests.get(cacheKey)!;
+    // #144: join روی درخواست هم‌زمان یکسان — peek چون entryها promise زنده
+    // هستند و delete در settle پاکشان می‌کند؛ هیچ نتیجهٔ settled سرو نمی‌شود.
+    if (!force) {
+      const inflight = this._dedupeCache.peek(cacheKey);
+      if (inflight) return inflight;
     }
 
     // ── Stale Check ──
@@ -643,7 +710,8 @@ export class Resource<T = any> {
 
     // ── ساخت Request ──
     const promise = this._executeWithRetry<R>(method, url, body);
-    this._inflightRequests.set(cacheKey, promise);
+    // #144: `set` مقدار (promise) را برمی‌گرداند ⇒ void برای no-floating-promises.
+    void this._dedupeCache.set(cacheKey, promise);
 
     // setLoading (فقط برای GET اولیه).
     if (method === 'GET' && !this._signal.get().data) {
@@ -652,7 +720,7 @@ export class Resource<T = any> {
 
     try {
       const result = await promise;
-      this._inflightRequests.delete(cacheKey);
+      this._dedupeCache.delete(cacheKey);
 
       if (result.success && result.data !== undefined) {
         this._signal.set({
@@ -675,7 +743,7 @@ export class Resource<T = any> {
 
       return result;
     } catch (err) {
-      this._inflightRequests.delete(cacheKey);
+      this._dedupeCache.delete(cacheKey);
       const message = err instanceof Error ? err.message : String(err);
       this._signal.set({
         ...this._signal.get(),
@@ -699,13 +767,12 @@ export class Resource<T = any> {
   private _isNetworkError(err: unknown): boolean {
     return (
       err instanceof TypeError ||
-      (err instanceof Error && (
-        err.message.includes('network') ||
-        err.message.includes('NetworkError') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Load failed') ||
-        err.name === 'TimeoutError'
-      ))
+      (err instanceof Error &&
+        (err.message.includes('network') ||
+          err.message.includes('NetworkError') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('Load failed') ||
+          err.name === 'TimeoutError'))
     );
   }
 
@@ -738,7 +805,10 @@ export class Resource<T = any> {
           // that rapid successive calls cancel the previous in-flight request.
           signal: this._currentRequestController
             ? AbortSignal.any
-              ? AbortSignal.any([this._abortController.signal, this._currentRequestController.signal])
+              ? AbortSignal.any([
+                  this._abortController.signal,
+                  this._currentRequestController.signal,
+                ])
               : this._currentRequestController.signal
             : this._abortController.signal,
         };
@@ -750,7 +820,7 @@ export class Resource<T = any> {
         const res = await fetch(url, options);
 
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          throw resourceHttpError(url, res.status, res.statusText);
         }
 
         // برای DELETE، ممکن است response خالی باشد.
@@ -759,9 +829,7 @@ export class Resource<T = any> {
         }
 
         const contentType = res.headers.get('content-type') || '';
-        const data = contentType.includes('application/json')
-          ? await res.json()
-          : await res.text();
+        const data = contentType.includes('application/json') ? await res.json() : await res.text();
 
         return { success: true, data };
       } catch (err) {
@@ -781,7 +849,7 @@ export class Resource<T = any> {
 
         // اگر این آخرین تلاش نیست، صبر کن و دوباره تلاش کن.
         if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, this._config.retryDelay * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, this._config.retryDelay * (attempt + 1)));
         }
       }
     }

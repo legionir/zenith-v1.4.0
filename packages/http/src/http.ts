@@ -4,13 +4,15 @@
  * Features:
  *   - Request/response interceptors
  *   - Smart retry with exponential backoff
- *   - Response caching (memory + TTL)
+ *   - Response caching (memory + TTL) — از #144 روی @zenith/cache
  *   - Request timeout & cancellation
  *   - Centralized error handling
  */
 
 import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
+import { deprecate } from '@zenith/errors';
+import { createCache, type Cache } from '@zenith/cache';
 
 // ============================================================
 // Types & Interfaces
@@ -69,12 +71,10 @@ export interface HttpError extends Error {
 }
 
 export type RequestInterceptor = (
-  config: HttpRequestOptions
+  config: HttpRequestOptions,
 ) => HttpRequestOptions | Promise<HttpRequestOptions>;
 
-export type ResponseInterceptor = (
-  response: HttpResponse
-) => HttpResponse | Promise<HttpResponse>;
+export type ResponseInterceptor = (response: HttpResponse) => HttpResponse | Promise<HttpResponse>;
 
 export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 
@@ -85,7 +85,11 @@ export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 const requestInterceptors: RequestInterceptor[] = [];
 const responseInterceptors: ResponseInterceptor[] = [];
 const errorInterceptors: ErrorInterceptor[] = [];
-const cacheStore = new Map<string, { data: any; expiresAt: number }>();
+// #144: کش پاسخ‌ها از Map دستی به @zenith/cache منتقل شد — TTL به‌ازای هر
+// ورودی با opts.ttl، برچسب‌ها با opts.tags و invalidate. انقضا lazy است
+// (بدون timer ⇒ SSR-safe). wrapper { data } می‌سازیم تا پاسخ `undefined`
+// با «نبود entry» اشتباه گرفته نشود.
+const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
 
 let defaultConfig: HttpRequestOptions = {
@@ -94,12 +98,12 @@ let defaultConfig: HttpRequestOptions = {
     maxAttempts: 3,
     initialDelay: 500,
     backoffMultiplier: 2,
-    retryOn: [408, 429, 500, 502, 503, 504]
+    retryOn: [408, 429, 500, 502, 503, 504],
   },
   cache: {
     enabled: false,
-    ttl: 60000
-  }
+    ttl: 60000,
+  },
 };
 
 // ============================================================
@@ -107,10 +111,20 @@ let defaultConfig: HttpRequestOptions = {
 // ============================================================
 
 /**
- * Set default configuration for all HTTP requests
+ * Set default configuration for all HTTP requests.
+ *
+ * #116 cleanup protocol: تنظیمات «ثبت» محسوب می‌شود؛ خروجی یک `Cleanup`
+ * idempotent است که مقدار قبلی defaultConfig را بازمی‌گرداند.
  */
-export function setHttpConfig(config: Partial<HttpRequestOptions>): void {
+export function setHttpConfig(config: Partial<HttpRequestOptions>): () => void {
+  const previous = defaultConfig;
   defaultConfig = { ...defaultConfig, ...config };
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    defaultConfig = previous;
+  };
 }
 
 /**
@@ -158,19 +172,28 @@ export function addErrorInterceptor(interceptor: ErrorInterceptor): () => void {
 // ============================================================
 
 /**
- * Clear cached responses, optionally filtered by tags
+ * Clear cached responses, optionally filtered by tags.
+ *
+ * نام یکتا طبق کار #3 از #144 (issue نام‌های تکراری): `clearHttpCache`.
  */
-export function clearCache(tags?: string[]): void {
+export function clearHttpCache(tags?: string[]): void {
   if (!tags) {
-    cacheStore.clear();
+    httpCache.clear();
     return;
   }
-  // Simple tag-based invalidation (tags stored in key prefix)
-  for (const key of Array.from(cacheStore.keys())) {
-    if (tags.some(tag => key.includes(`__tag:${tag}`))) {
-      cacheStore.delete(key);
-    }
-  }
+  httpCache.invalidate(tags);
+  // سازگاری با قرارداد قدیمی http: کلیدهایی که خودشان `__tag:<x>` داشتند
+  // (حالا tags واقعی هم پشتیبانی می‌شوند).
+  httpCache.invalidate((key) => tags.some((tag) => key.includes(`__tag:${tag}`)));
+}
+
+/**
+ * @deprecated از `clearHttpCache` استفاده کنید (ZEN-DEPR-005، #144 — رفع
+ * نام تکراری cross-package). این alias در ۲.۰ حذف می‌شود (DEC-026).
+ */
+export function clearCache(tags?: string[]): void {
+  deprecate('ZEN-DEPR-005', 'clearCache (http)', 'clearHttpCache');
+  clearHttpCache(tags);
 }
 
 // ============================================================
@@ -182,7 +205,7 @@ export function clearCache(tags?: string[]): void {
  */
 export async function request<T = any>(
   url: string,
-  options: HttpRequestOptions = {}
+  options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
   // Merge with defaults
   const config: HttpRequestOptions = {
@@ -191,14 +214,15 @@ export async function request<T = any>(
     headers: {
       'Content-Type': 'application/json',
       ...defaultConfig.headers,
-      ...options.headers
-    }
+      ...options.headers,
+    },
   };
 
   // Prepend base URL
-  const fullUrl = config.baseURL && !url.startsWith('http')
-    ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
-    : url;
+  const fullUrl =
+    config.baseURL && !url.startsWith('http')
+      ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+      : url;
 
   // Run request interceptors
   if (!config.skipInterceptors) {
@@ -210,14 +234,14 @@ export async function request<T = any>(
   // Check cache
   const cacheKey = config.cache?.key || `${config.method || 'GET'}:${fullUrl}`;
   if (config.cache?.enabled) {
-    const cached = cacheStore.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
+    const cached = httpCache.get(cacheKey);
+    if (cached) {
       return {
         data: cached.data,
         status: 200,
         statusText: 'OK (from cache)',
         headers: new Headers(),
-        config
+        config,
       };
     }
   }
@@ -252,7 +276,11 @@ export async function request<T = any>(
       error.status = response.status;
       error.statusText = response.statusText;
       error.config = config;
-      try { error.data = await response.json(); } catch { /* ignore */ }
+      try {
+        error.data = await response.json();
+      } catch {
+        /* ignore */
+      }
 
       // Run error interceptors
       for (const interceptor of errorInterceptors) {
@@ -264,7 +292,7 @@ export async function request<T = any>(
         category: 'runtime',
         severity: 'error',
         recoverable: true,
-        context: { url, status: error.status }
+        context: { url, status: error.status },
       });
 
       throw error;
@@ -278,7 +306,7 @@ export async function request<T = any>(
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
-      config
+      config,
     };
 
     // Run response interceptors
@@ -288,13 +316,10 @@ export async function request<T = any>(
       }
     }
 
-    // Store in cache
+    // Store in cache (TTL + tags per entry; lazy expiry in @zenith/cache)
     if (config.cache?.enabled) {
       const ttl = config.cache.ttl || 60000;
-      cacheStore.set(cacheKey, {
-        data: httpResponse.data,
-        expiresAt: Date.now() + ttl
-      });
+      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: config.tags });
     }
 
     return httpResponse;
@@ -307,15 +332,18 @@ export async function request<T = any>(
 
       if (shouldRetry) {
         const remainingAttempts = retryConfig.maxAttempts - 1;
-        const delay = (retryConfig.initialDelay || 500) *
-          Math.pow(retryConfig.backoffMultiplier || 2,
-            (retryConfig.maxAttempts - remainingAttempts - 1));
+        const delay =
+          (retryConfig.initialDelay || 500) *
+          Math.pow(
+            retryConfig.backoffMultiplier || 2,
+            retryConfig.maxAttempts - remainingAttempts - 1,
+          );
 
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise((r) => setTimeout(r, delay));
 
         return request<T>(url, {
           ...config,
-          retry: { ...retryConfig, maxAttempts: remainingAttempts }
+          retry: { ...retryConfig, maxAttempts: remainingAttempts },
         });
       }
     }
@@ -366,10 +394,10 @@ export const http = {
       }
     }
 
-    refetch();
+    void refetch();
 
     return { data, loading, error, refetch };
-  }
+  },
 };
 
 // ============================================================

@@ -44,6 +44,8 @@
 //   </div>
 
 import { signal, type Signal } from '@zenith/state';
+import { developerError, resourceHttpError, deprecate, ErrorCode } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 
 /**
  * وضعیت کاربر فعلی.
@@ -126,12 +128,7 @@ export interface AuthConfig {
 /**
  * IMP-AUT-02 (v1.3.0): رویدادهای Auth.
  */
-export type AuthEvent =
-  | 'login'
-  | 'logout'
-  | 'token-refresh'
-  | 'token-expired'
-  | 'error';
+export type AuthEvent = 'login' | 'logout' | 'token-refresh' | 'token-expired' | 'error';
 
 /**
  * IMP-AUT-02 (v1.3.0): Listener برای رویدادهای Auth.
@@ -140,8 +137,11 @@ export type AuthEventListener = (event: AuthEvent, data?: any) => void;
 
 /**
  * کلاس Auth — مدیریت کامل authentication.
+ *
+ * #116: چرخهٔ عمر یکی‌شده — `Disposable`؛ `destroy()` شد alias منسوخ‌شوندهٔ
+ * `dispose()` (ZEN-DEPR-020؛ حذف در ۲.۰ — DEC-026).
  */
-export class Auth {
+export class Auth implements Disposable {
   private _signal: Signal<AuthState>;
   private _config: Required<AuthConfig>;
   private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -190,6 +190,33 @@ export class Auth {
       ...config,
     };
 
+    // #62 (SEC): dev-mode warning for XSS-vulnerable token storage choices.
+    // localStorage/sessionStorage/cookie (client-side cookies cannot be
+    // HttpOnly) expose the token to any script on the page. The default
+    // 'memory' is not warned about. Pattern matches the rest of Zenith:
+    // dev unless globalThis.__ZENITH_DEV__ === false.
+    if (
+      this._config.tokenStorage === 'localStorage' ||
+      this._config.tokenStorage === 'sessionStorage' ||
+      this._config.tokenStorage === 'cookie'
+    ) {
+      if (
+        typeof globalThis !== 'undefined' &&
+        (globalThis as any).__ZENITH_DEV__ !== false &&
+        typeof console !== 'undefined' &&
+        typeof console.warn === 'function'
+      ) {
+        console.warn(
+          `[Zenith] ZEN-404: tokenStorage: '${this._config.tokenStorage}' stores auth tokens ` +
+            `where page JavaScript can read them (client-set cookies cannot be HttpOnly). ` +
+            `Any XSS in your app or dependencies leaks the session. Recommended: server-side ` +
+            `Set-Cookie with HttpOnly; Secure; SameSite=Lax/Strict + access token in memory. ` +
+            `See docs/security/auth.md. Set globalThis.__ZENITH_DEV__ = false in production ` +
+            `to silence.`,
+        );
+      }
+    }
+
     // Restore tokens from storage.
     this._restoreTokens();
 
@@ -199,7 +226,7 @@ export class Auth {
     if (this._signal.get().token) {
       this.fetchUser().catch(() => {
         // اگر fetchUser ناموفق بود، logout کن
-        this.logout();
+        void this.logout();
       });
     }
   }
@@ -248,7 +275,9 @@ export class Auth {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
-        throw new Error(errorData.message || 'Login failed');
+        throw developerError(errorData.message || 'Login failed', ErrorCode.RESOURCE_HTTP_ERROR, {
+          category: 'Network',
+        });
       }
 
       const data = await res.json();
@@ -260,7 +289,10 @@ export class Auth {
       const expiresIn = data[this._config.expiresInField];
 
       if (!token) {
-        throw new Error('No token in response');
+        throw developerError('No token in response', ErrorCode.RESOURCE_HTTP_ERROR, {
+          category: 'Network',
+          suggestion: 'پاسخ login باید فیلد token را داشته باشد (tokenField در config).',
+        });
       }
 
       const expiry = expiresIn ? Date.now() + expiresIn * 1000 : null;
@@ -325,7 +357,7 @@ export class Auth {
           method: 'POST',
           keepalive: true,
           headers: {
-            'Authorization': `Bearer ${this.token}`,
+            Authorization: `Bearer ${this.token}`,
             ...this._config.headers,
           },
           credentials: 'same-origin',
@@ -377,19 +409,29 @@ export class Auth {
   }
 
   /**
-   * Destroy: پاکسازی timers و state بدون API call.
-   * مفید برای HMR و component unmount.
+   * #116 (Disposable): پاکسازی timers و state بدون API call.
+   * مفید برای HMR و component unmount. Idempotent — فراخوانی دوباره بی‌اثر است.
    */
-  destroy(): void {
-    // BUG-12 FIX (v1.2.2): set _destroyed flag تا متدهای عمومی بعد از destroy
+  dispose(): void {
+    // BUG-12 FIX (v1.2.2): set _destroyed flag تا متدهای عمومی بعد از dispose
     // no-op شوند. این کار از zombie callbacks (که بعد از destroy اجرا می‌شوند
     // و state را mutate می‌کنند) جلوگیری می‌کند.
+    if (this._destroyed) return; // #116: idempotency
     this._destroyed = true;
     this._clearRefreshTimer();
     // اگر refresh در حال انجام است، Promise را reject کن (با no-op چون فقط
     // Promise را null می‌کنیم — callerهای منتظر با دریافت false برمی‌گردند).
     this._refreshPromise = null;
     this._listeners.clear();
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن.
+   * (ZEN-DEPR-020؛ حذف در ۲.۰ — DEC-026)
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-020', 'auth.destroy()', 'auth.dispose()');
+    this.dispose();
   }
 
   /**
@@ -406,7 +448,7 @@ export class Auth {
     try {
       const res = await fetch(this._config.meUrl, {
         headers: {
-          'Authorization': `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.token}`,
           ...this._config.headers,
         },
         credentials: 'same-origin',
@@ -418,7 +460,7 @@ export class Auth {
           await this.logout();
           return false;
         }
-        throw new Error(`HTTP ${res.status}`);
+        throw resourceHttpError(this._config.meUrl, res.status, res.statusText);
       }
 
       const user = await res.json();
@@ -470,7 +512,7 @@ export class Auth {
    * IMP-AUT-02 (v1.3.0): انتشار داخلی رویداد.
    */
   private _emit(event: AuthEvent, data?: any): void {
-    this._listeners.get(event)?.forEach(fn => {
+    this._listeners.get(event)?.forEach((fn) => {
       try {
         fn(event, data);
       } catch (err) {
@@ -669,9 +711,13 @@ export class Auth {
 
     // IMP-AUT-04 (v1.3.0): اگر آفلاین هستیم، صبر کن تا اتصال برگردد.
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      window.addEventListener('online', () => {
-        this._scheduleRefresh(expiry);
-      }, { once: true });
+      window.addEventListener(
+        'online',
+        () => {
+          this._scheduleRefresh(expiry);
+        },
+        { once: true },
+      );
       return;
     }
 
@@ -682,7 +728,7 @@ export class Auth {
     this._refreshTimer = setTimeout(() => {
       // FIX (v1.2.9): BUG-08 — Double-check _destroyed in callback
       if (this._destroyed) return;
-      this.refresh();
+      void this.refresh();
     }, delay);
   }
 
@@ -809,27 +855,27 @@ export class Auth {
         // FIX (v1.2.3): token معتبر به‌نظر می‌رسد — یک refresh فوری برای
         // validation انجام بده تا isAuthenticated:true شود.
         if (this._config.refreshUrl && refreshToken) {
-          this.refresh();
+          void this.refresh();
         } else {
           // بدون refreshUrl، فقط fetchUser می‌تواند اعتبارسنجی کند. اگر meUrl
           // موجود است، آن را صدا بزن. در غیر این صورت، هیچ راهی برای validation
           // نیست — isAuthenticated:false باقی می‌ماند.
           if (this._config.meUrl) {
-            this.fetchUser();
+            void this.fetchUser();
           }
         }
         this._scheduleRefresh(expiry);
       } else if (expiry && expiry <= Date.now()) {
         // Token already expired — try refresh.
         if (this._config.refreshUrl && refreshToken) {
-          this.refresh();
+          void this.refresh();
         } else {
-          this.logout();
+          void this.logout();
         }
       } else {
         // No expiry info — try fetchUser to validate.
         if (this._config.meUrl) {
-          this.fetchUser();
+          void this.fetchUser();
         }
       }
     }
@@ -854,10 +900,17 @@ export class Auth {
    */
   private _getStorage(): Storage | 'cookie' | null {
     // BUG-06 (v1.0.1): بررسی واقعی SSR — JSDOM هم localStorage دارد ولی باید در SSR null برگرداند.
-    const isServer = typeof window === 'undefined' ||
-      (typeof process !== 'undefined' && process.versions?.node && typeof document !== 'undefined' &&
-       (document as any).__zenithSSR__ === true);
-    if (isServer && this._config.tokenStorage !== 'cookie' && this._config.tokenStorage !== 'memory') {
+    const isServer =
+      typeof window === 'undefined' ||
+      (typeof process !== 'undefined' &&
+        process.versions?.node &&
+        typeof document !== 'undefined' &&
+        (document as any).__zenithSSR__ === true);
+    if (
+      isServer &&
+      this._config.tokenStorage !== 'cookie' &&
+      this._config.tokenStorage !== 'memory'
+    ) {
       return null;
     }
 
@@ -897,9 +950,20 @@ const authRegistry = new Map<string, Auth>();
 
 /**
  * ثبت یک Auth.
+ *
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است که فقط در صورتی
+ * نام را حذف می‌کند که همان instance هنوز ثبت باشد.
  */
-export function registerAuth(name: string, auth: Auth): void {
+export function registerAuth(name: string, auth: Auth): () => void {
   authRegistry.set(name, auth);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (authRegistry.get(name) === auth) {
+      authRegistry.delete(name);
+    }
+  };
 }
 
 /**
@@ -921,6 +985,9 @@ export function clearAuth(): void {
 // ============================================================
 
 import { computed, emitError, type ReadonlySignal } from '@zenith/state';
+// #145 — توکن‌های functional از راه @zenith/storage (record نسخه‌دار +
+// migrate دادهٔ میراث + fallback امن). کلید دقیق قدیمی حفظ می‌شود.
+import { createStorage, type ZenithStorage } from '@zenith/storage';
 
 export interface User {
   id: string | number;
@@ -983,13 +1050,13 @@ let functionalConfig: FunctionalAuthConfig = {
     logout: '/api/auth/logout',
     register: '/api/auth/register',
     refresh: '/api/auth/refresh',
-    me: '/api/auth/me'
+    me: '/api/auth/me',
   },
   storageKey: FUNCTIONAL_STORAGE_KEY,
   autoRefresh: true,
   loginRedirect: '/dashboard',
   logoutRedirect: '/',
-  loginPath: '/login'
+  loginPath: '/login',
 };
 
 const functionalUser = signal<User | null>(null);
@@ -997,7 +1064,9 @@ const functionalTokens = signal<AuthTokens | null>(null);
 const functionalIsLoading = signal(false);
 const functionalAuthError = signal<string | null>(null);
 
-const functionalIsAuthenticated = computed(() => !!functionalUser.get() && !!functionalTokens.get());
+const functionalIsAuthenticated = computed(
+  () => !!functionalUser.get() && !!functionalTokens.get(),
+);
 const functionalRoles = computed(() => functionalUser.get()?.roles || []);
 const functionalPermissions = computed(() => functionalUser.get()?.permissions || []);
 
@@ -1008,7 +1077,7 @@ export function configureAuth(cfg: Partial<FunctionalAuthConfig>): void {
   functionalConfig = {
     ...functionalConfig,
     ...cfg,
-    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints }
+    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints },
   };
 }
 
@@ -1016,27 +1085,52 @@ export function getAuthConfig(): FunctionalAuthConfig {
   return { ...functionalConfig };
 }
 
+// #145 — همتای ذخیره‌سازی توکن: namespace '' تا کلید دقیق میراث
+// (zenith_auth_tokens) حفظ شود؛ remember-me انتخاب آگاهانۀ کاربر است
+// (هشدار ZEN-404 کلاس Auth #62 جای خود؛ این مسیر functional همان
+// localStorage را نگه می‌دارد ولی version‌دار و no-throw). migrate ⇒ JSON
+// خام قدیمی به‌عنوان version 0 پذیرفته و با record تازه بازنویسی می‌شود؛
+// validate ⇒ دادهٔ دست‌کاری‌شده (بدون accessToken) رد و پاک می‌شود (ZEN-1104).
+function tokenStorage(): ZenithStorage {
+  return createStorage({
+    namespace: '',
+    sync: false,
+    migrate: (old) => old,
+    validate: (v) => {
+      if (!v || typeof v !== 'object' || typeof (v as AuthTokens).accessToken !== 'string') {
+        throw developerError(
+          'invalid AuthTokens shape',
+          ErrorCode.SECURITY_INSECURE_TOKEN_STORAGE,
+          {
+            category: 'Security',
+          },
+        );
+      }
+      return v;
+    },
+  });
+}
+
+let functionalStorage: ZenithStorage | null = null;
+function getFunctionalStorage(): ZenithStorage {
+  if (!functionalStorage) functionalStorage = tokenStorage();
+  return functionalStorage;
+}
+
 function saveFunctionalTokens(t: AuthTokens): void {
-  try {
-    localStorage.setItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY, JSON.stringify(t));
-  } catch (e) {
-    console.warn('Cannot save tokens to storage:', e);
-  }
+  // خطای ذخیره را storage خودش گزارش می‌کند (ZEN-1101/1102) — اینجا no-throw.
+  getFunctionalStorage().set(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY, t);
 }
 
 function loadFunctionalTokens(): AuthTokens | null {
-  try {
-    const raw = localStorage.getItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return (
+    getFunctionalStorage().get<AuthTokens>(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY) ??
+    null
+  );
 }
 
 function clearFunctionalTokens(): void {
-  try {
-    localStorage.removeItem(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
-  } catch { /* ignore */ }
+  getFunctionalStorage().remove(functionalConfig.storageKey || FUNCTIONAL_STORAGE_KEY);
 }
 
 export async function initAuth(): Promise<void> {
@@ -1066,7 +1160,7 @@ export async function login(credentials: LoginCredentials): Promise<User | null>
     const { http } = await import('@zenith/http');
     const response = await http.post<{ user: User; tokens: AuthTokens }>(
       functionalConfig.endpoints?.login || '/api/auth/login',
-      credentials
+      credentials,
     );
 
     const { user: newUser, tokens: newTokens } = response.data;
@@ -1089,7 +1183,7 @@ export async function login(credentials: LoginCredentials): Promise<User | null>
       category: 'runtime',
       severity: 'error',
       recoverable: true,
-      context: { phase: 'login' }
+      context: { phase: 'login' },
     });
     return null;
   } finally {
@@ -1105,7 +1199,7 @@ export async function register(data: RegisterData): Promise<User | null> {
     const { http } = await import('@zenith/http');
     const response = await http.post<{ user: User; tokens: AuthTokens }>(
       functionalConfig.endpoints?.register || '/api/auth/register',
-      data
+      data,
     );
 
     const { user: newUser, tokens: newTokens } = response.data;
@@ -1146,14 +1240,17 @@ export async function logout(notifyServer = true): Promise<void> {
 export async function refreshToken(): Promise<AuthTokens | null> {
   const currentTokens = functionalTokens.get();
   if (!currentTokens?.refreshToken) {
-    throw new Error('No refresh token available');
+    throw developerError('No refresh token available', ErrorCode.RESOURCE_DESTROYED, {
+      category: 'Resource',
+      suggestion: 'ابتدا login کنید تا refreshToken ذخیره شود.',
+    });
   }
 
   try {
     const { http } = await import('@zenith/http');
     const response = await http.post<AuthTokens>(
       functionalConfig.endpoints?.refresh || '/api/auth/refresh',
-      { refreshToken: currentTokens.refreshToken }
+      { refreshToken: currentTokens.refreshToken },
     );
 
     functionalTokens.set(response.data);
@@ -1205,11 +1302,11 @@ export function hasRole(role: string): boolean {
 }
 
 export function hasAnyRole(roleList: string[]): boolean {
-  return roleList.some(r => functionalRoles.get().includes(r));
+  return roleList.some((r) => functionalRoles.get().includes(r));
 }
 
 export function hasAllRoles(roleList: string[]): boolean {
-  return roleList.every(r => functionalRoles.get().includes(r));
+  return roleList.every((r) => functionalRoles.get().includes(r));
 }
 
 export function hasPermission(permission: string): boolean {
@@ -1217,7 +1314,7 @@ export function hasPermission(permission: string): boolean {
 }
 
 export function hasAnyPermission(permList: string[]): boolean {
-  return permList.some(p => functionalPermissions.get().includes(p));
+  return permList.some((p) => functionalPermissions.get().includes(p));
 }
 
 export interface RouteGuard {
@@ -1228,7 +1325,9 @@ export interface RouteGuard {
   redirectTo?: string;
 }
 
-export async function canActivateRoute(guard: RouteGuard): Promise<{ allowed: boolean; redirectTo?: string }> {
+export async function canActivateRoute(
+  guard: RouteGuard,
+): Promise<{ allowed: boolean; redirectTo?: string }> {
   if (guard.requiresAuth && !functionalIsAuthenticated.get()) {
     return { allowed: false, redirectTo: guard.redirectTo || functionalConfig.loginPath };
   }
@@ -1289,5 +1388,5 @@ export const auth: FunctionalAuthState & {
   hasAnyPermission,
   canActivateRoute,
   configure: configureAuth,
-  init: initAuth
+  init: initAuth,
 };

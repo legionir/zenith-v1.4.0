@@ -46,14 +46,14 @@ import {
 } from '@zenith/actions';
 ```
 
-| تابع | کاربرد |
-|------|--------|
-| `registerAction(name, fn)` | ثبت یا بازنویسی یک اکشن |
-| `unregisterAction(name)` | حذف یک اکشن (برمی‌گرداند `boolean`) |
-| `getAction(name)` | دریافت تابع اکشن یا `undefined` |
-| `hasAction(name)` | بررسی وجود اکشن |
-| `clearActions()` | پاکسازی کل Registry (فقط تست/HMR) |
-| `action.register` / `action.unregister` / … | همان توابع، در قالب یک شیء |
+| تابع                                        | کاربرد                              |
+| ------------------------------------------- | ----------------------------------- |
+| `registerAction(name, fn)`                  | ثبت یا بازنویسی یک اکشن             |
+| `unregisterAction(name)`                    | حذف یک اکشن (برمی‌گرداند `boolean`) |
+| `getAction(name)`                           | دریافت تابع اکشن یا `undefined`     |
+| `hasAction(name)`                           | بررسی وجود اکشن                     |
+| `clearActions()`                            | پاکسازی کل Registry (فقط تست/HMR)   |
+| `action.register` / `action.unregister` / … | همان توابع، در قالب یک شیء          |
 
 ## ActionContext
 
@@ -61,9 +61,9 @@ import {
 
 ```typescript
 interface ActionContext {
-  event: Event;                  // رویداد اصلی مرورگر
-  state: Record<string, any>;    // همان State که به Zen.start داده شد
-  element: HTMLElement;           // عنصری که zen-action روی آن بود
+  event: Event; // رویداد اصلی مرورگر
+  state: Record<string, any>; // همان State که به Zen.start داده شد
+  element: HTMLElement; // عنصری که zen-action روی آن بود
 }
 ```
 
@@ -79,3 +79,11 @@ interface ActionContext {
   State خام (همان `signal(0)` و …) پاس داده می‌شود، نه Contextای که با `$` کار می‌کند.
   این انتخاب عمدی است چون Actionها معمولاً می‌خواهند Signalها را `set` کنند،
   نه فقط `get`.
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`ActionRegistry` implements `Disposable` (`@zenith/shared`): `dispose()` clears
+all registered actions; idempotent. `destroy()` is a deprecated alias (warns
+once with **ZEN-DEPR-019**, removed in 2.0 per DEC-026). `registerAction(...)`
+returns a `Cleanup` (`() => void`) that unregisters the action only while it is
+still the registered handler (identity-guarded).

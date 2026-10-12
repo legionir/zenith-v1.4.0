@@ -8,91 +8,43 @@
 //   - Stale Check: صفحات cache شده بعد از staleTime دوباره fetch می‌شوند.
 
 import { effect } from '@zenith/state';
+import { createCache } from '@zenith/cache';
 import { routeSignal, findMatchingRoute, setRouteParams, registerRouterCleanup } from './router';
 
-interface RouteDefinition { path: string; src: string; }
-interface FetchResult { ok: boolean; html: string; status: number; }
-
-// ── Route Cache (BUG-RTR-04: Proper LRU) ──
-interface CacheEntry { html: string; }
-const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
-
-/**
- * BUG-RTR-04 (v1.3.0): Proper LRU cache using Map insertion order.
- *
- * Previously the cache used a plain Map<string, CacheEntry> with a
- * timestamp field. When the cache exceeded MAX_ROUTE_CACHE_SIZE (50),
- * it scanned *every* entry (O(n)) to find the oldest one by timestamp
- * and evicted a single entry. This had two problems:
- *   1. O(n) eviction — wasteful when n reaches the cap on every insert.
- *   2. LRU semantics were broken: frequently accessed entries could
- *      be evicted if they happened to have an old timestamp, because
- *      `get()` did not update the timestamp.
- *
- * The fix uses `delete + set` on every `get()` to move the accessed
- * entry to the *end* of the Map's insertion-order linked list. Eviction
- * then removes the *first* key (Map.prototype.keys().next().value),
- * which is the least-recently-used entry — O(1).
- *
- * The `timestamp` field is no longer needed on CacheEntry because LRU
- * ordering is tracked purely by Map key order. Stale checking still
- * uses a separate timestamp Map.
- */
-class LRUCache<V> {
-  private _map = new Map<string, V>();
-  private _timestamps = new Map<string, number>();
-  private _maxSize: number;
-
-  constructor(maxSize: number) {
-    this._maxSize = maxSize;
-  }
-
-  get size(): number { return this._map.size; }
-
-  has(key: string): boolean { return this._map.has(key); }
-
-  get(key: string): V | undefined {
-    if (!this._map.has(key)) return undefined;
-    // Move to end (most-recently-used position) by delete+set
-    const value = this._map.get(key)!;
-    this._map.delete(key);
-    this._map.set(key, value);
-    return value;
-  }
-
-  set(key: string, value: V): void {
-    // If key already exists, delete first so re-insert lands at end
-    if (this._map.has(key)) {
-      this._map.delete(key);
-    }
-    this._map.set(key, value);
-    this._timestamps.set(key, Date.now());
-    // Evict least-recently-used (first key) when over capacity
-    if (this._map.size > this._maxSize) {
-      const lruKey = this._map.keys().next().value;
-      if (lruKey !== undefined) {
-        this._map.delete(lruKey);
-        this._timestamps.delete(lruKey);
-      }
-    }
-  }
-
-  getTimestamp(key: string): number | undefined {
-    return this._timestamps.get(key);
-  }
-
-  delete(key: string): void {
-    this._map.delete(key);
-    this._timestamps.delete(key);
-  }
-
-  clear(): void {
-    this._map.clear();
-    this._timestamps.clear();
-  }
+interface RouteDefinition {
+  path: string;
+  src: string;
+}
+interface FetchResult {
+  ok: boolean;
+  html: string;
+  status: number;
 }
 
-const routeCache = new LRUCache<CacheEntry>(50 /* MAX_ROUTE_CACHE_SIZE */);
+// ── Route Cache ──
+// #144: کلاس LRU دستی این فایل (BUG-RTR-04) حذف شد و @zenith/cache (L0،
+// policy='lru'، maxSize=50) جایش آمد. استمپ زمانیِ stale-check در Map
+// جداگانه می‌ماند چون @zenith/cache استمپ per-entry بیرونی ندارد (contract
+// SPEC §۲.۴ فقط ttl/isStale می‌دهد؛ ttl برای stale همیشگی نمی‌شود چون
+// stale-refetch باید fire-and-forget باشد نه حذف lazy).
+interface CacheEntry {
+  html: string;
+}
+const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const _routeTimestamps = new Map<string, number>();
+const routeCache = createCache<CacheEntry>({
+  ttl: 'never',
+  maxSize: 50,
+  // استمپ‌ها هم با eviction پاک شوند تا Map بی‌نمو نشود (تست نشت #144).
+  onEvict: (key) => {
+    _routeTimestamps.delete(key);
+  },
+});
+
+/** استمپ ذخیره تازه را ثبت می‌کند (رفتار stale قدیمی بدون تغییر). */
+function markRouteFresh(src: string): void {
+  _routeTimestamps.set(src, Date.now());
+}
 
 function readRouteDefinitions(el: HTMLElement): RouteDefinition[] {
   const routeEls = Array.from(el.querySelectorAll('zen-route'));
@@ -113,13 +65,9 @@ async function fetchPage(src: string, signal?: AbortSignal): Promise<FetchResult
     const res = await fetch(src, signal ? { signal } : undefined);
     if (!res.ok) return { ok: false, html: '', status: res.status };
     const html = await res.text();
-    // Cache the result
-    // BUG-RTR-04 (v1.3.0): LRUCache now handles eviction internally (O(1)),
-    // removing the least-recently-used entry when the cache exceeds capacity.
-    // Previously this was O(n) scanning all entries for the lowest timestamp,
-    // which both caused latency spikes and evicted the wrong entries
-    // (timestamp-only vs actual recency-of-access).
+    // Cache the result — #144: eviction LRU داخل @zenith/cache (O(1)).
     routeCache.set(src, { html });
+    markRouteFresh(src);
     return { ok: true, html, status: res.status };
   } catch (err) {
     // FIX (v1.2.7): silently ignore AbortError — it is expected when the
@@ -135,21 +83,26 @@ async function fetchPage(src: string, signal?: AbortSignal): Promise<FetchResult
 async function fetchPageCached(src: string, signal?: AbortSignal): Promise<FetchResult> {
   const cached = routeCache.get(src);
   if (cached) {
-    // BUG-RTR-04 (v1.3.0): Timestamp is stored separately in the LRU cache.
-    const entryTime = routeCache.getTimestamp(src) ?? Date.now();
+    const entryTime = _routeTimestamps.get(src) ?? Date.now();
     const age = Date.now() - entryTime;
     if (age < DEFAULT_STALE_TIME) {
       return { ok: true, html: cached.html, status: 200 };
     }
     // Stale — re-fetch in background, return cached for now.
-    fetchPage(src); // fire and forget — updates cache
+    void fetchPage(src); // fire and forget — updates cache
     return { ok: true, html: cached.html, status: 200 };
   }
   return fetchPage(src, signal);
 }
 
 function cleanupCurrentContent(el: HTMLElement, disposes: (() => void)[]): void {
-  for (const d of disposes) { try { d(); } catch (err) { console.error('[Zenith Router] Dispose error:', err); } }
+  for (const d of disposes) {
+    try {
+      d();
+    } catch (err) {
+      console.error('[Zenith Router] Dispose error:', err);
+    }
+  }
   disposes.length = 0;
   el.innerHTML = '';
 }
@@ -193,13 +146,20 @@ export function installPrefetch(): void {
 // Registry: path → src (for prefetch)
 const routeSrcRegistry = new Map<string, string>();
 
+/**
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است؛ آرایهٔ
+ * `parentDisposes` هم برای سازگاری با گذشته پر می‌شود.
+ */
 export function processRouter(
   el: HTMLElement,
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   parentDisposes: (() => void)[],
-): void {
+): () => void {
   const routes = readRouteDefinitions(el);
-  if (routes.length === 0) { console.warn('[Zenith Router] No routes found.'); return; }
+  if (routes.length === 0) {
+    console.warn('[Zenith Router] No routes found.');
+    return () => {}; // #116: Cleanup no-op وقتی روتی نیست
+  }
 
   // Register route srcs for prefetch
   for (const r of routes) {
@@ -239,7 +199,11 @@ export function processRouter(
     // FIX (v1.2.7): abort the previous in-flight fetch before starting a
     // new one. The signal is forwarded to fetchPageCached → fetchPage → fetch.
     if (currentAbort) {
-      try { currentAbort.abort(); } catch { /* ignore */ }
+      try {
+        currentAbort.abort();
+      } catch {
+        /* ignore */
+      }
     }
     currentAbort = new AbortController();
     const signal = currentAbort.signal;
@@ -254,10 +218,9 @@ export function processRouter(
         processChildren(child as HTMLElement, currentDisposes);
       }
       // Re-fetch in background if stale
-      // BUG-RTR-04 (v1.3.0): Timestamp is stored separately in the LRU cache.
-      const entryTime = routeCache.getTimestamp(route.src) ?? Date.now();
+      const entryTime = _routeTimestamps.get(route.src) ?? Date.now();
       if (Date.now() - entryTime > DEFAULT_STALE_TIME) {
-        (async () => {
+        void (async () => {
           const result = await fetchPage(route.src, signal);
           if (loadId !== currentLoadId) return;
           if (result.ok && result.html !== cached.html) {
@@ -275,7 +238,7 @@ export function processRouter(
     // Not cached — show loading
     el.innerHTML = '<div class="zen-router-loading">Loading...</div>';
 
-    (async () => {
+    void (async () => {
       const result = await fetchPageCached(route.src, signal);
       if (loadId !== currentLoadId) return;
       cleanupCurrentContent(el, currentDisposes);
@@ -290,20 +253,35 @@ export function processRouter(
     })();
   });
 
-  parentDisposes.push(() => {
+  // #116: Cleanup idempotent — هم به parentDisposes اضافه می‌شود (سازگاری)
+  // و هم به‌عنوان مقدار بازگشتی در دسترس فراخوان است.
+  const cleanup = (): void => {
     // FIX (v1.2.7): abort any in-flight fetch on teardown too.
     if (currentAbort) {
-      try { currentAbort.abort(); } catch { /* ignore */ }
+      try {
+        currentAbort.abort();
+      } catch {
+        /* ignore */
+      }
       currentAbort = null;
     }
     cleanupCurrentContent(el, currentDisposes);
     disposeEffect();
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  parentDisposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }
 
 /** Clear route cache (for HMR or manual refresh). */
 export function clearRouteCache(): void {
   routeCache.clear();
+  _routeTimestamps.clear();
   prefetchedUrls.clear();
   // BUG-RTR-03 (v1.3.0): Also clean up prefetch mouseover handler
   // so that teardown does not leave a stale listener on the document.

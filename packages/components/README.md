@@ -38,10 +38,10 @@
 
 دو نوع attribute روی تگ کامپوننت داریم:
 
-| شکل | نوع | مثال | در Context محلی |
-|-----|-----|------|-----------------|
-| `prop:<name>="<expr>"` | Expression (ارزیابی در parent) | `prop:id="product.id"` | `$id` = value |
-| `<name>="literal"` | Literal string | `theme="dark"` | `$theme` = "dark" |
+| شکل                    | نوع                            | مثال                   | در Context محلی   |
+| ---------------------- | ------------------------------ | ---------------------- | ----------------- |
+| `prop:<name>="<expr>"` | Expression (ارزیابی در parent) | `prop:id="product.id"` | `$id` = value     |
+| `<name>="literal"`     | Literal string                 | `theme="dark"`         | `$theme` = "dark" |
 
 attribute های `zen-*` به‌عنوان دایرکتیو شناخته می‌شوند و به‌عنوان prop در نظر گرفته نمی‌شوند.
 
@@ -74,7 +74,8 @@ template هم باید از همان نام lowercase استفاده کنید:
 
 <!-- ❌ غلط: kebab-case با `-` در Expression Engine تفریق می‌شود -->
 <app-card prop:user-name="...">
-  <span zen-text="$user-name"></span>  <!-- parse می‌شود به $user - name -->
+  <span zen-text="$user-name"></span>
+  <!-- parse می‌شود به $user - name -->
 </app-card>
 ```
 
@@ -89,13 +90,16 @@ getter در Context تعریف می‌شود که هر بار Expression را ا
 ```html
 <template>
   <div>
-    <slot></slot>                      <!-- پیش‌فرض -->
-    <slot name="actions"></slot>       <!-- نام‌گذاری شده -->
+    <slot></slot>
+    <!-- پیش‌فرض -->
+    <slot name="actions"></slot>
+    <!-- نام‌گذاری شده -->
   </div>
 </template>
 ```
 
 فرزندان داخل تگ کامپوننت:
+
 - با `slot="actions"` → به slot نام‌گذاری شده می‌روند.
 - بدون `slot` attribute → به slot پیش‌فرض می‌روند.
 

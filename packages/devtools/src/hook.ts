@@ -37,12 +37,7 @@ import {
 import { componentRegistry } from '@zenith/components';
 // FEATURE (v0.4.0): Dependency Graph Viewer
 // گراف وابستگی‌ها (Signal → Effect → Directive → DOM) روی hook expose می‌شود.
-import {
-  graph,
-  getDependencyGraph,
-  clearDependencyGraph,
-  type GraphSnapshot,
-} from './graph';
+import { graph, getDependencyGraph, clearDependencyGraph, type GraphSnapshot } from './graph';
 
 /**
  * نسخه‌ی فریم‌ورک (برای نمایش در DevTools).
@@ -92,12 +87,24 @@ export interface ZenithDevtoolsHook {
   /** FEATURE (v1.0.0): ثبت destroy یک Resource. */
   recordResourceDestroy(name: string, url: string, stack?: string): void;
   /** FEATURE (v1.0.0): دریافت لیست Resource های destroyed. */
-  getDestroyedResources(): Array<{ name: string; url: string; destroyedAt: number; stack?: string }>;
+  getDestroyedResources(): Array<{
+    name: string;
+    url: string;
+    destroyedAt: number;
+    stack?: string;
+  }>;
   /** FEATURE (v1.0.0): ثبت cache hit/miss برای compileExpression. */
   recordCacheHit(expr: string): void;
   recordCacheMiss(expr: string): void;
   /** FEATURE (v1.0.0): دریافت آمار cache. */
-  getCacheStats(): { hits: number; misses: number; total: number; hitRatio: number; size: number; uniqueExpressions: number };
+  getCacheStats(): {
+    hits: number;
+    misses: number;
+    total: number;
+    hitRatio: number;
+    size: number;
+    uniqueExpressions: number;
+  };
   /** FEATURE (v1.0.0): ثبت فعال‌سازی یک AsyncLocalStorage store در SSR. */
   recordSSRStore(requestId: string): void;
   /** FEATURE (v1.0.0): ثبت غیرفعال‌سازی یک store. */
@@ -117,7 +124,12 @@ let hookInstalled = false;
 const staticFors: Array<{ id: string; expr: string; itemCount: number; createdAt: number }> = [];
 
 /** لیست Resource های destroy شده. */
-const destroyedResources: Array<{ name: string; url: string; destroyedAt: number; stack?: string }> = [];
+const destroyedResources: Array<{
+  name: string;
+  url: string;
+  destroyedAt: number;
+  stack?: string;
+}> = [];
 
 /** آمار cache برای compileExpression. */
 const cacheStats = {
@@ -158,13 +170,17 @@ function shouldEnableDevtools(): boolean {
     const urlFlag = params.get('zenith-devtools');
     if (urlFlag === 'false' || urlFlag === '0') return false;
     if (urlFlag === 'true' || urlFlag === '1') return true;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // 3) Hostname محلی
   try {
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // پیش‌فرض: فعال
   return true;
@@ -187,7 +203,11 @@ function clearDataStores(): void {
  */
 function cleanupStateSubscribers(): void {
   for (const unsub of stateChangeUnsubscribers) {
-    try { unsub(); } catch { /* ignore */ }
+    try {
+      unsub();
+    } catch {
+      /* ignore */
+    }
   }
   stateChangeUnsubscribers.length = 0;
 }
@@ -197,8 +217,13 @@ function cleanupStateSubscribers(): void {
  * در سایر bundlerها (Webpack, Turbopack) fallback به pagehide.
  */
 function setupHMRCleanup(): void {
-  const pagehideHandler = () => { clearDataStores(); cleanupStateSubscribers(); };
-  const visibilityHandler = () => { if (document.visibilityState === 'hidden') clearDataStores(); };
+  const pagehideHandler = () => {
+    clearDataStores();
+    cleanupStateSubscribers();
+  };
+  const visibilityHandler = () => {
+    if (document.visibilityState === 'hidden') clearDataStores();
+  };
 
   window.addEventListener('pagehide', pagehideHandler);
   window.addEventListener('visibilitychange', visibilityHandler);
@@ -260,7 +285,7 @@ export function initDevTools(): void {
     clearDependencyGraph: () => clearDependencyGraph(),
     // ── FEATURE (v1.0.0): zen-static, Resource.destroy, compileExpression, SSR ──
     addStaticFor: (id, expr, itemCount) => {
-      const existing = staticFors.findIndex(s => s.id === id);
+      const existing = staticFors.findIndex((s) => s.id === id);
       if (existing >= 0) {
         staticFors[existing]!.itemCount = itemCount;
       } else {
@@ -311,10 +336,7 @@ export function initDevTools(): void {
     '%c[Zenith DevTools] Hook installed. 🛠️',
     'color: #bada55; font-weight: bold; font-size: 12px;',
   );
-  console.log(
-    '%cAccess via window.__ZENITH__',
-    'color: #888; font-size: 11px;',
-  );
+  console.log('%cAccess via window.__ZENITH__', 'color: #888; font-size: 11px;');
 }
 
 /**
@@ -348,7 +370,13 @@ export function cleanupDevtools(): void {
   cleanupStateSubscribers();
   clearDataStores();
   if (Array.isArray((window as any).__zenCleanupHandlers)) {
-    for (const fn of (window as any).__zenCleanupHandlers) { try { fn(); } catch { /* ignore */ } }
+    for (const fn of (window as any).__zenCleanupHandlers) {
+      try {
+        fn();
+      } catch {
+        /* ignore */
+      }
+    }
     (window as any).__zenCleanupHandlers = [];
   }
   cleanupHookInstance();

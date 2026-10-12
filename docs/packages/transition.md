@@ -154,9 +154,13 @@ const modalTransition = createTransition('modal-transition', {
 
 `zen-transition:name="state"` و `zen-transition-options` بخشی از API فعلی نیستند.
 
-## API ساده و سازگار با نسخه‌های قبل
+## API ساده و سازگار با نسخه‌های قبل (منسوخ — #47)
 
-این توابع برای یک اجرای منفرد باقی مانده‌اند و یک تابع لغو برمی‌گردانند:
+این توابع در v1.5 فقط **wrapper روی `createTransition`** شدند و در محیط dev
+یک‌بار هشدار می‌دهند: `enterTransition` → `ZEN-DEPR-002`، `leaveTransition` →
+`ZEN-DEPR-003`، `animateGroup` → `ZEN-DEPR-004` (خاموش با
+`globalThis.__ZENITH_DEV__ = false`؛ حذف در major بعدی طبق سیاست #58).
+برای یک اجرای منفرد باقی مانده‌اند و یک تابع لغو برمی‌گردانند:
 
 ```ts
 const cancelEnter = enterTransition(panel, 'fade', 300, () => {

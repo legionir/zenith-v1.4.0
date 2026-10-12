@@ -49,9 +49,7 @@ Declarative درخواست API می‌دهد و وضعیت‌های `loading`, `
 ```html
 <!-- وقتی روی لینک‌های مختلف کلیک می‌کنید، $route.params.id تغییر می‌کند -->
 <!-- و zen-fetch به‌طور خودکار دوباره fetch می‌کند -->
-<div zen-fetch="`/api/products/${$route.params.id}`" zen-state="product">
-  ...
-</div>
+<div zen-fetch="`/api/products/${$route.params.id}`" zen-state="product">...</div>
 ```
 
 ## Race Condition Handling

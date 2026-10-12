@@ -97,10 +97,7 @@ function buildContext(state: Record<string, any>): Record<string, any> {
  *   // ...later
  *   dispose();
  */
-export function createHydrator(
-  root: HTMLElement,
-  state: Record<string, any>,
-): Hydrator {
+export function createHydrator(root: HTMLElement, state: Record<string, any>): Hydrator {
   const disposes: DisposeFn[] = [];
   return {
     root,
@@ -109,9 +106,10 @@ export function createHydrator(
     hydrateAll(): DisposeFn {
       const ctx = buildContext(state);
       // Walk all descendant elements and hydrate each known directive.
-      const elements = typeof root.querySelectorAll === 'function'
-        ? Array.from(root.querySelectorAll('*')) as HTMLElement[]
-        : [];
+      const elements =
+        typeof root.querySelectorAll === 'function'
+          ? (Array.from(root.querySelectorAll('*')) as HTMLElement[])
+          : [];
       for (const el of elements) {
         if (el.hasAttribute('zen-text')) {
           disposes.push(hydrateText(el, el.getAttribute('zen-text')!, ctx));
@@ -138,14 +136,22 @@ export function createHydrator(
       }
       return () => {
         for (const d of disposes) {
-          try { d(); } catch { /* noop */ }
+          try {
+            d();
+          } catch {
+            /* noop */
+          }
         }
         disposes.length = 0;
       };
     },
     dispose(): void {
       for (const d of disposes) {
-        try { d(); } catch { /* noop */ }
+        try {
+          d();
+        } catch {
+          /* noop */
+        }
       }
       disposes.length = 0;
     },
@@ -280,11 +286,7 @@ export function hydrateShowExpr(
  * not safe during hydration (it would discard SSR-rendered content). Instead,
  * this helper toggles `display` so the SSR markup is preserved.
  */
-export function hydrateIf(
-  el: HTMLElement,
-  expr: string,
-  context: Record<string, any>,
-): DisposeFn {
+export function hydrateIf(el: HTMLElement, expr: string, context: Record<string, any>): DisposeFn {
   const evalFn = compileExpression(expr);
   return effect(() => {
     let value: any;
@@ -325,9 +327,7 @@ export function hydrateBindExpr(
     } catch {
       return;
     }
-    const str = value === null || value === undefined || value === false
-      ? ''
-      : String(value);
+    const str = value === null || value === undefined || value === false ? '' : String(value);
     if (str === '' || value === false) {
       if (el.hasAttribute(attrName)) el.removeAttribute(attrName);
     } else {

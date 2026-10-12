@@ -14,23 +14,27 @@
 ## ۴ پنل DevTools
 
 ### ۱. Signal Inspector
+
 - لیست تمام Signal های فعال
 - مقدار فعلی هر Signal (با JSON formatting)
 - تعداد subscribers هر Signal
 - Auto-refresh هر ۲ ثانیه
 
 ### ۲. Timeline
+
 - تاریخچه‌ی تغییرات State (آخرین ۲۰ تغییر)
 - مقدار قبلی → مقدار جدید
 - timestamp هر تغییر
 - نام Signal (اگر نام‌گذاری شده)
 
 ### ۳. Component Tree
+
 - لیست تمام کامپوننت‌های ثبت‌شده
 - تعداد استفاده‌ی هر کامپوننت در DOM
 - نمایش `<component-name>` با syntax highlighting
 
 ### ۴. Effect Viewer
+
 - لیست Effect های فعال و disposed
 - وابستگی‌های هر Effect
 - وضعیت (Active/Disposed)

@@ -16,7 +16,7 @@ export async function buildPackage(pkgName: string) {
     format: 'esm',
     target: 'browser',
     minify: true,
-    sourcemap: 'external'
+    sourcemap: 'external',
   });
 
   // CommonJS Build
@@ -26,7 +26,7 @@ export async function buildPackage(pkgName: string) {
     format: 'cjs',
     target: 'node',
     minify: true,
-    sourcemap: 'external'
+    sourcemap: 'external',
   });
 
   // Type Definitions
@@ -34,7 +34,7 @@ export async function buildPackage(pkgName: string) {
     entrypoints: [`${pkgPath}/src/index.ts`],
     outdir: outDir,
     format: 'esm',
-    target: 'types'
+    target: 'types',
   });
 
   console.log(`✅ @zenith/${pkgName} built successfully`);

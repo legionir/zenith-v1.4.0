@@ -14,6 +14,7 @@ Zenith: 1 listener per event type on document (O(1) memory)
 ```
 
 وقتی کلیکی رخ می‌دهد:
+
 1. `event.target` را می‌گیریم.
 2. با `target.closest('[zen-action],[zen-action\\:click]')` اولین عنصر منطبق را پیدا می‌کنیم.
 3. با `findBinding` نام اکشن و modifier ها را استخراج می‌کنیم.
@@ -27,25 +28,31 @@ Zenith: 1 listener per event type on document (O(1) memory)
 
 ```html
 <!-- رفتار -->
-<button zen-action:click.prevent="save">       <!-- preventDefault -->
-<button zen-action:click.stop="save">          <!-- stopPropagation -->
-<button zen-action:click.immediate="save">     <!-- stopImmediatePropagation -->
+<button zen-action:click.prevent="save">
+  <!-- preventDefault -->
+  <button zen-action:click.stop="save">
+    <!-- stopPropagation -->
+    <button zen-action:click.immediate="save">
+      <!-- stopImmediatePropagation -->
 
-<!-- کلیدها (فقط رویدادهای keydown / keyup) -->
-<input zen-action:keydown.enter="submit">
-<input zen-action:keydown.escape="cancel">
-<input zen-action:keydown.tab="next">
-<input zen-action:keydown.space="play">
-<input zen-action:keydown.backspace="delete">
-<input zen-action:keydown.del="delete">
-<input zen-action:keydown.up="selectPrev">
-<input zen-action:keydown.down="selectNext">
-<input zen-action:keydown.left="prev">
-<input zen-action:keydown.right="next">
+      <!-- کلیدها (فقط رویدادهای keydown / keyup) -->
+      <input zen-action:keydown.enter="submit" />
+      <input zen-action:keydown.escape="cancel" />
+      <input zen-action:keydown.tab="next" />
+      <input zen-action:keydown.space="play" />
+      <input zen-action:keydown.backspace="delete" />
+      <input zen-action:keydown.del="delete" />
+      <input zen-action:keydown.up="selectPrev" />
+      <input zen-action:keydown.down="selectNext" />
+      <input zen-action:keydown.left="prev" />
+      <input zen-action:keydown.right="next" />
 
-<!-- ترکیبی -->
-<input zen-action:keydown.enter.shift="submitAll">
-<input zen-action:keydown.ctrl.s="save">
+      <!-- ترکیبی -->
+      <input zen-action:keydown.enter.shift="submitAll" />
+      <input zen-action:keydown.ctrl.s="save" />
+    </button>
+  </button>
+</button>
 ```
 
 ## API
@@ -82,7 +89,7 @@ parseBinding('keydown.shift.enter') → { eventName: 'keydown', modifiers: ['shi
 ```typescript
 const teardown = initEventDelegation(state);
 // ...
-teardown();  // حذف همه‌ی Listenerها
+teardown(); // حذف همه‌ی Listenerها
 ```
 
 ## Design Notes

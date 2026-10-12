@@ -77,9 +77,9 @@ navigate('/products/101');
 تطبیق یک الگو با یک مسیر. برمی‌گرداند `Record<string, string> | null`.
 
 ```typescript
-matchRoute('/products/:id', '/products/101')  // → { id: '101' }
-matchRoute('**', '/anything')                  // → {}
-matchRoute('/', '/about')                      // → null
+matchRoute('/products/:id', '/products/101'); // → { id: '101' }
+matchRoute('**', '/anything'); // → {}
+matchRoute('/', '/about'); // → null
 ```
 
 ### `processRouter(el, processChildren, parentDisposes)`
@@ -118,3 +118,11 @@ effect جداگانه (با IIFE async) انجام می‌دهد.
 `popstate` event به‌طور خودکار در module load نصب می‌شود. وقتی کاربر دکمه‌ی
 Back یا Forward را می‌زند، `routeSignal` آپدیت می‌شود و Router صفحه‌ی مناسب
 را لود می‌کند.
+
+## پروتکل cleanup (موج #116 / DEC-032)
+
+- `beforeEach(guard)` و `registerRouterCleanup(fn)` یک `Cleanup` (`() => void`)
+  برمی‌گردانند که با محافظ هویت (identity-guard) فقط ثبت خودشان را حذف می‌کند و
+  idempotent است.
+- `processRouter` یک `Cleanup` idempotent برگرداند (abort + teardown محتوای فعلی +
+  dispose effect) و همزمان آن را در آرایهٔ `disposes[]` والد برای سازگاری قرار می‌دهد.

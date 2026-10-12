@@ -14,6 +14,7 @@
 //   - SWConfig                    — اینترفیس پیکربندی.
 //   - ZenithSWPlugin              — پلاگین Zenith برای نصب با Zen.use.
 
+import { deprecate } from '@zenith/errors';
 import type { CacheStrategyName } from './strategies.js';
 
 // NOTE: نوع ZenithPlugin را به‌صورت structural تعریف می‌کنیم تا از وابستگیِ
@@ -91,7 +92,12 @@ export interface SWController {
   unregister: () => Promise<boolean>;
   /** فرمان skipWaiting به SW در انتظار. */
   skipWaiting: () => void;
-  /** پاک کردن listenerها (در teardown). */
+  /** #116 (Disposable): پاک کردن listenerها (در teardown). Idempotent. */
+  dispose: () => void;
+  /**
+   * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+   */
   destroy: () => void;
   /** آیا SW پشتیبانی می‌شود؟ */
   supported: boolean;
@@ -151,8 +157,20 @@ export function registerSW(
       supported: false,
       update: async () => false,
       unregister: async () => false,
-      skipWaiting: () => { /* no-op */ },
-      destroy: () => { /* no-op */ },
+      skipWaiting: () => {
+        /* no-op */
+      },
+      dispose: () => {
+        /* no-op */
+      },
+      /**
+       * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+       * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+       */
+      destroy: () => {
+        deprecate('ZEN-DEPR-024', 'SWController.destroy()', 'SWController.dispose()');
+        /* no-op */
+      },
     };
   }
 
@@ -236,7 +254,22 @@ export function registerSW(
         sw.controller.postMessage({ type: 'SKIP_WAITING' });
       }
     },
+    dispose: () => {
+      // #116: idempotent — listeners.length = 0 دوباره بی‌اثر است.
+      for (const { type, fn } of listeners) {
+        sw.removeEventListener(type, fn);
+        if (registration) {
+          registration.removeEventListener(type, fn);
+        }
+      }
+      listeners.length = 0;
+    },
+    /**
+     * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+     * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+     */
     destroy: () => {
+      deprecate('ZEN-DEPR-024', 'SWController.destroy()', 'SWController.dispose()');
       for (const { type, fn } of listeners) {
         sw.removeEventListener(type, fn);
         if (registration) {
@@ -254,10 +287,7 @@ export function registerSW(
  * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند. در غیر این‌صورت false.
  */
 export async function unregisterSW(): Promise<boolean> {
-  if (
-    typeof navigator === 'undefined' ||
-    typeof navigator.serviceWorker === 'undefined'
-  ) {
+  if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {
@@ -283,10 +313,7 @@ export async function unregisterSW(): Promise<boolean> {
  * @returns true اگر حداقل یک registration بدون خطا update شد.
  */
 export async function updateSW(): Promise<boolean> {
-  if (
-    typeof navigator === 'undefined' ||
-    typeof navigator.serviceWorker === 'undefined'
-  ) {
+  if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {

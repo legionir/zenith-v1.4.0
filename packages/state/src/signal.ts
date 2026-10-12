@@ -23,12 +23,11 @@ import { registerSignal, recordStateChange } from './registry';
 import { getEffectPriority } from './effect';
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با effect.ts.
-import {
-  _getMutableContext,
-  getActiveEffect,
-  setActiveEffect,
-  registerCleanup,
-} from './context';
+import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup } from './context';
+// #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
+// بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
+import { ZENITH_READABLE } from './readable';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -101,7 +100,15 @@ export class Signal<T> {
    */
   set(newValue: T): void {
     if (this._readonly) {
-      throw new Error('[Zenith] Cannot set a readonly signal. Use writable signals for mutable state.');
+      // #115: خطای programmer با کد ZEN-907 (misuse عمومی API).
+      throw developerError(
+        'Cannot set a readonly signal. Use writable signals for mutable state.',
+        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+        {
+          suggestion:
+            'برای مقدار قابل‌تغییر signal writable بسازید؛ برای مقدار مشتق از computed استفاده کنید.',
+        },
+      );
     }
     // جلوگیری از آپدیت‌های غیرضروری (Reference Equality + NaN handling)
     if (Object.is(this._value, newValue)) return;
@@ -125,7 +132,7 @@ export class Signal<T> {
     // هر Effect را با priority ذخیره‌شده‌اش schedule می‌کنیم.
     // این اولویت توسط effect(fn, priority) تعیین می‌شود.
     // اگر Effect اولویتی نداشته باشد، 'normal' استفاده می‌شود.
-    this._subscribers.forEach(effectFn => {
+    this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
       scheduleEffect(effectFn as () => void, priority);
     });
@@ -174,7 +181,7 @@ export class Signal<T> {
     // BUG-01 FIX: pass oldValue (captured before assignment) instead of this._value.
     recordStateChange(this, oldValue, next);
     // ── فاز ۷: Scheduler ──
-    this._subscribers.forEach(effectFn => {
+    this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
       scheduleEffect(effectFn as () => void, priority);
     });
@@ -210,6 +217,10 @@ export class Signal<T> {
 export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Signal<T> {
   return new Signal(initialValue, options);
 }
+
+// #187 FIX: brand روی prototype — همهٔ instanceها (و subclassها) قابل‌تشخیص‌اند
+// بدون instanceof و صرف‌نظر از اینکه چند بیلد از state بارگذاری شده باشد.
+(Signal.prototype as any)[ZENITH_READABLE] = true;
 
 /**
  * Type helper for readonly signals (e.g. computed values).

@@ -15,12 +15,12 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/form-test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",
@@ -29,19 +29,33 @@
     "reactive"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/form"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
-    "@zenith/state": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/shared": "1.5.0"
   },
   "peerDependencies": {
-    "@zenith/state": "1.4.0"
+    "@zenith/state": "^1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
-    "@types/node": "^20.11.0",
-    "@zenith/scheduler": "1.4.0"
+    "@types/node": "^20.11.0"
   }
 }

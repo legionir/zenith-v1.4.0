@@ -46,7 +46,7 @@ export function batch(fn: () => void): void {
   if (!batchWarningShown && isDevtoolsEnabled()) {
     console.warn(
       '[Zenith] batch() is deprecated since Phase 7. ' +
-      'Scheduler handles batching automatically. You can safely remove batch() calls.'
+        'Scheduler handles batching automatically. You can safely remove batch() calls.',
     );
     batchWarningShown = true;
   }

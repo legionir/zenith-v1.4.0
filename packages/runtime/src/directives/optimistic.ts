@@ -82,7 +82,9 @@ export function processOptimistic(
       );
       // Rollback since the action cannot run.
       if (rollbackFn) {
-        try { rollbackFn(context); } catch (err) {
+        try {
+          rollbackFn(context);
+        } catch (err) {
           reportError(err as Error, 'expression', {
             expression: rollbackExpr || '',
             element: el,
@@ -104,23 +106,24 @@ export function processOptimistic(
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        reject(new Error(
-          `[zen-optimistic] Action "${actionName}" timed out after ` +
-          `${ACTION_TIMEOUT_MS / 1000}s. Rolling back optimistic state.`,
-        ));
+        reject(
+          new Error(
+            `[zen-optimistic] Action "${actionName}" timed out after ` +
+              `${ACTION_TIMEOUT_MS / 1000}s. Rolling back optimistic state.`,
+          ),
+        );
       }, ACTION_TIMEOUT_MS);
     });
     try {
-      await Promise.race([
-        Promise.resolve(action({ state, event, element: el })),
-        timeoutPromise,
-      ]);
+      await Promise.race([Promise.resolve(action({ state, event, element: el })), timeoutPromise]);
       // Success: keep the optimistic state.
     } catch (err) {
       reportError(err as Error, 'action', { element: el });
       // 4) Rollback on error (covers both action rejection AND timeout).
       if (rollbackFn) {
-        try { rollbackFn(context); } catch (e2) {
+        try {
+          rollbackFn(context);
+        } catch (e2) {
           reportError(e2 as Error, 'expression', {
             expression: rollbackExpr || '',
             element: el,

@@ -21,11 +21,11 @@ configureAuth({
     login: '/api/v1/auth/login',
     logout: '/api/v1/auth/logout',
     register: '/api/v1/auth/register',
-    me: '/api/v1/auth/me'
+    me: '/api/v1/auth/me',
   },
   loginRedirect: '/dashboard',
   logoutRedirect: '/',
-  loginPath: '/login'
+  loginPath: '/login',
 });
 
 // Initialize on app start (restores session from storage)
@@ -66,7 +66,7 @@ const auth = createAuth({
   meUrl: '/api/auth/me',
   tokenStorage: 'memory',
   autoRefresh: true,
-  refreshThreshold: 300
+  refreshThreshold: 300,
 });
 
 await auth.login({ email, password });
@@ -82,7 +82,7 @@ const result = await canActivateRoute({
   requiresAuth: true,
   roles: ['admin'],
   permissions: ['orders:view'],
-  redirectTo: '/login'
+  redirectTo: '/login',
 });
 
 if (!result.allowed) {
@@ -93,6 +93,7 @@ if (!result.allowed) {
 ## API Reference
 
 ### Functional API
+
 - `configureAuth(cfg)` — Configure auth endpoints and behavior
 - `initAuth()` — Initialize auth and restore session
 - `auth.login(credentials)` — Login user
@@ -108,6 +109,7 @@ if (!result.allowed) {
 - `canActivateRoute(guard)` — Check route guard
 
 ### Class-based API
+
 - `createAuth(config)` — Create Auth instance
 - `Auth.login(credentials)` — Login
 - `Auth.logout()` — Logout
@@ -116,3 +118,27 @@ if (!result.allowed) {
 - `Auth.isAuthenticated` — Getter
 - `Auth.user` — Getter
 - `Auth.token` — Getter
+
+## Security
+
+Read the official guide before shipping: **[docs/security/auth.md](../../docs/security/auth.md)**
+(Persian) — recommended token storage pattern (server-side `HttpOnly; Secure; SameSite`
+cookie for refresh tokens, access token kept in memory), CSRF (double-submit /
+synchronizer tokens, `Origin` checks), refresh-token rotation with reuse detection,
+and `credentials: 'include'` / `withCredentials` semantics.
+
+Key defaults: `tokenStorage` defaults to `'memory'`; choosing `localStorage`,
+`sessionStorage` or `cookie` for sensitive tokens prints a dev-mode console warning
+with code **ZEN-404** (silenced by `globalThis.__ZENITH_DEV__ = false`). Auth fetches
+use `credentials: 'same-origin'`; the `secureLogout` fetch fallback uses
+`credentials: 'include'` so server-set HttpOnly cookies are invalidated even when
+`navigator.sendBeacon` is unavailable. Concurrent `refresh()` calls are single-flight
+(one network request) to keep token rotation race-free.
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`Auth` implements `Disposable` (`@zenith/shared`): call `auth.dispose()` to clear
+refresh timers and listeners; it is idempotent. `destroy()` remains as a
+deprecated alias (warns once with **ZEN-DEPR-020**, removed in 2.0 per DEC-026).
+`registerAuth(name, auth)` returns a `Cleanup` (`() => void`) that unregisters
+the provider — only if it is still the registered one (identity-guarded).

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith XSS corpus e2e fixture</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@zenith/security": "/packages/security/dist/index.js",
+          "@zenith/errors": "/packages/errors/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="sink"></div>
+    <script type="module">
+      import { sanitizeHTML } from '@zenith/security';
+      import { XSS_CORPUS } from '/packages/security/test/xss-corpus.mjs';
+
+      window.__ZENITH_XSS_EXEC_COUNT__ = 0;
+      window.__ZENITH_XSS_EXEC__ = () => {
+        window.__ZENITH_XSS_EXEC_COUNT__++;
+      };
+      window.__ZENITH_XSS_RESULTS__ = null;
+
+      // For every corpus item: sanitize, inject into the live DOM (innerHTML —
+      // the real sink), wait for img onerror/svg handlers to fire, then check
+      // the exec counter. Any increment = payload survived sanitization.
+      window.runCorpus = async () => {
+        // Positive control: the RAW unsanitized payload MUST execute —
+        // otherwise the harness itself is broken and the test is vacuous.
+        const control = document.createElement('div');
+        document.getElementById('sink').appendChild(control);
+        const beforeControl = window.__ZENITH_XSS_EXEC_COUNT__;
+        control.innerHTML = '<img src="x" onerror="window.__ZENITH_XSS_EXEC__()">';
+        await new Promise((r) => setTimeout(r, 50));
+        const controlFired = window.__ZENITH_XSS_EXEC_COUNT__ > beforeControl;
+        control.remove();
+
+        const failures = [];
+        for (const item of XSS_CORPUS) {
+          const before = window.__ZENITH_XSS_EXEC_COUNT__;
+          const host = document.createElement('div');
+          document.getElementById('sink').appendChild(host);
+          host.innerHTML = sanitizeHTML(item.html);
+          await new Promise((r) => setTimeout(r, 25)); // let async handlers fire
+          if (window.__ZENITH_XSS_EXEC_COUNT__ !== before) {
+            failures.push(item.name);
+          }
+          host.remove();
+        }
+        window.__ZENITH_XSS_RESULTS__ = { total: XSS_CORPUS.length, failures, controlFired };
+        return window.__ZENITH_XSS_RESULTS__;
+      };
+
+      window.__ZENITH_XSS_READY__ = true;
+    </script>
+  </body>
+</html>

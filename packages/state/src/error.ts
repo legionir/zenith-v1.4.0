@@ -1,144 +1,104 @@
 // packages/state/src/error.ts
 //
-// Zenith Error Management System
-// Centralized error handling for effects, expressions, directives and runtime
+// #115 (DEC-031) — سازگاری backwards: مدل خطای واحد در @zenith/errors است
+// (کلاس `ZenithError` + hub `onError/emitError/reportError`). این فایل تنها
+// re-export و یک wrapper کوچک برای `errorBoundary` است؛ هیچ state محلی
+// (handler set / history / devMode) دیگر اینجا وجود ندارد.
+//
+// - `ZenithError` (type) حالا به کلاس errors alias شده است. فیلدهای
+//   `severity/hint` روی همان کلاس اضافه شدند (اختیاری، سازگار).
+// - `errorBoundary` (helper) بی‌نام‌تغییر ماند تا مصرف‌کننده‌های داخلی/خارجی
+//   نشکنند؛ category رشته‌ای قدیمی به category کلاس نگاشت می‌شود.
 
-export type ErrorSeverity = 'error' | 'warning' | 'info';
-export type ErrorCategory = 'reactivity' | 'expression' | 'directive' | 'runtime' | 'ssr' | 'security';
+import {
+  ZenithError as ZenithErrorClass,
+  emitError as hubEmit,
+  ErrorCode,
+  type ErrorCategory,
+} from '@zenith/errors';
 
-export interface ZenithError {
-  message: string;
-  category: ErrorCategory;
-  severity: ErrorSeverity;
-  recoverable: boolean;
-  timestamp: number;
-  stack?: string;
-  context?: Record<string, any>;
-  hint?: string;
-}
-
-export type ErrorHandler = (error: ZenithError) => void;
-
-const errorHandlers: Set<ErrorHandler> = new Set();
-let lastErrors: ZenithError[] = [];
-const MAX_HISTORY = 50;
-let devMode = false;
-
-/**
- * Set development mode for more detailed error messages
- */
-export function setDevMode(enabled: boolean): void {
-  devMode = enabled;
-}
-
-/**
- * Check if running in development mode
- */
-export function isDevMode(): boolean {
-  return devMode;
-}
+// ── re-export API واحد (#115) ──
+export {
+  onError,
+  emitError,
+  getErrorHistory,
+  clearErrorHistory,
+  setErrorLogger,
+  resetErrorHubForTesting,
+} from '@zenith/errors';
+export {
+  setDevMode,
+  isDevMode,
+  type ErrorHandler,
+  type ErrorSeverity,
+  type ErrorCategory,
+} from '@zenith/errors';
 
 /**
- * Register a global error handler
- * @example
- * onError(err => {
- *   console.error('[Zenith]', err.message);
- *   Sentry.captureException(err);
- * });
+ * @deprecated #115: interface محلی state حذف شد؛ مدل واحد، کلاس
+ * `ZenithError` از `@zenith/errors` است. این alias فقط برای سازگاری نام
+ * type باقی مانده و در ۲.۰ حذف می‌شود (DEC-026).
  */
-export function onError(handler: ErrorHandler): () => void {
-  errorHandlers.add(handler);
-  return () => errorHandlers.delete(handler);
-}
+export type ZenithError = ZenithErrorClass;
 
-/**
- * Emit an error through the central system
- */
-export function emitError(error: Omit<ZenithError, 'timestamp'>): ZenithError {
-  const fullError: ZenithError = {
-    ...error,
-    timestamp: Date.now(),
-  };
-
-  // Store in history
-  lastErrors.push(fullError);
-  if (lastErrors.length > MAX_HISTORY) {
-    lastErrors.shift();
+// ── نگاشت category‌های رشته‌ای قدیمی state → مدل واحد ──
+// (state قدیمی `category: 'reactivity' | 'expression' | … lowercase` داشت؛
+//  مدل واحد category‌های PascalCase دارد. تبدیل بی‌صدا نمی‌خواهیم — map
+//  صریح + fallback Internal.)
+function mapCategory(c: string | undefined): ErrorCategory {
+  switch (c) {
+    case 'expression':
+      return 'Expression';
+    case 'runtime':
+    case 'reactivity':
+    case 'directive':
+      return 'Runtime';
+    case 'ssr':
+      return 'SSR';
+    case 'security':
+      return 'Security';
+    case 'resource':
+      return 'Resource';
+    case 'router':
+      return 'Router';
+    case 'form':
+      return 'Form';
+    case 'compiler':
+      return 'Compiler';
+    default:
+      return 'Internal';
   }
-
-  // Notify all handlers
-  for (const handler of errorHandlers) {
-    try {
-      handler(fullError);
-    } catch (handlerError) {
-      // Prevent infinite loops - just log
-      console.error('[Zenith] Error handler itself threw:', handlerError);
-    }
-  }
-
-  // In dev mode, also log to console with rich info
-  if (devMode) {
-    const style =
-      fullError.severity === 'error'
-        ? 'color: #dc2626; font-weight: bold;'
-        : fullError.severity === 'warning'
-          ? 'color: #d97706; font-weight: bold;'
-          : 'color: #2563eb; font-weight: bold;';
-
-    console.groupCollapsed(
-      `%c[Zenith ${fullError.severity.toUpperCase()}] ${fullError.category}`,
-      style,
-    );
-    console.log('Message:', fullError.message);
-    if (fullError.hint)
-      console.log('%cHint:', 'color: #059669; font-weight: bold;', fullError.hint);
-    if (fullError.context) console.log('Context:', fullError.context);
-    if (fullError.stack) console.log('Stack:', fullError.stack);
-    console.log('Recoverable:', fullError.recoverable);
-    console.groupEnd();
-  } else if (fullError.severity === 'error') {
-    console.error(`[Zenith] ${fullError.message}`);
-  } else if (fullError.severity === 'warning') {
-    console.warn(`[Zenith] ${fullError.message}`);
-  }
-
-  return fullError;
 }
 
 /**
- * Get recent error history
+ * Wrap a function with a local error boundary — catch + report به hub.
+ *
+ * @deprecated #115: نام helper قدیمی state؛ semantic معادل `try/catch` +
+ * `emitError` است و بعداً به `@zenith/errors` منتقل می‌شود (یا در #134
+ * error-boundary retry بازنویسی می‌شود). موقتاً رفتار قبلی حفظ شده.
  */
-export function getErrorHistory(): ReadonlyArray<ZenithError> {
-  return [...lastErrors];
-}
-
-/**
- * Clear error history
- */
-export function clearErrorHistory(): void {
-  lastErrors = [];
-}
-
-/**
- * Wrap a function with error boundary - catches errors and routes them through central system
- */
-export function errorBoundary<T extends (...args: any[]) => any>(
+export function errorBoundary<T extends (...args: never[]) => unknown>(
   fn: T,
-  category: ErrorCategory,
-  context?: Record<string, any>,
+  category: string,
+  context?: Record<string, unknown>,
 ): (...args: Parameters<T>) => ReturnType<T> | undefined {
   return (...args: Parameters<T>): ReturnType<T> | undefined => {
     try {
-      return fn(...args);
+      return fn(...args) as ReturnType<T>;
     } catch (err) {
-      emitError({
-        message: err instanceof Error ? err.message : String(err),
-        category,
-        severity: 'error',
-        recoverable: true,
-        stack: err instanceof Error ? err.stack : undefined,
-        context,
-      });
+      const z =
+        err instanceof ZenithErrorClass
+          ? err
+          : new ZenithErrorClass({
+              code: ErrorCode.INTERNAL_RUNTIME_FAILURE,
+              category: mapCategory(category),
+              message: err instanceof Error ? err.message : String(err),
+              context,
+              cause: err,
+            });
+      z.severity = z.severity ?? 'error';
+      z.stack = err instanceof Error ? err.stack : z.stack;
+      hubEmit(z);
       return undefined;
     }
   };

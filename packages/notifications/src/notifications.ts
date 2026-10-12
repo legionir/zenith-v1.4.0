@@ -18,12 +18,7 @@ import type { ReadonlySignal } from '@zenith/state';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 export type NotificationPosition =
-  | 'top-right'
-  | 'top-left'
-  | 'top-center'
-  | 'bottom-right'
-  | 'bottom-left'
-  | 'bottom-center';
+  'top-right' | 'top-left' | 'top-center' | 'bottom-right' | 'bottom-left' | 'bottom-center';
 
 export interface Notification {
   id: string;
@@ -69,7 +64,9 @@ export interface AlertOptions {
 
 const notifications = signal<Notification[]>([]);
 const activeAlerts = signal<Array<{ id: string; options: AlertOptions; resolve: () => void }>>([]);
-const activeConfirms = signal<Array<{ id: string; options: ConfirmOptions; resolve: (value: boolean) => void }>>([]);
+const activeConfirms = signal<
+  Array<{ id: string; options: ConfirmOptions; resolve: (value: boolean) => void }>
+>([]);
 
 let nextId = 1;
 const generateId = () => `notif_${nextId++}_${Date.now().toString(36)}`;
@@ -78,7 +75,7 @@ const generateId = () => `notif_${nextId++}_${Date.now().toString(36)}`;
 let defaultOptions: NotifyOptions = {
   type: 'info',
   duration: 4000,
-  position: 'top-right'
+  position: 'top-right',
 };
 
 // ============================================================
@@ -116,7 +113,7 @@ export function notify(message: string, options: NotifyOptions = {}): string {
     position: options.position || defaultOptions.position || 'top-right',
     persistent: options.persistent || false,
     actions: options.actions,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   };
 
   notifications.set([...notifications.get(), config]);
@@ -135,7 +132,7 @@ export function notify(message: string, options: NotifyOptions = {}): string {
  * Dismiss a notification by ID
  */
 export function dismissNotification(id: string): void {
-  notifications.set(notifications.get().filter(n => n.id !== id));
+  notifications.set(notifications.get().filter((n) => n.id !== id));
 }
 
 /**
@@ -157,7 +154,7 @@ export const toasts = {
     notify(message, { ...options, type: 'warning' }),
 
   info: (message: string, options?: Omit<NotifyOptions, 'type'>) =>
-    notify(message, { ...options, type: 'info' })
+    notify(message, { ...options, type: 'info' }),
 };
 
 // ============================================================
@@ -169,24 +166,25 @@ export const toasts = {
  * Returns a promise that resolves when user closes it
  */
 export function alert(options: AlertOptions | string): Promise<void> {
-  const opts: AlertOptions = typeof options === 'string'
-    ? { message: options }
-    : options;
+  const opts: AlertOptions = typeof options === 'string' ? { message: options } : options;
 
   return new Promise<void>((resolve) => {
     const id = generateId();
-    activeAlerts.set([...activeAlerts.get(), {
-      id,
-      options: {
-        closeText: 'بستن',
-        type: 'info',
-        ...opts
+    activeAlerts.set([
+      ...activeAlerts.get(),
+      {
+        id,
+        options: {
+          closeText: 'بستن',
+          type: 'info',
+          ...opts,
+        },
+        resolve: () => {
+          activeAlerts.set(activeAlerts.get().filter((a) => a.id !== id));
+          resolve();
+        },
       },
-      resolve: () => {
-        activeAlerts.set(activeAlerts.get().filter(a => a.id !== id));
-        resolve();
-      }
-    }]);
+    ]);
   });
 }
 
@@ -199,25 +197,26 @@ export function alert(options: AlertOptions | string): Promise<void> {
  * Returns a promise that resolves to true/false based on user choice
  */
 export function confirm(options: ConfirmOptions | string): Promise<boolean> {
-  const opts: ConfirmOptions = typeof options === 'string'
-    ? { message: options }
-    : options;
+  const opts: ConfirmOptions = typeof options === 'string' ? { message: options } : options;
 
   return new Promise<boolean>((resolve) => {
     const id = generateId();
-    activeConfirms.set([...activeConfirms.get(), {
-      id,
-      options: {
-        confirmText: 'تایید',
-        cancelText: 'انصراف',
-        type: 'warning',
-        ...opts
+    activeConfirms.set([
+      ...activeConfirms.get(),
+      {
+        id,
+        options: {
+          confirmText: 'تایید',
+          cancelText: 'انصراف',
+          type: 'warning',
+          ...opts,
+        },
+        resolve: (value: boolean) => {
+          activeConfirms.set(activeConfirms.get().filter((c) => c.id !== id));
+          resolve(value);
+        },
       },
-      resolve: (value: boolean) => {
-        activeConfirms.set(activeConfirms.get().filter(c => c.id !== id));
-        resolve(value);
-      }
-    }]);
+    ]);
   });
 }
 
@@ -228,7 +227,9 @@ export function confirm(options: ConfirmOptions | string): Promise<boolean> {
 /**
  * Get all active notifications grouped by position
  */
-export function getNotificationsByPosition(): ReadonlySignal<Record<NotificationPosition, Notification[]>> {
+export function getNotificationsByPosition(): ReadonlySignal<
+  Record<NotificationPosition, Notification[]>
+> {
   return computed(() => {
     const grouped: Record<string, Notification[]> = {
       'top-right': [],
@@ -236,7 +237,7 @@ export function getNotificationsByPosition(): ReadonlySignal<Record<Notification
       'top-center': [],
       'bottom-right': [],
       'bottom-left': [],
-      'bottom-center': []
+      'bottom-center': [],
     };
 
     for (const notif of notifications.get()) {
@@ -260,7 +261,7 @@ export const notificationsAPI = {
   getNotifications: () => notifications.get(),
   getAlerts: () => activeAlerts.get(),
   getConfirms: () => activeConfirms.get(),
-  setDefaults: setNotificationDefaults
+  setDefaults: setNotificationDefaults,
 };
 
 // ============================================================
@@ -275,7 +276,7 @@ export function handleNotifyDirective(
   element: HTMLElement,
   type: NotificationType,
   message: string,
-  options?: NotifyOptions
+  options?: NotifyOptions,
 ): void {
   element.addEventListener('click', () => {
     notify(message, { ...options, type });

@@ -26,7 +26,10 @@ import { effect } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
-import { enterTransition, leaveTransition } from '@zenith/transition';
+// #47: مصرف‌کنندهٔ داخلی باید روی API مبنا کار کند — enterTransition/
+// leaveTransition تنها wrapperهای deprecated برای کاربر نهایی‌اند و مصرف
+// آن‌ها در فریم‌ورک، هشدار ZEN-DEPR را برای برنامهٔ کاربر تولید می‌کرد.
+import { createTransition, type TransitionController } from '@zenith/transition';
 
 /**
  * پردازش دایرکتیو zen-if روی یک عنصر.
@@ -51,11 +54,10 @@ export function processIf(
   const parent = el.parentElement;
 
   if (!parent) {
-    reportError(
-      new Error('[zen-if] Element must have a parent node.'),
-      'directive',
-      { expression: expr, element: el }
-    );
+    reportError(new Error('[zen-if] Element must have a parent node.'), 'directive', {
+      expression: expr,
+      element: el,
+    });
     return () => {}; // no-op dispose
   }
 
@@ -74,9 +76,9 @@ export function processIf(
   if (hasForChild) {
     console.warn(
       '[Zenith] ⚠️ zen-if on parent of zen-for may cause context loss on re-mount.\n' +
-      '  Problem: <div zen-if="$show"><li zen-for="...">  ← مشکل‌ساز\n' +
-      '  Fix 1:   <div zen-bind:class="{hidden: !$show}"><li zen-for="...">  ← توصیه‌شده\n' +
-      '  Fix 2:   <li zen-for="..." zen-if="$show && condition">  ← اگر شرط روی هر آیتم است'
+        '  Problem: <div zen-if="$show"><li zen-for="...">  ← مشکل‌ساز\n' +
+        '  Fix 1:   <div zen-bind:class="{hidden: !$show}"><li zen-for="...">  ← توصیه‌شده\n' +
+        '  Fix 2:   <li zen-for="..." zen-if="$show && condition">  ← اگر شرط روی هر آیتم است',
     );
     // BUG FIX (BUG-02): fallback به display:none برای جلوگیری از context loss
     // روی zen-for. mount/remount باعث می‌شود فرزندان zen-for دوباره ساخته شوند
@@ -96,7 +98,12 @@ export function processIf(
     // effect فقط display را toggle می‌کند (بدون unmount/remount).
     const dispose = effect(() => {
       let condition: boolean;
-      try { condition = Boolean(evalFn(context)); } catch (err) { reportError(err as Error, 'expression', { expression: expr, element: el }); return; }
+      try {
+        condition = Boolean(evalFn(context));
+      } catch (err) {
+        reportError(err as Error, 'expression', { expression: expr, element: el });
+        return;
+      }
       el.style.display = condition ? '' : 'none';
     });
 
@@ -124,9 +131,35 @@ export function processIf(
   // این تابع راف‌ها/تایمر/listener/کلاس‌های transition را پاک می‌کند.
   let cancelLeave: (() => void) | null = null;
 
+  // #47: کنترلر transition روی API مبنا (createTransition) ساخته می‌شود؛
+  // یک کنترلر برای هر نام transitionِ attribute (معمولاً یکی) و در انتها
+  // dispose می‌شود تا listenerها/تایمرها آزاد شوند.
+  let transitionName: string | null = el.getAttribute('zen-transition');
+  let transitionCtl: TransitionController | null = null;
+  const getTransitionController = (): TransitionController | null => {
+    transitionName = el.getAttribute('zen-transition');
+    if (!transitionName) {
+      transitionCtl?.dispose();
+      transitionCtl = null;
+      return null;
+    }
+    if (!transitionCtl || transitionCtlName !== transitionName) {
+      transitionCtl?.dispose();
+      transitionCtl = createTransition(transitionName);
+      transitionCtlName = transitionName;
+    }
+    return transitionCtl;
+  };
+  let transitionCtlName: string | null = transitionName;
+
   const dispose = effect(() => {
     let condition: boolean;
-    try { condition = Boolean(evalFn(context)); } catch (err) { reportError(err as Error, 'expression', { expression: expr, element: el }); return; }
+    try {
+      condition = Boolean(evalFn(context));
+    } catch (err) {
+      reportError(err as Error, 'expression', { expression: expr, element: el });
+      return;
+    }
 
     if (condition && !isMounted) {
       // ── شرط true شد: mount ──
@@ -139,15 +172,13 @@ export function processIf(
         cancelLeave = null;
       }
 
-      // BUG FIX (v7.0): ترتیب عملیات اصلاح شد.
-      // قبلاً ابتدا insertBefore و سپس enterTransition فراخوانی می‌شد که باعث می‌شد
-      // مرورگر عنصر را با اندازه/opacity کامل paint کند و سپس کلاس enter-from
-      // (opacity:0) اعمال شود → پرش دیده می‌شد.
-      //
-      // راه‌حل: کلاس‌های zen-enter-from و zen-enter-active را **قبل** از اضافه
-      // شدن به DOM ست می‌کنیم. این‌طور اولین paint مرورگر حالت "from" است.
-      const transitionName = el.getAttribute('zen-transition');
-      if (transitionName) {
+      // کلاس‌های zen-enter-from و zen-enter-active را **قبل** از اضافه
+      // شدن به DOM ست می‌کنیم (این‌طور اولین paint مرورگر حالت "from" است).
+      // #47: موتور مبنا (createTransition) این کلاس‌ها را idempotent خودش
+      // ست و در دو rAF به enter-to سوییچ می‌کند؛ پیش‌ست‌کردن اینجا فقط
+      // برای حذف پرش بین insert و اولین rAF است.
+      const controller = getTransitionController();
+      if (transitionName && controller) {
         el.classList.add(transitionName);
         el.classList.add('zen-enter-from');
         el.classList.add('zen-enter-active');
@@ -157,28 +188,29 @@ export function processIf(
       isMounted = true;
       childDisposes = manageChildren();
 
-      // enterTransition حالا double-rAF + force reflow + transitionend انجام می‌دهد.
-      // کلاس‌های from/active قبلاً ست شده‌اند، enterTransition آن‌ها را idempotent
-      // اضافه می‌کند و سپس swap به enter-to را با تاخیر صحیح انجام می‌دهد.
-      if (transitionName) {
-        enterTransition(el, transitionName);
+      if (transitionName && controller) {
+        controller.enter(el);
       }
     } else if (!condition && isMounted) {
       // ── شرط false شد: unmount ──
-      const transitionName = el.getAttribute('zen-transition');
+      const controller = getTransitionController();
 
-      if (transitionName) {
-        // BUG FIX (BUG-01/05): isMounted را **قبل** از leaveTransition
+      if (transitionName && controller) {
+        // BUG FIX (BUG-01/05): isMounted را **قبل** از شروع leave
         // false می‌کنیم (نه در callback). این کار از race conditionها
         // جلوگیری می‌کند: اگر condition دوباره true شد قبل از پایان
         // انیمیشن، branch mount اجرا نمی‌شود چون cancelLeave قبلاً
         // leave را لغو کرده است. تابع cancel برگشتی را در cancelLeave
         // ذخیره می‌کنیم تا dispose/باز-mount بتواند آن را فراخوانی کند.
         isMounted = false;
-        // نکته: leaveTransition در عمل یک cancel function برمی‌گرداند (BUG-01/05)،
-        // اما published .d.ts هنوز بازتولید نشده است. با cast صحیح، type check
-        // بدون تغییر runtime behavior انجام می‌شود.
-        cancelLeave = leaveTransition(el, transitionName, 300, () => {
+        let leaveSettled = false;
+        // #47: روی API مبنا — finished هم در پایان طبیعی و هم در cancel
+        // resolve می‌شود؛ با flag تمایز می‌دهیم که children فقط پس از
+        // پایان طبیعی dispose شوند (رفتار قبلی leaveTransition).
+        const run = controller.leave(el);
+        void run.finished.then(() => {
+          if (leaveSettled) return;
+          leaveSettled = true;
           // وقتی leave تمام شد (بدون cancel)، children را dispose کن
           // و عنصر را از DOM حذف کن.
           cancelLeave = null;
@@ -187,7 +219,11 @@ export function processIf(
           if (el.parentNode === parent) {
             parent.removeChild(el);
           }
-        }) as unknown as (() => void) | null;
+        });
+        cancelLeave = () => {
+          leaveSettled = true;
+          run.cancel();
+        };
       } else {
         // Without transition: immediate removal.
         childDisposes.forEach((d) => d());
@@ -208,6 +244,9 @@ export function processIf(
       cancelLeave();
       cancelLeave = null;
     }
+    // #47: آزادکردن کنترلر transition (runهای فعال + listenerها).
+    transitionCtl?.dispose();
+    transitionCtl = null;
     childDisposes.forEach((d) => d());
     childDisposes = [];
     dispose();

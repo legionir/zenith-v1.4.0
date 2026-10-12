@@ -15,7 +15,7 @@
 
 import { compile } from './cache';
 import { evaluate } from './evaluator';
-import { ASTNode } from './parser';
+import { type ASTNode } from './parser';
 
 /**
  * ارزیابی یک Expression رشته‌ای در برابر یک Context.
@@ -151,8 +151,4 @@ export {
   assertType,
   TypeGuards,
 } from './type-check';
-export type {
-  ExpressionType,
-  TypeCheckResult,
-  TypeContext,
-} from './type-check';
+export type { ExpressionType, TypeCheckResult, TypeContext } from './type-check';

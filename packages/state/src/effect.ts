@@ -36,9 +36,17 @@ import {
   setOwner,
   onCleanup,
   type Owner,
+  // #141 — یک منبع حقیقت برای type تابع پاکسازی در state: context.CleanupFn
+  // (معادل ساختاری `Cleanup` در @zenith/shared؛ از import مستقیم shared خودداری
+  // شده چون publish state نباید یال جدید state→shared بگیرد — همان دلیلی که
+  // MaybeSignal هم در index.ts alias محلی است).
+  type CleanupFn,
 } from './context';
 import { Priority, setEffectDisposal } from '@zenith/scheduler';
 import { emitError } from './error';
+// #115 (DEC-031): علامت routed تا scheduler خطای rethrowشدهٔ effect را دوباره
+// emit نکند (history تکراری نشود).
+import { markErrorRouted } from '@zenith/errors';
 
 /**
  * IMP-07 (v1.3.0): Global error handler برای Effectها.
@@ -57,15 +65,22 @@ let globalEffectErrorHandler: ((err: unknown, effect: Function) => void) | null 
  * داده می‌شوند و Effect به‌طور خودکار از گراف حذف می‌شود.
  *
  * @param handler تابع handler یا null برای پاک کردن.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که اگر هنوز همین
+ *           handler فعال باشد، آن را پاک می‌کند (handler=null بدون اثر قبلی).
  */
-export function onEffectError(handler: ((err: unknown, effect: Function) => void) | null): void {
+export function onEffectError(
+  handler: ((err: unknown, effect: Function) => void) | null,
+): () => void {
   globalEffectErrorHandler = handler;
+  let cleared = false;
+  return () => {
+    if (cleared) return;
+    cleared = true;
+    if (handler !== null && globalEffectErrorHandler === handler) {
+      globalEffectErrorHandler = null;
+    }
+  };
 }
-
-/**
- * نوع تابع پاکسازی (Cleanup).
- */
-type CleanupFn = () => void;
 
 /**
  * نوع تابع Effect.
@@ -180,7 +195,9 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
   if (typeof options === 'number' || typeof options === 'string') {
     actualPriority = normalizePriority(options);
   } else if (options) {
-    actualPriority = options.priority ? normalizePriority(options.priority) : currentDefaultPriority;
+    actualPriority = options.priority
+      ? normalizePriority(options.priority)
+      : currentDefaultPriority;
     ownerOption = options.owner ?? null;
   } else {
     actualPriority = currentDefaultPriority;
@@ -202,15 +219,23 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
     setOwner(owner);
 
     // ۱. پاکسازی وابستگی‌های قبلی
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
 
     // ۲. تنظیم Effect فعلی به عنوان activeEffect
     setActiveEffect(runEffect);
 
     // ۳. تنظیم مکانیزم ثبت Cleanup
-    setActiveCleanupRegistration(cleanup => {
+    // #116: تابع ثبت، یک Cleanup برای حذف cleanup از صف قبل از اجرا برمی‌گرداند.
+    setActiveCleanupRegistration((cleanup) => {
       cleanupQueue.push(cleanup);
+      let removed = false;
+      return () => {
+        if (removed) return;
+        removed = true;
+        const idx = cleanupQueue.indexOf(cleanup);
+        if (idx !== -1) cleanupQueue.splice(idx, 1);
+      };
     });
 
     try {
@@ -226,12 +251,16 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
       // they were pushed onto `cleanupQueue` but the next run would clear
       // the queue (running them) only if the effect re-ran, and a thrown
       // error typically takes the effect out of the reactive graph.
-      cleanupQueue.forEach(cleanup => {
-        try { cleanup(); } catch { /* ignore cleanup errors during error path */ }
+      cleanupQueue.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch {
+          /* ignore cleanup errors during error path */
+        }
       });
       cleanupQueue = [];
 
-      // Route through centralized error system
+      // Route through the unified error hub (#115 / DEC-031).
       if (typeof options === 'object' && options?.onError) {
         options.onError(err instanceof Error ? err : new Error(String(err)));
       }
@@ -239,10 +268,12 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
         message: err instanceof Error ? err.message : String(err),
         category: 'reactivity',
         severity: 'error',
-        recoverable: true,
         stack: err instanceof Error ? err.stack : undefined,
         context: { effectOwnerId: owner.id },
       });
+      // علامت routed: اگر این Effect از flush سنتزالی scheduler صدا زده شده
+      // و خطا را rethrow کنیم، scheduler دوباره همان را emit نمی‌کند (#115).
+      markErrorRouted(err);
 
       // IMP-07: اگر global error handler تنظیم شده، خطا را به آن بده و
       // Effect را از گراف حذف کن (به جای throw کردن).
@@ -262,7 +293,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
 
   // Register effect's own cleanup in the owner tree
   onCleanup(() => {
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
   });
@@ -283,7 +314,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
    */
   return () => {
     if (owner.disposed) return;
-    cleanupQueue.forEach(cleanup => cleanup());
+    cleanupQueue.forEach((cleanup) => cleanup());
     cleanupQueue = [];
     effectPriorityMap.delete(runEffect);
     disposeOwner(owner);
@@ -316,5 +347,5 @@ export function getEffectPriority(effectFn: Function): Priority {
  */
 export function triggerEffects(effects: Set<Function>): void {
   const toRun = [...effects];
-  toRun.forEach(effect => effect());
+  toRun.forEach((effect) => effect());
 }

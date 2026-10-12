@@ -15,11 +15,11 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx test/test.ts",
     "demo": "tsx test/demo.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -34,16 +34,29 @@
     "framework"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/expressions"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
-    "@types/node": "^20.11.0",
-    "@zenith/state": "1.4.0"
+    "@types/node": "^20.11.0"
   },
   "dependencies": {
+    "@zenith/cache": "1.5.0",
     "@zenith/errors": "1.4.0"
   }
 }

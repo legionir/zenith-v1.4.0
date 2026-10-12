@@ -26,12 +26,7 @@ await build({
         // instead of node_modules/@zenith/state/dist/index.js.
         esbuild.onResolve({ filter: /^@zenith\/[^/]+$/ }, (args) => {
           const packageDirectory = args.path.slice('@zenith/'.length);
-          const sourceEntry = resolve(
-            'packages',
-            packageDirectory,
-            'src',
-            'index.ts',
-          );
+          const sourceEntry = resolve('packages', packageDirectory, 'src', 'index.ts');
 
           if (!existsSync(sourceEntry)) {
             return {
@@ -50,6 +45,4 @@ await build({
   ],
 });
 
-console.log(
-  'Browser bundle created: browser-bundles/zenith-runtime.js',
-);
+console.log('Browser bundle created: browser-bundles/zenith-runtime.js');

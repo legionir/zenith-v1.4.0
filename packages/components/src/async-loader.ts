@@ -25,6 +25,12 @@
 //   - DOM mutations are guarded with `typeof document` checks.
 
 import { registerComponent } from './registry';
+// #144: سه کش دستی (Map + timestamp + eviction) به @zenith/cache (L0) مهاجرت
+// کرد: entryهای template با ttl/maxSize (LRU)، رجیستری dedupe با پاک‌سازی در
+// settle، و errorCache با ttl=۳۰s. هویت خطاها دست‌نخورده می‌ماند (این‌جا
+// getOrLoad استفاده نشده تا AbortError همان AbortError بماند).
+import { createCache, type Cache } from '@zenith/cache';
+import { developerError, resourceHttpError, ZenithError, ErrorCode } from '@zenith/errors';
 
 /**
  * Cache entry for a loaded component.
@@ -53,8 +59,14 @@ let cacheConfig: ComponentCacheConfig = {
   maxSize: 64,
 };
 
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<HTMLTemplateElement>>();
+// #144: ttl/maxSize/LRU به @zenith/cache سپرده شده؛ storedAt صرفاً برای
+// سازگاری شکل CacheEntry (export عمومی) در entry می‌ماند.
+let templateCache: Cache<CacheEntry> = createCache<CacheEntry>({
+  ttl: cacheConfig.ttl,
+  maxSize: cacheConfig.maxSize,
+});
+// رجیستری dedupe (در-flight promise؛ settle ⇒ delete — مثل قبل).
+const inflightCache = createCache<Promise<HTMLTemplateElement>>({ ttl: 'never', maxSize: 64 });
 
 // FIX (v1.2.8): P2-5 — errorCache for recently-failed URLs.
 //
@@ -73,11 +85,12 @@ const inflight = new Map<string, Promise<HTMLTemplateElement>>();
 // fix (redeploy) takes effect quickly, but long enough to break
 // thundering herds.
 const ERROR_CACHE_TTL_MS = 30_000;
+// #144: ttl خود entry (=۳۰s) + انقضای lazy ⇒ delete دستی لازم نیست.
 interface ErrorCacheEntry {
   error: Error;
   storedAt: number;
 }
-const errorCache = new Map<string, ErrorCacheEntry>();
+const errorCache = createCache<ErrorCacheEntry>({ ttl: ERROR_CACHE_TTL_MS, maxSize: 64 });
 
 /**
  * Configure the component cache (TTL + maxSize).
@@ -86,13 +99,19 @@ const errorCache = new Map<string, ErrorCacheEntry>();
  *   configureComponentCache({ ttl: 60_000, maxSize: 128 });
  */
 export function configureComponentCache(opts: Partial<ComponentCacheConfig>): void {
-  cacheConfig = { ...cacheConfig, ...opts };
-  // Evict anything that no longer fits.
-  if (cache.size > cacheConfig.maxSize) {
-    const keys = Array.from(cache.keys());
-    for (let i = 0; i < keys.length - cacheConfig.maxSize; i++) {
-      cache.delete(keys[i]!);
+  const prev = { ...cacheConfig, ...opts };
+  if (prev.ttl !== cacheConfig.ttl || prev.maxSize !== cacheConfig.maxSize) {
+    cacheConfig = prev;
+    // ttl/maxSize در @zenith_cache زمان ساخت خوانده می‌شوند ⇒ نمونهٔ تازه با
+    // انتقال entryهای زنده (peek ⇒ بدون تغییر آمار/ترتگی). trim داخلی
+    // همان «evict anything that no longer fits» قدیمی است.
+    const old = templateCache;
+    templateCache = createCache<CacheEntry>({ ttl: prev.ttl, maxSize: prev.maxSize });
+    for (const key of old.keys()) {
+      const entry = old.peek(key);
+      if (entry !== undefined) templateCache.set(key, entry);
     }
+    old.dispose();
   }
 }
 
@@ -100,8 +119,8 @@ export function configureComponentCache(opts: Partial<ComponentCacheConfig>): vo
  * Clear the entire component cache. Useful in tests and HMR.
  */
 export function clearComponentCache(): void {
-  cache.clear();
-  inflight.clear();
+  templateCache.clear();
+  inflightCache.clear();
   // FIX (v1.2.8): P2-5 — also clear the errorCache.
   errorCache.clear();
 }
@@ -133,80 +152,81 @@ export function escapeHTML(s: string): string {
  * @param signal Optional AbortSignal to cancel the fetch.
  * @returns The parsed <template> element.
  */
-export async function loadComponent(src: string, signal?: AbortSignal): Promise<HTMLTemplateElement> {
+export async function loadComponent(
+  src: string,
+  signal?: AbortSignal,
+): Promise<HTMLTemplateElement> {
   if (!src) {
-    throw new Error('[Zenith async-loader] src is required.');
+    throw developerError('async-loader: src is required.', ErrorCode.INTERNAL_DEVELOPER_ERROR);
   }
 
   // FIX (v1.2.8): P2-5 — Check the errorCache first. If this URL recently
   // failed (within ERROR_CACHE_TTL_MS), re-throw the cached error
   // immediately without re-fetching. This prevents thundering-herd
-  // re-fetches of known-bad URLs. After the TTL expires the entry is
-  // evicted here and the URL is retried on the next call.
-  const errEntry = errorCache.get(src);
+  // re-fetches of known-bad URLs. #144: ttl entry = ۳۰s و انقضای lazy ⇒
+  // بعد از پنجره، peek مقدار undefined می‌دهد و URL retry می‌شود.
+  const errEntry = errorCache.peek(src);
   if (errEntry) {
-    const age = Date.now() - errEntry.storedAt;
-    if (age < ERROR_CACHE_TTL_MS) {
-      throw errEntry.error;
-    }
-    // Expired — evict and fall through to retry.
-    errorCache.delete(src);
+    throw errEntry.error;
   }
 
-  // Check the cache; evict expired entries.
-  const entry = cache.get(src);
+  // Check the cache. #144: انقضای ttl داخل @zenith/cache (lazy)؛ get روی
+  // entry منقضی‌شده undefined می‌دهد و eviction را انجام می‌دهد.
+  const entry = templateCache.get(src);
   if (entry) {
-    const age = Date.now() - entry.storedAt;
-    if (age < cacheConfig.ttl) {
-      return entry.template;
-    }
-    cache.delete(src);
+    return entry.template;
   }
 
   // De-duplicate concurrent fetches.
-  const existing = inflight.get(src);
+  const existing = inflightCache.peek(src);
   if (existing) return existing;
 
   const promise = (async () => {
     if (typeof fetch !== 'function') {
-      throw new Error('[Zenith async-loader] fetch is not available (SSR?).');
+      throw new ZenithError({
+        code: ErrorCode.RESOURCE_HTTP_ERROR,
+        category: 'Network',
+        message: 'async-loader: fetch is not available (SSR?).',
+        suggestion: 'در SSR از @zenith/ssr یا loader دستی استفاده کنید.',
+      });
     }
     if (typeof DOMParser !== 'function') {
-      throw new Error('[Zenith async-loader] DOMParser is not available (SSR?).');
+      throw new ZenithError({
+        code: ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+        category: 'Runtime',
+        message: 'async-loader: DOMParser is not available (SSR?).',
+        suggestion: 'async-loader فقط در مرورگر کار می‌کند.',
+      });
     }
     const res = await fetch(src, signal ? { signal } : undefined);
     if (!res.ok) {
-      throw new Error(`[Zenith async-loader] Failed to fetch "${src}": ${res.status} ${res.statusText}`);
+      throw resourceHttpError(src, res.status, res.statusText);
     }
     const html = await res.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const tpl = doc.querySelector('template');
     if (!tpl) {
-      throw new Error(`[Zenith async-loader] No <template> found in "${src}".`);
+      throw developerError(
+        `async-loader: No <template> found in "${src}".`,
+        ErrorCode.COMPONENT_SLOT_NOT_FOUND,
+      );
     }
 
     // Store in cache (cloned so the cached template is independent).
     const cloned = tpl.cloneNode(true) as HTMLTemplateElement;
-    cache.set(src, {
+    templateCache.set(src, {
       html,
       template: cloned,
       storedAt: Date.now(),
     });
-
-    // LRU eviction.
-    if (cache.size > cacheConfig.maxSize) {
-      const keys = Array.from(cache.keys());
-      const evictCount = keys.length - cacheConfig.maxSize;
-      for (let i = 0; i < evictCount; i++) {
-        cache.delete(keys[i]!);
-      }
-    }
+    // LRU eviction: داخل @zenith/cache (maxSize از cacheConfig).
 
     return cloned;
   })();
 
-  inflight.set(src, promise);
+  // #144: `set` مقدار (promise) را برمی‌گرداند ⇒ void برای no-floating-promises.
+  void inflightCache.set(src, promise);
   try {
     return await promise;
   } catch (err) {
@@ -215,16 +235,14 @@ export async function loadComponent(src: string, signal?: AbortSignal): Promise<
     // breaks thundering-herd patterns for known-bad URLs. We clone the
     // error so the cached copy doesn't carry a stale stack trace from
     // the original throw site (which could confuse debuggers).
-    const cachedError = err instanceof Error
-      ? new Error(err.message)
-      : new Error(String(err));
+    const cachedError = err instanceof Error ? new Error(err.message) : new Error(String(err));
     errorCache.set(src, {
       error: cachedError,
       storedAt: Date.now(),
     });
     throw err;
   } finally {
-    inflight.delete(src);
+    inflightCache.delete(src);
   }
 }
 
@@ -318,10 +336,18 @@ export function processAsyncComponent(
   // level.
   return () => {
     if (abortController) {
-      try { abortController.abort(); } catch { /* noop */ }
+      try {
+        abortController.abort();
+      } catch {
+        /* noop */
+      }
     }
     for (const d of localDisposes) {
-      try { d(); } catch { /* noop */ }
+      try {
+        d();
+      } catch {
+        /* noop */
+      }
     }
     localDisposes.length = 0;
   };

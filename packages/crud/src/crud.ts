@@ -50,10 +50,10 @@ import { Zen } from '@zenith/runtime';
 // @param snapshot داده‌های قبل از optimistic delete.
 // @returns داده‌های merge شده.
 function rollbackWithMerge(current: any[], snapshot: any[]): any[] {
-  const snapshotIds = new Set(snapshot.map(item => item.id));
+  const snapshotIds = new Set(snapshot.map((item) => item.id));
 
   // آیتم‌هایی که بین حذف و rollback اضافه شده‌اند.
-  const newItems = current.filter(item => !snapshotIds.has(item.id));
+  const newItems = current.filter((item) => !snapshotIds.has(item.id));
 
   // ترکیب: snapshot اصلی + آیتم‌های جدید - dedup.
   // شروع از snapshot یعنی آیتم‌های حذف‌شده به‌صورت خودکار restore می‌شوند.
@@ -126,12 +126,18 @@ function collectFormData(formEl: HTMLFormElement): Record<string, any> {
  */
 Zen.action('crudList', ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
-  if (!resourceName) { console.error('[crudList] data-resource required'); return; }
+  if (!resourceName) {
+    console.error('[crudList] data-resource required');
+    return;
+  }
 
   const resource = getResource(resourceName);
-  if (!resource) { console.error(`[crudList] Resource "${resourceName}" not found`); return; }
+  if (!resource) {
+    console.error(`[crudList] Resource "${resourceName}" not found`);
+    return;
+  }
 
-  resource.list(true);
+  void resource.list(true);
 });
 
 /**
@@ -146,15 +152,24 @@ Zen.action('crudList', ({ element }) => {
  */
 Zen.action('crudCreate', async ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
-  if (!resourceName) { console.error('[crudCreate] data-resource required'); return; }
+  if (!resourceName) {
+    console.error('[crudCreate] data-resource required');
+    return;
+  }
 
   const resource = getResource(resourceName);
-  if (!resource) { console.error(`[crudCreate] Resource "${resourceName}" not found`); return; }
+  if (!resource) {
+    console.error(`[crudCreate] Resource "${resourceName}" not found`);
+    return;
+  }
 
   // BUG-CRD-02 (v1.3.0): از collectFormData استفاده کن که nested keys
   // مانند "user[0].name" یا "address.city" را به‌درستی parse می‌کند.
   const form = element.tagName === 'FORM' ? element : element.closest('form');
-  if (!form) { console.error('[crudCreate] No form found'); return; }
+  if (!form) {
+    console.error('[crudCreate] No form found');
+    return;
+  }
 
   const body = collectFormData(form as HTMLFormElement);
 
@@ -165,11 +180,10 @@ Zen.action('crudCreate', async ({ element }) => {
     // BUG-CRD-03 (v1.3.0): data-auto-refresh را چک کن.
     // اگر "false" باشد، لیست refresh نمی‌شود (کاربر می‌خواهد خودش
     // مدیریت کند).
-    const autoRefresh = element.getAttribute('data-auto-refresh')
-      ?? form.getAttribute('data-auto-refresh')
-      ?? 'true';
+    const autoRefresh =
+      element.getAttribute('data-auto-refresh') ?? form.getAttribute('data-auto-refresh') ?? 'true';
     if (autoRefresh !== 'false') {
-      resource.list(true);
+      void resource.list(true);
     }
   }
 });
@@ -188,20 +202,30 @@ Zen.action('crudUpdate', async ({ element }) => {
   const id = element.getAttribute('data-id');
   const bodyAttr = element.getAttribute('data-body');
 
-  if (!resourceName || !id) { console.error('[crudUpdate] data-resource and data-id required'); return; }
+  if (!resourceName || !id) {
+    console.error('[crudUpdate] data-resource and data-id required');
+    return;
+  }
 
   const resource = getResource(resourceName);
-  if (!resource) { console.error(`[crudUpdate] Resource "${resourceName}" not found`); return; }
+  if (!resource) {
+    console.error(`[crudUpdate] Resource "${resourceName}" not found`);
+    return;
+  }
 
   // body می‌تواند از data-body attribute خوانده شود.
   let body: any = bodyAttr;
   if (bodyAttr) {
-    try { body = JSON.parse(bodyAttr); } catch { /* keep as string */ }
+    try {
+      body = JSON.parse(bodyAttr);
+    } catch {
+      /* keep as string */
+    }
   }
 
   const result = await resource.update(id, body);
   if (result.success) {
-    resource.list(true);
+    void resource.list(true);
   }
 });
 
@@ -217,16 +241,22 @@ Zen.action('crudDelete', async ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
   const id = element.getAttribute('data-id');
 
-  if (!resourceName || !id) { console.error('[crudDelete] data-resource and data-id required'); return; }
+  if (!resourceName || !id) {
+    console.error('[crudDelete] data-resource and data-id required');
+    return;
+  }
 
   const resource = getResource(resourceName);
-  if (!resource) { console.error(`[crudDelete] Resource "${resourceName}" not found`); return; }
+  if (!resource) {
+    console.error(`[crudDelete] Resource "${resourceName}" not found`);
+    return;
+  }
 
   // Optimistic delete با snapshot برای rollback.
   let snapshot: any[] | null = null;
   if (resource.data && Array.isArray(resource.data)) {
     snapshot = [...resource.data];
-    resource.setData(old => (old as any[]).filter(item => String(item.id) !== String(id)));
+    resource.setData((old) => (old as any[]).filter((item) => String(item.id) !== String(id)));
   }
 
   const result = await resource.delete(id);
@@ -246,7 +276,7 @@ Zen.action('crudDelete', async ({ element }) => {
   // the row locally; a refresh picks up server-side side-effects such as
   // reordering, computed columns, or cascade deletes).
   if (result.success) {
-    resource.list(true);
+    void resource.list(true);
   }
 });
 
@@ -257,7 +287,7 @@ Zen.action('crudRefresh', ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
   if (!resourceName) return;
   const resource = getResource(resourceName);
-  if (resource) resource.list(true);
+  if (resource) void resource.list(true);
 });
 
 /**
@@ -301,7 +331,7 @@ Zen.action('crudBulkDelete', async ({ element }) => {
   }
 
   await Promise.all(ids.map((id: string) => resource.delete(id)));
-  resource.list(true);
+  void resource.list(true);
 });
 
 /**
@@ -338,7 +368,7 @@ Zen.action('crudSmartDelete', async ({ element }) => {
   if (result.success) {
     // Refresh triggers the crud-engine's computed to auto-correct
     // the page if the current page is now empty.
-    resource.list(true);
+    void resource.list(true);
   }
 });
 

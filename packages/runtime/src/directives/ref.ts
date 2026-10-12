@@ -115,7 +115,7 @@ export function processRef(
   if (typeof console !== 'undefined' && console.warn) {
     console.warn(
       `[Zenith zen-ref] No Signal found for ref "${refName}". ` +
-      `Make sure state has a Signal at key "${key}" (with a .set method).`,
+        `Make sure state has a Signal at key "${key}" (with a .set method).`,
     );
   }
   return () => {};

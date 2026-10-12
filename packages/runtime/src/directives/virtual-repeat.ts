@@ -74,15 +74,11 @@ function findScrollContainer(startEl: HTMLElement | null): HTMLElement | null {
           // bounded height (otherwise overflow-y has no effect). For the
           // <body> / <html> we accept unconditionally — they're the
           // document scroller.
-          const isDocumentElement =
-            node === document.documentElement || node === document.body;
+          const isDocumentElement = node === document.documentElement || node === document.body;
           if (isDocumentElement) return node;
           const h = style.height;
           const mh = style.maxHeight;
-          if (
-            (h && h !== 'auto' && !h.endsWith('%')) ||
-            (mh && mh !== 'none')
-          ) {
+          if ((h && h !== 'auto' && !h.endsWith('%')) || (mh && mh !== 'none')) {
             return node;
           }
         }
@@ -279,13 +275,21 @@ export function processVirtualRepeat(
     // Dispose all currently visible rows.
     for (const row of visibleRows) {
       for (const d of row.disposes) {
-        try { d(); } catch { /* noop */ }
+        try {
+          d();
+        } catch {
+          /* noop */
+        }
       }
       if (row.el.parentNode) {
         row.el.parentNode.removeChild(row.el);
       }
       if (resizeObserver) {
-        try { resizeObserver.unobserve(row.el); } catch { /* noop */ }
+        try {
+          resizeObserver.unobserve(row.el);
+        } catch {
+          /* noop */
+        }
       }
     }
     visibleRows = [];
@@ -332,7 +336,11 @@ export function processVirtualRepeat(
 
       contentContainer.appendChild(clone);
       if (resizeObserver) {
-        try { resizeObserver.observe(clone); } catch { /* noop */ }
+        try {
+          resizeObserver.observe(clone);
+        } catch {
+          /* noop */
+        }
       }
 
       visibleRows.push({
@@ -425,7 +433,11 @@ export function processVirtualRepeat(
     }
     for (const row of visibleRows) {
       for (const d of row.disposes) {
-        try { d(); } catch { /* noop */ }
+        try {
+          d();
+        } catch {
+          /* noop */
+        }
       }
       if (row.el.parentNode) {
         row.el.parentNode.removeChild(row.el);
@@ -433,7 +445,11 @@ export function processVirtualRepeat(
     }
     visibleRows = [];
     if (resizeObserver) {
-      try { resizeObserver.disconnect(); } catch { /* noop */ }
+      try {
+        resizeObserver.disconnect();
+      } catch {
+        /* noop */
+      }
       resizeObserver = null;
     }
     // Remove spacers / wrapper.

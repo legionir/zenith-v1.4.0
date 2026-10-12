@@ -26,9 +26,4 @@ export {
   action,
 } from './registry';
 
-export type {
-  ActionContext,
-  ActionFn,
-  ActionMetadata,
-  ActionMiddleware,
-} from './registry';
+export type { ActionContext, ActionFn, ActionMetadata, ActionMiddleware } from './registry';

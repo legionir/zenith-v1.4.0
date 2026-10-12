@@ -11,5 +11,5 @@ export type {
   DataTableState,
   ColumnSort,
   ColumnFilter,
-  SortDirection
+  SortDirection,
 } from './data-table';

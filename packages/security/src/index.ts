@@ -27,3 +27,6 @@ export { generateCSP, type CSPOptions } from './sanitizer';
 
 // IMP-SEC-03: Trusted Types Integration
 export { createTrustedTypesPolicy } from './sanitizer';
+
+// #64: شناسه‌ی امن با CSPRNG (crypto.getRandomValues)
+export { secureId } from './secure-id';

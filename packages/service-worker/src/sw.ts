@@ -22,10 +22,7 @@
 // رفتنِ mutationها پس از restartِ SW جلوگیری شود. همچنین retry با exponential
 // backoff و jitter انجام می‌شود تا سرور تحت فشار قرار نگیرد.
 
-import {
-  applyStrategy,
-  type CacheStrategyName,
-} from './strategies.js';
+import { applyStrategy, type CacheStrategyName } from './strategies.js';
 
 /**
  * FEATURE (v0.4.0): RouteMatcher — تطبیق‌دهنده‌ی مسیر.
@@ -180,13 +177,20 @@ export function setupSW(config: SWRuntimeConfig): void {
 
   const swSelf = self as unknown as {
     addEventListener: (type: string, listener: (event: any) => void) => void;
+    removeEventListener: (type: string, listener: (event: any) => void) => void;
     skipWaiting?: () => Promise<void>;
     clients?: { claim?: () => Promise<void> };
     registration?: { sync?: { register: (tag: string) => Promise<void> } };
   };
 
+  // FIX (#6): همهٔ handlerها از طریق addSWListener ثبت می‌شوند تا در swHandlers
+  // ذخیره شوند و cleanupSWListeners واقعاً بتواند آن‌ها را حذف کند.
+  const registerHandler = (type: string, handler: (event: any) => void): void => {
+    addSWListener(type, handler);
+  };
+
   // FEATURE (v0.4.0): install event — pre-cache critical assets.
-  swSelf.addEventListener('install', (event: any) => {
+  registerHandler('install', (event: any) => {
     const cfg = _config!;
     const precachePromise = (async () => {
       const cacheStore = typeof caches !== 'undefined' ? caches : null;
@@ -215,7 +219,7 @@ export function setupSW(config: SWRuntimeConfig): void {
   });
 
   // FEATURE (v0.4.0): activate event — پاکسازی cacheهای قدیمی.
-  swSelf.addEventListener('activate', (event: any) => {
+  registerHandler('activate', (event: any) => {
     const cfg = _config!;
     const cleanupPromise = (async () => {
       const cacheStore = typeof caches !== 'undefined' ? caches : null;
@@ -253,7 +257,7 @@ export function setupSW(config: SWRuntimeConfig): void {
   });
 
   // FEATURE (v0.4.0): fetch event — route-matching → apply strategy.
-  swSelf.addEventListener('fetch', (event: any) => {
+  registerHandler('fetch', (event: any) => {
     const cfg = _config!;
     const request: Request = event.request;
     if (!request || !request.url) return;
@@ -266,20 +270,20 @@ export function setupSW(config: SWRuntimeConfig): void {
     if (typeof event.respondWith !== 'function') return;
 
     if (matchedRoute) {
-      const cacheName = versionedCacheName(cfg.cachePrefix!, matchedRoute.cacheName || cfg.defaultCacheName!);
+      const cacheName = versionedCacheName(
+        cfg.cachePrefix!,
+        matchedRoute.cacheName || cfg.defaultCacheName!,
+      );
       event.respondWith(
-        applyStrategy(
-          matchedRoute.strategy,
-          request,
-          cacheName,
-          matchedRoute.timeout,
-        ).catch((err) => {
-          console.error('[Zenith SW] strategy failed:', err);
-          return new Response(JSON.stringify({ error: 'SW strategy failed' }), {
-            status: 502,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        }),
+        applyStrategy(matchedRoute.strategy, request, cacheName, matchedRoute.timeout).catch(
+          (err) => {
+            console.error('[Zenith SW] strategy failed:', err);
+            return new Response(JSON.stringify({ error: 'SW strategy failed' }), {
+              status: 502,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          },
+        ),
       );
       return;
     }
@@ -294,18 +298,12 @@ export function setupSW(config: SWRuntimeConfig): void {
 
     // defaultStrategy برای GET های unmatched.
     const defaultCacheName = versionedCacheName(cfg.cachePrefix!, cfg.defaultCacheName!);
-    event.respondWith(
-      applyStrategy(
-        cfg.defaultStrategy!,
-        request,
-        defaultCacheName,
-      ),
-    );
+    event.respondWith(applyStrategy(cfg.defaultStrategy!, request, defaultCacheName));
   });
 
   // FEATURE (v0.5.0): sync event — retry queued mutations با exponential backoff.
   // صف از IndexedDB لود می‌شود تا حتی پس از restartِ SW هم mutationها حفظ شوند.
-  swSelf.addEventListener('sync', (event: any) => {
+  registerHandler('sync', (event: any) => {
     const cfg = _config!;
     const tag = event && event.tag ? event.tag : cfg.backgroundSyncQueueName!;
     if (tag !== cfg.backgroundSyncQueueName!) return;
@@ -335,10 +333,7 @@ export function setupSW(config: SWRuntimeConfig): void {
         mutation.retryCount += 1;
         // FEATURE (v0.5.0): بعد از ۳ cycle sync ناموفق، mutation را drop می‌کنیم.
         if (mutation.retryCount >= 3) {
-          console.warn(
-            '[Zenith SW] dropping mutation after 3 failed sync cycles:',
-            mutation.url,
-          );
+          console.warn('[Zenith SW] dropping mutation after 3 failed sync cycles:', mutation.url);
           // FIX (v1.2.7): also remove dropped mutations from IndexedDB
           // immediately (same rationale as the success branch above).
           if (mutation.id != null) {
@@ -362,11 +357,11 @@ export function setupSW(config: SWRuntimeConfig): void {
 
   // FEATURE (v0.4.0): message event — کنترل از main thread.
   // مثلاً برای فرمان skipWaiting.
-  swSelf.addEventListener('message', (event: any) => {
+  registerHandler('message', (event: any) => {
     const data = event && event.data ? event.data : null;
     if (!data || typeof data !== 'object') return;
     if (data.type === 'SKIP_WAITING' && typeof swSelf.skipWaiting === 'function') {
-      swSelf.skipWaiting();
+      void swSelf.skipWaiting();
     } else if (data.type === 'GET_QUEUE_SIZE') {
       const source = event.source;
       if (source && typeof source.postMessage === 'function') {
@@ -532,10 +527,7 @@ async function retryMutation(mutation: QueuedMutation): Promise<boolean> {
  * @param maxRetries تعداد retryهای داخلی (پیش‌فرض: ۳).
  * @returns true اگر حداقل یک تلاش موفق بود.
  */
-async function retryWithBackoff(
-  mutation: QueuedMutation,
-  maxRetries = 3,
-): Promise<boolean> {
+async function retryWithBackoff(mutation: QueuedMutation, maxRetries = 3): Promise<boolean> {
   const baseDelay = 1000;
   const maxDelay = 30000;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -543,6 +535,9 @@ async function retryWithBackoff(
     if (ok) return true;
     if (attempt < maxRetries) {
       const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+      // NON-SECURITY (#64): jitter تصادفیِ backoff فقط برای پراکندن درخواست‌ها
+      // است؛ قابل‌حدس‌زدن بودنش آسیب‌پذیری ایجاد نمی‌کند و شناسه/توکن نیست.
+      // eslint-disable-next-line no-restricted-syntax -- non-security backoff jitter (#64)
       const jitter = delay * 0.2 * Math.random();
       await new Promise((r) => setTimeout(r, delay + jitter));
     }
@@ -602,11 +597,19 @@ async function loadQueue(): Promise<QueuedMutation[]> {
       req.onerror = () => resolve([]);
       tx.oncomplete = () => db.close();
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve([]);
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve([]);
     }
   });
@@ -633,14 +636,26 @@ async function addToQueue(mutation: QueuedMutation): Promise<number | null> {
       req.onsuccess = () => resolve(req.result as number);
       req.onerror = () => resolve(null);
       tx.oncomplete = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
       };
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve(null);
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve(null);
     }
   });
@@ -658,15 +673,27 @@ async function removeFromQueue(id: number): Promise<void> {
       const store = tx.objectStore(SYNC_STORE);
       store.delete(id);
       tx.oncomplete = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve();
       };
       tx.onerror = () => {
-        try { db.close(); } catch (e) { /* ignore */ }
+        try {
+          db.close();
+        } catch (e) {
+          /* ignore */
+        }
         resolve();
       };
     } catch (err) {
-      try { db.close(); } catch (e) { /* ignore */ }
+      try {
+        db.close();
+      } catch (e) {
+        /* ignore */
+      }
       resolve();
     }
   });
@@ -689,7 +716,13 @@ export function getQueueSize(): number {
 export function getConfig(): SWRuntimeConfig | null {
   return _config;
 }
-// Real listener cleanup: event handlers stored in swHandlers for removal
+/**
+ * رجیستری listenerهای ثبت‌شده توسط setupSW (#6، DEC-001).
+ *
+ * در SW واقعی global scope با هر restart دوباره ساخته می‌شود و cleanup دستی
+ * لازم نیست؛ این رجیستری برای تست (mock self) و سناریوهای register مجدد در
+ * همان صفحه استفاده می‌شود.
+ */
 const swHandlers: Array<{ type: string; handler: EventListener }> = [];
 
 function addSWListener(type: string, handler: EventListener) {
@@ -697,13 +730,17 @@ function addSWListener(type: string, handler: EventListener) {
   (self as any).addEventListener(type, handler);
 }
 
+/**
+ * همهٔ listenerهای ثبت‌شده توسط `setupSW` را حذف می‌کند (idempotent).
+ * @public
+ */
 export function cleanupSWListeners(): void {
   for (const h of swHandlers) {
-    try { (self as any).removeEventListener(h.type, h.handler); } catch { /* ignore */ }
+    try {
+      (self as any).removeEventListener(h.type, h.handler);
+    } catch {
+      /* ignore */
+    }
   }
   swHandlers.length = 0;
 }
-
-// Listener cleanup added for packages/service-worker/src/sw.ts
-// Listener cleanup: handlers stored for removal
-// Real cleanup: if listeners exist, remove them here via stored references

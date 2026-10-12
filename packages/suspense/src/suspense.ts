@@ -40,6 +40,8 @@
 
 import { signal, effect, type ReadonlySignal, type Signal } from '@zenith/state';
 import { reportError } from '@zenith/error-boundary';
+// FIX (#64): شناسه‌های داخلی با CSPRNG (crypto.getRandomValues) به‌جای Math.random.
+import { secureId } from '@zenith/security';
 
 /**
  * وضعیت Suspense.
@@ -89,7 +91,10 @@ export interface SuspenseContext {
  *                   تا parent context به‌صورت هم‌زمان (بدون gap میکروتسک)
  *                   از وضعیت فرزند مطلع شود.
  */
-export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled: boolean) => void): SuspenseContext {
+export function createSuspenseContext(
+  timeoutMs: number = 0,
+  onSettle?: (settled: boolean) => void,
+): SuspenseContext {
   const loadingSet = new Set<string>();
   const sig = signal<SuspenseState>({
     loading: false,
@@ -122,7 +127,7 @@ export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled
   }
 
   // BUG-SUS-01 FIX: `settled` را برای اطلاع به parent (onSettle) نگه می‌داریم.
-  let _prevSettled = true;  // حالت اولیه settled است (loading=0).
+  let _prevSettled = true; // حالت اولیه settled است (loading=0).
 
   function updateState() {
     const pendingCount = loadingSet.size;
@@ -130,7 +135,13 @@ export function createSuspenseContext(timeoutMs: number = 0, onSettle?: (settled
     const current = sig.get();
 
     // شروع timeout timer وقتی loading شروع می‌شود.
-    if (isLoading && !current.timedOut && !current.error && timeoutMs > 0 && timeoutHandle === null) {
+    if (
+      isLoading &&
+      !current.timedOut &&
+      !current.error &&
+      timeoutMs > 0 &&
+      timeoutHandle === null
+    ) {
       armTimeout();
     }
 
@@ -274,6 +285,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
   let timedOut = false;
   let disposed = false;
   let id = 0;
+  // FIX (#20): شمارندهٔ نسل/چرخه — هر reset() یک چرخهٔ جدید شروع می‌کند و
+  // تسویهٔ پرامیس‌های نسل قبلی نباید onReady/onError را فعال کند.
+  let generation = 0;
 
   const notifyReady = () => {
     for (const callback of [...readyCallbacks]) callback();
@@ -335,17 +349,25 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
     track(promise) {
       if (disposed) return;
       const loadingId = `promise-${++id}`;
+      const gen = generation; // FIX (#20): snapshot نسل این پرامیس
       context.startLoading(loadingId);
 
       Promise.resolve(promise).then(
         () => {
-          if (disposed) return;
+          // FIX (#20): پرامیس‌های نسل قدیمی (قبل از reset) کاملاً نادیده گرفته
+          // می‌شوند؛ در غیر این صورت onReady زودهنگام و در حالی که retry هنوز
+          // pending است فعال می‌شد.
+          if (disposed || gen !== generation) return;
           context.stopLoading(loadingId);
           const state = context.signal.get();
           if (!state.loading && !state.error && !state.timedOut) notifyReady();
         },
         (reason: unknown) => {
-          if (disposed) return;
+          if (disposed || gen !== generation) return;
+          // FIX (#20): حذف id ردشده از loadingSet پیش از گزارش خطا؛ وگرنه id
+          // کهنه در مجموعه می‌ماند و pendingCount/loading پس از آنکه سایر
+          // پرامیس‌ها تسویه شدند ناسازگار (boundary گیرکرده) می‌شد.
+          context.stopLoading(loadingId);
           const nextError = normalizeError(reason);
           error.set(nextError);
           context.reportError(nextError.message);
@@ -362,6 +384,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
       return () => errorCallbacks.delete(callback);
     },
     reset() {
+      // FIX (#20): شروع چرخهٔ جدید؛ همهٔ پرامیس‌های در حال انتظار نسل قبل
+      // بی‌اعتبار می‌شوند.
+      generation++;
       context.reset();
       error.set(null);
       timedOut = false;
@@ -386,25 +411,33 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
  * @param el              عنصر <zen-suspense>.
  * @param processChildren callback برای walk فرزندان.
  * @param context         Context والد.
- * @param disposes        آرایه‌ی dispose functions.
+ * @param disposes        آرایه‌ی dispose functions (سازگاری با گذشته — #116).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` باید `Cleanup`
+ *           برگردانند).
  */
 export function processSuspense(
   el: HTMLElement,
   processChildren: (node: HTMLElement, ctx: Record<string, any>, disposes: (() => void)[]) => void,
   context: Record<string, any>,
   disposes: (() => void)[],
-): void {
+): () => void {
   // SSR-safe guard.
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') return () => {};
 
   // ── ۱. خواندن timeout از attribute ──
   const timeoutAttr = el.getAttribute('timeout');
   const timeoutMs = timeoutAttr ? parseInt(timeoutAttr, 10) || 0 : 0;
 
   // ── ۲. پیدا کردن fallback templates ──
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
-  const timeoutTemplate = el.querySelector(':scope > template[zen-timeout]') as HTMLTemplateElement | null;
-  const errorTemplate = el.querySelector(':scope > template[zen-error]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
+  const timeoutTemplate = el.querySelector(
+    ':scope > template[zen-timeout]',
+  ) as HTMLTemplateElement | null;
+  const errorTemplate = el.querySelector(
+    ':scope > template[zen-error]',
+  ) as HTMLTemplateElement | null;
 
   // ── ۳. ساخت fallback elements ──
   let fallbackEl: HTMLElement | null = null;
@@ -457,7 +490,7 @@ export function processSuspense(
   // ── ۵. ساخت SuspenseContext ──
   // BUG-SUS-01 FIX: به‌جای effect برای tracking nested state، از onSettle
   // callback هم‌زمان استفاده می‌کنیم که parent را بدون gap میکروتسک مطلع کند.
-  let innerSettled = true;   // حالت اولیه settled
+  let innerSettled = true; // حالت اولیه settled
   const suspenseCtx = createSuspenseContext(timeoutMs, (settled) => {
     if (settled !== innerSettled) {
       innerSettled = settled;
@@ -492,7 +525,9 @@ export function processSuspense(
   const outerCtx = (context as any).__zenith_suspense__ as SuspenseContext | undefined;
   let innerId: string | null = null;
   if (outerCtx) {
-    innerId = `zen-suspense-${Math.random().toString(36).slice(2, 10)}`;
+    // FIX (#64): شناسه‌ی منحصربه‌فرد با CSPRNG — Math.random قابل‌حدس و
+    // مستعد برخورد بود.
+    innerId = `zen-suspense-${secureId(4)}`;
     outerCtx.startLoading(innerId);
   }
 
@@ -543,7 +578,9 @@ export function processSuspense(
 
   // ── ۸. Dispose ──
   // BUG-SUS-01 FIX: innerWatchDispose حذف شده (onSettle جایگزین آن شده).
-  disposes.push(() => {
+  // #116 cleanup protocol: Cleanup idempotent برگردانده می‌شود و همزمان
+  // به آرایهٔ disposes اضافه می‌شود (سازگاری با گذشته).
+  const cleanup = (): void => {
     disposeEffect();
     // FIX (v1.2.7): notify the outer boundary that this inner is gone
     // so it does not keep waiting on a stale id.
@@ -551,11 +588,21 @@ export function processSuspense(
       outerCtx.stopLoading(innerId);
     }
     for (const d of childDisposes) {
-      try { d(); } catch (e) {
+      try {
+        d();
+      } catch (e) {
         // FEATURE (v1.0.0): گزارش به error boundary.
         reportError(e as Error, 'directive', { element: el });
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }

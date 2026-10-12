@@ -4,7 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>فروشگاه Zenith</title>
-  <script type="module" src="/src/store.ts"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/cache": "/packages/cache/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/http": "/packages/http/dist/index.js",
+      "@zenith/jalali": "/packages/jalali/dist/index.js",
+      "@zenith/logger": "/packages/logger/dist/index.js",
+      "@zenith/notifications": "/packages/notifications/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/shared": "/packages/shared/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/storage": "/packages/storage/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js"
+    }
+  }
+  </script>
+  <script type="module" src="/ecommerce-demo/src/main.js"></script>
 </head>
 <body>
   <header>
@@ -34,8 +65,8 @@
     </section>
 
     <section id="cart">
-      <h2>سبد خرید (<span zen-text="$store.cartCount"></span>)</h2>
-      <div zen-for="item in $store.cart" zen-key="item.id">
+      <h2>سبد خرید (<span zen-text="$store.cartCount.get()"></span>)</h2>
+      <div zen-for="item in $store.state.cart" zen-key="item.id">
         <span zen-text="$item.title"></span>
         <button zen-action="removeFromCart" zen-bind:data-id="$item.id">حذف</button>
       </div>

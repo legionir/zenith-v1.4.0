@@ -13,7 +13,14 @@
 import { processDOM } from './walker';
 import { setRouteSignalProvider } from './context';
 import { initEventDelegation } from '@zenith/events';
-import { registerAction, unregisterAction, hasAction, clearActions, listActions, getActionMeta } from '@zenith/actions';
+import {
+  registerAction,
+  unregisterAction,
+  hasAction,
+  clearActions,
+  listActions,
+  getActionMeta,
+} from '@zenith/actions';
 import { loadComponents, clearComponents } from '@zenith/components';
 import { flushSync } from '@zenith/scheduler';
 import { navigate, routeSignal, cleanupRouter } from '@zenith/router';
@@ -25,7 +32,10 @@ import { auth, initAuth } from '@zenith/auth';
 // نشت حافظه‌ی resource در SPA (که در گزارش قبلی مطرح شد) برطرف شود.
 import { resetResourceRegistry } from '@zenith/resource';
 import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
-import type { ZenithError, ErrorHandler } from '@zenith/state';
+// #115: مقدار class ZenithError + ErrorCode برای throw در مسیر framework.
+// state هم ZenithError را به‌عنوان type از errors re-export می‌کند؛ یک کلاس واحد است.
+import { ZenithError, ErrorCode } from '@zenith/errors';
+import type { ErrorHandler } from '@zenith/state';
 
 /**
  * FEATURE (v0.6.0): شناسه‌ی یکتای تگ <style> تزریق‌شده برای ضد-FOUC.
@@ -96,6 +106,7 @@ function isDevMode(): boolean {
   // 2. Build-time flag (if injected by bundler)
   // Vite sets import.meta.env.DEV, webpack sets process.env.NODE_ENV
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - import.meta may not exist in all environments
     if (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) {
       return true;
@@ -106,6 +117,7 @@ function isDevMode(): boolean {
 
   // 3. Check NODE_ENV (webpack/other bundlers)
   try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - process may not exist in browser
     if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
       return true;
@@ -127,7 +139,12 @@ function isDevMode(): boolean {
   try {
     if (typeof window !== 'undefined' && window.location?.hostname) {
       const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.endsWith('.local')) {
+      if (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname.endsWith('.local')
+      ) {
         return true;
       }
     }
@@ -295,8 +312,22 @@ interface ZenApi {
   confirm: typeof notificationsAPI.confirm;
   auth: typeof auth;
   start(root: HTMLElement, state?: Record<string, any>, options?: ZenStartOptions): void;
+  // #116/DEC-032: `stop` فعل خاموش‌کردن کامل اپ است (teardown سند + فراخوانی
+  // disposeها) — نه چرخهٔ عمر یک نمونه؛ در گیت cleanup-hygiene allowlist شده.
   stop(root: HTMLElement): void;
-  action: ReturnType<typeof Object.assign<typeof registerAction, { register: typeof registerAction; unregister: typeof unregisterAction; has: typeof hasAction; clear: typeof clearActions; list: typeof listActions; getMeta: typeof getActionMeta }>>;
+  action: ReturnType<
+    typeof Object.assign<
+      typeof registerAction,
+      {
+        register: typeof registerAction;
+        unregister: typeof unregisterAction;
+        has: typeof hasAction;
+        clear: typeof clearActions;
+        list: typeof listActions;
+        getMeta: typeof getActionMeta;
+      }
+    >
+  >;
   flushSync: () => void;
   navigate: typeof navigate;
   route: typeof routeSignal;
@@ -324,14 +355,19 @@ export const Zen: ZenApi = {
   getErrors: getErrorHistory,
 
   /**
-   * Emit a custom error through Zenith's error system.
+   * Emit a custom error through Zenith's unified error system (#115 / DEC-031).
+   *
+   * @param message متن خطا
+   * @param options partial از فیلدهای `ZenithError` (code/category/severity/…)
    */
-  reportError: (message: string, options: Partial<ZenithError> = {}) => {
+  reportError: (
+    message: string,
+    options: Partial<ZenithError> & { severity?: 'error' | 'warning' | 'info' } = {},
+  ) => {
     emitError({
       message,
-      category: options.category || 'runtime',
+      category: options.category || 'Runtime',
       severity: options.severity || 'error',
-      recoverable: options.recoverable !== false,
       ...options,
     });
   },
@@ -367,13 +403,16 @@ export const Zen: ZenApi = {
     Zen.perf.mark('zen.start');
     // IMP-RUNT-06: Enhanced error message with helpful debugging hints
     if (!root) {
-      throw new Error(
-        '[Zen.start] Root element is required.\n' +
-        '  Common causes:\n' +
-        '  - DOM not fully loaded: Ensure Zen.start runs after DOMContentLoaded or place script at end of body.\n' +
-        '  - Selector mismatch: Check document.getElementById("app") matches your HTML element ID.\n' +
-        '  - SSR hydration: In SSR, ensure the root element exists in the hydrated HTML.'
-      );
+      throw new ZenithError({
+        code: ErrorCode.RUNTIME_ZEN_IF_NO_PARENT,
+        category: 'Runtime',
+        message:
+          '[Zen.start] Root element is required.\n' +
+          '  Common causes:\n' +
+          '  - DOM not fully loaded: Ensure Zen.start runs after DOMContentLoaded or place script at end of body.\n' +
+          '  - Selector mismatch: Check document.getElementById("app") matches your HTML element ID.\n' +
+          '  - SSR hydration: In SSR, ensure the root element exists in the hydrated HTML.',
+      });
     }
 
     // BUG-RUNT-05 FIX: If start was already called on this root without stop,
@@ -381,7 +420,9 @@ export const Zen: ZenApi = {
     const existingTeardown = (root as any).__zenithDelegationTeardown as TeardownFn | undefined;
     if (existingTeardown) {
       if (isDevMode()) {
-        console.warn('[Zen.start] Root element already has an active Zen instance. Stopping previous instance first.');
+        console.warn(
+          '[Zen.start] Root element already has an active Zen instance. Stopping previous instance first.',
+        );
       }
       // Run the previous teardown to clean up event delegation
       try {
@@ -422,15 +463,12 @@ export const Zen: ZenApi = {
           const serverState = JSON.parse(el.textContent || '{}');
           if (options?.ssr?.validateHydration) {
             const match = JSON.stringify(state) === JSON.stringify(serverState);
-            console.assert(
-              match,
-              '[Zenith] Hydration mismatch: client and server state differ'
-            );
+            console.assert(match, '[Zenith] Hydration mismatch: client and server state differ');
             if (!match) {
               emitError({
                 message: 'Hydration mismatch: client and server state differ',
                 category: 'ssr',
-                    severity: 'warning',
+                severity: 'warning',
                 recoverable: true,
                 hint: 'Ensure initial state on client matches what was serialized on server.',
               });
@@ -577,9 +615,7 @@ export const Zen: ZenApi = {
   stop(root: HTMLElement): void {
     Zen.perf.mark('zen.stop');
     // ─ـ ۱. Teardown Event Delegation ──
-    const teardown = (root as any).__zenithDelegationTeardown as
-      | TeardownFn
-      | undefined;
+    const teardown = (root as any).__zenithDelegationTeardown as TeardownFn | undefined;
     if (teardown) {
       teardown();
       delete (root as any).__zenithDelegationTeardown;
@@ -692,7 +728,9 @@ export const Zen: ZenApi = {
     return () => {
       if (isFlushing) {
         if (isDevMode()) {
-          console.warn('[Zen.flushSync] Reentrant call detected, skipping to prevent infinite loop.');
+          console.warn(
+            '[Zen.flushSync] Reentrant call detected, skipping to prevent infinite loop.',
+          );
         }
         return;
       }
@@ -905,8 +943,12 @@ export const Zen: ZenApi = {
     }
 
     return {
-      get enabled(): boolean { return enabled; },
-      set enabled(v: boolean) { enabled = v; },
+      get enabled(): boolean {
+        return enabled;
+      },
+      set enabled(v: boolean) {
+        enabled = v;
+      },
 
       /**
        * ثبت یک timestamp با نام مشخص.
@@ -969,7 +1011,17 @@ export { signal, effect, computed, batch } from '@zenith/state';
 /**
  * Re-export Action Registry API.
  */
-export { registerAction, unregisterAction, getAction, getActionMeta, hasAction, clearActions, listActions, getDefaultRegistry, ActionRegistry } from '@zenith/actions';
+export {
+  registerAction,
+  unregisterAction,
+  getAction,
+  getActionMeta,
+  hasAction,
+  clearActions,
+  listActions,
+  getDefaultRegistry,
+  ActionRegistry,
+} from '@zenith/actions';
 export type { ActionContext, ActionFn, ActionMetadata } from '@zenith/actions';
 
 /**
@@ -1060,6 +1112,8 @@ export { processPortal } from './directives/portal';
 export { processIntersection } from './directives/intersection';
 export { processCloak } from './directives/cloak';
 export { processRef } from './directives/ref';
+// #145 — zen-persist (ذخیرهٔ مقدار zen-model در @zenith/storage).
+export { processPersist } from './directives/persist';
 
 /**
  * FEATURE (v1.2.0): Re-export v1.2.x directive processors — restored in v1.2.2.

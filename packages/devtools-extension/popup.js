@@ -11,10 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ─── Tab switching ──────────────────────────────────────────
   let activeTab = 'signals';
-  document.querySelectorAll('.tab').forEach(tab => {
+  document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
       tab.classList.add('active');
       const tabName = tab.dataset.tab;
       activeTab = tabName;
@@ -55,10 +55,16 @@ document.addEventListener('DOMContentLoaded', () => {
       var val = stored ? parseInt(stored, 10) : 2000;
       // محدوده: 500ms تا 30000ms
       return Math.max(500, Math.min(30000, isNaN(val) ? 2000 : val));
-    } catch (e) { return 2000; }
+    } catch (e) {
+      return 2000;
+    }
   }
   function setRefreshInterval(ms) {
-    try { localStorage.setItem(STORAGE_KEY, String(ms)); } catch (e) { /* ignore */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, String(ms));
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   // Interval control UI
@@ -105,7 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Auto-refresh ───────────────────────────────────────────
   var autoRefreshTimer = null;
   function restartAutoRefresh(intervalMs) {
-    if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
     var ms = intervalMs || getRefreshInterval();
     setRefreshInterval(ms);
     intervalLabel.textContent = ms + 'ms';
@@ -128,18 +137,23 @@ document.addEventListener('DOMContentLoaded', () => {
           var errMsg = chrome.runtime.lastError.message || 'خطای ناشناخته';
           statusBar.textContent = '❌ خطا در ارتباط: ' + errMsg.substring(0, 50);
           statusBar.className = 'status-bar disconnected';
-          document.querySelectorAll('.empty').forEach(function (e) { e.textContent = '—'; });
+          document.querySelectorAll('.empty').forEach(function (e) {
+            e.textContent = '—';
+          });
           return;
         }
 
         if (!response || !response.installed) {
           statusBar.textContent = '❌ Zenith در این صفحه فعال نیست';
           statusBar.className = 'status-bar disconnected';
-          document.querySelectorAll('.empty').forEach(function (e) { e.textContent = '—'; });
+          document.querySelectorAll('.empty').forEach(function (e) {
+            e.textContent = '—';
+          });
           return;
         }
 
-        statusBar.textContent = '✅ Zenith v' + response.version + ' — ' + (response.signalCount || 0) + ' signals';
+        statusBar.textContent =
+          '✅ Zenith v' + response.version + ' — ' + (response.signalCount || 0) + ' signals';
         statusBar.className = 'status-bar connected';
         document.getElementById('version').textContent = 'v' + response.version;
         renderSignals(response.signals || []);
@@ -178,8 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
           func: () => {
             const hook = window.__ZENITH__;
             if (!hook || typeof hook.getDependencyGraph !== 'function') return null;
-            try { return hook.getDependencyGraph(); }
-            catch (e) { return { error: String(e) }; }
+            try {
+              return hook.getDependencyGraph();
+            } catch (e) {
+              return { error: String(e) };
+            }
           },
         },
         (results) => {
@@ -193,14 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           let json;
-          try { json = JSON.stringify(data); }
-          catch (e) { json = '{}'; }
+          try {
+            json = JSON.stringify(data);
+          } catch (e) {
+            json = '{}';
+          }
           // UTF-8 safe base64 encode (handles non-ASCII signal names / values).
           const b64 = btoa(unescape(encodeURIComponent(json)));
           const url = chrome.runtime.getURL('graph-viewer.html') + '?data=' + b64;
           chrome.tabs.create({ url });
           if (statusEl) statusEl.textContent = '✅ گراف در تب جدید باز شد';
-        }
+        },
       );
     });
   }
@@ -216,16 +236,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     empty.style.display = 'none';
 
-    list.innerHTML = signals.map(s => {
-      let valStr;
-      try {
-        valStr = typeof s.value === 'object'
-          ? JSON.stringify(s.value, null, 2)
-          : String(s.value);
-      } catch { valStr = String(s.value); }
-      if (valStr.length > 200) valStr = valStr.substring(0, 200) + '...';
+    list.innerHTML = signals
+      .map((s) => {
+        let valStr;
+        try {
+          valStr = typeof s.value === 'object' ? JSON.stringify(s.value, null, 2) : String(s.value);
+        } catch {
+          valStr = String(s.value);
+        }
+        if (valStr.length > 200) valStr = valStr.substring(0, 200) + '...';
 
-      return `
+        return `
         <div class="signal-item">
           <div class="signal-header">
             <span>
@@ -237,7 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="signal-value">${escapeHtml(valStr)}</div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderTimeline(timeline) {
@@ -252,11 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
     empty.style.display = 'none';
 
     const recent = timeline.slice(-20).reverse();
-    list.innerHTML = recent.map(c => {
-      const time = new Date(c.timestamp).toLocaleTimeString();
-      const oldStr = formatVal(c.oldValue);
-      const newStr = formatVal(c.newValue);
-      return `
+    list.innerHTML = recent
+      .map((c) => {
+        const time = new Date(c.timestamp).toLocaleTimeString();
+        const oldStr = formatVal(c.oldValue);
+        const newStr = formatVal(c.newValue);
+        return `
         <div class="timeline-item">
           <div class="timeline-time">${time} — Signal #${c.signalId}${c.signalName ? ` (${c.signalName})` : ''}</div>
           <div class="timeline-change">
@@ -265,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderComponents(components) {
@@ -279,14 +303,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     empty.style.display = 'none';
 
-    tree.innerHTML = components.map(c => {
-      return `
+    tree.innerHTML = components
+      .map((c) => {
+        return `
         <div class="tree-node">
           <span class="tree-tag">&lt;${c.name}&gt;</span>
           ${c.used ? `<span class="tree-attr">used ${c.used}x</span>` : ''}
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderEffects(effects) {
@@ -300,8 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     empty.style.display = 'none';
 
-    list.innerHTML = effects.map(e => {
-      return `
+    list.innerHTML = effects
+      .map((e) => {
+        return `
         <div class="effect-item">
           <div class="signal-header">
             <span>
@@ -315,7 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ${e.dependencies ? `<div class="effect-deps">Deps: ${e.dependencies.join(', ')}</div>` : ''}
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   // ─── FEATURE (v1.0.0): v1.0 Features Rendering ──────────────
@@ -329,7 +357,9 @@ document.addEventListener('DOMContentLoaded', () => {
         : 'لیست‌های فقط‌خواندنی با fast path';
 
     const staticList = document.getElementById('static-list');
-    staticList.innerHTML = staticFors.map(f => `
+    staticList.innerHTML = staticFors
+      .map(
+        (f) => `
       <div class="signal-item" style="border-color: #166534;">
         <div class="signal-header">
           <span>
@@ -339,7 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="signal-count">${f.itemCount} items</span>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join('');
 
     // Resource Destroyed
     const destroyed = response.destroyedResources || [];
@@ -350,9 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
         : 'Resource های teardown شده';
 
     const destroyedList = document.getElementById('destroyed-list');
-    destroyedList.innerHTML = destroyed.slice(-10).reverse().map(r => {
-      const time = new Date(r.destroyedAt).toLocaleTimeString();
-      return `
+    destroyedList.innerHTML = destroyed
+      .slice(-10)
+      .reverse()
+      .map((r) => {
+        const time = new Date(r.destroyedAt).toLocaleTimeString();
+        return `
         <div class="resource-item">
           <div class="signal-header">
             <span>
@@ -364,7 +399,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="resource-url">${escapeHtml(r.url)}</div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     // compileExpression Cache Stats
     const cache = response.cacheStats;
@@ -382,21 +418,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const ssrStores = response.activeSSRStores || [];
     document.getElementById('ssr-count').textContent = ssrStores.length;
     document.getElementById('ssr-detail').textContent =
-      ssrStores.length > 0
-        ? 'درخواست‌های SSR concurrent فعال'
-        : 'درخواست‌های SSR concurrent';
+      ssrStores.length > 0 ? 'درخواست‌های SSR concurrent فعال' : 'درخواست‌های SSR concurrent';
 
     const ssrList = document.getElementById('ssr-list');
-    ssrList.innerHTML = ssrStores.map(id => `
+    ssrList.innerHTML = ssrStores
+      .map(
+        (id) => `
       <div class="ssr-store-item">🌐 Request: ${escapeHtml(id)}</div>
-    `).join('');
+    `,
+      )
+      .join('');
   }
 
   function formatVal(val) {
     if (val === null) return 'null';
     if (val === undefined) return 'undefined';
     if (typeof val === 'object') {
-      try { return JSON.stringify(val).substring(0, 50); } catch { return '[Object]'; }
+      try {
+        return JSON.stringify(val).substring(0, 50);
+      } catch {
+        return '[Object]';
+      }
     }
     return String(val).substring(0, 50);
   }

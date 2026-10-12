@@ -18,7 +18,7 @@ import { notify, toasts, alert, confirm, setNotificationDefaults } from '@zenith
 // Default settings
 setNotificationDefaults({
   position: 'top-right',
-  duration: 3000
+  duration: 3000,
 });
 
 // Simple toast
@@ -34,15 +34,13 @@ toasts.info('New version available');
 notify('Your file is ready', {
   type: 'success',
   title: 'Download Ready',
-  actions: [
-    { label: 'Download', onClick: () => downloadFile() }
-  ]
+  actions: [{ label: 'Download', onClick: () => downloadFile() }],
 });
 
 // Persistent notification
 notify('System update in progress', {
   type: 'info',
-  persistent: true
+  persistent: true,
 });
 ```
 
@@ -53,7 +51,7 @@ notify('System update in progress', {
 await alert({
   title: 'Attention',
   message: 'This will delete all your data',
-  type: 'warning'
+  type: 'warning',
 });
 
 // Confirm
@@ -62,7 +60,7 @@ const confirmed = await confirm({
   message: 'Are you sure you want to delete this item?',
   confirmText: 'Yes, delete',
   cancelText: 'No',
-  type: 'error'
+  type: 'error',
 });
 
 if (confirmed) {

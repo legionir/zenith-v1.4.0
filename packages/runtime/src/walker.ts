@@ -27,8 +27,11 @@ import { processIf } from './directives/if';
 // IMPROVEMENT-05 (v1.0.1): zen-else / zen-else-if chain processing
 import { effect } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
+import { reportError } from '@zenith/errors';
 import { processBind } from './directives/bind';
 import { processModel } from './directives/model';
+// #145 — zen-persist: ذخیرهٔ مقدار zen-model در @zenith/storage (attribute surface SPEC §۲.۵).
+import { processPersist } from './directives/persist';
 import { processFor } from './directives/for';
 import { isComponent, processComponent } from '@zenith/components';
 import { processRouter } from '@zenith/router';
@@ -203,11 +206,7 @@ function __elId(el: HTMLElement): number {
  * نکته: این تابع هرگز نباید exception بروز دهد — تمام بدنه‌ی آن در
  * try/catch پیچیده شده تا DevTools نتواند runtime را خراب کند.
  */
-function __trackDirective(
-  el: HTMLElement,
-  directiveType: string,
-  expression: string,
-): void {
+function __trackDirective(el: HTMLElement, directiveType: string, expression: string): void {
   const dt = __devtools();
   if (!dt || typeof dt.addDirective !== 'function') return;
   try {
@@ -244,8 +243,11 @@ function __trackDirective(
  *
  * @param root عنصر ریشه که باید process شود.
  * @param state آبجکت State (شامل Signalها، Services، و ...).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` → `Cleanup`).
+ *         آرایهٔ disposes همچنان روی root.__zenithDisposes ذخیره می‌شود
+ *         (سازگاری با گذشته — HMR/teardown).
  */
-export function processDOM(root: HTMLElement, state: Record<string, any>): void {
+export function processDOM(root: HTMLElement, state: Record<string, any>): () => void {
   const context = createContext(state);
   const disposes: (() => void)[] = [];
   walk(root, context, state, disposes);
@@ -253,6 +255,24 @@ export function processDOM(root: HTMLElement, state: Record<string, any>): void 
   // ذخیره‌ی disposes روی root برای استفاده‌های بعدی
   // (مثلاً HMR در DevTools یا teardown کامل اپ)
   (root as any).__zenithDisposes = disposes;
+
+  // #116 cleanup protocol: یک Cleanup idempotent برگردانده می‌شود تا
+  // فراخوان بدون وابستگی به __zenithDisposes بتواند teardown کند.
+  let cleaned = false;
+  return () => {
+    if (cleaned) return;
+    cleaned = true;
+    for (const dispose of disposes) {
+      try {
+        dispose();
+      } catch (err) {
+        // #116/DEC-031: خطای یک dispose نباید مانع بقیه شود؛ از hub لاگ می‌گیریم
+        // (نه console.error مستقیم).
+        reportError(err, 'processDOM', { phase: 'dispose' });
+      }
+    }
+    disposes.length = 0;
+  };
 }
 
 /**
@@ -284,10 +304,7 @@ export function processDOM(root: HTMLElement, state: Record<string, any>): void 
  * @param state آبجکت State (شامل Signalهای محلی).
  * @returns تابع teardown که تمام Effectهای ایجادشده را dispose می‌کند.
  */
-export function walkAndBind(
-  root: HTMLElement,
-  state: Record<string, any>,
-): () => void {
+export function walkAndBind(root: HTMLElement, state: Record<string, any>): () => void {
   const context = createContext(state);
   const disposes: (() => void)[] = [];
   walk(root, context, state, disposes);
@@ -355,9 +372,7 @@ function processIfChain(
   ) => void,
 ): () => void {
   // جمع‌آوری زنجیره
-  const chain: Array<{ el: HTMLElement; expr: string | null }> = [
-    { el: ifEl, expr: ifExpr },
-  ];
+  const chain: Array<{ el: HTMLElement; expr: string | null }> = [{ el: ifEl, expr: ifExpr }];
 
   let next = ifEl.nextElementSibling as HTMLElement | null;
   while (next) {
@@ -373,9 +388,7 @@ function processIfChain(
   }
 
   // compile همه expressions (یک‌بار)
-  const evalFns = chain.map(({ expr }) =>
-    expr ? compileExpression(expr) : () => true,
-  );
+  const evalFns = chain.map(({ expr }) => (expr ? compileExpression(expr) : () => true));
 
   // FIX (v1.2.8): P0-1 — برای هر branch یک Comment placeholder بساز و عنصر
   // را با آن جایگزین کن. عنصر در حافظه نگه داشته می‌شود؛ mountBranch آن را
@@ -419,7 +432,11 @@ function processIfChain(
     // ابتدا disposes فرزندان را اجرا کن
     const ds = branchDisposes[i]!;
     for (const d of ds) {
-      try { d(); } catch { /* یک dispose failure نباید بقیه را متوقف کند */ }
+      try {
+        d();
+      } catch {
+        /* یک dispose failure نباید بقیه را متوقف کند */
+      }
     }
     branchDisposes[i] = [];
     // عنصر را از DOM حذف کن (placeholder باقی می‌ماند برای re-mount)
@@ -435,7 +452,7 @@ function processIfChain(
     let newIndex = -1;
     for (let i = 0; i < chain.length; i++) {
       try {
-        if (Boolean(evalFns[i]!(context))) {
+        if (evalFns[i]!(context)) {
           newIndex = i;
           break;
         }
@@ -553,9 +570,9 @@ function walk(
     // IMPROVEMENT-05 (v1.0.1): بررسی zen-else-if و zen-else در sibling ها
     // اگر زنجیره if-else-if-else وجود دارد، از processIfChain استفاده می‌کنیم.
     const nextSibling = el.nextElementSibling as HTMLElement | null;
-    const hasElseChain = nextSibling && (
-      nextSibling.hasAttribute('zen-else-if') || nextSibling.hasAttribute('zen-else')
-    );
+    const hasElseChain =
+      nextSibling &&
+      (nextSibling.hasAttribute('zen-else-if') || nextSibling.hasAttribute('zen-else'));
 
     if (hasElseChain) {
       // پردازش زنجیره if-else-if-else
@@ -698,17 +715,14 @@ function walk(
   // state دوباره render شوند.
   if (el.hasAttribute('zen-memo')) {
     const memoExpr = el.getAttribute('zen-memo')!;
-    disposes.push(processMemo(
-      el,
-      memoExpr,
-      context,
-      (nodeEl, nodeCtx, nodeDisposes) => {
+    disposes.push(
+      processMemo(el, memoExpr, context, (nodeEl, nodeCtx, nodeDisposes) => {
         processNodeDirectives(nodeEl, nodeCtx, state, nodeDisposes);
         for (const child of Array.from(nodeEl.children)) {
           walk(child, nodeCtx, state, nodeDisposes);
         }
-      },
-    ));
+      }),
+    );
     return;
   }
 
@@ -727,17 +741,14 @@ function walk(
   // تا island ها بتوانند کل زیردرخت را کنترل کنند.
   if (el.hasAttribute('zen-island')) {
     const hydrateMode = el.getAttribute('zen-island') || 'load';
-    disposes.push(processIsland(
-      el,
-      hydrateMode,
-      context,
-      (nodeEl, nodeCtx, nodeDisposes) => {
+    disposes.push(
+      processIsland(el, hydrateMode, context, (nodeEl, nodeCtx, nodeDisposes) => {
         processNodeDirectives(nodeEl, nodeCtx, state, nodeDisposes);
         for (const child of Array.from(nodeEl.children)) {
           walk(child, nodeCtx, state, nodeDisposes);
         }
-      },
-    ));
+      }),
+    );
     return;
   }
 
@@ -776,8 +787,12 @@ function walk(
   if (el.hasAttribute('zen-resource')) {
     const resourceExpr = el.getAttribute('zen-resource')!;
     processResource(
-      el, resourceExpr, context,
-      (childNode, childContext, childDisposes) => { walk(childNode, childContext, state, childDisposes); },
+      el,
+      resourceExpr,
+      context,
+      (childNode, childContext, childDisposes) => {
+        walk(childNode, childContext, state, childDisposes);
+      },
       disposes,
     );
     return;
@@ -899,6 +914,15 @@ function processNodeDirectives(
     disposes.push(processModel(el, expr, context, state));
     // FEATURE (v0.4.0): ثبت در گراف DevTools (zero-cost وقتی غیرفعال).
     __trackDirective(el, 'model', expr);
+  }
+
+  // ── zen-persist (#145): ذخیرهٔ مقدار zen-model در @zenith/storage ──
+  // بعد از zen-model می‌آید تا hydrate روی همان signal بنشیند و listener ما
+  // پس از model ثبت شود (منبع مقدار: خود el؛ وابستگی به ترتیب نداریم).
+  if (el.hasAttribute('zen-persist')) {
+    const persistKey = el.getAttribute('zen-persist')!;
+    disposes.push(processPersist(el, persistKey, context, state));
+    __trackDirective(el, 'persist', persistKey);
   }
 
   // ─────────────────────────────────────────────────────────────

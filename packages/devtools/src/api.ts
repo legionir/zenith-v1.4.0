@@ -114,7 +114,7 @@ export function registerSignal(signal: Signal<any>, name?: string): void {
     value: signal.get(),
     subscriberCount: 0,
     computed: !!(signal as any)._computed,
-    createdAt: Date.now()
+    createdAt: Date.now(),
   };
 
   signals.set(id, { ref: signal, info });
@@ -131,7 +131,7 @@ export function registerEffect(priority: number): string {
     disposed: false,
     priority,
     dependencies: [],
-    createdAt: Date.now()
+    createdAt: Date.now(),
   });
   return id;
 }
@@ -155,7 +155,12 @@ export function markEffectDisposed(id: string): void {
   }
 }
 
-export function recordStateChange(signalId: string, oldValue: any, newValue: any, signalName?: string): void {
+export function recordStateChange(
+  signalId: string,
+  oldValue: any,
+  newValue: any,
+  signalName?: string,
+): void {
   if (!enabled) return;
 
   const change: StateChange = {
@@ -165,7 +170,7 @@ export function recordStateChange(signalId: string, oldValue: any, newValue: any
     oldValue,
     newValue,
     timestamp: Date.now(),
-    stack: new Error().stack
+    stack: new Error().stack,
   };
 
   stateTimeline.push(change);
@@ -180,15 +185,23 @@ export function recordStateChange(signalId: string, oldValue: any, newValue: any
   }
 
   for (const cb of stateChangeSubscribers) {
-    try { cb(change); } catch { /* ignore */ }
+    try {
+      cb(change);
+    } catch {
+      /* ignore */
+    }
   }
   notifySignalSubscribers();
 }
 
 function notifySignalSubscribers(): void {
-  const list = Array.from(signals.values()).map(s => s.info);
+  const list = Array.from(signals.values()).map((s) => s.info);
   for (const cb of signalSubscribers) {
-    try { cb(list); } catch { /* ignore */ }
+    try {
+      cb(list);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -196,7 +209,9 @@ function notifySignalSubscribers(): void {
 
 export const devtoolsAPI: DevToolsAPI = {
   version: '1.4.0',
-  get enabled() { return enabled; },
+  get enabled() {
+    return enabled;
+  },
 
   enable() {
     if (enabled) return;
@@ -218,7 +233,7 @@ export const devtoolsAPI: DevToolsAPI = {
   },
 
   getSignals() {
-    return Array.from(signals.values()).map(s => s.info);
+    return Array.from(signals.values()).map((s) => s.info);
   },
 
   getSignal(id) {
@@ -266,12 +281,12 @@ export const devtoolsAPI: DevToolsAPI = {
   getStats() {
     return {
       totalSignals: signals.size,
-      activeEffects: Array.from(effects.values()).filter(e => e.active && !e.disposed).length,
-      disposedEffects: Array.from(effects.values()).filter(e => e.disposed).length,
+      activeEffects: Array.from(effects.values()).filter((e) => e.active && !e.disposed).length,
+      disposedEffects: Array.from(effects.values()).filter((e) => e.disposed).length,
       totalComponents: components.size,
-      timelineEntries: stateTimeline.length
+      timelineEntries: stateTimeline.length,
     };
-  }
+  },
 };
 
 /**

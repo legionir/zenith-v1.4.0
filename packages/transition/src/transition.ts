@@ -35,6 +35,9 @@ const LEAVE_TO = 'zen-leave-to';
 const ENTER_ACTIVE = 'zen-enter-active';
 const LEAVE_ACTIVE = 'zen-leave-active';
 
+// #47: هشدار deprecation یک‌باره با کد ZEN-DEPR-xxx (سیاست #58).
+import { deprecate } from '@zenith/errors';
+
 export type TransitionDirection = 'enter' | 'leave';
 
 export interface TransitionClasses {
@@ -75,7 +78,12 @@ export interface TransitionOptions {
 export interface TransitionRun {
   /** پس از اتمام طبیعی یا لغو transition resolve می‌شود. */
   readonly finished: Promise<void>;
-  /** transition فعال را لغو و کلاس‌های موقت را پاکسازی می‌کند. */
+  /**
+   * transition فعال را لغو و کلاس‌های موقت را پاکسازی می‌کند.
+   * #116/DEC-032: `cancel` نام *رفتاری* است (لغو یک اجرای در حال انجام)،
+   * نه چرخهٔ عمر — خودِ controller متد `dispose()` دارد؛ بنابراین alias
+   * `dispose` برای این عضو معنی ندارد و در گیت cleanup-hygiene allowlist شده.
+   */
   cancel(): void;
 }
 
@@ -89,13 +97,28 @@ export interface TransitionController {
   dispose(): void;
 }
 
+// ── Single implementation path (#47) ──
+//
+// موتور مبنا `createTransition` (کلاس‌محور) است. `enterTransition` /
+// `leaveTransition` / `animateGroup` فقط wrapper روی همان موتورند و در dev
+// یک‌بار هشدار deprecation با کد ZEN-DEPR-002/003/004 می‌دهند.
+// موتور موازی WAAPI در این فایل حذف شده است؛ برای انیمیشن مبتنی بر
+// Web Animations API از `zenAnimate`/`processAnimate` (animate.ts) و
+// دایرکتیو `zen-animate` استفاده کنید — آن‌ها قابلیت جدا (keyframes جاوااسکریپتی)
+// هستند، نه پیاده‌سازی موازی transition کلاس‌محور.
+
 /**
- * وارد کردن یک عنصر با transition (enter).
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-002، #47).
+ *
+ * وارد کردن یک عنصر با transition (enter). صرفاً wrapper روی موتور کلاس‌محور
+ * `createTransition` است: کلاس‌های `name` + `zen-enter-from/active` همزمان،
+ * swap به `zen-enter-to` در دو rAF، پایان با transitionend/animationend
+ * (هدف‌چک‌شده) یا تایمر fallback، و پاک‌سازی کامل در cancel.
  *
  * @param el عنصری که به DOM اضافه شده.
  * @param name نام transition (مثل 'fade').
  * @param duration مدت زمان fallback به میلی‌ثانیه (پیش‌فرض: 300).
- * @param onComplete callback بعد از پایان transition.
+ * @param onComplete callback بعد از پایان transition (پایان موفق).
  * @returns تابع cancel.
  */
 export function enterTransition(
@@ -104,152 +127,13 @@ export function enterTransition(
   duration: number = 300,
   onComplete?: () => void,
 ): () => void {
-  // ── WAAPI-first: اگر مرورگر از Web Animations API پشتیبانی می‌کند،
-  // از آن استفاده کن (عملکرد بهتر، cancellation واقعی).
-  if (typeof el.animate === 'function') {
-    return enterTransitionWAAPI(el, name, duration, onComplete);
-  }
-  return enterTransitionCSS(el, name, duration, onComplete);
+  return runLegacyDirection(el, name, 'enter', duration, onComplete);
 }
 
 /**
- * پیاده‌سازی enter با Web Animations API.
- * مزایا: نیازی به force reflow ندارد، cancellation دقیق، عملکرد بهتر.
- */
-function enterTransitionWAAPI(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-
-  el.classList.add(name);
-  el.classList.add(ENTER_FROM);
-  el.classList.add(ENTER_ACTIVE);
-
-  const keyframes: Keyframe[] = [
-    { opacity: 0, transform: 'translateY(-10px)' },
-    { opacity: 1, transform: 'translateY(0)' },
-  ];
-
-  const anim = el.animate(keyframes, {
-    duration,
-    easing: 'ease-out',
-    fill: 'forwards',
-  });
-
-  anim.onfinish = () => {
-    if (cancelled) return;
-    try { anim.commitStyles(); } catch { /* noop */ }
-    anim.cancel();
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-    onComplete?.();
-  };
-
-  anim.oncancel = () => {
-    if (!cancelled) {
-      // cancellation خارجی (مثلاً display:none) → پاکسازی
-      el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-    }
-  };
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    anim.cancel();
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-  };
-}
-
-/**
- * پیاده‌سازی enter با کلاس‌های CSS (fallback برای مرورگرهای قدیمی).
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-003، #47).
  *
- * BUG FIX (v7.0): double requestAnimationFrame + reflow (getComputedStyle)
- * + گوش دادن به transitionend و transitioncancel (با setTimeout fallback).
- *
- * BUG FIX (BUG-TRN-01): transitionend listener پس از timeout پاک می‌شود.
- * BUG FIX (BUG-TRN-04): transitioncancel نیز مدیریت می‌شود.
- */
-function enterTransitionCSS(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-  let raf1 = 0;
-  let raf2 = 0;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let onEnd: ((e: TransitionEvent) => void) | null = null;
-  let onCancel: ((e: TransitionEvent) => void) | null = null;
-
-  el.classList.add(name);
-  el.classList.add(ENTER_FROM);
-  el.classList.add(ENTER_ACTIVE);
-
-  raf1 = requestAnimationFrame(() => {
-    if (cancelled) return;
-    raf2 = requestAnimationFrame(() => {
-      if (cancelled) return;
-      // BUG FIX (v1.3.0, BUG-TRN-02): استفاده از getComputedStyle به‌جای
-      // getBoundingClientRect — cheaper force reflow (فقط style resolution).
-      getComputedStyle(el).transform;
-
-      el.classList.remove(ENTER_FROM);
-      el.classList.add(ENTER_TO);
-
-      let done = false;
-      const finish = () => {
-        if (done || cancelled) return;
-        done = true;
-        if (onEnd) el.removeEventListener('transitionend', onEnd);
-        if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-        if (timer) clearTimeout(timer);
-        timer = null;
-        el.classList.remove(ENTER_TO);
-        el.classList.remove(ENTER_ACTIVE);
-        if (!cancelled && onComplete) onComplete();
-      };
-
-      onEnd = (e: TransitionEvent) => {
-        if (e.target === el) finish();
-      };
-      onCancel = (_e: TransitionEvent) => {
-        // transition توسط مرورگر لغو شد (display:none, etc)
-        finish();
-      };
-
-      el.addEventListener('transitionend', onEnd);
-      el.addEventListener('transitioncancel', onCancel);
-      timer = setTimeout(finish, duration + 50);
-    });
-  });
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    if (raf1) cancelAnimationFrame(raf1);
-    if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0; raf2 = 0;
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (onEnd) el.removeEventListener('transitionend', onEnd);
-    if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-    onEnd = null;
-    onCancel = null;
-    el.classList.remove(name, ENTER_FROM, ENTER_TO, ENTER_ACTIVE);
-  };
-}
-
-/**
- * خروج یک عنصر با transition (leave).
- *
- * @param el عنصری که باید از DOM حذف شود.
- * @param name نام transition.
- * @param duration مدت زمان fallback به میلی‌ثانیه (پیش‌فرض: 300).
- * @param onComplete callback بعد از پایان transition.
- * @returns تابع cancel.
+ * خروج یک عنصر با transition (leave) — wrapper روی موتور مبنا.
  */
 export function leaveTransition(
   el: HTMLElement,
@@ -257,127 +141,30 @@ export function leaveTransition(
   duration: number = 300,
   onComplete?: () => void,
 ): () => void {
-  if (typeof el.animate === 'function') {
-    return leaveTransitionWAAPI(el, name, duration, onComplete);
-  }
-  return leaveTransitionCSS(el, name, duration, onComplete);
+  return runLegacyDirection(el, name, 'leave', duration, onComplete);
 }
 
-/**
- * پیاده‌سازی leave با Web Animations API.
- */
-function leaveTransitionWAAPI(
+/** پیاده‌سازی مشترک wrapperهای enter/leave روی createTransition (#47). */
+function runLegacyDirection(
   el: HTMLElement,
   name: string,
+  direction: TransitionDirection,
   duration: number,
   onComplete?: () => void,
 ): () => void {
-  let cancelled = false;
-
-  el.classList.add(name);
-  el.classList.add(LEAVE_FROM);
-  el.classList.add(LEAVE_ACTIVE);
-
-  const keyframes: Keyframe[] = [
-    { opacity: 1, transform: 'translateY(0)' },
-    { opacity: 0, transform: 'translateY(-10px)' },
-  ];
-
-  const anim = el.animate(keyframes, {
+  deprecate(
+    direction === 'enter' ? 'ZEN-DEPR-002' : 'ZEN-DEPR-003',
+    direction === 'enter' ? 'enterTransition' : 'leaveTransition',
+    'createTransition(name, { duration, ... }).enter(el) / .leave(el)',
+  );
+  const controller = createTransition(name, {
     duration,
-    easing: 'ease-in',
-    fill: 'forwards',
+    onComplete: () => onComplete?.(),
   });
-
-  anim.onfinish = () => {
-    if (cancelled) return;
-    try { anim.commitStyles(); } catch { /* noop */ }
-    anim.cancel();
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-    onComplete?.();
-  };
-
-  anim.oncancel = () => {
-    if (!cancelled) {
-      el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-    }
-  };
-
+  const run = direction === 'enter' ? controller.enter(el) : controller.leave(el);
   return () => {
-    if (cancelled) return;
-    cancelled = true;
-    anim.cancel();
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
-  };
-}
-
-/**
- * پیاده‌سازی leave با کلاس‌های CSS (fallback).
- */
-function leaveTransitionCSS(
-  el: HTMLElement,
-  name: string,
-  duration: number,
-  onComplete?: () => void,
-): () => void {
-  let cancelled = false;
-  let raf1 = 0;
-  let raf2 = 0;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let onEnd: ((e: TransitionEvent) => void) | null = null;
-  let onCancel: ((e: TransitionEvent) => void) | null = null;
-
-  el.classList.add(name);
-  el.classList.add(LEAVE_FROM);
-  el.classList.add(LEAVE_ACTIVE);
-
-  raf1 = requestAnimationFrame(() => {
-    if (cancelled) return;
-    raf2 = requestAnimationFrame(() => {
-      if (cancelled) return;
-      // BUG FIX (v1.3.0): استفاده از getComputedStyle به‌جای getBoundingClientRect
-      getComputedStyle(el).transform;
-
-      el.classList.remove(LEAVE_FROM);
-      el.classList.add(LEAVE_TO);
-
-      let done = false;
-      const finish = () => {
-        if (done || cancelled) return;
-        done = true;
-        if (onEnd) el.removeEventListener('transitionend', onEnd);
-        if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-        if (timer) clearTimeout(timer);
-        timer = null;
-        el.classList.remove(LEAVE_TO);
-        el.classList.remove(LEAVE_ACTIVE);
-        if (!cancelled && onComplete) onComplete();
-      };
-
-      onEnd = (e: TransitionEvent) => {
-        if (e.target === el) finish();
-      };
-      onCancel = () => finish();
-
-      el.addEventListener('transitionend', onEnd);
-      el.addEventListener('transitioncancel', onCancel);
-      timer = setTimeout(finish, duration + 50);
-    });
-  });
-
-  return () => {
-    if (cancelled) return;
-    cancelled = true;
-    if (raf1) cancelAnimationFrame(raf1);
-    if (raf2) cancelAnimationFrame(raf2);
-    raf1 = 0; raf2 = 0;
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (onEnd) el.removeEventListener('transitionend', onEnd);
-    if (onCancel) el.removeEventListener('transitioncancel', onCancel);
-    onEnd = null;
-    onCancel = null;
-    el.classList.remove(name, LEAVE_FROM, LEAVE_TO, LEAVE_ACTIVE);
+    run.cancel();
+    controller.dispose();
   };
 }
 
@@ -385,10 +172,7 @@ function leaveTransitionCSS(
  * بررسی اینکه آیا عنصر در حال حاضر در حال transition است.
  */
 export function isTransitioning(el: HTMLElement): boolean {
-  return (
-    el.classList.contains(ENTER_ACTIVE) ||
-    el.classList.contains(LEAVE_ACTIVE)
-  );
+  return el.classList.contains(ENTER_ACTIVE) || el.classList.contains(LEAVE_ACTIVE);
 }
 
 /**
@@ -411,8 +195,15 @@ export const TRANSITION_NAMES = new Set<string>(['fade', 'slide', 'scale', 'slid
  * @returns easing معتبر یا 'ease' پیش‌فرض
  */
 export function validateEasing(easing: string): EffectTiming['easing'] {
-  const builtin = ['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out',
-    'step-start', 'step-end'];
+  const builtin = [
+    'linear',
+    'ease',
+    'ease-in',
+    'ease-out',
+    'ease-in-out',
+    'step-start',
+    'step-end',
+  ];
   if (builtin.includes(easing)) return easing;
   if (/^cubic-bezier\([\d.]+,\s*[\d.]+,\s*[\d.]+,\s*[\d.]+\)$/.test(easing)) return easing;
   if (/^steps\(\d+,\s*(start|end)\)$/.test(easing)) return easing;
@@ -420,9 +211,11 @@ export function validateEasing(easing: string): EffectTiming['easing'] {
 }
 
 /**
- * اجرای group transition روی چند عنصر هم‌زمان.
+ * @deprecated از createTransition استفاده کنید (ZEN-DEPR-004، #47).
  *
- * IMP-TRN-03: انیمیشن گروهی با delay پلکانی.
+ * اجرای group transition روی چند عنصر هم‌زمان با تأخیر پلکانی.
+ * روی موتور مبنا (`createTransition`) پیاده شده است — تنها یک مسیر
+ * پیاده‌سازی وجود دارد (#47).
  *
  * @param elements آرایه‌ای از عناصر
  * @param direction جهت transition ('enter' | 'leave')
@@ -438,25 +231,32 @@ export function animateGroup(
   duration: number = 300,
   staggerDelay: number = 50,
 ): Promise<void> {
+  deprecate('ZEN-DEPR-004', 'animateGroup', 'createTransition(name, { duration })');
   return new Promise((resolve) => {
     let remaining = elements.length;
-    if (remaining === 0) { resolve(); return; }
+    if (remaining === 0) {
+      resolve();
+      return;
+    }
 
-    const onDone = () => {
+    // یک کنترلر مشترک برای همه عناصر — همان موتور createTransition (#47).
+    const controller = createTransition(name, { duration });
+    const finishOne = () => {
       remaining--;
-      if (remaining <= 0) resolve();
+      if (remaining <= 0) {
+        controller.dispose();
+        resolve();
+      }
     };
 
     elements.forEach((el, i) => {
       setTimeout(() => {
-        const fn = direction === 'enter' ? enterTransition : leaveTransition;
-        const cancel = fn(el, name, duration, onDone);
-        // اگر تابع cancel بلافاصله صدا زده شود (مثلاً عنصر از DOM حذف شده)
-        // باید still resolve کنیم
         if (direction === 'leave' && !document.body.contains(el)) {
-          cancel();
-          onDone();
+          finishOne();
+          return;
         }
+        const run = direction === 'enter' ? controller.enter(el) : controller.leave(el);
+        void run.finished.then(finishOne, finishOne);
       }, i * staggerDelay);
     });
   });
@@ -473,6 +273,67 @@ const DEFAULT_CLASSES: Required<TransitionClasses> = {
 
 function classTokens(className: string): string[] {
   return className.split(/\s+/).filter(Boolean);
+}
+
+/**
+ * FIX (#23): تبدیل مقدار COMPUTED زمان CSS (مثل "0.5s"/"120ms") به میلی‌ثانیه.
+ */
+function cssTimeToMs(value: string): number {
+  const trimmed = value.trim();
+  if (trimmed.endsWith('ms')) return Number.parseFloat(trimmed) || 0;
+  if (trimmed.endsWith('s')) return (Number.parseFloat(trimmed) || 0) * 1000;
+  return Number.parseFloat(trimmed) || 0;
+}
+
+/** فهرست‌های CSS (comma-separated) را در computed style به آرایهٔ مقادیر ساده تبدیل می‌کند. */
+function cssList(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * FIX (#23): مدت واقعی «طولانی‌ترین» transition/animation فعال روی یک عنصر —
+ * بیشینهٔ (delay + duration) برای transitionها و
+ * (delay + duration × iterations) برای animationها از روی getComputedStyle.
+ * infinite/بیش از MAX_ITERATIONS به سقف SAFE_CAP محدود می‌شود تا انتظار
+ * نامتناظر createTransition تبدیل به hang نشود.
+ */
+const MAX_COUNTED_ITERATIONS = 100;
+const SAFE_CAP_MS = 30_000;
+
+function measureTransitionDuration(el: HTMLElement): number {
+  const style = getComputedStyle(el);
+  let longest = 0;
+
+  const tProps = cssList(style.transitionProperty);
+  const tDurations = cssList(style.transitionDuration);
+  const tDelays = cssList(style.transitionDelay);
+  if (!tProps.includes('none')) {
+    for (let i = 0; i < Math.max(tDurations.length, 1); i++) {
+      const duration = cssTimeToMs(tDurations[i % tDurations.length!] ?? '0s');
+      const delay = cssTimeToMs(tDelays[i % Math.max(tDelays.length, 1)] ?? '0s');
+      longest = Math.max(longest, delay + duration);
+    }
+  }
+
+  const aNames = cssList(style.animationName);
+  if (!aNames.includes('none')) {
+    const aDurations = cssList(style.animationDuration);
+    const aDelays = cssList(style.animationDelay);
+    const aCounts = cssList(style.animationIterationCount);
+    for (let i = 0; i < aNames.length; i++) {
+      const duration = cssTimeToMs(aDurations[i % aDurations.length!] ?? '0s');
+      const delay = cssTimeToMs(aDelays[i % Math.max(aDelays.length, 1)] ?? '0s');
+      const countRaw = (aCounts[i % Math.max(aCounts.length, 1)] ?? '1').trim();
+      const iterations =
+        countRaw === 'infinite' ? MAX_COUNTED_ITERATIONS : Number.parseFloat(countRaw) || 1;
+      longest = Math.max(longest, delay + duration * Math.min(iterations, MAX_COUNTED_ITERATIONS));
+    }
+  }
+
+  return Math.min(longest, SAFE_CAP_MS);
 }
 
 function addClasses(el: HTMLElement, className: string): void {
@@ -524,6 +385,11 @@ export function createTransition(
     let raf1 = 0;
     let raf2 = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // FIX (#23): مدت واقعیِ طولانی‌ترین transition/animation (از computed
+    // style)؛ 0 یعنی «قابل‌اندازه‌گیری نیست» و duration تنظیم‌شده fallback می‌ماند.
+    let expectedEndMs = 0;
+    // برای تمدید تایمر fallback بر حسب زمان دیواری صرف‌شده از شروع run.
+    const startedAt = Date.now();
 
     const finish = (completed: boolean) => {
       if (settled) return;
@@ -550,7 +416,16 @@ export function createTransition(
     };
 
     const onEnd = (event: Event) => {
-      if (event.target === element) finish(true);
+      // FIX (#23): فقط رویداد خودِ المان؛ رویدادهای bubbleشده از فرزندان
+      // نباید پایان transition باشند.
+      if (event.target !== element) return;
+      // FIX (#23): پایان زودهنگام ممنوع — رویدادی که elapsedTime آن کوتاه‌تر
+      // از طولانی‌ترین duration محاسبه‌شده است (مثل opacity 0.1s وقتی
+      // transform تا 0.5s انیمیت می‌شود) run را تمام نمی‌کند؛ deadline و
+      // تایمر fallback تصمیم نهایی را می‌گیرند.
+      const elapsed = (event as TransitionEvent | AnimationEvent).elapsedTime ?? 0; // ثانیه
+      if (expectedEndMs > 0 && elapsed * 1000 < expectedEndMs) return;
+      finish(true);
     };
     const onCancel = (event: Event) => {
       if (event.target === element) finish(false);
@@ -570,18 +445,34 @@ export function createTransition(
     addClasses(element, from);
     addClasses(element, active);
 
+    // FIX (#23): گوش‌دادن به رویدادها از همان ابتدا (پیش از rAF) تا رویدادی
+    // از دست نرود؛ target-check و deadline مانع پایان زودهنگام می‌شوند.
+    element.addEventListener('transitionend', onEnd);
+    element.addEventListener('transitioncancel', onCancel);
+    element.addEventListener('animationend', onEnd);
+    element.addEventListener('animationcancel', onCancel);
+
+    // FIX (#24): تایمر fallback بلافاصله ساخته می‌شود، نه بعد از دو rAF —
+    // در تب پس‌زمینه rAF متوقف است وگرنه finished هرگز resolve نمی‌شود.
+    // مدت = بیشینهٔ duration تنظیم‌شده و مدت محاسبه‌شده (تقریب اولیه) + حاشیه ۵۰ms.
+    timer = setTimeout(() => finish(true), duration + 50);
+
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         if (settled) return;
         // اطمینان از اعمال شدن state آغازین پیش از تغییر classها.
-        getComputedStyle(element).transform;
+        void getComputedStyle(element).transform; // intentional forced style resolution (reflow)
         removeClasses(element, from);
         addClasses(element, to);
-        element.addEventListener('transitionend', onEnd);
-        element.addEventListener('transitioncancel', onCancel);
-        element.addEventListener('animationend', onEnd);
-        element.addEventListener('animationcancel', onCancel);
-        timer = setTimeout(() => finish(true), duration + 50);
+
+        // FIX (#23): پس از اعمال کلاس مقصد، مدت واقعی طولانی‌ترین
+        // transition/animation را از computed style اندازه بگیر و deadline و
+        // تایمر fallback را به بیشینهٔ (duration، مدت واقعی) + حاشیه ببر.
+        expectedEndMs = measureTransitionDuration(element);
+        if (expectedEndMs > duration) {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => finish(true), expectedEndMs + 50 - (Date.now() - startedAt));
+        }
       });
     });
 

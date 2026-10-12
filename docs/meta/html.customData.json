@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "tags": [],
+  "globalAttributes": {
+    "zen-action": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-action`\n\n```html\n<button zen-action=\"save\"> / <button zen-action:click.prevent=\"save\">\n```\n\nاتصال یک action از رجیستری @zenith/actions به رویداد؛ form پارامتریک zen-action:<event>.<modifier> (گرامر §۱.۷)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/events#zen-action"
+        }
+      ]
+    },
+    "zen-bind": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-bind`\n\n```html\n<a zen-bind:href=\"item.url\">…</a>\n```\n\nاتصال expression به یک attribute HTML؛ form پارامتریک zen-bind:<attr> (گرامر §۲)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-bind"
+        }
+      ]
+    },
+    "zen-cloak": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-cloak`\n\n```html\n<div zen-cloak zen-text=\"$user.name\">…</div>\n```\n\nحذف attribute هنگام mount تا CSS [zen-cloak]{display:none} جلوی FOUC را بگیرد؛ boolean (وجود = فعال)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-cloak"
+        }
+      ]
+    },
+    "zen-fetch": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-fetch`\n\n```html\n<div zen-fetch=\"/api/users\" zen-fetch-method=\"GET\" zen-fetch-cache=\"30000\" zen-state=\"users\">…</div>\n```\n\nدرخواست HTTP از URL و نوشتن نتیجه در state (نام کلید با zen-state، پیش‌فرض data).\n\nsub-attributes: `zen-fetch-method`, `zen-fetch-body`, `zen-fetch-params`, `zen-fetch-cache`, `zen-state`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/data#zen-fetch"
+        }
+      ]
+    },
+    "zen-for": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-for`\n\n```html\n<li zen-for=\"item in items\" zen-key=\"item.id\">{{ item.name }}</li>\n```\n\nتکرار المان روی هر آیتم یک collection؛ باید با zen-key همراه باشد.\n\nsub-attributes: `zen-key`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-for"
+        }
+      ]
+    },
+    "zen-html": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-html`\n\n```html\n<div zen-html=\"$trusted.markup\"></div>\n```\n\nرندر HTML با Sanitizer؛ مقدار یک expression است."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-html"
+        }
+      ]
+    },
+    "zen-html-trusted": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-html-trusted`\n\n```html\n<div zen-html-trusted=\"$raw.html\"></div>\n```\n\nرندر HTML بدون Sanitizer؛ فقط برای محتوای واقعاً مورداعتماد (مسئولیت امنیت با کاربر)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-html-trusted"
+        }
+      ]
+    },
+    "zen-if": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-if`\n\n```html\n<div zen-if=\"isLoggedIn\">…</div>\n```\n\nرندر شرطی: المان فقط وقتی expression truthy است در DOM می‌ماند.\n\nsub-attributes: `zen-else`, `zen-else-if`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-if"
+        }
+      ]
+    },
+    "zen-key": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-key`\n\n```html\n<li zen-for=\"item in items\" zen-key=\"item.id\">…</li>\n```\n\nکلید پایدار آیتم در zen-for برای diffing دقیق."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-key"
+        }
+      ]
+    },
+    "zen-model": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-model`\n\n```html\n<input zen-model=\"form.name\" />\n```\n\nدوطرفه binding بین مقدار ورودی فرم و signal."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-model"
+        }
+      ]
+    },
+    "zen-persist": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-persist`\n\n```html\n<input zen-model=\"$form.user\" zen-persist=\"cart.user\" zen-persist-driver=\"local\" zen-persist-ttl=\"never\" zen-persist-version=\"1\" zen-persist-debounce=\"300ms\" />\n```\n\nمقدار zen-model را زیر کلید داده‌شده در @zenith/storage ذخیره و هنگام mount بازیابی می‌کند؛ فقط روی المان دارای zen-model معنا دارد.\n\nمقدارها: `کلید ذخیره (string غیرخالی)`\n\nsub-attributes: `zen-persist-driver`, `zen-persist-ttl`, `zen-persist-version`, `zen-persist-debounce`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/storage#zen-persist"
+        }
+      ]
+    },
+    "zen-ref": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-ref`\n\n```html\n<canvas zen-ref=\"chartCanvas\"></canvas>\n```\n\nاتصال عنصر DOM به یک signal در state (دسترسی به نود بدون querySelector)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-ref"
+        }
+      ]
+    },
+    "zen-resource": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-resource`\n\n```html\n<div zen-resource=\"'/api/users'\" zen-state=\"users\">…</div>\n```\n\nاتصال Resource (CRUD/lifecycle) به DOM؛ نام state خروجی با zen-state.\n\nsub-attributes: `zen-state`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/resource#zen-resource"
+        }
+      ]
+    },
+    "zen-show": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-show`\n\n```html\n<div zen-show=\"isOpen\">…</div>\n```\n\ntoggle visibility با display:none (برخلاف zen-if المان در DOM می‌ماند)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-show"
+        }
+      ]
+    },
+    "zen-static": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-static`\n\n```html\n<li zen-for=\"row in rows\" zen-static>…</li>\n```\n\nfast-path برای zen-for: per-item Signal ساخته نمی‌شود و تغییر لیست full re-render می‌کند؛ boolean (§۱.۳)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-static"
+        }
+      ]
+    },
+    "zen-text": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-text`\n\n```html\n<span zen-text=\"$user.name\"></span>\n```\n\nرندر متن واکنش‌گرا (textContent — بدون خطر تزریق HTML)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/runtime#zen-text"
+        }
+      ]
+    },
+    "zen-transition": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-transition`\n\n```html\n<div zen-if=\"open\" zen-transition=\"fade\">…</div>\n```\n\nنام transition ثبت‌شده برای enter/leave المان‌های شرطی."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/transition#zen-transition"
+        }
+      ]
+    }
+  }
+}

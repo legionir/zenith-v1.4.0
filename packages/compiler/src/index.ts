@@ -1,8 +1,4 @@
-export {
-  compileTemplate,
-  type CompiledTemplate,
-  type CompileOptions,
-} from './compiler';
+export { compileTemplate, type CompiledTemplate, type CompileOptions } from './compiler';
 
 /**
  * FEATURE (v1.4.0): Runtime ↔ Compiler Parity Testing Framework.

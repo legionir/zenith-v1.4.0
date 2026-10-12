@@ -14,11 +14,9 @@ export {
   reportError,
   clearError,
   clearErrorBoundary,
-  type ZenithError,
+  getErrorHistory,
+  ZenithError,
+  type ZenithErrorInfo,
 } from './boundary';
 
-export {
-  processErrorBoundary,
-  showFallback,
-  recoverFromError,
-} from './directive';
+export { processErrorBoundary, showFallback, recoverFromError } from './directive';

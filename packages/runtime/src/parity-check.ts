@@ -36,7 +36,7 @@ export function isStrictParityEnabled(): boolean {
 export function reportParityDivergence(
   directive: string,
   description: string,
-  hint?: string
+  hint?: string,
 ): void {
   if (!strictParityEnabled) return;
 
@@ -52,9 +52,11 @@ export function reportParityDivergence(
     category: 'runtime',
     severity: 'warning',
     recoverable: true,
-    hint: hint || 'This may cause different behavior in production (compiled) mode. ' +
-                'Run the full parity test suite to investigate.',
-    context: { directive, description }
+    hint:
+      hint ||
+      'This may cause different behavior in production (compiled) mode. ' +
+        'Run the full parity test suite to investigate.',
+    context: { directive, description },
   });
 }
 
@@ -66,14 +68,14 @@ export function assertParity(
   directive: string,
   runtimeValue: any,
   expectedCompilerValue: any,
-  description: string
+  description: string,
 ): boolean {
   const match = JSON.stringify(runtimeValue) === JSON.stringify(expectedCompilerValue);
 
   if (!match) {
     reportParityDivergence(
       directive,
-      `${description} — runtime: ${JSON.stringify(runtimeValue)}, expected: ${JSON.stringify(expectedCompilerValue)}`
+      `${description} — runtime: ${JSON.stringify(runtimeValue)}, expected: ${JSON.stringify(expectedCompilerValue)}`,
     );
   }
 

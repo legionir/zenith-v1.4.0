@@ -30,12 +30,23 @@ enum Priority {
 
 ---
 
-## `schedule()`
+## `scheduleEffect()`
+
+> **_contract (#117):_ `scheduleEffect` نام مبنا است. `schedule()` تنها یک alias
+> منسوخ‌شونده است که به همان تابع delegate می‌کند و در dev یک‌بار
+> **ZEN-DEPR-025** هشدار می‌دهد (حذف در ۲.۰ — DEC-026).
 
 یک تسک را برای اجرای بعدی در صف زمان‌بندی قرار می‌دهد.
 
 ### Type Signature
 ```typescript
+function scheduleEffect(
+  fn: () => void,
+  priority: number = Priority.normal,
+  disposed?: () => boolean
+): void;
+
+/** @deprecated از scheduleEffect استفاده کنید (ZEN-DEPR-025). */
 function schedule(
   fn: () => void,
   priority: number = Priority.normal,

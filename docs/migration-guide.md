@@ -3,6 +3,10 @@
 > راهنمای کامل مهاجرت از نسخه‌ی ۰.۶.x به ۱.۰.۰.
 >
 > v1.0.0 یک **major release** است با تغییرات breaking (با backwards compatibility).
+>
+> **الزامات Node (v1.4.0 به بعد):** حداقل `node >= 18.19` در تمام پکیج‌ها (DEC-007).
+> اگر روی 18.0–18.18 قفل هستید، ایزولاسیون per-request روتر در SSR (`process.getBuiltinModule`)
+> غیرفعال است؛ یا Node را ارتقا دهید یا به shared route signal متکی بمانید.
 
 ---
 

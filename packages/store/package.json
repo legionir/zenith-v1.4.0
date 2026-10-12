@@ -15,12 +15,12 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx test/store-test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "zenith",
@@ -30,16 +30,32 @@
     "global"
   ],
   "license": "MIT",
-  "engines": {
-    "node": ">=18"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/store"
   },
-  "dependencies": {
-    "@zenith/state": "1.4.0"
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
-    "@zenith/scheduler": "1.4.0"
+    "@zenith/storage": "1.5.0",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0"
   }
 }

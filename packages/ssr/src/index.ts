@@ -24,12 +24,7 @@ export {
 // globalThis دیگر mutate نمی‌شود — به‌جای آن، getters نصب می‌شوند که از
 // store فعلی می‌خوانند. این exportها برای کاربران پیشرفته‌ای است که
 // می‌خواهند به‌صورت دستی store را مدیریت کنند (مثلاً در test helpers).
-export {
-  domAls,
-  getDOMGlobals,
-  installDOMGlobalGetters,
-  type DOMGlobals,
-} from './dom-context';
+export { domAls, getDOMGlobals, installDOMGlobalGetters, type DOMGlobals } from './dom-context';
 
 export {
   hydrate,

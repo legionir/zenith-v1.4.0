@@ -110,7 +110,9 @@ console.log(`Collected ${collected.length} package(s) into ${outDir} (${mb} MB)`
 
 const missingTypes = collected.filter((p) => !p.entries.types);
 if (missingTypes.length > 0) {
-  console.log(`Note: ${missingTypes.length} package(s) have no index.d.ts: ${missingTypes.map((p) => p.name).join(', ')}`);
+  console.log(
+    `Note: ${missingTypes.length} package(s) have no index.d.ts: ${missingTypes.map((p) => p.name).join(', ')}`,
+  );
 }
 for (const s of skipped) {
   console.log(`Skipped ${s.name}: ${s.reason}`);

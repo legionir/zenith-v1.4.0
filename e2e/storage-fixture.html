@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith storage cross-tab fixture</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@zenith/storage": "/packages/storage/dist/index.js",
+          "@zenith/errors": "/packages/errors/dist/index.js",
+          "@zenith/logger": "/packages/logger/dist/index.js",
+          "@zenith/shared": "/packages/shared/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="app">
+      <input id="field" type="text" />
+      <p id="reflected">—</p>
+    </main>
+    <script type="module">
+      // #145 — معیار پذیرش: «داده در یک تب در تب دیگر بازتاب می‌یابد
+      // (تست مرورگری)». دو صفحهٔ واقعی Chromium روی یک origin ⇒ همان
+      // localStorage؛ نوشتن این صفحه باید در subscribe صفحهٔ دیگر بیفتد.
+      import { createStorage } from '@zenith/storage';
+
+      const storage = createStorage({ driver: 'local' });
+      const field = document.getElementById('field');
+      const reflected = document.getElementById('reflected');
+
+      // hydrate + reflect (origin 'local' برای نوشتن خودی فیلتر می‌شود)
+      field.value = String(storage.get('e2i.extra', ''));
+      storage.subscribe('e2i.extra', (payload) => {
+        reflected.textContent = String(payload.value ?? '—');
+      });
+      field.addEventListener('input', () => storage.set('e2i.extra', field.value));
+      window.__ZENITH_E2E_READY__ = true;
+    </script>
+  </body>
+</html>

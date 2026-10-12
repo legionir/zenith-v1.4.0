@@ -4,12 +4,12 @@
 
 ## دایرکتیوهای پشتیبانی‌شده
 
-| دایرکتیو | کاربرد | مثال |
-|---|---|---|
-| `zen-text` | رندر متن | `<span zen-text="$user.name">` |
-| `zen-if` | نمایش شرطی (mount/unmount) | `<div zen-if="$isLoggedIn">` |
-| `zen-bind:*` | اتصال به Attribute | `<a zen-bind:href="$url">` |
-| `zen-model` | Two-way binding با Input | `<input zen-model="$name">` |
+| دایرکتیو     | کاربرد                     | مثال                           |
+| ------------ | -------------------------- | ------------------------------ |
+| `zen-text`   | رندر متن                   | `<span zen-text="$user.name">` |
+| `zen-if`     | نمایش شرطی (mount/unmount) | `<div zen-if="$isLoggedIn">`   |
+| `zen-bind:*` | اتصال به Attribute         | `<a zen-bind:href="$url">`     |
+| `zen-model`  | Two-way binding با Input   | `<input zen-model="$name">`    |
 
 ## نصب
 
@@ -36,7 +36,7 @@ Zen.start(document.getElementById('app'), state);
 <div id="app">
   <h1>سلام <span zen-text="$user.name"></span>!</h1>
   <button zen-bind:disabled="$isProcessing">Save</button>
-  <input zen-model="$user.name">
+  <input zen-model="$user.name" />
 </div>
 ```
 

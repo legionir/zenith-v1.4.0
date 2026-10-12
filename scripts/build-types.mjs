@@ -4,9 +4,9 @@ import { spawnSync } from 'child_process';
 
 const packagesDir = './packages';
 const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name)
-  .filter(name => existsSync(join(packagesDir, name, 'package.json')));
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name)
+  .filter((name) => existsSync(join(packagesDir, name, 'package.json')));
 
 let failed = 0;
 
@@ -17,10 +17,14 @@ for (const dir of pkgDirs) {
   }
 
   console.log(`🔍 Building types for @zenith/${dir}...`);
-  const result = spawnSync('npx', ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly'], {
-    stdio: 'inherit',
-    shell: true,
-  });
+  const result = spawnSync(
+    'npx',
+    ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly'],
+    {
+      stdio: 'inherit',
+      shell: true,
+    },
+  );
 
   if (result.status !== 0) {
     failed++;

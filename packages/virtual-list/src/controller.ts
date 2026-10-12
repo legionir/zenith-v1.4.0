@@ -1,4 +1,5 @@
-import { effect, signal, type ReadonlySignal, type Signal } from '@zenith/state';
+import { effect, signal, untrack, type ReadonlySignal, type Signal } from '@zenith/state';
+import { developerError, ErrorCode } from '@zenith/errors';
 
 export type VirtualListDirection = 'vertical' | 'horizontal';
 export type ScrollAlignment = 'start' | 'center' | 'end';
@@ -28,6 +29,25 @@ export interface VirtualListOptions<T> {
   getItemKey?: (item: T, index: number) => string | number;
   onScroll?: (info: ScrollInfo) => void;
   onVisibleRangeChange?: (start: number, end: number) => void;
+  /**
+   * #47: درست پیش از حذف نود یک آیتم از DOM (خروج از range یا dispose)
+   * فراخوانی می‌شود تا مصرف‌کننده (مثل wrapper دایرکتیو) بتواند disposeهای
+   * per-item و انیمیشن unmount را وصل کند.
+   */
+  onNodeRemoved?: (node: HTMLElement, item: T, index: number) => void;
+  /**
+   * #47: وقتی یک نود کش‌شده برای همان آیتم در index جدید باقی می‌ماند
+   * (مثلاً حذف آیتم قبلی)، درست پس از به‌روزرسانی index فراخوانی می‌شود تا
+   * wrapper بتواند signal `$index` آن آیتم را همگام نگه دارد.
+   */
+  onItemUpdated?: (node: HTMLElement, item: T, index: number) => void;
+}
+
+export interface VirtualListState {
+  start: number;
+  end: number;
+  totalSize: number;
+  offset: number;
 }
 
 export interface VirtualListApi<T> {
@@ -36,23 +56,91 @@ export interface VirtualListApi<T> {
   scrollToIndex(index: number, align?: ScrollAlignment): void;
   scrollToOffset(offset: number): void;
   refresh(): void;
+  /** #47: وضعیت جاری range/offset/totalSize — برای wrapper دایرکتیو (getRange). */
+  getState(): VirtualListState;
   dispose(): void;
 }
 
 interface RenderedItem {
   node: HTMLElement;
   index: number;
+  // FIX (#17): نگه‌داشتن ارجاع آیتم رندرشده تا اگر همان key به آیتم جدیدی
+  // نگاشت شد (مرتب‌سازی، جایگزینی شیء، درج/حذف میانی) نود کهنه دوباره رندر شود.
+  item: unknown;
+}
+
+/**
+ * #47: disposeهای per-item که مصرف‌کننده (wrapper دایرکتیو) ثبت می‌کند؛ درست
+ * پیش از حذف نود (خروج از range یا dispose کامل) به‌ترتیب اجرا می‌شوند.
+ * تابع module-level است تا wrapper هنگام construction (داخل renderItem، پیش
+ * از بازگشت api) بدون TDZ بتواند disposeها را ثبت کند.
+ */
+const nodeDisposes = new WeakMap<HTMLElement, (() => void)[]>();
+
+/**
+ * #47: ثبت disposeهای یک نود رندرشده (برای wrapper دایرکتیو).
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent که نگاشت node را
+ * حذف می‌کند (فقط اگر هنوز همان آرایه باشد).
+ */
+export function registerVirtualListNodeDisposes(
+  node: HTMLElement,
+  disposes: (() => void)[],
+): () => void {
+  nodeDisposes.set(node, disposes);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (nodeDisposes.get(node) === disposes) {
+      nodeDisposes.delete(node);
+    }
+  };
 }
 
 function resolveContainer(container: HTMLElement | string): HTMLElement {
   if (typeof container !== 'string') return container;
   const element = document.querySelector<HTMLElement>(container);
-  if (!element) throw new Error(`[virtual-list] Container '${container}' was not found.`);
+  if (!element)
+    throw developerError(
+      `Container '${container}' was not found.`,
+      ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+      { suggestion: 'کانتینر باید قبل از createVirtualList در DOM موجود باشد.' },
+    );
   return element;
 }
 
 function isSignal<T>(value: T[] | Signal<T[]>): value is Signal<T[]> {
-  return typeof (value as Signal<T[]>).get === 'function' && typeof (value as Signal<T[]>).set === 'function';
+  return (
+    typeof (value as Signal<T[]>).get === 'function' &&
+    typeof (value as Signal<T[]>).set === 'function'
+  );
+}
+
+/**
+ * FIX (#17): مقایسه‌ی سبک «تغییر آیتم» — اول ارجاع (ارزان‌ترین و رایج‌ترین
+ * حالت: همان شیء)، سپس برای primitive ها برابری مقدار، و برای آبجکت‌های
+ * تخت (record ها) مقایسه‌ی سطح‌یک روی key/value ها.
+ *
+ * هدف: جلوگیری از بازرندر بی‌دلیل وقتی آیتم از نظر محتوا تغییر نکرده ولی
+ * ارجعش عوض شده (مثل `items.set([...sameObjects])` در stateای که آرایه‌ی نو
+ * می‌سازد)، و در عوض تشخیص دقیق تغییر واقعی در مرتب‌سازی/جایگزینی/درج.
+ */
+function itemChanged(a: unknown, b: unknown): boolean {
+  if (a === b) return false;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') {
+    // primitive (یا ترکیب primitive/object): تفاوت = تغییر
+    return true;
+  }
+  const ao = a as Record<string, unknown>;
+  const bo = b as Record<string, unknown>;
+  const ak = Object.keys(ao);
+  const bk = Object.keys(bo);
+  if (ak.length !== bk.length) return true;
+  for (const k of ak) {
+    if (!Object.prototype.hasOwnProperty.call(bo, k)) return true;
+    if (ao[k] !== bo[k]) return true; // سطح‌یک: nested object تغییر ارجاع = تغییر
+  }
+  return false;
 }
 
 /**
@@ -64,7 +152,11 @@ function isSignal<T>(value: T[] | Signal<T[]>): value is Signal<T[]> {
  */
 export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualListApi<T> {
   if (typeof document === 'undefined') {
-    throw new Error('[virtual-list] createVirtualList requires a browser DOM.');
+    throw developerError(
+      'createVirtualList requires a browser DOM.',
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+      { suggestion: 'در SSR از @zenith/ssr استفاده کنید یا ساخت لیست را به مرورگر موکول کنید.' },
+    );
   }
 
   const container = resolveContainer(options.container);
@@ -72,7 +164,13 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   const visibleItems = signal<VirtualItem<T>[]>([]);
   const direction = options.direction ?? 'vertical';
   const overscan = Math.max(0, Math.floor(options.overscan ?? 5));
-  const keyFor = options.getItemKey ?? ((_item: T, index: number) => index);
+  // FIX (#19): همهٔ callbackهای کاربر (getItemKey، itemSize تابعی، renderItem،
+  // onScroll، onVisibleRangeChange) داخل untrack اجرا می‌شوند تا خواندن
+  // signal در آن‌ها وابستگی effect نسازد — وگرنه هر signal بیرونی باعث
+  // بازسازی کامل لیست می‌شد و نوشتن signal وابسته حلقهٔ بی‌نهایت می‌ساخت.
+  // تنها وابستگی reactive باقی‌مانده: خودِ signal آیتم‌ها (items.get()).
+  const keyFor = (item: T, index: number): string | number =>
+    options.getItemKey ? untrack(() => options.getItemKey!(item, index)) : index;
   const isVertical = direction === 'vertical';
   const scrollProperty = isVertical ? 'scrollTop' : 'scrollLeft';
   const clientProperty = isVertical ? 'clientHeight' : 'clientWidth';
@@ -113,9 +211,9 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const key = keyFor(item, index);
     const measured = measurements.get(key);
     if (measured !== undefined) return measured;
-    const estimated = typeof options.itemSize === 'function'
-      ? options.itemSize(item, index)
-      : options.itemSize;
+    const sizeOption = options.itemSize;
+    const estimated =
+      typeof sizeOption === 'function' ? untrack(() => sizeOption(item, index)) : sizeOption;
     return Number.isFinite(estimated) && estimated > 0 ? estimated : 1;
   };
 
@@ -167,6 +265,19 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const entry = rendered.get(key);
     if (!entry) return;
     itemResizeObserver?.unobserve(entry.node);
+    // #47: اجرای disposeهای per-item و اطلاع به wrapper پیش از حذف نود.
+    const disposes = nodeDisposes.get(entry.node);
+    if (disposes) {
+      nodeDisposes.delete(entry.node);
+      for (const dispose of disposes) {
+        try {
+          dispose();
+        } catch {
+          /* cleanup errors must not break the loop */
+        }
+      }
+    }
+    options.onNodeRemoved?.(entry.node, entry.item as T, entry.index);
     entry.node.remove();
     rendered.delete(key);
   };
@@ -185,12 +296,19 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       const item = list[index]!;
       const key = keyFor(item, index);
       let entry = rendered.get(key);
+      // FIX (#17): اگر نود کش‌شده برای این key به آیتم دیگری تعلق دارد
+      // (مرتب‌سازی با index-key، جایگزینی شیء با همان key، درج/حذف میانی)،
+      // نود کهنه را دور بریزیم و دوباره رندر کنیم.
+      if (entry && itemChanged(entry.item, item)) {
+        removeRendered(key);
+        entry = undefined;
+      }
       if (!entry) {
-        const node = options.renderItem(item, index);
+        const node = untrack(() => options.renderItem(item, index));
         node.style.position = 'absolute';
         node.dataset.zenVirtualIndex = String(index);
         content.appendChild(node);
-        entry = { node, index };
+        entry = { node, index, item };
         rendered.set(key, entry);
         itemResizeObserver?.observe(node);
       }
@@ -200,6 +318,8 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         ? `translateY(${offsets[index] ?? 0}px)`
         : `translateX(${offsets[index] ?? 0}px)`;
       if (!isVertical) entry.node.style.height = '100%';
+      // #47: نود کش‌شده در index جدید — wrapper باید $index را همگام کند.
+      options.onItemUpdated?.(entry.node, item, index);
       nextVisible.push({ item, index, offset: offsets[index] ?? 0 });
     }
     visibleItems.set(nextVisible);
@@ -220,17 +340,21 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     if (start !== previousStart || end !== previousEnd) {
       previousStart = start;
       previousEnd = end;
-      options.onVisibleRangeChange?.(start, end);
+      untrack(() => options.onVisibleRangeChange?.(start, end));
     }
   };
 
   const onScroll = () => {
-    options.onScroll?.({
-      offset: container[scrollProperty],
-      viewportSize: container[clientProperty],
-      totalSize,
-      direction,
-    });
+    // FIX (#19): onScroll یک event handler است؛ داخل effect نیست اما برای
+    // اطمینان از عدم track شدن (استفادهٔ مجدد در context) untrack می‌شود.
+    untrack(() =>
+      options.onScroll?.({
+        offset: container[scrollProperty],
+        viewportSize: container[clientProperty],
+        totalSize,
+        direction,
+      }),
+    );
     if (scrollFrame !== null) return;
     scrollFrame = requestAnimationFrame(() => {
       scrollFrame = null;
@@ -238,15 +362,16 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     });
   };
 
-  const containerResizeObserver = typeof ResizeObserver === 'undefined'
-    ? null
-    : new ResizeObserver(() => {
-      if (resizeFrame !== null) return;
-      resizeFrame = requestAnimationFrame(() => {
-        resizeFrame = null;
-        update();
-      });
-    });
+  const containerResizeObserver =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          if (resizeFrame !== null) return;
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = null;
+            update();
+          });
+        });
 
   container.addEventListener('scroll', onScroll, { passive: true });
   containerResizeObserver?.observe(container);
@@ -254,7 +379,10 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
 
   const refresh = () => update();
   const scrollToOffset = (offset: number) => {
-    container[scrollProperty] = Math.max(0, Math.min(offset, Math.max(0, totalSize - container[clientProperty])));
+    container[scrollProperty] = Math.max(
+      0,
+      Math.min(offset, Math.max(0, totalSize - container[clientProperty])),
+    );
     update();
   };
   refresh();
@@ -275,6 +403,14 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     },
     scrollToOffset,
     refresh,
+    getState: () => ({
+      // #47: range جاری حتی اگر هنوز تغییر نکرده (previous* با initial refresh
+      // در update() ست می‌شود؛ مقدار اولیه -1 نباید به بیرون نشت کند).
+      start: Math.max(0, previousStart),
+      end: Math.max(0, previousEnd),
+      totalSize,
+      offset: container[scrollProperty],
+    }),
     dispose() {
       if (disposed) return;
       disposed = true;

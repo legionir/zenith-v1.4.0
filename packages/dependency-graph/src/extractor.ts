@@ -92,7 +92,7 @@ function walk(node: ASTNode, deps: Dependency[], seen: Set<string>): void {
 
     case 'CallExpression':
       walk(node.callee, deps, seen);
-      node.args.forEach(arg => walk(arg, deps, seen));
+      node.args.forEach((arg) => walk(arg, deps, seen));
       break;
 
     case 'BinaryExpression':
@@ -112,7 +112,7 @@ function walk(node: ASTNode, deps: Dependency[], seen: Set<string>): void {
       break;
 
     case 'ObjectExpression':
-      node.properties.forEach(prop => walk(prop.value, deps, seen));
+      node.properties.forEach((prop) => walk(prop.value, deps, seen));
       break;
 
     case 'Literal':
@@ -224,6 +224,6 @@ export function buildDependencyGraph(
  * @returns true اگر اشتراک دارند.
  */
 export function hasOverlap(deps1: Dependency[], deps2: Dependency[]): boolean {
-  const set1 = new Set(deps1.map(d => `${d.signal}.${d.path.join('.')}`));
-  return deps2.some(d => set1.has(`${d.signal}.${d.path.join('.')}`));
+  const set1 = new Set(deps1.map((d) => `${d.signal}.${d.path.join('.')}`));
+  return deps2.some((d) => set1.has(`${d.signal}.${d.path.join('.')}`));
 }

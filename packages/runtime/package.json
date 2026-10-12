@@ -15,11 +15,11 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --tsconfig tsconfig.test.json test/test.ts && tsx test/integration-test.ts",
     "demo": "tsx --tsconfig tsconfig.test.json test/demo.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -32,8 +32,22 @@
     "reactive"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@zenith/actions": "1.4.0",
@@ -45,24 +59,24 @@
     "@zenith/errors": "1.4.0",
     "@zenith/events": "1.4.0",
     "@zenith/expressions": "1.4.0",
-    "@zenith/i18n": "1.4.0",
+    "@zenith/jalali": "1.5.0",
+    "@zenith/logger": "1.5.0",
     "@zenith/notifications": "1.4.0",
     "@zenith/resource": "1.4.0",
     "@zenith/router": "1.4.0",
-    "@zenith/scheduler": "1.4.0",
     "@zenith/security": "1.4.0",
-    "@zenith/state": "1.4.0",
+    "@zenith/storage": "1.5.0",
     "@zenith/suspense": "1.4.0",
     "@zenith/transition": "1.4.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0",
     "@types/jsdom": "^21.1.6",
-    "jsdom": "^24.0.0",
-    "@zenith/permission": "1.4.0",
-    "@zenith/store": "1.4.0",
-    "@zenith/form": "1.4.0"
+    "jsdom": "^24.0.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
   }
 }

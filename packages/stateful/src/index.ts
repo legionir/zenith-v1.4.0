@@ -30,7 +30,12 @@
 // پیمایش، اگر به این تگ‌ها برسد، handler مربوطه را فراخوانی می‌کند.
 
 import type { ZenithPlugin } from '@zenith/runtime';
-import { registerCustomDirective, hasCustomDirective, unregisterCustomDirective } from '@zenith/runtime';
+import { deprecate } from '@zenith/errors';
+import {
+  registerCustomDirective,
+  hasCustomDirective,
+  unregisterCustomDirective,
+} from '@zenith/runtime';
 import { processResourceView } from './resource-view';
 import { processActionButton } from './action-button';
 import { processAuthView } from './auth-view';
@@ -74,44 +79,61 @@ const statefulDirectives = [
 // BUG-STF-01 FIX: Check for existing directives before registering
 // to prevent accidental overwrites (e.g. from a user-registered directive
 // with the same name, or double plugin install without idempotency).
-export const ZenithStatefulPlugin: ZenithPlugin = {
-  name: 'zenith-stateful',
-
-  install(_zen, _options) {
-    for (const directive of statefulDirectives) {
-      if (hasCustomDirective(directive.name)) {
-        console.warn(`[Zenith] Directive "${directive.name}" already registered. Skipping.`);
-        continue;
-      }
-      registerCustomDirective(directive.name, directive.handler, directive.attr);
-    }
-  },
-};
-
-/**
- * تابع راه‌اندازی دستی (برای کاربرانی که نمی‌خواهند از Zen.use استفاده کنند).
- *
- * BUG-STF-02 FIX: حالا یک تابع cleanup برمی‌گرداند که همه‌ی دایرکتیوهای
- * ثبت‌شده را unregister می‌کند — برای HMR و teardown.
- *
- * این تابع همان کار `ZenithStatefulPlugin.install` را انجام می‌دهد اما بدون
- * نیاز به نصب پلاگین. مفید برای محیط‌های تست یا SSR.
- *
- * @returns تابع cleanup: با فراخوانی آن، همه‌ی دایرکتیوهای ثبت‌شده unregister می‌شوند.
- */
-export function installStatefulComponents(): () => void {
+//
+// #117 — تک‌مسیر نصب: پیاده‌سازی واقعی اینجاست (registerStatefulDirectives)؛
+// `ZenithStatefulPlugin.install` تنها مسیر canonical است (`Zen.use(...)`) و
+// `installStatefulComponents()` alias منسوخ‌شونده‌ای است که به همان توابع
+// داخلی delegate می‌کند (ZEN-DEPR-026؛ حذف در ۲.۰ — DEC-026).
+function registerStatefulDirectives(): {
+  installed: string[];
+  unregister: () => void;
+} {
   const installed: string[] = [];
   for (const directive of statefulDirectives) {
     if (hasCustomDirective(directive.name)) {
+      // #117: تنها مسیر نصب ⇒ تنها یک نقطهٔ هشدار (قبلاً دو کپی یکسان داشت).
       console.warn(`[Zenith] Directive "${directive.name}" already registered. Skipping.`);
       continue;
     }
     registerCustomDirective(directive.name, directive.handler, directive.attr);
     installed.push(directive.name);
   }
+  return {
+    installed,
+    unregister: () => {
+      for (const name of installed) {
+        unregisterCustomDirective(name);
+      }
+    },
+  };
+}
+
+export const ZenithStatefulPlugin: ZenithPlugin = {
+  name: 'zenith-stateful',
+
+  install(_zen, _options) {
+    registerStatefulDirectives();
+  },
+};
+
+/**
+ * @deprecated #117 — یک مسیر نصب برای stateful: `Zen.use(ZenithStatefulPlugin)`.
+ * این تابع همان ثبت‌ها را انجام می‌دهد (delegate به پیاده‌سازی مشترک) و یک
+ * `Cleanup` (`() => void`) idempotent برای unregister برمی‌گرداند؛ یک‌بار
+ * ZEN-DEPR-026 هشدار می‌دهد و در ۲.۰ حذف می‌شود (DEC-026).
+ *
+ * مسیر Canonical:
+ *   import { Zen } from '@zenith/runtime';
+ *   import { ZenithStatefulPlugin } from '@zenith/stateful';
+ *   Zen.use(ZenithStatefulPlugin);
+ */
+export function installStatefulComponents(): () => void {
+  deprecate('ZEN-DEPR-026', 'installStatefulComponents()', 'Zen.use(ZenithStatefulPlugin)');
+  const { unregister } = registerStatefulDirectives();
+  let cleaned = false;
   return () => {
-    for (const name of installed) {
-      unregisterCustomDirective(name);
-    }
+    if (cleaned) return;
+    cleaned = true;
+    unregister();
   };
 }

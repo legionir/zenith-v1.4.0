@@ -1,4 +1,5 @@
 // packages/components/src/registry.ts
+import { developerError, ErrorCode } from '@zenith/errors';
 //
 // Component Registry — ثبت و بازیابی قالب‌های کامپوننت‌ها.
 //
@@ -78,15 +79,32 @@ function isHTMLTemplateElement(value: any): value is HTMLTemplateElement {
  *
  * @param name     نام کامپوننت (مثلا "app-product-card").
  * @param template قالب HTML کامپوننت.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           نام را حذف می‌کند که همان template هنوز ثبت باشد.
  */
-export function registerComponent(name: string, template: HTMLTemplateElement): void {
+export function registerComponent(name: string, template: HTMLTemplateElement): () => void {
   if (typeof name !== 'string' || name.length === 0) {
-    throw new Error(`[Zenith] Component name must be a non-empty string. Received: ${String(name)}`);
+    throw developerError(
+      `Component name must be a non-empty string. Received: ${String(name)}`,
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+    );
   }
   if (!isHTMLTemplateElement(template)) {
-    throw new Error(`[Zenith] Component "${name}" requires an HTMLTemplateElement.`);
+    throw developerError(
+      `Component "${name}" requires an HTMLTemplateElement.`,
+      ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
+    );
   }
-  componentRegistry.set(name.toLowerCase(), template);
+  const key = name.toLowerCase();
+  componentRegistry.set(key, template);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (componentRegistry.get(key) === template) {
+      componentRegistry.delete(key);
+    }
+  };
 }
 
 /**
@@ -156,7 +174,12 @@ export function trackComponentLifecycle(element: HTMLElement, dispose: () => voi
   componentDisposes.set(element, dispose);
 
   // Start the MutationObserver on the first call if not already running.
-  if (!_lifecycleObserver && typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.body) {
+  if (
+    !_lifecycleObserver &&
+    typeof MutationObserver !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    document.body
+  ) {
     _lifecycleObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const removedNode of mutation.removedNodes) {
@@ -240,12 +263,14 @@ export function defineComponent<TProps extends Record<string, any> = Record<stri
       try {
         // Dynamic import to avoid static circular dependency at module
         // resolution time. The actual resolution still happens once.
-        import('./processor').then(processor => {
-          processor.registerLifecycle(name, { onMount, onDestroy });
-        }).catch(() => {
-          // processor not yet available — silently skip; lifecycle hooks
-          // only activate when processComponent() runs later.
-        });
+        import('./processor')
+          .then((processor) => {
+            processor.registerLifecycle(name, { onMount, onDestroy });
+          })
+          .catch(() => {
+            // processor not yet available — silently skip; lifecycle hooks
+            // only activate when processComponent() runs later.
+          });
       } catch {
         // processor not yet available — silently skip; lifecycle hooks
         // only activate when processComponent() runs later.

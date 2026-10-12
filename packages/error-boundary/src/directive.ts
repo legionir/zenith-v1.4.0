@@ -26,15 +26,19 @@ import { clearError, onError } from './boundary';
  *
  * @param el              عنصری که zen-error روی آن است.
  * @param processChildren callback برای walk فرزندان.
- * @param disposes        آرایه‌ی dispose functions.
+ * @param disposes        آرایه‌ی dispose functions (سازگاری با گذشته — #116).
+ * @returns Cleanup تابعی idempotent که unsubscribe و dispose فرزندان را انجام
+ *           می‌دهد (#116: همهٔ `process*` باید `Cleanup` برگردانند).
  */
 export function processErrorBoundary(
   el: HTMLElement,
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   // ── ۱. پیدا کردن fallback template ──
-  const fallbackTemplate = el.querySelector(':scope > template[zen-fallback]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-fallback]',
+  ) as HTMLTemplateElement | null;
 
   let fallbackContent = '<div style="color: red; padding: 8px;">⚠️ خطایی رخ داد</div>';
   if (fallbackTemplate) {
@@ -66,11 +70,14 @@ export function processErrorBoundary(
   // …) bubble up to the global error handler but the boundary never
   // actually swaps in its fallback — leaving the broken UI visible.
   const unsubscribe = onError((zenithError) => {
-    const errEl = zenithError.element;
+    // #115: مدل واحد — element روی ZenithError به‌صورت unknown است (L0 DOM-free).
+    const errEl = zenithError.element as HTMLElement | undefined;
     if (errEl && el.contains(errEl)) {
       // Dispose children first so their effects/observers stop firing.
       for (const d of childDisposes) {
-        try { d(); } catch (err) {
+        try {
+          d();
+        } catch (err) {
           console.error('[Zenith Error Boundary] Error during dispose:', err);
         }
       }
@@ -81,15 +88,28 @@ export function processErrorBoundary(
   });
 
   // ─ـ ۳. ثبت dispose ─ـ
-  disposes.push(() => {
+  // #116 cleanup protocol: علاوه بر پر کردن آرایهٔ disposes (سازگاری)،
+  // یک Cleanup idempotent برگردانده می‌شود تا فراخوان بتواند مستقیماً
+  // خروجی process* را dispose کند.
+  const cleanup = (): void => {
     unsubscribe();
     for (const d of childDisposes) {
-      try { d(); } catch (err) {
+      try {
+        d();
+      } catch (err) {
         console.error('[Zenith Error Boundary] Error during dispose:', err);
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }
 
 /**

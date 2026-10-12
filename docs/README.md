@@ -21,7 +21,15 @@ Zenith یک فریم‌ورک فرانت‌اند نوآورانه با رویک
 ### ابزارهای توسعه
 - [ابزارهای تست‌پذیری](./api/testing.md)
 
+### قراردادها
+- [📐 قرارداد API (API-CONVENTIONS) — نام‌گذاری، الگوی ساخت، فعل‌ها، ورودی واکنشی](./API-CONVENTIONS.md)
+- [🧾 گرامر attributeها و رویدادها (ATTRIBUTE-GRAMMAR) — قواعد zen-*، DirectiveMeta، zenith.meta.json](./ATTRIBUTE-GRAMMAR.md)
+
 ## 🚀 شروع سریع
+
+> **حداقل نسخهٔ Node:** `>=18.19` (تمام ۴۱ پکیج npm‌نشدهٔ ورک‌اسپیس + ریشه؛ DEC-007، #141/#142/#143/#144/#146).
+> `process.getBuiltinModule` برای ایزولاسیون per-request روتر در SSR به همین
+> نسخه نیاز دارد. CI روی ماتریس Node 18 (به‌عنوان کف) و 22 (LTS) اجرا می‌شود.
 
 ```bash
 # نصب پکیج‌های اصلی
@@ -69,5 +77,31 @@ Zen.start('#app', { count, double });
 - ✅ DevTools API استاندارد
 - ✅ ابزارهای تست‌پذیری حرفه‌ای
 
+## 🛠️ دستورهای توسعه / Development Commands
+
+از ریشهٔ مخزن (پس از `npm ci`) این دستورها در دسترس‌اند:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run build` | Build all workspace packages (esbuild + `tsc` declarations) |
+| `npm run typecheck` | Type-check every package (`scripts/typecheck-all.mjs`) |
+| `npm test` | Run the vitest suite (`packages/*/test/**/*.test.ts`) |
+| `npm run test:coverage` | Tests + v8 coverage with the ≥70% statements gate on core packages |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run lint` | ESLint 9 flat config (typed linting via `tsconfig.eslint.json`) |
+| `npm run lint:fix` | ESLint with autofix |
+| `npm run format` | Prettier write (HTML/Markdown excluded via `.prettierignore`) |
+| `npm run format:check` | Prettier check (CI-enforced) |
+| `npm run test:e2e` | Playwright Chromium smoke against the built ESM bundles (`e2e/`) |
+| `npm run publint` | publint over all packages (fails on packaging errors) |
+| `npm run size` | size-limit gzip budgets (`.size-limit.json`) |
+| `npm run deps` | dependency-cruiser cycle/devDep gate (`.dependency-cruiser.cjs`) |
+
+CI (`.github/workflows/main.yml`) در هر پوش/PR هر gate را در یک job موازی جدا اجرا می‌کند: lint، format، typecheck، unit+coverage، audit، dependency-graph، build (Node 18/22)، publint، size-budget و browser-e2e؛ جزئیات در `.github/CI.md` و تصمیم در `docs/decisions/DEC-004-ci-pipeline.md` (همچنین DEC-003 و DEC-002).
+
 ## 🤝 مشارکت
 برای گزارش باگ یا درخواست ویژگی از Issue Tracker استفاده کنید.
+
+🔒 برای گزارش **آسیب‌پذیری امنیتی** هرگز issue عمومی باز نکنید؛ سیاست و کانال
+گزارش خصوصی در [`SECURITY.md`](../SECURITY.md) آمده است. مراحل دستی باقی‌مانده
+(فعال‌سازی Private vulnerability reporting) در [`docs/MANUAL-STEPS.md`](MANUAL-STEPS.md) ثبت شده است.
