@@ -48,7 +48,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/components": "1.4.0"
+    "@zenith/components": "1.4.0",
+    "@zenith/devtools-core": "1.5.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

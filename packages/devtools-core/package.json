@@ -1,0 +1,65 @@
+{
+  "name": "@zenith/devtools-core",
+  "version": "1.5.0",
+  "description": "Zenith framework — L1 unified DevTools core (SPEC §2.7): SignalObserver integration, single string-ID signal registry, timeline, time-travel (snapshot/restore/replay), RuntimeGraph, panel registries (cache/store/app), and versioned __ZENITH_DEVTOOLS_HOOK__.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs devtools-core",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "devtools",
+    "devtools-core",
+    "timeline",
+    "time-travel",
+    "graph",
+    "l1"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/devtools-core"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/shared": "1.5.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

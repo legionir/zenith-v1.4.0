@@ -25,8 +25,12 @@ export {
 // مستقیم در تست‌ها یا ابزارهای داخلی. در runtime، از طریق window.__ZENITH__
 // هم در دسترس است.
 export {
+  RuntimeGraph,
   DependencyGraph,
+  runtimeGraph,
   graph,
+  getRuntimeGraph,
+  clearRuntimeGraph,
   getDependencyGraph,
   clearDependencyGraph,
   recordRead,
@@ -38,6 +42,15 @@ export {
   type GraphNodeType,
   type GraphEdgeType,
 } from './graph';
+
+export {
+  installDevtoolsCore,
+  snapshot,
+  restore,
+  replay,
+  hook as devtoolsCoreHook,
+  DEVTOOLS_HOOK_VERSION,
+} from '@zenith/devtools-core';
 
 // FEATURE (v1.4.0): DevTools Internal API — zero-cost tracking
 export {

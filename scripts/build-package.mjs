@@ -151,3 +151,10 @@ export async function buildPackage(pkgName) {
   console.log(`✅ @zenith/${pkgName} built successfully`);
   return true;
 }
+
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
+  const pkg = process.argv[2];
+  if (pkg) {
+    await buildPackage(pkg);
+  }
+}

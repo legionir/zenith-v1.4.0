@@ -34,9 +34,11 @@
 //    اگر DevTools فعال نباشد، تمام توابع این ماژول no-op می‌شوند تا هیچ
 //    overhead در production نداشته باشد.
 
+import { deprecate } from '@zenith/errors';
 import { type Signal } from './signal';
 // IMP-05 (v1.3.0): استفاده از DevTools Helper یکپارچه.
 import { isDevtoolsEnabled } from './devtools';
+import { notifySignalName } from './observer';
 
 /**
  * اطلاعات یک Signal در رجیستری.
@@ -148,7 +150,10 @@ const stateChangeListeners: Array<(change: StateChange) => void> = [];
  * @param name نام اختیاری Signal (برای دیباگ).
  * @returns ID اختصاص داده شده به Signal.
  */
-export function registerSignal(sig: Signal<any>, name?: string): number {
+/**
+ * مسیر داخلی بدون هشدار deprecation برای فراخوانی از داخل Signal constructor.
+ */
+export function _registerSignalInternal(sig: Signal<any>, name?: string): number {
   if (!isDevtoolsEnabled()) return -1;
 
   // BUG-04 FIX: پاکسازی دوره‌ای در صورت نبود FinalizationRegistry.
@@ -156,7 +161,13 @@ export function registerSignal(sig: Signal<any>, name?: string): number {
 
   // اگر قبلاً ثبت شده، همان ID را برگردان.
   const existingId = signalToId.get(sig);
-  if (existingId !== undefined) return existingId;
+  if (existingId !== undefined) {
+    if (name !== undefined) {
+      const existingInfo = idToInfo.get(existingId);
+      if (existingInfo) existingInfo.name = name;
+    }
+    return existingId;
+  }
 
   const id = nextSignalId++;
   const info: SignalInfo = {
@@ -180,9 +191,24 @@ export function registerSignal(sig: Signal<any>, name?: string): number {
 }
 
 /**
- * ثبت یک تغییر State در Timeline.
+ * ثبت یک Signal در رجیستری.
+ *
+ * @deprecated #147 — از `@zenith/devtools-core` (`registerSignal` / `installDevtoolsCore`) استفاده کنید (ZEN-DEPR-027؛ حذف در ۲.۰).
  */
-export function recordStateChange(sig: Signal<any>, oldValue: any, newValue: any): void {
+export function registerSignal(sig: Signal<any>, name?: string): number {
+  deprecate(
+    'ZEN-DEPR-027',
+    'registerSignal (@zenith/state)',
+    '@zenith/devtools-core registerSignal / installDevtoolsCore',
+  );
+  if (name !== undefined) notifySignalName(sig, name);
+  return _registerSignalInternal(sig, name);
+}
+
+/**
+ * مسیر داخلی بدون هشدار deprecation برای فراخوانی از داخل Signal.set/update.
+ */
+export function _recordStateChangeInternal(sig: Signal<any>, oldValue: any, newValue: any): void {
   if (!isDevtoolsEnabled()) return;
 
   // BUG-04 FIX: پاکسازی دوره‌ای در صورت نبود FinalizationRegistry.
@@ -220,13 +246,26 @@ export function recordStateChange(sig: Signal<any>, oldValue: any, newValue: any
 }
 
 /**
+ * ثبت یک تغییر State در Timeline.
+ *
+ * @deprecated #147 — از `@zenith/devtools-core` (`recordStateChange` / `installDevtoolsCore`) استفاده کنید (ZEN-DEPR-028؛ حذف در ۲.۰).
+ */
+export function recordStateChange(sig: Signal<any>, oldValue: any, newValue: any): void {
+  deprecate(
+    'ZEN-DEPR-028',
+    'recordStateChange (@zenith/state)',
+    '@zenith/devtools-core recordStateChange / installDevtoolsCore',
+  );
+  _recordStateChangeInternal(sig, oldValue, newValue);
+}
+
+/**
  * دریافت لیست تمام Signal های فعال.
  *
- * Bug Fix #5: این تابع اکنون Signal های GC شده را فیلتر می‌کند.
- *
- * @returns آرایه‌ای از SignalInfo.
+ * @deprecated #147 — از `@zenith/devtools-core` (`getAllSignals`) استفاده کنید (ZEN-DEPR-029؛ حذف در ۲.۰).
  */
 export function getAllSignals(): SignalInfo[] {
+  deprecate('ZEN-DEPR-029', 'getAllSignals (@zenith/state)', '@zenith/devtools-core getAllSignals');
   if (!isDevtoolsEnabled()) return [];
   // پاکسازی Signal های dispose شده قبل از بازگشت.
   cleanupDisposedSignals();
@@ -236,26 +275,36 @@ export function getAllSignals(): SignalInfo[] {
 /**
  * دریافت Signal با ID.
  *
- * @param id ID Signal.
- * @returns SignalInfo یا undefined.
+ * @deprecated #147 — از `@zenith/devtools-core` (`getSignalInfo`) استفاده کنید (ZEN-DEPR-030؛ حذف در ۲.۰).
  */
 export function getSignalInfo(id: number): SignalInfo | undefined {
+  deprecate('ZEN-DEPR-030', 'getSignalInfo (@zenith/state)', '@zenith/devtools-core getSignalInfo');
   if (!isDevtoolsEnabled()) return undefined;
   return idToInfo.get(id);
 }
 
 /**
  * دریافت Timeline تغییرات State.
+ *
+ * @deprecated #147 — از `@zenith/devtools-core` (`getTimeline`) استفاده کنید (ZEN-DEPR-031؛ حذف در ۲.۰).
  */
 export function getStateTimeline(limit: number = 100): StateChange[] {
+  deprecate(
+    'ZEN-DEPR-031',
+    'getStateTimeline (@zenith/state)',
+    '@zenith/devtools-core getTimeline',
+  );
   if (!isDevtoolsEnabled()) return [];
   return stateChangeTimeline.slice(-limit);
 }
 
 /**
  * ثبت یک callback برای تغییرات State.
+ *
+ * @deprecated #147 — از `@zenith/devtools-core` (`onStateChange`) استفاده کنید (ZEN-DEPR-032؛ حذف در ۲.۰).
  */
 export function onStateChange(callback: (change: StateChange) => void): () => void {
+  deprecate('ZEN-DEPR-032', 'onStateChange (@zenith/state)', '@zenith/devtools-core onStateChange');
   if (!isDevtoolsEnabled()) return () => {};
   stateChangeListeners.push(callback);
   return () => {
@@ -313,33 +362,28 @@ function cleanupDisposedSignals(): void {
 /**
  * پاکسازی کامل رجیستری (برای تست‌ها).
  *
- * ⚠️ در Production استفاده نکنید.
+ * @deprecated #147 — از `@zenith/devtools-core` (`clearRegistry`) استفاده کنید (ZEN-DEPR-034؛ حذف در ۲.۰).
  */
 export function clearRegistry(): void {
+  deprecate('ZEN-DEPR-034', 'clearRegistry (@zenith/state)', '@zenith/devtools-core clearRegistry');
   signalToId = new WeakMap<Signal<any>, number>();
   idToInfo.clear();
   stateChangeTimeline.length = 0;
   stateChangeListeners.length = 0;
-  // FIX (v1.2.4): Do NOT reset `nextSignalId` here. Resetting it causes ID
-  // collisions: signals created after a `clearRegistry()` call (e.g. between
-  // test suites, or after a route change that re-initializes state) would
-  // reuse IDs 1, 2, 3, ... that may still be referenced by:
-  //   - State change timeline entries still held by external listeners.
-  //   - DevTools panels that cached `SignalInfo` objects.
-  //   - FinalizationRegistry callbacks (which fire async after GC).
-  // Keeping the counter monotonically increasing guarantees global ID
-  // uniqueness for the lifetime of the process.
-  // nextSignalId = 1;
 }
 
 /**
  * نام‌گذاری یک Signal (برای دیباگ).
+ *
+ * @deprecated #147 — از `@zenith/devtools-core` (`nameSignal`) استفاده کنید (ZEN-DEPR-033؛ حذف در ۲.۰).
  */
 export function nameSignal(sig: Signal<any>, name: string): void {
+  deprecate('ZEN-DEPR-033', 'nameSignal (@zenith/state)', '@zenith/devtools-core nameSignal');
+  notifySignalName(sig, name);
   if (!isDevtoolsEnabled()) return;
   const id = signalToId.get(sig);
   if (id === undefined) {
-    registerSignal(sig, name);
+    _registerSignalInternal(sig, name);
     return;
   }
   const info = idToInfo.get(id);

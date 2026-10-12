@@ -53,5 +53,10 @@
     "name": "@zenith/storage",
     "path": "packages/storage/dist/index.js",
     "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/devtools-core",
+    "path": "packages/devtools-core/dist/index.js",
+    "limit": "4 kb"
   }
 ]

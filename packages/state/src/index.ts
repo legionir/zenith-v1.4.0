@@ -65,7 +65,10 @@ export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './
 //   effect(() => updateDOM(), Priority.urgent);
 export { Priority } from '@zenith/scheduler';
 
-// ── فاز ۱۰: State Registry (برای DevTools) ──
+// ── #147: SignalObserver hook برای @zenith/devtools-core (SPEC §۲.۷) ──
+export { setSignalObserver, getSignalObserver, type SignalObserver } from './observer';
+
+// ── فاز ۱۰: State Registry (منسوخ‌شده در #147؛ حذف در ۲.۰ — DEC-026) ──
 export {
   registerSignal,
   recordStateChange,

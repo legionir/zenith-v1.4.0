@@ -883,6 +883,47 @@ export const DEPRECATION_CODES: Readonly<
     replacement: 'Zen.use(ZenithStatefulPlugin)',
     removedIn: '2.0.0',
   },
+  // #147 — انتقال رجیستری devtools از @zenith/state به @zenith/devtools-core (SPEC §۲.۷).
+  'ZEN-DEPR-027': {
+    api: 'registerSignal (@zenith/state)',
+    replacement: '@zenith/devtools-core registerSignal / installDevtoolsCore',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-028': {
+    api: 'recordStateChange (@zenith/state)',
+    replacement: '@zenith/devtools-core recordStateChange / installDevtoolsCore',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-029': {
+    api: 'getAllSignals (@zenith/state)',
+    replacement: '@zenith/devtools-core getAllSignals',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-030': {
+    api: 'getSignalInfo (@zenith/state)',
+    replacement: '@zenith/devtools-core getSignalInfo',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-031': {
+    api: 'getStateTimeline (@zenith/state)',
+    replacement: '@zenith/devtools-core getTimeline',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-032': {
+    api: 'onStateChange (@zenith/state)',
+    replacement: '@zenith/devtools-core onStateChange',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-033': {
+    api: 'nameSignal (@zenith/state)',
+    replacement: '@zenith/devtools-core nameSignal',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-034': {
+    api: 'clearRegistry (@zenith/state)',
+    replacement: '@zenith/devtools-core clearRegistry',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
