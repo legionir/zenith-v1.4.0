@@ -28,7 +28,8 @@
     "error-hygiene": "node scripts/error-hygiene.mjs",
     "cleanup-hygiene": "node scripts/cleanup-hygiene.mjs",
     "attribute-grammar": "node scripts/attribute-grammar.mjs",
-    "peer:single-instance": "node scripts/peer-single-instance.mjs"
+    "peer:single-instance": "node scripts/peer-single-instance.mjs",
+    "new:package": "node scripts/new-package.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
