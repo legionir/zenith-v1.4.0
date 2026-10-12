@@ -23,6 +23,7 @@ Zenith یک فریم‌ورک فرانت‌اند نوآورانه با رویک
 
 ### قراردادها
 - [📐 قرارداد API (API-CONVENTIONS) — نام‌گذاری، الگوی ساخت، فعل‌ها، ورودی واکنشی](./API-CONVENTIONS.md)
+- [🧾 گرامر attributeها و رویدادها (ATTRIBUTE-GRAMMAR) — قواعد zen-*، DirectiveMeta، zenith.meta.json](./ATTRIBUTE-GRAMMAR.md)
 
 ## 🚀 شروع سریع
 

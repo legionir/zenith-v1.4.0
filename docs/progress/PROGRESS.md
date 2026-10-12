@@ -1,10 +1,11 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #115
-issue در حال انجام: #116 (کامیت شد؛ در انتظار CI موج)
-بعدی: #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #116
+issueهای باز (جزئی): #117 و #173 — کد/سند/گیت هر دو کامیت شده؛ بقایا:
+lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو موج ۴)
+بعدی: #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38192249610 (روی HEAD 0d8eb11 — #115؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38198172598 (روی HEAD 6ae1b21 — #115/#116؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -522,3 +523,50 @@ issue در حال انجام: #116 (کامیت شد؛ در انتظار CI مو�
     cleanup-hygiene / peer-rule / deps:unused ۰ / dependency-cruiser ۰ نقض /
     size-limit / publint (مثل baseline — خطای zenith-vscode از قبل با --check CI
     با compile رفع می‌شود).
+
+- #117 انجام شد — جزئی (موج ۲؛ کامیت 747d0b3): سند مبنا `docs/API-CONVENTIONS.md`
+  (§۰ TL;DR، §۱ شش الگوی ساخت/ثبت/تعریف/اتصال/راه‌اندازی/رویداد با مثال + «اجرا»
+  برای هر قاعده، §۲ MaybeReactive+toValue، §۳ dispose/Cleanup، §۴ خطا/گزینه‌ها،
+  §۵ جدول قاعده↔lint، §۶ جدول نگاشت نام‌های فعلی→قرارداد، §۷ گیت‌ها).
+  - یکدست‌سازی رفتاری: `schedule` → alias منسوخ روی `scheduleEffect`
+    (ZEN-DEPR-025)؛ `installStatefulComponents()` → alias منسوخ روی مسیر مشترک
+    `registerStatefulDirectives()` با نصب canonical `ZenithStatefulPlugin`
+    (ZEN-DEPR-026) و بازگشت Cleanup idempotent — console.warn تکراری حذف شد ⇒
+    ceiling error-hygiene ۲۰۲→۲۰۱ (DEC-031 به‌روزشد).
+  - گیت قرارداد: `scripts/test/api-conventions.test.mjs` (۸ تست — هر قاعده مثال
+    ``` دارد، جدول lint ≥۱۰ ردیف، §۶ همهٔ exportهای ناهمگونِ واقعیِ init/setup/
+    load/cleanup/alert/confirm را فهرست می‌کند، DEPR-025/026 ثبت‌شده، تک‌مسیر بودن
+    install stateful). `docs/README.md` بخش «قراردادها».
+  - دلیل باز ماندن (جزئی): (۱) قوانین واقعی `@zenith/eslint-plugin`
+    که جدول §۵ را اجرایی کند → **#159** (موج ۴)؛ (۲) لینک از `CONTRIBUTING.md`
+    که هنوز نوشته نشده → **#107** (موج ۴؛ فعلاً docs/README ارجاع معادل است).
+    تست‌های قرارداد #117 دروازهٔ میانی را قفل کرده‌اند.
+
+- #173 انجام شد — جزئی (موج ۲): `docs/ATTRIBUTE-GRAMMAR.md` — گرامر attributeهای `zen-*`
+  و رویداد CustomEvent (SPEC §۰.۳):
+  - §۱ هر ۱۰ قاعده + الزام متادیتا با مثال HTML/ts و بند «اجرا» (منبع کد واقعی:
+    `resource/src/directive.ts:39` zen-state، `walker.ts:904` zen-bind:،
+    `events/src/modifiers.ts` BUILTIN_MODIFIERS، `stateful-button.ts:158`
+    data-state، `shared/src/options.ts` parseBooleanAttr/parseDuration/`:expr`);
+    §۲ استثنای‌های پارامتریک (`zen-bind:<attr>`/`zen-action:<event>.<mod>`)؛
+    §۳ DirectiveMeta (شکل حداقلی #142 vs شکل کامل SPEC §۰.۳ + نمونهٔ
+    defineDirectiveMeta + مسیر تولید zenith.meta.json/html.customData.json با
+    `gen-zenith-meta.mjs --check`)؛ §۴ جدول طبقه‌بندی ۱۷ directive موجود
+    (≥۱۰ معیار پذیرش) + فهرست ۵ مورد ناسازگار با فایل:سطر و issue مقصد
+    (crud `data-body/data-ids`/`zen-bind:data-resource` → #52/#172؛
+    `CustomEvent('change')` بدون bubbles در date-picker.ts:244؛ متادیتای
+    ثبت‌نشدهٔ zen-crud-*/zen-router-*/zen-suspense-* → #52/#148)؛ §۵ نگاشت
+    قاعده↔lint (`valid-directive`/`no-unknown-option` → #159).
+  - گیت جدید `scripts/attribute-grammar.mjs` (`npm run attribute-grammar`؛ job
+    deps CI): سازگاری جدول §۴ سند ↔ seed رجیستری (ثبت‌بودن نام، no-unknown-option
+    با مستثنای `:param`، حداقل ۱۰ ردیف معتبر، نمونهٔ کد در هر §۱.x). تابع pure
+    `checkAttributeGrammar(doc, seed)` export شده.
+  - seed متادیتا از ۴ به ۱۷ directive رسید (افزودن zen-action/bind/cloak/fetch/
+    html/html-trusted/key/ref/resource/show/static/text/transition + zen-state
+    به attributes zen-fetch/zen-resource)؛ اسنپ‌شات‌ها بازتولید و `--check` سبز.
+  - تست‌ها: `scripts/test/attribute-grammar.test.mjs` (۱۶ تست — fixture red برای
+    ثبت‌نشده، گزینهٔ ناشناخته، :param، <۱۰، بند بدون مثال/گمشده، نام غیرkebab +
+    acceptance روی سند/seed واقعی و لینک متقابل API-CONVENTIONS/README).
+    `npm test` = ۱۰۸۸ سبز (از ۱۰۷۲).
+  - لینک‌ها: از `API-CONVENTIONS.md` §۷ (سند خواهر + گیت) و `docs/README.md`
+    «قراردادها»؛ لینک CONTRIBUTING → #107 (موج ۴) در header سند یادداشت شد.

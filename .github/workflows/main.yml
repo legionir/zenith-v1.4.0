@@ -125,6 +125,9 @@ jobs:
       # a Cleanup; public destroy/cancel/stop members are @deprecated aliases
       # (ZEN-DEPR-019..024 → dispose) or documented behavioral names in allowlist.
       - run: npm run cleanup-hygiene
+      # #173: attribute-grammar doc ↔ directive-meta registry consistency
+      # (table §۴ vs zenith.meta.seed.json; no-unknown-option pre-#159 gate).
+      - run: npm run attribute-grammar
 
   package-lint:
     name: Package lint (publint)

@@ -272,10 +272,13 @@ export const DEFAULTS = defineDefaults({ ttl: 0, maxSize: 100 });
 |---|---|---|
 | cleanup-hygiene | `npm run cleanup-hygiene` | deps |
 | error-hygiene | `npm run error-hygiene` | deps |
+| attribute-grammar (#173) | `npm run attribute-grammar` | deps |
 | peer-rule | `npm run peer-rule` | deps |
 | no-console ratchet | `scripts/test/no-console-ratchet.test.mjs` | unit |
 | eslint-plugin قراردادها (#159) | `@zenith/eslint-plugin` rules | lint |
 
-این سند **منبع واحد قرارداد** است؛ هر قاعدهٔ جدید باید قبل از کد، اینجا با مثال و
+این سند **منبع واحد قرارداد API** است؛ هر قاعدهٔ جدید باید قبل از کد، اینجا با مثال و
 کلید lint بنویسد و سپس در `@zenith/eslint-plugin` (#159) یا یک `scripts/*.mjs`
-اجرا شود.
+اجرا شود. گرامر attributeهای HTML و رویدادهای `CustomEvent` در سند خواهر
+[ATTRIBUTE-GRAMMAR.md](./ATTRIBUTE-GRAMMAR.md) (#173) ثابت شده‌اند و با گیت
+`scripts/attribute-grammar.mjs` به رجیستری `zenith.meta.json` قفل می‌شوند.
