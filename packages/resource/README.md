@@ -32,3 +32,12 @@ await users.list(); // شروع fetch اولیه (dedup می‌شود)
 ## مجوز
 
 MIT
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`Resource` implements `Disposable` (`@zenith/shared`): `dispose()` stops the
+auto-refresh interval, aborts in-flight requests and removes the instance from
+the global registry; idempotent. `destroy()` is a deprecated alias (warns once
+with **ZEN-DEPR-023**, removed in 2.0 per DEC-026). The `zen-resource` directive
+(`processResource`) returns an idempotent `Cleanup` (`() => void`) and also
+pushes it into the legacy `disposes[]` array for back-compat.

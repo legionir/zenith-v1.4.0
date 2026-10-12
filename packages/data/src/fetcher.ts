@@ -334,7 +334,8 @@ async function performFetch(
  * @param context         Context والد.
  * @param processChildren callback برای walk فرزندان.
  *                        امضا: (node, context, disposes) => void
- * @param disposes        آرایه‌ی dispose functions والد.
+ * @param disposes        آرایه‌ی dispose functions والد (سازگاری — #116).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` → `Cleanup`).
  */
 export function processFetch(
   el: HTMLElement,
@@ -346,7 +347,7 @@ export function processFetch(
     disposes: (() => void)[],
   ) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   // ── ۱. گرفتن attributeها ──
   // HTML attribute names case-insensitive هستند و DOM آن‌ها را lowercase می‌کند.
   const stateName = el.getAttribute('zen-state') || 'data';
@@ -488,7 +489,9 @@ export function processFetch(
   //   1) fetch در حال انجام را abort می‌کند (صرفه‌جویی bandwidth).
   //   2) Effect را dispose می‌کند (جلوگیری از fetch بعد از unmount).
   //   3) تمام effectهای فرزندان را dispose می‌کند.
-  disposes.push(() => {
+  // #116 cleanup protocol: Cleanup idempotent برگردانده می‌شود و همزمان
+  // به آرایهٔ disposes اضافه می‌شود (سازگاری با گذشته).
+  const cleanup = (): void => {
     currentFetchId++; // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
     // abort fetch در حال انجام.
     if (currentAbortController) {
@@ -504,5 +507,13 @@ export function processFetch(
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }

@@ -312,6 +312,8 @@ interface ZenApi {
   confirm: typeof notificationsAPI.confirm;
   auth: typeof auth;
   start(root: HTMLElement, state?: Record<string, any>, options?: ZenStartOptions): void;
+  // #116/DEC-032: `stop` فعل خاموش‌کردن کامل اپ است (teardown سند + فراخوانی
+  // disposeها) — نه چرخهٔ عمر یک نمونه؛ در گیت cleanup-hygiene allowlist شده.
   stop(root: HTMLElement): void;
   action: ReturnType<
     typeof Object.assign<

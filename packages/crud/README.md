@@ -27,3 +27,9 @@ const users = getResource('users');
 ## مجوز
 
 MIT
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`CrudEngine` implements `Disposable` (`@zenith/shared`): `dispose()` tears down
+its resource effects and dynamic actions; idempotent. `destroy()` is a
+deprecated alias (warns once with **ZEN-DEPR-021**, removed in 2.0 per DEC-026).

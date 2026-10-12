@@ -134,3 +134,11 @@ use `credentials: 'same-origin'`; the `secureLogout` fetch fallback uses
 `credentials: 'include'` so server-set HttpOnly cookies are invalidated even when
 `navigator.sendBeacon` is unavailable. Concurrent `refresh()` calls are single-flight
 (one network request) to keep token rotation race-free.
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`Auth` implements `Disposable` (`@zenith/shared`): call `auth.dispose()` to clear
+refresh timers and listeners; it is idempotent. `destroy()` remains as a
+deprecated alias (warns once with **ZEN-DEPR-020**, removed in 2.0 per DEC-026).
+`registerAuth(name, auth)` returns a `Cleanup` (`() => void`) that unregisters
+the provider — only if it is still the registered one (identity-guarded).

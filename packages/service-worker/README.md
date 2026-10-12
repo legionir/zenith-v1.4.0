@@ -217,3 +217,9 @@ navigator.serviceWorker.ready.then((reg) => {
 ## License
 
 MIT — part of the Zenith framework.
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+The SW controller exposes `dispose()` (implements `Disposable` from
+`@zenith/shared`): removes message/state listeners; idempotent. `destroy()` is a
+deprecated alias (warns once with **ZEN-DEPR-024**, removed in 2.0 per DEC-026).

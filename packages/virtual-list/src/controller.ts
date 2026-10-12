@@ -77,9 +77,24 @@ interface RenderedItem {
  */
 const nodeDisposes = new WeakMap<HTMLElement, (() => void)[]>();
 
-/** #47: ثبت disposeهای یک نود رندرشده (برای wrapper دایرکتیو). */
-export function registerVirtualListNodeDisposes(node: HTMLElement, disposes: (() => void)[]): void {
+/**
+ * #47: ثبت disposeهای یک نود رندرشده (برای wrapper دایرکتیو).
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent که نگاشت node را
+ * حذف می‌کند (فقط اگر هنوز همان آرایه باشد).
+ */
+export function registerVirtualListNodeDisposes(
+  node: HTMLElement,
+  disposes: (() => void)[],
+): () => void {
   nodeDisposes.set(node, disposes);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (nodeDisposes.get(node) === disposes) {
+      nodeDisposes.delete(node);
+    }
+  };
 }
 
 function resolveContainer(container: HTMLElement | string): HTMLElement {

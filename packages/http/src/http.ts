@@ -111,10 +111,20 @@ let defaultConfig: HttpRequestOptions = {
 // ============================================================
 
 /**
- * Set default configuration for all HTTP requests
+ * Set default configuration for all HTTP requests.
+ *
+ * #116 cleanup protocol: تنظیمات «ثبت» محسوب می‌شود؛ خروجی یک `Cleanup`
+ * idempotent است که مقدار قبلی defaultConfig را بازمی‌گرداند.
  */
-export function setHttpConfig(config: Partial<HttpRequestOptions>): void {
+export function setHttpConfig(config: Partial<HttpRequestOptions>): () => void {
+  const previous = defaultConfig;
   defaultConfig = { ...defaultConfig, ...config };
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    defaultConfig = previous;
+  };
 }
 
 /**

@@ -36,7 +36,7 @@
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { getComponent, trackComponentLifecycle } from './registry';
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError, ErrorCode, reportError } from '@zenith/errors';
 
 // ─────────────────────────────────────────────────────────────────────────
 // BUG-COM-04 (v1.3.0): Circular Dependency Detection
@@ -78,9 +78,21 @@ const lifecycleHooks = new Map<string, ComponentLifecycle>();
 /**
  * Register lifecycle hooks for a component.
  * Used by registry.ts: defineComponent() and by direct API calls.
+ *
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است که فقط در صورتی
+ * hooks را حذف می‌کند که همان شیء hooks هنوز ثبت باشد.
  */
-export function registerLifecycle(name: string, hooks: ComponentLifecycle): void {
-  lifecycleHooks.set(name.toLowerCase(), hooks);
+export function registerLifecycle(name: string, hooks: ComponentLifecycle): () => void {
+  const key = name.toLowerCase();
+  lifecycleHooks.set(key, hooks);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (lifecycleHooks.get(key) === hooks) {
+      lifecycleHooks.delete(key);
+    }
+  };
 }
 
 /**
@@ -297,6 +309,10 @@ function buildSlotContents(el: HTMLElement): Map<string, HTMLElement[]> {
  *                        - isSlotContent=true: محتوا با parentContext walk می‌شود.
  *                        - isSlotContent=false: محتوا با localContext walk می‌شود.
  * @param disposes        آرایه‌ی dispose functions (برای Memory Leak Prevention).
+ *                        #116: همچنان پر می‌شود (سازگاری) و Cleanup برگردانده
+ *                        می‌شود.
+ * @returns Cleanup تابعی idempotent که disposeهای ثبت‌شدهٔ همین کامپوننت را
+ *           اجرا می‌کند (#116: همهٔ `process*` → `Cleanup`).
  */
 export function processComponent(
   el: HTMLElement,
@@ -308,13 +324,13 @@ export function processComponent(
     isSlotContent: boolean,
   ) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   const tagName = el.tagName.toLowerCase();
   const template = getComponent(tagName);
   if (!template) {
     // اگر کامپوننت ثبت نشده بود، چیزی برای پردازش نیست.
     // walker هم که این تابع را فراخوانی کرده، return می‌کند.
-    return;
+    return () => {}; // #116: Cleanup no-op برای کامپوننت ثبت‌نشده
   }
 
   // BUG-COM-04 (v1.3.0): Circular dependency detection.
@@ -331,6 +347,11 @@ export function processComponent(
     );
   }
   _processingStack.add(tagName);
+
+  // #116 cleanup protocol: disposeهای فرزندان و onMount این کامپوننت در
+  // آرایهٔ محلی جمع می‌شوند؛ سپس یک Cleanup idempotent هم به disposes والد
+  // اضافه می‌شود (سازگاری) و هم به فراخوان برگردانده می‌شود.
+  const componentDisposes: (() => void)[] = [];
 
   try {
     // ── ۱. ساخت Context محلی (ارث‌بری از والد + Props) ──
@@ -388,7 +409,7 @@ export function processComponent(
     for (const child of Array.from(el.children)) {
       const childEl = child as HTMLElement;
       const isSlot = slotNodes.has(childEl);
-      processChildren(childEl, isSlot ? parentContext : localContext, disposes, isSlot);
+      processChildren(childEl, isSlot ? parentContext : localContext, componentDisposes, isSlot);
     }
 
     // IMP-COM-02 (v1.3.0): Lifecycle hooks — call onMount after the
@@ -401,7 +422,7 @@ export function processComponent(
       try {
         const cleanup = hooks.onMount();
         if (typeof cleanup === 'function') {
-          disposes.push(cleanup);
+          componentDisposes.push(cleanup);
           // Also register with the MutationObserver-based lifecycle tracker
           // so cleanup fires when the element leaves the DOM even if the
           // walker doesn't explicitly call the dispose array.
@@ -417,6 +438,27 @@ export function processComponent(
         console.error(`[Zenith] Lifecycle onMount error for "${tagName}":`, err);
       }
     }
+
+    // ── ۷. Cleanup (#116) ──
+    // یک Cleanup idempotent ساخته می‌شود که disposeهای همین کامپوننت را
+    // اجرا کند؛ هم به disposes والد اضافه می‌شود (سازگاری با walker/HMR)
+    // و هم به فراخوان برگردانده می‌شود.
+    let cleaned = false;
+    const idempotentCleanup = (): void => {
+      if (cleaned) return;
+      cleaned = true;
+      for (const d of componentDisposes) {
+        try {
+          d();
+        } catch (err) {
+          // #116/DEC-031: لاگ از hub؛ نه console.error مستقیم.
+          reportError(err, `component:${tagName}`, { phase: 'dispose' });
+        }
+      }
+      componentDisposes.length = 0;
+    };
+    disposes.push(idempotentCleanup);
+    return idempotentCleanup;
   } finally {
     // BUG-COM-04 (v1.3.0): Always remove this component from the
     // processing stack, even if an error was thrown during processing.

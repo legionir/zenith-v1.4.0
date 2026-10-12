@@ -841,6 +841,37 @@ export const DEPRECATION_CODES: Readonly<
     replacement: '@zenith/schema/json-schema fromJsonSchema',
     removedIn: '2.0.0',
   },
+  // #116 — پروتکل یکسان cleanup: نام‌گذاری lifecycle به Disposable.dispose().
+  'ZEN-DEPR-019': {
+    api: 'ActionRegistry.destroy()',
+    replacement: 'ActionRegistry.dispose()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-020': {
+    api: 'Auth.destroy()',
+    replacement: 'Auth.dispose()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-021': {
+    api: 'CrudEngine.destroy()',
+    replacement: 'CrudEngine.dispose()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-022': {
+    api: 'FormStore.destroy()',
+    replacement: 'FormStore.dispose()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-023': {
+    api: 'Resource.destroy()',
+    replacement: 'Resource.dispose()',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-024': {
+    api: 'SWController.destroy()',
+    replacement: 'SWController.dispose()',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -948,10 +979,10 @@ export function resourceDestroyedError(
   return new ZenithError({
     code: ErrorCode.RESOURCE_DESTROYED,
     category: 'Resource',
-    message: `Resource «${resourceName}» قبلاً destroy() شده است و عملیات «${operation}» مجاز نیست.`,
+    message: `Resource «${resourceName}» قبلاً dispose() شده است و عملیات «${operation}» مجاز نیست.`,
     suggestion:
-      `این Resource با destroy() غیرفعال شده. برای ردیابی:\n` +
-      `  ۱. در کد جستجو کنید: ${resourceName}.destroy()\n` +
+      `این Resource با dispose() غیرفعال شده. برای ردیابی:\n` +
+      `  ۱. در کد جستجو کنید: ${resourceName}.dispose()\n` +
       `  ۲. معمولاً در cleanup hooks (onUnmounted, useEffect cleanup) صدا زده می‌شود.\n` +
       `  ۳. برای revive کردن: ${resourceName}.reset()`,
     details: {

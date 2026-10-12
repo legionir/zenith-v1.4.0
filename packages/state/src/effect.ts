@@ -65,9 +65,21 @@ let globalEffectErrorHandler: ((err: unknown, effect: Function) => void) | null 
  * داده می‌شوند و Effect به‌طور خودکار از گراف حذف می‌شود.
  *
  * @param handler تابع handler یا null برای پاک کردن.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که اگر هنوز همین
+ *           handler فعال باشد، آن را پاک می‌کند (handler=null بدون اثر قبلی).
  */
-export function onEffectError(handler: ((err: unknown, effect: Function) => void) | null): void {
+export function onEffectError(
+  handler: ((err: unknown, effect: Function) => void) | null,
+): () => void {
   globalEffectErrorHandler = handler;
+  let cleared = false;
+  return () => {
+    if (cleared) return;
+    cleared = true;
+    if (handler !== null && globalEffectErrorHandler === handler) {
+      globalEffectErrorHandler = null;
+    }
+  };
 }
 
 /**
@@ -214,8 +226,16 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
     setActiveEffect(runEffect);
 
     // ۳. تنظیم مکانیزم ثبت Cleanup
+    // #116: تابع ثبت، یک Cleanup برای حذف cleanup از صف قبل از اجرا برمی‌گرداند.
     setActiveCleanupRegistration((cleanup) => {
       cleanupQueue.push(cleanup);
+      let removed = false;
+      return () => {
+        if (removed) return;
+        removed = true;
+        const idx = cleanupQueue.indexOf(cleanup);
+        if (idx !== -1) cleanupQueue.splice(idx, 1);
+      };
     });
 
     try {

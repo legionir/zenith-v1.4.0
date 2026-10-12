@@ -129,6 +129,8 @@ function startStaticServer(
       resolve({
         process: server,
         url: `http://localhost:${actualPort}`,
+        // #116/DEC-032: هندل tooling برای بستن server تستی — چرخهٔ عمر
+        // کتابخانهٔ مرورگری نیست؛ در گیت cleanup-hygiene allowlist شده.
         stop: () => server.close(),
       });
     });

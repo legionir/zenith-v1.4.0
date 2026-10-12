@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #145
-issue در حال انجام: #115 (کامیت شد؛ در انتظار CI موج)
-بعدی: #116، #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
+آخرین issue کامل: #115
+issue در حال انجام: #116 (کامیت شد؛ در انتظار CI موج)
+بعدی: #117، #173، #172، #52، #147، #148، #149، #92، #48، #49
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
-آخرین run موفق CI: 38094314128 (روی HEAD 34dda9e — #145؛ هر ۱۲ job مسدودکننده سبز)
+آخرین run موفق CI: 38192249610 (روی HEAD 0d8eb11 — #115؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
 - 181 issue باز (#6..#186).
@@ -477,3 +477,48 @@ issue در حال انجام: #115 (کامیت شد؛ در انتظار CI مو�
     deps (cruiser ۰ نقض) / deps:unused ۰ / peer-rule / error-hygiene / peer:single-instance /
     publint (مثل baseline) / size-limit / e2e ۵ (fixture importmap + errors) / package-fields /
     license-sync.
+
+- #116 انجام شد (موج ۲، DEC-032): پروتکل یکسان cleanup در کل public API:
+  - قرارداد: `Disposable`/`Cleanup` از `@zenith/shared` مبنا شد؛ هر `process*`/`bind*`
+    و هر ثبت (`registerX`/`onX`/`beforeEach`/`setHttpConfig`) حالا `Cleanup`
+    (`() => void`) **idempotent** برمی‌گرداند و همزمان در آرایهٔ `disposes[]`
+    (سازگاری با walker/HMR) قرار می‌گیرد؛ مسیرهای خطا/SSR `() => {}` می‌دهند.
+    حذف ثبت‌ها با محافظ هویت (identity-guard) تا cleanup قدیمی ثبت جدید را نبرد.
+  - `destroy`/`cancel`/`stop` عمومی → `dispose()`: شش alias منسوخ‌شونده با
+    `deprecate()` — ZEN-DEPR-019 (ActionRegistry)، 020 (Auth)، 021 (CrudEngine)،
+    022 (FormStore)، 023 (Resource)، 024 (SWController)؛ رجیستری کدها در
+    `errors/src/core.ts` + به‌روزرسانی آزمون بازه‌ها؛ حذف در 2.0 (DEC-026).
+    رفتاری‌ها نگه داشته شدند و در DEC-032 allowlist شدند: `TransitionRun.cancel`
+    (run-scoped)، `http.cancelRequest/cancelAllRequests`، `Zen.stop` (shutdown)،
+    `schema.stop` (فیلد بولی نتیجه)، `cli/lighthouse.stop` (tooling).
+  - `VirtualListController` خود یک Cleanup callable شد (`(): void` + `dispose()` —
+    DEC-032)؛ `create*ها` (`createAuth/createResource/createForm/createWizardForm/
+    createCrudEngine/createActionRegistry/createSWController/createTransition/
+    createVirtualList/createSuspense/createStorage/createLogger/createCache`)
+    مستقیم یا از طریق class/interface متناظر `dispose()` دارند.
+  - گیت جدید `scripts/cleanup-hygiene.mjs` (`npm run cleanup-hygiene`؛ job deps CI):
+    (۱) هر `process*`/`bind*` exportشده نوع بازگشتی Cleanup صریح؛ (۲) هر عضو
+    `destroy/cancel/stop` یا alias کامل است (`@deprecated` + `deprecate(ZEN-DEPR…,
+    x.<name>())` + `dispose` در فایل) یا در BEHAVIORAL_ALLOWLIST با کامنت DEC-032
+    در همان فایل؛ ردیف کهنه allowlist = شکست. خروج: 36 process*/bind* و 15 عضو ✔.
+    تابع pure `checkCleanupHygiene(packagesDir, read)` export شد؛
+    `scripts/test/cleanup-hygiene.test.mjs` (۱۷ تست: fixture مصنوعی red-before-fix
+    برای void process*، نوع غلط، destroy غیر-alias، alias صحیح، allowlist بدون
+    کامنت، ردیف کهنه + acceptance روی ریپوی واقعی).
+  - تست‌ها (red-before-fix، ۴۸ مورد جدید سبز): `cleanup-protocol.test.ts` در
+    actions/auth/form/resource/crud/router/http/state/suspense/data/components/
+    service-worker + transition/virtual-list (نشت listener/timer/observer: بعد از
+    dispose صفر) + `runtime/test/process-dom-cleanup.test.ts` (توقف zen-text پس از
+    cleanup + سازگاری `__zenithDisposes`). `npm test` = ۱۰۵۸ سبز (از ۱۰۱۰).
+  - بهداشت #115 حفظ شد: دو `console.error` جدیدِ dispose-catch به hub منتقل شدند
+    (`reportError(err, source, { phase: 'dispose' })` در walker.ts/processor.ts) —
+    ceiling ۲۰۲ بدون افزایش؛ ratchet فقط رو به پایین.
+  - Docs: DEC-032 (زمینه/گزینه‌ها/تصمیم/پیامدها؛ لینک #116/#117/DEC-021/026/031)؛
+    READMEهای auth/resource/form/crud/actions/service-worker/http/router/state
+    (انگلیسی/فارسی) با بخش «cleanup protocol — #116/DEC-032»؛ rfc-decisions آزمون
+    max DEC 031→032؛ package.json اسکریپت؛ main.yml گیت در job deps.
+  - گیت‌های محلی سبز: lint ۰ error / format (prettier --write روی فایل‌های جدید) /
+    typecheck 41 / test ۱۰۵۸ / coverage exit 0 (هسته ≥۷۰) / error-hygiene 202/202 /
+    cleanup-hygiene / peer-rule / deps:unused ۰ / dependency-cruiser ۰ نقض /
+    size-limit / publint (مثل baseline — خطای zenith-vscode از قبل با --check CI
+    با compile رفع می‌شود).

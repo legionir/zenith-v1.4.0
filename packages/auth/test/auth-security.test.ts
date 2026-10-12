@@ -60,14 +60,14 @@ describe('dev-mode storage warning (#62)', () => {
   it('does NOT warn for the secure default (memory)', () => {
     const auth = createAuth({ ...baseConfig });
     expect(warn).not.toHaveBeenCalled();
-    auth.destroy();
+    auth.dispose();
   });
 
   it('does NOT warn in production (__ZENITH_DEV__ = false)', () => {
     (globalThis as any).__ZENITH_DEV__ = false;
     const auth = new Auth({ ...baseConfig, tokenStorage: 'localStorage' });
     expect(warn).not.toHaveBeenCalled();
-    auth.destroy();
+    auth.dispose();
   });
 });
 
@@ -113,7 +113,7 @@ describe('refresh race guard (#62)', () => {
     expect(refreshCalls.length).toBe(1);
     // rotated token applied once
     expect(auth.token).toBe('T2');
-    auth.destroy();
+    auth.dispose();
   });
 
   it('a failed refresh does not poison the guard — a later refresh retries', async () => {
@@ -130,7 +130,7 @@ describe('refresh race guard (#62)', () => {
     const second = await auth.refresh();
     expect(second).toBe(true);
     expect(auth.token).toBe('T2');
-    auth.destroy();
+    auth.dispose();
   });
 });
 
@@ -187,7 +187,7 @@ describe('credentials mode (#62)', () => {
     const loginCall = fetchMock.mock.calls.find((c) => String(c[0]) === baseConfig.loginUrl);
     expect(loginCall).toBeDefined();
     expect((loginCall![1] as RequestInit).credentials).toBe('same-origin');
-    auth.destroy();
+    auth.dispose();
   });
 
   it('secureLogout falls back to fetch with credentials: include when sendBeacon is unavailable', async () => {
@@ -204,6 +204,6 @@ describe('credentials mode (#62)', () => {
     const init = fetchMock.mock.calls[0]![1] as RequestInit;
     expect(init.credentials).toBe('include');
     expect(init.keepalive).toBe(true);
-    auth.destroy();
+    auth.dispose();
   });
 });

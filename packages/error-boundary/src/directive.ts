@@ -26,13 +26,15 @@ import { clearError, onError } from './boundary';
  *
  * @param el              عنصری که zen-error روی آن است.
  * @param processChildren callback برای walk فرزندان.
- * @param disposes        آرایه‌ی dispose functions.
+ * @param disposes        آرایه‌ی dispose functions (سازگاری با گذشته — #116).
+ * @returns Cleanup تابعی idempotent که unsubscribe و dispose فرزندان را انجام
+ *           می‌دهد (#116: همهٔ `process*` باید `Cleanup` برگردانند).
  */
 export function processErrorBoundary(
   el: HTMLElement,
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   // ── ۱. پیدا کردن fallback template ──
   const fallbackTemplate = el.querySelector(
     ':scope > template[zen-fallback]',
@@ -86,7 +88,10 @@ export function processErrorBoundary(
   });
 
   // ─ـ ۳. ثبت dispose ─ـ
-  disposes.push(() => {
+  // #116 cleanup protocol: علاوه بر پر کردن آرایهٔ disposes (سازگاری)،
+  // یک Cleanup idempotent برگردانده می‌شود تا فراخوان بتواند مستقیماً
+  // خروجی process* را dispose کند.
+  const cleanup = (): void => {
     unsubscribe();
     for (const d of childDisposes) {
       try {
@@ -96,7 +101,15 @@ export function processErrorBoundary(
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }
 
 /**

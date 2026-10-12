@@ -79,8 +79,10 @@ function isHTMLTemplateElement(value: any): value is HTMLTemplateElement {
  *
  * @param name     نام کامپوننت (مثلا "app-product-card").
  * @param template قالب HTML کامپوننت.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           نام را حذف می‌کند که همان template هنوز ثبت باشد.
  */
-export function registerComponent(name: string, template: HTMLTemplateElement): void {
+export function registerComponent(name: string, template: HTMLTemplateElement): () => void {
   if (typeof name !== 'string' || name.length === 0) {
     throw developerError(
       `Component name must be a non-empty string. Received: ${String(name)}`,
@@ -93,7 +95,16 @@ export function registerComponent(name: string, template: HTMLTemplateElement): 
       ErrorCode.RUNTIME_COMPONENT_NOT_FOUND,
     );
   }
-  componentRegistry.set(name.toLowerCase(), template);
+  const key = name.toLowerCase();
+  componentRegistry.set(key, template);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (componentRegistry.get(key) === template) {
+      componentRegistry.delete(key);
+    }
+  };
 }
 
 /**

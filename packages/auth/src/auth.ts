@@ -44,7 +44,8 @@
 //   </div>
 
 import { signal, type Signal } from '@zenith/state';
-import { developerError, resourceHttpError, ErrorCode } from '@zenith/errors';
+import { developerError, resourceHttpError, deprecate, ErrorCode } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 
 /**
  * وضعیت کاربر فعلی.
@@ -136,8 +137,11 @@ export type AuthEventListener = (event: AuthEvent, data?: any) => void;
 
 /**
  * کلاس Auth — مدیریت کامل authentication.
+ *
+ * #116: چرخهٔ عمر یکی‌شده — `Disposable`؛ `destroy()` شد alias منسوخ‌شوندهٔ
+ * `dispose()` (ZEN-DEPR-020؛ حذف در ۲.۰ — DEC-026).
  */
-export class Auth {
+export class Auth implements Disposable {
   private _signal: Signal<AuthState>;
   private _config: Required<AuthConfig>;
   private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -405,19 +409,29 @@ export class Auth {
   }
 
   /**
-   * Destroy: پاکسازی timers و state بدون API call.
-   * مفید برای HMR و component unmount.
+   * #116 (Disposable): پاکسازی timers و state بدون API call.
+   * مفید برای HMR و component unmount. Idempotent — فراخوانی دوباره بی‌اثر است.
    */
-  destroy(): void {
-    // BUG-12 FIX (v1.2.2): set _destroyed flag تا متدهای عمومی بعد از destroy
+  dispose(): void {
+    // BUG-12 FIX (v1.2.2): set _destroyed flag تا متدهای عمومی بعد از dispose
     // no-op شوند. این کار از zombie callbacks (که بعد از destroy اجرا می‌شوند
     // و state را mutate می‌کنند) جلوگیری می‌کند.
+    if (this._destroyed) return; // #116: idempotency
     this._destroyed = true;
     this._clearRefreshTimer();
     // اگر refresh در حال انجام است، Promise را reject کن (با no-op چون فقط
     // Promise را null می‌کنیم — callerهای منتظر با دریافت false برمی‌گردند).
     this._refreshPromise = null;
     this._listeners.clear();
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن.
+   * (ZEN-DEPR-020؛ حذف در ۲.۰ — DEC-026)
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-020', 'auth.destroy()', 'auth.dispose()');
+    this.dispose();
   }
 
   /**
@@ -936,9 +950,20 @@ const authRegistry = new Map<string, Auth>();
 
 /**
  * ثبت یک Auth.
+ *
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است که فقط در صورتی
+ * نام را حذف می‌کند که همان instance هنوز ثبت باشد.
  */
-export function registerAuth(name: string, auth: Auth): void {
+export function registerAuth(name: string, auth: Auth): () => void {
   authRegistry.set(name, auth);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (authRegistry.get(name) === auth) {
+      authRegistry.delete(name);
+    }
+  };
 }
 
 /**

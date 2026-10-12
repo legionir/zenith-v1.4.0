@@ -108,12 +108,19 @@ export interface VirtualRange {
 }
 
 export interface VirtualListController {
+  /**
+   * #116 cleanup protocol: controller قابل‌صدازدن است (امضای `Cleanup`) —
+   * فراخوانی آن معادل `dispose()` عمل می‌کند (idempotent).
+   */
+  (): void;
   /** اسکرول به آیتم با index مشخص */
   scrollToIndex(index: number): void;
   /** بازسازی محاسبات offset (برای dynamic heights) */
   rebuild(): void;
   /** دریافت محدوده visible فعلی */
   getRange(): VirtualRange;
+  /** #116: آزادسازی کامل (idempotent). */
+  dispose(): void;
 }
 
 // ── Animate Mount/Unmount ──
@@ -174,6 +181,28 @@ interface ItemBinding {
   itemDisposes: (() => void)[];
 }
 
+/**
+ * #116: ساخت controller — یک تابع (Cleanup قرارداد: صدا زدن = dispose) با
+ * متدهای scrollToIndex/rebuild/getRange/dispose. Idempotent.
+ */
+function makeController(
+  disposeImpl: () => void,
+  ctrl: Pick<VirtualListController, 'scrollToIndex' | 'rebuild' | 'getRange'>,
+): VirtualListController {
+  let disposed = false;
+  const self = (): void => {
+    if (disposed) return;
+    disposed = true;
+    disposeImpl();
+  };
+  return Object.assign(self, {
+    scrollToIndex: ctrl.scrollToIndex,
+    rebuild: ctrl.rebuild,
+    getRange: ctrl.getRange,
+    dispose: self,
+  });
+}
+
 // ── Main Export (deprecated directive wrapper) ──
 
 /**
@@ -223,11 +252,11 @@ export function processVirtualList(
         disposes.push(...itemDisposes);
       }
     }
-    return {
+    return makeController(() => {}, {
       scrollToIndex() {},
       rebuild() {},
       getRange: () => ({ start: 0, end: 0, offsetY: 0, totalHeight: 0 }),
-    };
+    });
   }
 
   const itemHeight = Math.max(1, parseInt(el.getAttribute('zen-item-height') || '40', 10) || 40);
@@ -262,11 +291,11 @@ export function processVirtualList(
     templateContent = tpl.content;
     firstChild.remove();
   } else {
-    return {
+    return makeController(() => {}, {
       scrollToIndex() {},
       rebuild() {},
       getRange: () => ({ start: 0, end: 0, offsetY: 0, totalHeight: 0 }),
-    };
+    });
   }
 
   // ── آرایه‌ی آیتم‌ها: expression → signal ──
@@ -356,9 +385,14 @@ export function processVirtualList(
   // ── Controller سازگار با قرارداد قبلی ──
   // dispose کامل موتور هم به disposes اضافه می‌شود تا با حذف المان،
   // listenerها/observerها و نودهای رندرشده آزاد شوند (#47).
-  disposes.push(() => api.dispose());
+  // #116: خودِ controller قابل‌صدازدن است (Cleanup) و dispose idempotent دارد.
+  const disposeEngine = (): void => {
+    disposeListEffect();
+    api.dispose();
+  };
+  disposes.push(disposeEngine);
 
-  return {
+  return makeController(disposeEngine, {
     scrollToIndex(index: number) {
       api.scrollToIndex(index);
     },
@@ -374,5 +408,5 @@ export function processVirtualList(
         totalHeight: state.totalSize,
       };
     },
-  };
+  });
 }

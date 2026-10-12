@@ -27,6 +27,7 @@ import { processIf } from './directives/if';
 // IMPROVEMENT-05 (v1.0.1): zen-else / zen-else-if chain processing
 import { effect } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
+import { reportError } from '@zenith/errors';
 import { processBind } from './directives/bind';
 import { processModel } from './directives/model';
 // #145 — zen-persist: ذخیرهٔ مقدار zen-model در @zenith/storage (attribute surface SPEC §۲.۵).
@@ -242,8 +243,11 @@ function __trackDirective(el: HTMLElement, directiveType: string, expression: st
  *
  * @param root عنصر ریشه که باید process شود.
  * @param state آبجکت State (شامل Signalها، Services، و ...).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` → `Cleanup`).
+ *         آرایهٔ disposes همچنان روی root.__zenithDisposes ذخیره می‌شود
+ *         (سازگاری با گذشته — HMR/teardown).
  */
-export function processDOM(root: HTMLElement, state: Record<string, any>): void {
+export function processDOM(root: HTMLElement, state: Record<string, any>): () => void {
   const context = createContext(state);
   const disposes: (() => void)[] = [];
   walk(root, context, state, disposes);
@@ -251,6 +255,24 @@ export function processDOM(root: HTMLElement, state: Record<string, any>): void 
   // ذخیره‌ی disposes روی root برای استفاده‌های بعدی
   // (مثلاً HMR در DevTools یا teardown کامل اپ)
   (root as any).__zenithDisposes = disposes;
+
+  // #116 cleanup protocol: یک Cleanup idempotent برگردانده می‌شود تا
+  // فراخوان بدون وابستگی به __zenithDisposes بتواند teardown کند.
+  let cleaned = false;
+  return () => {
+    if (cleaned) return;
+    cleaned = true;
+    for (const dispose of disposes) {
+      try {
+        dispose();
+      } catch (err) {
+        // #116/DEC-031: خطای یک dispose نباید مانع بقیه شود؛ از hub لاگ می‌گیریم
+        // (نه console.error مستقیم).
+        reportError(err, 'processDOM', { phase: 'dispose' });
+      }
+    }
+    disposes.length = 0;
+  };
 }
 
 /**

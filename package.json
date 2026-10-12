@@ -26,6 +26,7 @@
     "deps:unused": "node scripts/unused-zenith-deps.mjs",
     "peer-rule": "node scripts/peer-rule.mjs",
     "error-hygiene": "node scripts/error-hygiene.mjs",
+    "cleanup-hygiene": "node scripts/cleanup-hygiene.mjs",
     "peer:single-instance": "node scripts/peer-single-instance.mjs"
   },
   "devDependencies": {

@@ -181,7 +181,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (18 after #142 form schema migration)', () => {
+  it('contains exactly the issued codes with api/replacement (24 after #116 cleanup protocol)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -203,6 +203,13 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       'ZEN-DEPR-016',
       'ZEN-DEPR-017',
       'ZEN-DEPR-018',
+      // #116 — شش alias destroy() → dispose() (پروتکل cleanup واحد)
+      'ZEN-DEPR-019',
+      'ZEN-DEPR-020',
+      'ZEN-DEPR-021',
+      'ZEN-DEPR-022',
+      'ZEN-DEPR-023',
+      'ZEN-DEPR-024',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');

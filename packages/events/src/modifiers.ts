@@ -185,8 +185,10 @@ export const BUILTIN_MODIFIERS = new Set<string>([
  * @param handler تابعی که قبل از اجرای اکشن صدا زده می‌شود.
  *                اگر `false` برگرداند، اکشن اجرا نمی‌شود.
  * @throws اگر نام خالی باشد، یک built-in باشد، یا handler تابع نباشد.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           modifier را حذف می‌کند که همان handler هنوز ثبت باشد.
  */
-export function registerEventModifier(name: string, handler: EventModifierHandler): void {
+export function registerEventModifier(name: string, handler: EventModifierHandler): () => void {
   if (typeof name !== 'string' || name.length === 0) {
     throw developerError(
       `Event modifier name must be a non-empty string. Received: ${String(name)}`,
@@ -209,6 +211,14 @@ export function registerEventModifier(name: string, handler: EventModifierHandle
     throw developerError(`Event modifier handler must be a function. Received: ${typeof handler}`);
   }
   _customModifiers.set(name, handler);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (_customModifiers.get(name) === handler) {
+      _customModifiers.delete(name);
+    }
+  };
 }
 
 /**

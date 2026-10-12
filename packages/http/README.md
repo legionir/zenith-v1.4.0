@@ -113,3 +113,11 @@ cancelRequest(controller);
 - `clearCache()` — Clear response cache
 - `cancelRequest(controller)` — Cancel an in-flight request
 - `cancelAllRequests()` — Cancel all active requests
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`setHttpConfig(config)` now returns a `Cleanup` (`() => void`) that restores the
+previous defaults (idempotent; a newer config is not clobbered).
+`cancelRequest`/`cancelAllRequests` keep their names on purpose — they abort an
+*in-flight request* (run-scoped), not an instance lifecycle, and are documented
+as behavioral names in DEC-032.

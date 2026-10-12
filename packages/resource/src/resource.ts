@@ -29,7 +29,8 @@
 
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import { resourceDestroyedError, resourceHttpError } from '@zenith/errors';
+import { deprecate, resourceDestroyedError, resourceHttpError } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 // #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
 import { createCache, type Cache } from '@zenith/cache';
 
@@ -142,7 +143,7 @@ function createCacheKey(method: string, url: string, body?: any): string {
  * هر Resource یک Signal دارد که وضعیت (loading/error/data) را نگه می‌دارد.
  * عملیات‌های CRUD می‌توانند روی آن انجام شوند.
  */
-export class Resource<T = any> {
+export class Resource<T = any> implements Disposable {
   private _signal: Signal<ResourceState<T>>;
   private _config: Required<ResourceConfig>;
   // #144: dedupe درخواست‌های هم‌زمان یکسان روی @zenith/cache (به‌جای Map
@@ -402,8 +403,10 @@ export class Resource<T = any> {
     this._domCleanups.delete(cb);
   }
 
-  destroy(): void {
-    // FEATURE (v1.0.0): ذخیره‌ی stack trace هنگام destroy() برای پیام‌های خطای بعدی.
+  dispose(): void {
+    // #116: idempotent — dispose دوباره بی‌اثر است (reset() فلگ را پاک می‌کند).
+    if (this._destroyed) return;
+    // FEATURE (v1.0.0): ذخیره‌ی stack trace هنگام dispose() برای پیام‌های خطای بعدی.
     this._destroyStack = new Error().stack || '(stack unavailable)';
     // BUG-RES-04 (v1.3.0): پاک‌سازی callbackهای DOM قبل از هر چیز.
     // این کار ارجاعات المان‌ها را حذف می‌کند تا garbage collector بتواند
@@ -448,6 +451,15 @@ export class Resource<T = any> {
         break;
       }
     }
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-023؛ حذف در ۲.۰ — DEC-026). `reset()` دوباره قابل-dispose می‌کند.
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-023', 'resource.destroy()', 'resource.dispose()');
+    this.dispose();
   }
 
   // ── SWR (Stale-While-Revalidate) ──

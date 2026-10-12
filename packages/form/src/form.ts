@@ -12,6 +12,8 @@
 //   - Simple reactive form API (v1.4.0)
 
 import { signal, effect, type Signal } from '@zenith/state';
+import { deprecate } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 
 /**
  * Form validation rule.
@@ -87,7 +89,7 @@ export interface FormStoreState {
   validating: boolean;
 }
 
-export class FormStore {
+export class FormStore implements Disposable {
   private _signal: Signal<FormStoreState>;
   private _initialValues: Record<string, any>;
   private _rules: Record<string, string>;
@@ -102,6 +104,8 @@ export class FormStore {
   // async validation در حال انجام (مثل fetch به سرور) ادامه پیدا می‌کردند و
   // پس از تکمیل، state از بین رفته را mutate می‌کردند (zombie callback).
   private _abortController: AbortController = new AbortController();
+  // #116: فلگ dispose برای idempotency (alias destroy همان را می‌خواند).
+  private _disposed = false;
 
   constructor(fields: Record<string, { initial: any; rules?: string }>) {
     this._initialValues = {};
@@ -522,13 +526,24 @@ export class FormStore {
    *
    * نکته: این تابع idempotent است — فراخوانی دوباره آن بی‌اثر است.
    */
-  destroy(): void {
+  dispose(): void {
+    if (this._disposed) return; // #116: idempotency
+    this._disposed = true;
     // FIX (v1.2.3): abort درخواست‌های in-flight async validation قبل از پاک‌سازی
     // تایمرها. این کار از zombie callbacks جلوگیری می‌کند که پس از destroy
     // اجرا شده و state را mutate می‌کردند.
     this._abortController.abort();
     for (const timer of this._asyncValidationTimers.values()) clearTimeout(timer);
     this._asyncValidationTimers.clear();
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-022؛ حذف در ۲.۰ — DEC-026).
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-022', 'form.destroy()', 'form.dispose()');
+    this.dispose();
   }
 }
 

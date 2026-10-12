@@ -25,6 +25,9 @@ import { Resource } from './resource';
 
 /**
  * پردازش دایرکتیو zen-resource.
+ *
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است؛ آرایهٔ
+ * `disposes` هم برای سازگاری با گذشته پر می‌شود.
  */
 export function processResource(
   el: HTMLElement,
@@ -32,7 +35,7 @@ export function processResource(
   context: Record<string, any>,
   processChildren: (node: HTMLElement, ctx: Record<string, any>, disposes: (() => void)[]) => void,
   disposes: (() => void)[],
-): void {
+): () => void {
   const stateName = el.getAttribute('zen-state') || 'data';
 
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
@@ -44,7 +47,7 @@ export function processResource(
     url = evalFn(context);
   } catch (err) {
     console.error(`[Zenith Resource] Failed to evaluate URL:`, err);
-    return;
+    return () => {}; // #116: Cleanup no-op در مسیر خطا
   }
 
   // ساخت Resource.
@@ -67,9 +70,9 @@ export function processResource(
   // شروع fetch اولیه.
   void resource.list();
 
-  // ثبت dispose.
-  disposes.push(() => {
-    resource.reset();
+  // ثبت dispose (#116: Cleanup idempotent + آرایهٔ disposes برای سازگاری).
+  const cleanup = (): void => {
+    resource.dispose();
     for (const d of childDisposes) {
       try {
         d();
@@ -78,5 +81,13 @@ export function processResource(
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }

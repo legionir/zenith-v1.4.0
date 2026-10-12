@@ -78,7 +78,12 @@ export interface TransitionOptions {
 export interface TransitionRun {
   /** پس از اتمام طبیعی یا لغو transition resolve می‌شود. */
   readonly finished: Promise<void>;
-  /** transition فعال را لغو و کلاس‌های موقت را پاکسازی می‌کند. */
+  /**
+   * transition فعال را لغو و کلاس‌های موقت را پاکسازی می‌کند.
+   * #116/DEC-032: `cancel` نام *رفتاری* است (لغو یک اجرای در حال انجام)،
+   * نه چرخهٔ عمر — خودِ controller متد `dispose()` دارد؛ بنابراین alias
+   * `dispose` برای این عضو معنی ندارد و در گیت cleanup-hygiene allowlist شده.
+   */
   cancel(): void;
 }
 

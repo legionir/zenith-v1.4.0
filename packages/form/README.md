@@ -106,3 +106,9 @@ items.remove(0);
 - `createForm(options)` — Create a reactive form
 - `createWizardForm(options)` — Create a multi-step wizard form
 - `FormStore` — Class-based form with fields, validation, and submit
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`FormStore` implements `Disposable` (`@zenith/shared`): `dispose()` releases
+validators/effects; idempotent. `destroy()` is a deprecated alias (warns once
+with **ZEN-DEPR-022**, removed in 2.0 per DEC-026).

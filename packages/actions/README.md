@@ -79,3 +79,11 @@ interface ActionContext {
   State خام (همان `signal(0)` و …) پاس داده می‌شود، نه Contextای که با `$` کار می‌کند.
   این انتخاب عمدی است چون Actionها معمولاً می‌خواهند Signalها را `set` کنند،
   نه فقط `get`.
+
+## Lifecycle (cleanup protocol — #116 / DEC-032)
+
+`ActionRegistry` implements `Disposable` (`@zenith/shared`): `dispose()` clears
+all registered actions; idempotent. `destroy()` is a deprecated alias (warns
+once with **ZEN-DEPR-019**, removed in 2.0 per DEC-026). `registerAction(...)`
+returns a `Cleanup` (`() => void`) that unregisters the action only while it is
+still the registered handler (identity-guarded).

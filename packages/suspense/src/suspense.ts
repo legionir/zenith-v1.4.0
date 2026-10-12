@@ -411,16 +411,18 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
  * @param el              عنصر <zen-suspense>.
  * @param processChildren callback برای walk فرزندان.
  * @param context         Context والد.
- * @param disposes        آرایه‌ی dispose functions.
+ * @param disposes        آرایه‌ی dispose functions (سازگاری با گذشته — #116).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` باید `Cleanup`
+ *           برگردانند).
  */
 export function processSuspense(
   el: HTMLElement,
   processChildren: (node: HTMLElement, ctx: Record<string, any>, disposes: (() => void)[]) => void,
   context: Record<string, any>,
   disposes: (() => void)[],
-): void {
+): () => void {
   // SSR-safe guard.
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') return () => {};
 
   // ── ۱. خواندن timeout از attribute ──
   const timeoutAttr = el.getAttribute('timeout');
@@ -576,7 +578,9 @@ export function processSuspense(
 
   // ── ۸. Dispose ──
   // BUG-SUS-01 FIX: innerWatchDispose حذف شده (onSettle جایگزین آن شده).
-  disposes.push(() => {
+  // #116 cleanup protocol: Cleanup idempotent برگردانده می‌شود و همزمان
+  // به آرایهٔ disposes اضافه می‌شود (سازگاری با گذشته).
+  const cleanup = (): void => {
     disposeEffect();
     // FIX (v1.2.7): notify the outer boundary that this inner is gone
     // so it does not keep waiting on a stale id.
@@ -592,5 +596,13 @@ export function processSuspense(
       }
     }
     childDisposes.length = 0;
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }

@@ -14,6 +14,7 @@
 //   - SWConfig                    — اینترفیس پیکربندی.
 //   - ZenithSWPlugin              — پلاگین Zenith برای نصب با Zen.use.
 
+import { deprecate } from '@zenith/errors';
 import type { CacheStrategyName } from './strategies.js';
 
 // NOTE: نوع ZenithPlugin را به‌صورت structural تعریف می‌کنیم تا از وابستگیِ
@@ -91,7 +92,12 @@ export interface SWController {
   unregister: () => Promise<boolean>;
   /** فرمان skipWaiting به SW در انتظار. */
   skipWaiting: () => void;
-  /** پاک کردن listenerها (در teardown). */
+  /** #116 (Disposable): پاک کردن listenerها (در teardown). Idempotent. */
+  dispose: () => void;
+  /**
+   * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+   */
   destroy: () => void;
   /** آیا SW پشتیبانی می‌شود؟ */
   supported: boolean;
@@ -154,7 +160,15 @@ export function registerSW(
       skipWaiting: () => {
         /* no-op */
       },
+      dispose: () => {
+        /* no-op */
+      },
+      /**
+       * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+       * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+       */
       destroy: () => {
+        deprecate('ZEN-DEPR-024', 'SWController.destroy()', 'SWController.dispose()');
         /* no-op */
       },
     };
@@ -240,7 +254,22 @@ export function registerSW(
         sw.controller.postMessage({ type: 'SKIP_WAITING' });
       }
     },
+    dispose: () => {
+      // #116: idempotent — listeners.length = 0 دوباره بی‌اثر است.
+      for (const { type, fn } of listeners) {
+        sw.removeEventListener(type, fn);
+        if (registration) {
+          registration.removeEventListener(type, fn);
+        }
+      }
+      listeners.length = 0;
+    },
+    /**
+     * @deprecated #116 — نام قدیمی؛ از `dispose()` استفاده کن
+     * (ZEN-DEPR-024؛ حذف در ۲.۰ — DEC-026).
+     */
     destroy: () => {
+      deprecate('ZEN-DEPR-024', 'SWController.destroy()', 'SWController.dispose()');
       for (const { type, fn } of listeners) {
         sw.removeEventListener(type, fn);
         if (registration) {

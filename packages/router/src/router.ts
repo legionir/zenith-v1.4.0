@@ -392,9 +392,19 @@ const _guards: NavigationGuard[] = [];
  *   - `false`/falsy → block navigation entirely.
  *
  * @param guard A NavigationGuard function.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که این guard را
+ *           از زنجیره حذف می‌کند (خروجی قبلاً void بود — سازگار، چون
+ *           فراخوان‌های موجود مقدار بازگشتی را نادیده می‌گیرند).
  */
-export function beforeEach(guard: NavigationGuard): void {
+export function beforeEach(guard: NavigationGuard): () => void {
   _guards.push(guard);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    const idx = _guards.indexOf(guard);
+    if (idx !== -1) _guards.splice(idx, 1);
+  };
 }
 
 export interface NavigateOptions {
@@ -508,9 +518,18 @@ const _routerCleanups: Array<() => void> = [];
  * handlers, the route cache, and the route definition store.
  *
  * @param fn Cleanup function to register.
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که fn را از صف
+ *           cleanups حذف می‌کند (تا cleanupRouter دیگر آن را اجرا نکند).
  */
-export function registerRouterCleanup(fn: () => void): void {
+export function registerRouterCleanup(fn: () => void): () => void {
   _routerCleanups.push(fn);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    const idx = _routerCleanups.indexOf(fn);
+    if (idx !== -1) _routerCleanups.splice(idx, 1);
+  };
 }
 
 /**

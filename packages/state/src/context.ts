@@ -93,11 +93,23 @@ export function disposeOwner(owner: Owner): void {
 
 /**
  * Register a cleanup function for current owner.
+ *
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است که fn را از
+ * مجموعهٔ cleanup همین owner حذف می‌کند (قبل از اجرا). اگر owner نباشد یا
+ * fn بعداً اجرا شده باشد، حذف no-op است.
  */
-export function onCleanup(fn: () => void): void {
+export function onCleanup(fn: () => void): () => void {
   if (currentOwner) {
-    currentOwner.cleanup.add(fn);
+    const owner = currentOwner;
+    owner.cleanup.add(fn);
+    let removed = false;
+    return () => {
+      if (removed) return;
+      removed = true;
+      owner.cleanup.delete(fn);
+    };
   }
+  return () => {};
 }
 
 /**
@@ -126,7 +138,10 @@ export function setOwner(owner: Owner | null): void {
 export interface EffectContext {
   owner: Owner | null;
   activeEffect: Function | null;
-  activeCleanupRegistration: ((cleanup: () => void) => void) | null;
+  // #116: register ممکن است یک Cleanup (`() => void`) برای حذف cleanup از
+  // صف برگرداند. نوع inline است چون state نمی‌تواند shared را import کند
+  // (چرخهٔ DEC-021).
+  activeCleanupRegistration: ((cleanup: () => void) => void | (() => void)) | null;
 }
 
 /**
@@ -204,12 +219,15 @@ export type CleanupFn = () => void;
  * دوباره اجرا شد یا dispose شد، خودش را از subscribers حذف کند.
  *
  * @param cleanup تابع پاکسازی.
+ * @returns #116 cleanup protocol: یک `Cleanup` که fn را از صف cleanup جاری
+ *           حذف می‌کند (تا پیش از اجرا). اگر خارج از Effect ثبت شود، no-op.
  */
-export function registerCleanup(cleanup: CleanupFn): void {
+export function registerCleanup(cleanup: CleanupFn): () => void {
   const reg = _getMutableContext().activeCleanupRegistration;
   if (reg) {
-    reg(cleanup);
+    return reg(cleanup) ?? (() => {});
   }
+  return () => {};
 }
 
 /**
@@ -219,7 +237,7 @@ export function registerCleanup(cleanup: CleanupFn): void {
  * Cleanup در اختیار signalها قرار دهد.
  */
 export function setActiveCleanupRegistration(
-  register: ((cleanup: CleanupFn) => void) | null,
+  register: ((cleanup: CleanupFn) => void | (() => void)) | null,
 ): void {
   _getMutableContext().activeCleanupRegistration = register;
 }

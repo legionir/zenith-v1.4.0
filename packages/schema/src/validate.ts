@@ -93,6 +93,8 @@ function coerceValue(node: SchemaNode, value: unknown): unknown {
 interface Ctx {
   opts: ResolvedValidateOptions;
   issues: Issue[];
+  // #116/DEC-032: این «stop» یک فیلد بولی نتیجه است، نه متد چرخهٔ عمر —
+  // در گیت cleanup-hygiene allowlist شده.
   stop: boolean;
 }
 

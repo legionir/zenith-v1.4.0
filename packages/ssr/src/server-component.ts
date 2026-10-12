@@ -65,8 +65,10 @@ const serverComponentRegistry = new Map<string, ServerComponent>();
  * اگر قبلاً با همین نام ثبت شده، overwrite می‌شود (برای HMR مفید است).
  *
  * @throws اگر comp نامعتبر باشد (بدون name یا render).
+ * @returns #116 cleanup protocol: یک `Cleanup` idempotent که فقط در صورتی
+ *           comp را حذف می‌کند که همان name هنوز به همین comp نگاشت شده باشد.
  */
-export function registerServerComponent(comp: ServerComponent): void {
+export function registerServerComponent(comp: ServerComponent): () => void {
   if (!comp || typeof comp.name !== 'string' || comp.name.length === 0) {
     throw developerError(
       'Invalid ServerComponent: name is required.',
@@ -90,6 +92,14 @@ export function registerServerComponent(comp: ServerComponent): void {
     );
   }
   serverComponentRegistry.set(comp.name, comp);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (serverComponentRegistry.get(comp.name) === comp) {
+      serverComponentRegistry.delete(comp.name);
+    }
+  };
 }
 
 /**

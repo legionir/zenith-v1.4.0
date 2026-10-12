@@ -30,6 +30,19 @@ import { signal, effect, computed, batch } from '@zenith/state';
 npm test
 ```
 
+## پروتکل cleanup (موج #116 / DEC-032)
+
+- `effect`/`createOwner` یک `Cleanup` (`() => void`) برای آزادسازی برمی‌گردانند؛
+  اجرای دوبارهٔ آن بی‌اثر است (idempotent).
+- `onCleanup(fn)` و `registerCleanup(cleanup)` یک `Cleanup` برمی‌گردانند که فقط
+  ثبت خودشان را حذف می‌کند (با محافظ هویت).
+- `onEffectError(handler)` برگشت‌پذیر است: `Cleanup` آن هندلر را تنها در صورتی
+  پاک می‌کند که همان هندلر ثبت‌شده باقی مانده باشد.
+
+> `Cleanup` همان `() => void` است که در `@zenith/shared` تعریف شده؛ state به‌دلیل
+> DEC-021 آن را inline نگه می‌دارد (نه import از shared).
+
 ## مجوز
 
 MIT
+

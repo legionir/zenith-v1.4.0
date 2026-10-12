@@ -146,15 +146,19 @@ export function installPrefetch(): void {
 // Registry: path → src (for prefetch)
 const routeSrcRegistry = new Map<string, string>();
 
+/**
+ * #116 cleanup protocol: خروجی یک `Cleanup` idempotent است؛ آرایهٔ
+ * `parentDisposes` هم برای سازگاری با گذشته پر می‌شود.
+ */
 export function processRouter(
   el: HTMLElement,
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   parentDisposes: (() => void)[],
-): void {
+): () => void {
   const routes = readRouteDefinitions(el);
   if (routes.length === 0) {
     console.warn('[Zenith Router] No routes found.');
-    return;
+    return () => {}; // #116: Cleanup no-op وقتی روتی نیست
   }
 
   // Register route srcs for prefetch
@@ -249,7 +253,9 @@ export function processRouter(
     })();
   });
 
-  parentDisposes.push(() => {
+  // #116: Cleanup idempotent — هم به parentDisposes اضافه می‌شود (سازگاری)
+  // و هم به‌عنوان مقدار بازگشتی در دسترس فراخوان است.
+  const cleanup = (): void => {
     // FIX (v1.2.7): abort any in-flight fetch on teardown too.
     if (currentAbort) {
       try {
@@ -261,7 +267,15 @@ export function processRouter(
     }
     cleanupCurrentContent(el, currentDisposes);
     disposeEffect();
-  });
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  parentDisposes.push(idempotentCleanup);
+  return idempotentCleanup;
 }
 
 /** Clear route cache (for HMR or manual refresh). */

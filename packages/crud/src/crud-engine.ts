@@ -48,7 +48,8 @@ import { getResource, type Resource } from '@zenith/resource';
 import { Zen } from '@zenith/runtime';
 import { getAction } from '@zenith/actions';
 import { processPermission, getPermissionManager } from '@zenith/permission';
-import { developerError, ErrorCode } from '@zenith/errors';
+import { deprecate, developerError, ErrorCode } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 
 // ─────────────────────────────────────────────────────────────────────────
 // FEATURE (v0.3.0): CrudEngineConfig
@@ -113,7 +114,7 @@ export interface CrudEngineConfig {
  *   4) متد render()، HTML جدول را می‌سازد، در host قرار می‌دهد، و سپس
  *      Zen.start را روی host صدا می‌زند تا دایرکتیوهای داخلی (zen-for،
  *      zen-model، zen-action، zen-permission و ...) فعال شوند.
- *   5) متد destroy()، Effectها و Actionهای دینامیک را پاکسازی می‌کند.
+ *   5) متد dispose()، Effectها و Actionهای دینامیک را پاکسازی می‌کند.
  *
  * نکته‌ی Computed و Context:
  *   createContext در runtime فقط مقادیری را که `get` و `set` دارند به‌عنوان
@@ -121,7 +122,7 @@ export interface CrudEngineConfig {
  *   داخلی (مثل viewData) به‌صورت reactive در Expressionها در دسترس باشند،
  *   یک `set` no-op روی آن‌ها تعریف می‌کنیم (در constructor).
  */
-export class CrudEngine {
+export class CrudEngine implements Disposable {
   private config: CrudEngineConfig;
   private host: HTMLElement;
   private resource: Resource;
@@ -153,6 +154,8 @@ export class CrudEngine {
   private registeredActions: string[] = [];
   private firstFilterRun = true;
   private rendered = false;
+  // #116: فلگ dispose برای idempotency (alias destroy همان را می‌خواند).
+  private _disposed = false;
 
   constructor(config: CrudEngineConfig, host: HTMLElement) {
     this.config = config;
@@ -269,7 +272,9 @@ export class CrudEngine {
    * را پاک می‌کند (که می‌تواند دیگر بخش‌های app را خراب کند). در عوض،
    * disposesهای محلی را دستی پاک می‌کنیم.
    */
-  destroy(): void {
+  dispose(): void {
+    if (this._disposed) return; // #116: idempotency
+    this._disposed = true;
     this.cleanupRender();
 
     // Dispose Effectهای داخلی.
@@ -284,6 +289,15 @@ export class CrudEngine {
 
     // Dispose Computedها (دارای dispose داخلی برای cleanup effect).
     this.disposeComputeds();
+  }
+
+  /**
+   * @deprecated #116 — نام قدیمی چرخهٔ عمر؛ از `dispose()` استفاده کن
+   * (ZEN-DEPR-021؛ حذف در ۲.۰ — DEC-026).
+   */
+  destroy(): void {
+    deprecate('ZEN-DEPR-021', 'engine.destroy()', 'engine.dispose()');
+    this.dispose();
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -1027,9 +1041,9 @@ export function processCrud(
   // Return dispose function.
   return () => {
     try {
-      engine.destroy();
+      engine.dispose();
     } catch (e) {
-      console.error('[CrudEngine] Error during destroy:', e);
+      console.error('[CrudEngine] Error during dispose:', e);
     }
   };
 }
