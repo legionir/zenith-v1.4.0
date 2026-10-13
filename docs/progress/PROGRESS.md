@@ -1,9 +1,9 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #116
+آخرین issue کامل: #28
 issueهای باز (جزئی): #117 و #173 — کد/سند/گیت هر دو کامیت شده؛ بقایا:
 lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو موج ۴)
-بعدی: #172، #52، #147، #148، #149، #92، #48، #49
+بعدی: #29، #12، #15، #9، #73، #77، #61
 مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
 آخرین run موفق CI: 38198172598 (روی HEAD 6ae1b21 — #115/#116؛ هر ۱۲ job مسدودکننده سبز)
 
@@ -570,3 +570,54 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
     `npm test` = ۱۰۸۸ سبز (از ۱۰۷۲).
   - لینک‌ها: از `API-CONVENTIONS.md` §۷ (سند خواهر + گیت) و `docs/README.md`
     «قراردادها»؛ لینک CONTRIBUTING → #107 (موج ۴) در header سند یادداشت شد.
+
+- #172 انجام شد (موج ۲، کامیت 84926bb): ابزار اسکفولد `scripts/new-package.mjs`
+  (`npm run new-package -- <slug> --layer=L<0..5>`):
+  - تولید استاندارد `package.json` (فیلدهای #70، `zenith.layer`، `sideEffects: false`،
+    `engines >=18.19.0`)، `tsconfig.json`، `src/index.ts`، `test/<slug>.test.ts`،
+    `README.md`، `LICENSE`؛ قالب چک‌لیست `.github/ISSUE_TEMPLATE/new-package.md`؛
+    ۵ تست در `scripts/test/new-package.test.mjs`.
+
+- #52 انجام شد (موج ۲، کامیت b20b994): اعتبارسنجی گزینه‌ها در مرز ورودی
+  (`defineOptions` از `@zenith/schema` + `DEFAULTS` منجمد):
+  - پشتیبانی از اعتبارسنجی آرایه (`s.array(itemSchema)`) در `@zenith/schema`؛
+  - پیاده‌سازی در ۵ پکیج هدف: `auth` (`authOptions` / `AUTH_DEFAULTS`)، `http`
+    (`httpClientOptions` / `HTTP_DEFAULTS`)، `service-worker` (`swControllerOptions` /
+    `SW_DEFAULTS`)، `vite-plugin` (`zenithPluginOptions` / `VITE_PLUGIN_DEFAULTS`)،
+    `runtime` (`zenStartOptions` / `ZEN_START_DEFAULTS`)؛ پرتاب `ZEN-1001`/`1002`/`1004`
+    با پیشنهاد Levenshtein؛ تست‌های `options-validation.test.ts` در هر ۵ پکیج.
+
+- #147 انجام شد (موج ۲، کامیت 9657750): پکیج `@zenith/devtools-core` (L1) +
+  قلاب `setSignalObserver` در `@zenith/state`:
+  - حلقه‌بافر بدون تخصیص `RingBuffer<T>`، رجیستری شناسه‌های ضعیف `WeakIdRegistry`،
+    پروتکل پیام تایپ‌شده `ZENITH_DEVTOOLS_PROTOCOL_VERSION`، و هستهٔ `createDevtoolsCore`
+    با حالت غیرفعال zero-overhead؛ ۱۲ تست (شامل آزمون نشت حافظه با `WeakRef` و بودجهٔ حجم < 4 KB).
+
+- #148 انجام شد (موج ۲، کامیت e9f44ef): پکیج `@zenith/runtime-core` (L3) و مدل `createApp`:
+  - `createApp()` بدون تکیه به singletonهای ماژول، متدهای زنجیره‌ای `directive/use/provide/inject/mount/unmount/dispose`،
+    انجماد رجیستری دایرکتیوها پس از `mount()` (`ZEN-302`)، ۵ دایرکتیو هسته (`text/bind/on/show/if`)؛
+    هم‌ترازی `createApp` در `@zenith/runtime` با هشدار منسوخ‌سازی `Zen.start` (`ZEN-DEPR-027`)؛ ۱۱ تست.
+
+- #149 انجام شد (موج ۲، کامیت 1ded9d7): پکیج چتر `zenith` (L5):
+  - زیرمسیرهای `zenith`، `zenith/core`، `zenith/ssr`، `zenith/testing`، `zenith/browser`؛
+    پریست‌های پلاگین `minimal` / `spa` / `full` (همراه با `Object.freeze`)؛ تابع `watch()`؛
+    تولید باندل IIFE مرورگر (`dist/zenith.global.js` + `.map` + `.sri` با هش SHA-384) در `build-all.mjs`؛ ۹ تست.
+
+- #92 انجام شد (موج ۲، کامیت 67607e3): ایزوله‌سازی کامل SSR همزمان و سازگاری با Edge:
+  - `createAsyncContextStore` با fallback ایمن برای محیط‌های فاقد `node:async_hooks`؛
+    ایزوله‌سازی per-request برای DOM، state/effects، route، componentRegistry، actionRegistry،
+    serverComponents و locale؛ پشتیبانی از `options.createDOM` برای محیط‌های Edge؛
+    محافظت از `HTMLElement` در زمان import ماژول؛ تست ۱۰۰ درخواست همزمان بدون نشت در `packages/ssr/test/concurrent-isolation.test.ts`.
+
+- #48 و #49 انجام شدند (موج ۲، کامیت e297f26): حذف وابستگی معکوس و قفل‌کردن معماری لایه‌ای L0–L5:
+  - #48: حذف وابستگی `@zenith/router` از `@zenith/events` و جایگزینی با تزریق callback
+    `setLinkNavigationHandler` در `@zenith/runtime`؛ تست محافظ `packages/events/test/reverse-deps.test.ts`.
+  - #49: تدوین سند رسمی `docs/ARCHITECTURE-LAYERS.md` (لایه‌های L0 تا L5 و Tooling) و
+    قوانین مسدودکنندهٔ `forbidden` در `.dependency-cruiser.cjs` (۱۹۰ ماژول، ۰ نقض، ۰ چرخه).
+
+- #28 انجام شد (موج ۳ / P0، کامیت 926b3c0): مجموعه تست‌های واحد DOM برای هر ۱۰ پکیج وابسته به DOM:
+  - افزودن تست‌های jsdom برای `runtime` (`directives-dom.test.ts`)، `events` (`events-dom.test.ts`)،
+    `router` (`router-dom.test.ts`)، `components` (`components-dom.test.ts`)، `ssr` (`ssr-dom.test.ts`)،
+    `data-table` (`data-table-dom.test.ts`) و `error-boundary` (`error-boundary-dom.test.ts`) در کنار
+    تست‌های `transition`، `virtual-list` و `suspense` (۳۳ فایل تست / ۹۷ تست سبز در پکیج‌های DOM).
+
