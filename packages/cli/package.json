@@ -65,5 +65,8 @@
   },
   "zenith": {
     "target": "node"
+  },
+  "devDependencies": {
+    "@zenith/ssr": "1.4.0"
   }
 }
