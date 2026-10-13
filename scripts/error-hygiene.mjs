@@ -28,6 +28,8 @@ const THROW_ALLOWLIST = {
   'packages/compiler/src/compiler.ts': 'strict-mode compile warnings (documented; #138 parity)',
   // tooling: cli/lighthouse — زیرسهام tooling، خارج از مسیر runtime.
   'packages/cli/src/lighthouse.ts': 'tooling (CLI) — not a runtime library path',
+  // tooling (#163): cli/ssg — پیام‌های سطح CLI برای کاربر، خارج از مسیر runtime.
+  'packages/cli/src/ssg.ts': 'tooling (CLI) — not a runtime library path',
   // internal invariant fallbacks (هرگز نباید رخ دهند؛ گیت #171 catalog را قفل کرده).
   'packages/shared/src/assert.ts': 'fail-fast catalog invariant',
   'packages/errors/src/core.ts': 'fail-fast catalog invariant (createReservedError)',

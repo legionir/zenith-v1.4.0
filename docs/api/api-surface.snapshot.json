@@ -5356,6 +5356,11 @@
         "tag": "public"
       },
       {
+        "name": "defineStaticRoutes",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "deserializeState",
         "kind": "function",
         "tag": "public"
@@ -5382,6 +5387,16 @@
       },
       {
         "name": "generateHydrationScript",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "generateRobotsTxt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "generateSitemapXml",
         "kind": "function",
         "tag": "public"
       },
@@ -5486,6 +5501,26 @@
         "tag": "public"
       },
       {
+        "name": "prerender",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderArtifacts",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderReport",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "registerServerComponent",
         "kind": "function",
         "tag": "public"
@@ -5523,6 +5558,11 @@
       {
         "name": "renderToString",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RouterLikeRoute",
+        "kind": "type",
         "tag": "public"
       },
       {
@@ -5579,6 +5619,11 @@
         "name": "startFromSSR",
         "kind": "function",
         "tag": "deprecated"
+      },
+      {
+        "name": "StaticRouteDef",
+        "kind": "type",
+        "tag": "public"
       },
       {
         "name": "StreamChunk",

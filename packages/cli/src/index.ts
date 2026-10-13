@@ -453,6 +453,71 @@ program
   });
 
 // ─────────────────────────────────────────────
+// #163: zenith ssg — prerender ایستای مسیرها
+// ─────────────────────────────────────────────
+program
+  .command('ssg')
+  .description('#163: prerender ایستای مسیرها + sitemap/robots')
+  .requiredOption('-r, --routes <paths...>', 'مسیرهای prerender (فاصله‌جدا)')
+  .option('--routes-file <file>', 'فایل متنی مسیرها (هر خط یک مسیر)')
+  .requiredOption('-t, --template <file>', 'فایل template پروژه (index.html)')
+  .option('-o, --out-dir <dir>', 'پوشهٔ خروجی', 'dist')
+  .option('-c, --concurrency <n>', 'همروندی رندر', '4')
+  .option('--trailing-slash', 'خروجی به‌صورت <route>/index.html', false)
+  .option('--sitemap-host <host>', 'تولید sitemap.xml با hostname')
+  .option('--robots', 'تولید robots.txt', false)
+  .option('--no-fail-on-error', 'ادامه در صورت شکست رندر یک مسیر')
+  .action(
+    async (opts: {
+      routes: string[];
+      routesFile?: string;
+      template: string;
+      outDir: string;
+      concurrency: string;
+      trailingSlash: boolean;
+      sitemapHost?: string;
+      robots: boolean;
+      failOnError: boolean;
+    }) => {
+      try {
+        const { runSsg } = await import('./ssg');
+        let routes = [...opts.routes];
+        if (opts.routesFile && fs.existsSync(opts.routesFile)) {
+          routes = routes.concat(
+            fs
+              .readFileSync(opts.routesFile, 'utf8')
+              .split(/\r?\n/)
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0),
+          );
+        }
+        const result = await runSsg({
+          routes,
+          templatePath: opts.template,
+          outDir: opts.outDir,
+          concurrency: parseInt(opts.concurrency, 10),
+          trailingSlash: opts.trailingSlash,
+          sitemapHost: opts.sitemapHost,
+          robots: opts.robots,
+          failOnError: opts.failOnError,
+        });
+        console.log(
+          `\n✅ zenith ssg: ${result.rendered} صفحه در ${result.durationMs}ms رندر شد → ${opts.outDir}`,
+        );
+        for (const f of result.written) console.log(`   • ${f}`);
+        if (result.failed.length > 0) {
+          console.warn(`⚠️  ${result.failed.length} مسیر شکست خورد:`);
+          for (const f of result.failed) console.warn(`   ✗ ${f.route}: ${f.error}`);
+        }
+        process.exit(result.failed.length > 0 && opts.failOnError ? 1 : 0);
+      } catch (e) {
+        console.error(`[zenith ssg] خطا: ${(e as Error).message}`);
+        process.exit(2);
+      }
+    },
+  );
+
+// ─────────────────────────────────────────────
 // parse و اجرا
 // ─────────────────────────────────────────────
 program.parse(process.argv);

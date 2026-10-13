@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@zenith/errors": "1.4.0",
-    "@zenith/shared": "1.4.0"
+    "@zenith/shared": "1.5.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

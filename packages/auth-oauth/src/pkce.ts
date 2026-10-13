@@ -2,6 +2,8 @@
 //
 // PKCE (RFC 7636) — state/nonce/code_verifier با crypto ایمن.
 
+import { developerError } from '@zenith/errors';
+
 /** تولید رشتهٔ تصادفی base64url از سیستم crypto (browser/Node 19+). */
 export function randomToken(byteLength = 32): string {
   const cryptoApi = (globalThis as unknown as { crypto?: Crypto }).crypto;
@@ -15,7 +17,7 @@ export function randomToken(byteLength = 32): string {
     if (nodeCrypto) {
       nodeCrypto.randomFillSync(bytes);
     } else {
-      throw new Error('[auth-oauth] crypto API در دسترس نیست.');
+      throw developerError('[auth-oauth] crypto API در دسترس نیست.');
     }
   }
   return base64url(bytes);
@@ -44,5 +46,5 @@ export async function pkceChallenge(verifier: string): Promise<string> {
     const digest = nodeCrypto.createHash('sha256').update(enc.encode(verifier)).digest();
     return base64url(new Uint8Array(digest.buffer, digest.byteOffset, digest.byteLength));
   }
-  throw new Error('[auth-oauth] crypto.subtle برای PKCE S256 در دسترس نیست.');
+  throw developerError('[auth-oauth] crypto.subtle برای PKCE S256 در دسترس نیست.');
 }

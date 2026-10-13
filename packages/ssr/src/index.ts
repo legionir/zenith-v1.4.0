@@ -58,6 +58,20 @@ export {
   type HydrationResult,
 } from './hydrate';
 
+// #163: Static Site Generation (SSG) — prerender اعلانی مسیرها + sitemap/robots.
+// هسته fs-free است؛ نوشتن فایل‌ها در `cli/src/ssg.ts` انجام می‌شود.
+export {
+  defineStaticRoutes,
+  prerender,
+  generateSitemapXml,
+  generateRobotsTxt,
+  type StaticRouteDef,
+  type RouterLikeRoute,
+  type PrerenderOptions,
+  type PrerenderArtifacts,
+  type PrerenderReport,
+} from './ssg';
+
 // FEATURE (v0.4.0): Server Components — رندر کامل در سرور، بدون
 // client JS برای آن زیردرخت. این مزیت بزرگ Zenith نسبت به React است
 // چون HTML-First بودن به‌طور ذاتی از این الگو پشتیبانی می‌کند.

@@ -159,7 +159,7 @@ export async function verifyIdToken(
     try {
       const keys = await fetchJwks(opts.jwksUri, opts.fetchImpl);
       const jwk = keys.find((k) => k.kid === kid) ?? keys[0];
-      if (!jwk) throw new Error('jwks-empty');
+      if (!jwk) throw createReservedError('ZEN-2102', { details: { reason: 'jwks-empty' } });
       const key = await jwkToCryptoKey(jwk, alg);
       const cryptoApi = (globalThis as unknown as { crypto?: Crypto }).crypto;
       const data = new TextEncoder().encode(idToken.split('.').slice(0, 2).join('.'));

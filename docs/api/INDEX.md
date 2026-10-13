@@ -41,7 +41,7 @@
 | `@zenith/security` | `universal` | 12 | [security.md](./security.md) |
 | `@zenith/service-worker` | `worker` | 23 | [service-worker.md](./service-worker.md) |
 | `@zenith/shared` | `universal` | 22 | [shared.md](./shared.md) |
-| `@zenith/ssr` | `node` | 65 | [ssr.md](./ssr.md) |
+| `@zenith/ssr` | `node` | 74 | [ssr.md](./ssr.md) |
 | `@zenith/state` | `universal` | 68 | [state.md](./state.md) |
 | `@zenith/stateful` | `browser` | 5 | [stateful.md](./stateful.md) |
 | `@zenith/storage` | `universal` | 32 | [storage.md](./storage.md) |
