@@ -96,17 +96,23 @@ describe('Wave 5 NEW-PACKAGES P2 Batch 3 — Static Site Generation (#163)', () 
         template: TEMPLATE,
         renderPage: failingRenderer,
         failOnError: true,
-      })
+      }),
     ).rejects.toMatchObject({ code: 'ZEN-1821' });
 
-    const badData = ['/', { path: '/p/[id]', getStaticPaths: () => {
-      throw new Error('db offline');
-    } }];
+    const badData = [
+      '/',
+      {
+        path: '/p/[id]',
+        getStaticPaths: () => {
+          throw new Error('db offline');
+        },
+      },
+    ];
     await expect(
-      prerender({ routes: badData, template: TEMPLATE, renderPage: echoRenderer() })
+      prerender({ routes: badData, template: TEMPLATE, renderPage: echoRenderer() }),
     ).rejects.toBeInstanceOf(ZenithError);
     await expect(
-      prerender({ routes: badData, template: TEMPLATE, renderPage: echoRenderer() })
+      prerender({ routes: badData, template: TEMPLATE, renderPage: echoRenderer() }),
     ).rejects.toMatchObject({ code: 'ZEN-1822' });
   });
 

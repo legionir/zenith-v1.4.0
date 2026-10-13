@@ -2,8 +2,8 @@
 # #85 (STD): قالب گزارش باگ با چک‌لیست انطباق با قرارداد API.
 name: 🐛 گزارش باگ
 description: گزارش مشکل در رفتار فریم‌ورک یا مستندات
-title: "[BUG] توضیح کوتاه"
-labels: ["bug", "triage"]
+title: '[BUG] توضیح کوتاه'
+labels: ['bug', 'triage']
 body:
   - type: markdown
     attributes:
@@ -14,7 +14,7 @@ body:
     attributes:
       label: پکیج/بخش متاثر
       description: نام پکیج (مثلاً @zenith/router) یا ماژول
-      placeholder: "@zenith/runtime"
+      placeholder: '@zenith/runtime'
     validations:
       required: true
   - type: textarea
@@ -44,7 +44,7 @@ body:
     id: env
     attributes:
       label: محیط
-      placeholder: "Node 22 / Firefox 130 / Zenith 1.4.0"
+      placeholder: 'Node 22 / Firefox 130 / Zenith 1.4.0'
   - type: checkboxes
     id: checklist
     attributes:

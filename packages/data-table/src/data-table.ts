@@ -713,11 +713,7 @@ export function createDataTable<T extends Record<string, any>>(
       if (col.sortable) {
         const s = sorts.find((item) => item.key === col.key);
         const ariaSort =
-          s?.direction === 'asc'
-            ? 'ascending'
-            : s?.direction === 'desc'
-              ? 'descending'
-              : 'none';
+          s?.direction === 'asc' ? 'ascending' : s?.direction === 'desc' ? 'descending' : 'none';
         cell.setAttribute('aria-sort', ariaSort);
       }
       cell.textContent = col.title;

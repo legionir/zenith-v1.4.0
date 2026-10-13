@@ -60,4 +60,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   validateOnChange: true,
   validateOnBlur: true,
 });
-

@@ -81,7 +81,9 @@ function resolveSystemMode(doc?: Document): 'light' | 'dark' {
 function readCookieMode(name: string, doc?: Document): ThemeMode | null {
   const d = doc ?? (typeof document !== 'undefined' ? document : undefined);
   if (!d) return null;
-  const match = d.cookie.match(new RegExp(`(?:^|;\\s*)${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}=([^;]*)`));
+  const match = d.cookie.match(
+    new RegExp(`(?:^|;\\s*)${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}=([^;]*)`),
+  );
   const v = match?.[1];
   return v === 'light' || v === 'dark' ? v : null;
 }
@@ -121,14 +123,11 @@ export function createTheme(options: ThemeOptions = {}): Theme {
   const initial: ThemeMode =
     (opts.cookie
       ? readCookieMode(opts.storageKey, doc)
-      : (storage?.get(opts.storageKey) as ThemeMode | null)) ??
-    opts.defaultMode;
+      : (storage?.get(opts.storageKey) as ThemeMode | null)) ?? opts.defaultMode;
 
   const mode: Signal<ThemeMode> = signal(initial);
   const dir: Signal<ThemeDir> = signal(
-    opts.dir === 'auto'
-      ? opts.defaultDir
-      : (opts.dir as ThemeDir),
+    opts.dir === 'auto' ? opts.defaultDir : (opts.dir as ThemeDir),
   );
   const resolved: ReadonlySignal<'light' | 'dark'> = computed(() =>
     mode.get() === 'system' ? resolveSystemMode(doc) : (mode.get() as 'light' | 'dark'),
@@ -285,7 +284,10 @@ export function themeInitScript(opts?: {
 export function themePlugin(options: ThemeOptions = {}) {
   return {
     name: 'zenith:theme',
-    install(app: { provide?: (key: string | symbol, value: unknown) => void; dispose?: () => void }) {
+    install(app: {
+      provide?: (key: string | symbol, value: unknown) => void;
+      dispose?: () => void;
+    }) {
       const theme = createTheme(options);
       app?.provide?.('zenith:theme', theme);
       return () => theme.dispose();

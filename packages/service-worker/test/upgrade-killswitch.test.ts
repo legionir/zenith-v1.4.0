@@ -86,7 +86,9 @@ describe('@zenith/service-worker — versioned cache cleanup & emergency kill sw
     setupKillSwitchSW();
 
     let installWait = Promise.resolve();
-    const installEvent = new Event('install') as Event & { waitUntil: (p: Promise<unknown>) => void };
+    const installEvent = new Event('install') as Event & {
+      waitUntil: (p: Promise<unknown>) => void;
+    };
     installEvent.waitUntil = (p) => {
       installWait = p;
     };

@@ -43,7 +43,9 @@ describe('#11: compiler dispose path for generated listeners', () => {
     );
 
     // dispose غیرقابل‌شمارش و idempotent (splice(0) خالی‌کردن آرایه).
-    expect(code).toContain('Object.defineProperty(root, "__zenDispose", { configurable: true, value: function () {');
+    expect(code).toContain(
+      'Object.defineProperty(root, "__zenDispose", { configurable: true, value: function () {',
+    );
     expect(code).toContain('__disposers.splice(0)');
     // سازگاری: render همچنان root را برمی‌گرداند.
     expect(code.trimEnd().endsWith('return root;\n}')).toBe(true);

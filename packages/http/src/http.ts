@@ -187,12 +187,8 @@ export const zenithHttpOptionsSchema = s.object({
   cache: s.optional(cacheConfigOptions.schema),
   tags: s.optional(s.array(s.string({ min: 1 }))),
   skipInterceptors: s.optional(s.boolean()),
-  onUploadProgress: s.optional(
-    s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
-  ),
-  onDownloadProgress: s.optional(
-    s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
-  ),
+  onUploadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+  onDownloadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
   fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
 });
 
@@ -214,12 +210,8 @@ export const httpRequestOptions = defineOptions<HttpRequestOptions>(
     }),
     tags: s.optional(s.array(s.string({ min: 1 }))),
     skipInterceptors: s.default(s.boolean(), false),
-    onUploadProgress: s.optional(
-      s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
-    ),
-    onDownloadProgress: s.optional(
-      s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
-    ),
+    onUploadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+    onDownloadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
     fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
     // Standard RequestInit fields
     method: s.optional(s.string({ min: 1 })),
@@ -273,14 +265,18 @@ export function mockHttp(
   handler: (
     url: string,
     init: RequestInit,
-  ) => Response | Promise<Response> | { status?: number; headers?: Record<string, string>; data?: any },
+  ) =>
+    | Response
+    | Promise<Response>
+    | { status?: number; headers?: Record<string, string>; data?: any },
 ): () => void {
   const impl: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const rawUrl =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const res = await handler(rawUrl, init ?? {});
     if (res instanceof Response) return res;
     const status = typeof res?.status === 'number' ? res.status : 200;
-    const bodyText = JSON.stringify(res && 'data' in res ? res.data : res ?? {});
+    const bodyText = JSON.stringify(res && 'data' in res ? res.data : (res ?? {}));
     return new Response(bodyText, {
       status,
       headers: {
@@ -891,12 +887,7 @@ export interface RealtimeClient {
  * #154: کلاینت ارتباط بلادرنگ (WebSocket/SSE) با صف آفلاین، reconnect با backoff+jitter و بررسی امنیت پروتکل.
  */
 export function createRealtime(options: RealtimeOptions): RealtimeClient {
-  const {
-    url,
-    autoConnect = true,
-    allowInsecure = false,
-    history = 50,
-  } = options;
+  const { url, autoConnect = true, allowInsecure = false, history = 50 } = options;
 
   const isProd = (globalThis as any).__ZENITH_DEV__ === false;
   const isLocalhost = /^ws:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(url);
@@ -1008,11 +999,16 @@ export function createRealtime(options: RealtimeOptions): RealtimeClient {
   };
 }
 
-export function createWebSocket(url: string, options: Omit<RealtimeOptions, 'url' | 'transport'> = {}): RealtimeClient {
+export function createWebSocket(
+  url: string,
+  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
+): RealtimeClient {
   return createRealtime({ ...options, url, transport: 'ws' });
 }
 
-export function createSSE(url: string, options: Omit<RealtimeOptions, 'url' | 'transport'> = {}): RealtimeClient {
+export function createSSE(
+  url: string,
+  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
+): RealtimeClient {
   return createRealtime({ ...options, url, transport: 'sse' });
 }
-

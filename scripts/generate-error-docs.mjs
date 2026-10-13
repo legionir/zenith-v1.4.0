@@ -99,7 +99,10 @@ function parseEnMap(text) {
   while ((m = re.exec(text)) !== null) {
     const block = extractBlock(text, m.index);
     if (!block) continue;
-    map[m[1]] = { message: field(block.body, 'message'), suggestion: field(block.body, 'suggestion') };
+    map[m[1]] = {
+      message: field(block.body, 'message'),
+      suggestion: field(block.body, 'suggestion'),
+    };
   }
   return map;
 }
@@ -156,7 +159,9 @@ for (const code of legacyCodes) {
 md.push('');
 md.push('## قوانین `zenith check` (CLI)');
 md.push('');
-md.push('قوانین امنیت/کیفیت `zenith check` در بازهٔ `ZEN-9000..9899` هستند (جایگزین شناسه‌های قدیمی Z001..Z820 در #102).');
+md.push(
+  'قوانین امنیت/کیفیت `zenith check` در بازهٔ `ZEN-9000..9899` هستند (جایگزین شناسه‌های قدیمی Z001..Z820 در #102).',
+);
 md.push('');
 md.push('---');
 md.push('');
@@ -167,11 +172,15 @@ const output = md.join('\n');
 
 if (checkMode) {
   if (!readFileSync(docPath, 'utf8').endsWith(output.slice(-40))) {
-    console.error('❌ docs/ERROR-CODES.md قدیمی است — `node scripts/generate-error-docs.mjs` اجرا کنید.');
+    console.error(
+      '❌ docs/ERROR-CODES.md قدیمی است — `node scripts/generate-error-docs.mjs` اجرا کنید.',
+    );
     process.exit(1);
   }
   console.log('✅ docs/ERROR-CODES.md تازه است.');
 } else {
   writeFileSync(docPath, output);
-  console.log(`✅ docs/ERROR-CODES.md نوشته شد (${entries.length} کد ۴رقمی + ${legacyCodes.length} کد ۳رقمی).`);
+  console.log(
+    `✅ docs/ERROR-CODES.md نوشته شد (${entries.length} کد ۴رقمی + ${legacyCodes.length} کد ۳رقمی).`,
+  );
 }

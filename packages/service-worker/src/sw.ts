@@ -427,7 +427,9 @@ export function setupKillSwitchSW(): void {
     registration?: { unregister?: () => Promise<boolean> };
     clients?: {
       claim?: () => Promise<void>;
-      matchAll?: (opts?: { type?: string }) => Promise<Array<{ url: string; navigate?: (url: string) => Promise<unknown> }>>;
+      matchAll?: (opts?: {
+        type?: string;
+      }) => Promise<Array<{ url: string; navigate?: (url: string) => Promise<unknown> }>>;
     };
   };
 

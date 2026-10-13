@@ -2,12 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  addReporter,
-  reportError,
-  clearErrorBoundary,
-  type ExternalErrorReport,
-} from '../src';
+import { addReporter, reportError, clearErrorBoundary, type ExternalErrorReport } from '../src';
 
 describe('@zenith/error-boundary — external reporters & PII redaction (#93)', () => {
   beforeEach(() => {
@@ -68,10 +63,7 @@ describe('@zenith/error-boundary — external reporters & PII redaction (#93)', 
       },
     );
 
-    reportError(
-      new Error('Auth failed for user@example.com with Bearer abcdef123456'),
-      'auth',
-    );
+    reportError(new Error('Auth failed for user@example.com with Bearer abcdef123456'), 'auth');
 
     expect(reports).toHaveLength(1);
     const report = reports[0]!;

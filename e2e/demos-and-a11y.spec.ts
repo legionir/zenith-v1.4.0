@@ -11,7 +11,9 @@ test('e2e fixture passes interactive flow and automated accessibility checks (#3
   });
 
   await page.goto('/e2e/fixture.html');
-  await page.waitForFunction(() => (window as unknown as { __ZENITH_E2E_READY__?: boolean }).__ZENITH_E2E_READY__ === true);
+  await page.waitForFunction(
+    () => (window as unknown as { __ZENITH_E2E_READY__?: boolean }).__ZENITH_E2E_READY__ === true,
+  );
 
   // Run automated DOM accessibility checks in browser context (#99)
   const violations = await page.evaluate(() => {

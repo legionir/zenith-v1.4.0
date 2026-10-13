@@ -575,7 +575,10 @@ function lookupPath(obj: I18nMessages | undefined, path: string): unknown {
   return path
     .split('.')
     .reduce<I18nMessages | string | number | undefined>(
-      (acc, part) => (acc != null && typeof acc === 'object' ? (acc as Record<string, unknown>)[part] as I18nMessages | string | number | undefined : undefined),
+      (acc, part) =>
+        acc != null && typeof acc === 'object'
+          ? ((acc as Record<string, unknown>)[part] as I18nMessages | string | number | undefined)
+          : undefined,
       obj,
     );
 }
@@ -691,8 +694,7 @@ export function createI18n(options: I18nOptions = {}): I18n {
     tOpts: TranslateOptions = {},
   ): string => {
     const loc = tOpts.locale ?? localeSig.get();
-    const mergedParams =
-      tOpts.count !== undefined ? { count: tOpts.count, ...params } : params;
+    const mergedParams = tOpts.count !== undefined ? { count: tOpts.count, ...params } : params;
     const raw = tm(key, loc);
     if (typeof raw !== 'string') {
       return tOpts.default ?? key;
@@ -813,5 +815,3 @@ export function detectLocale(
   }
   return options.defaultLocale ?? DEFAULTS.locale;
 }
-
-

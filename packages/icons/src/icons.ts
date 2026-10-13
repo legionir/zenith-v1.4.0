@@ -42,7 +42,10 @@ function normalize(set: IconSet, prefix?: string): Map<string, IconDefinition> {
 /**
  * #170: ثبت مجموعهٔ آیکن با prefix؛ Cleanup همهٔ آیکن‌های این set را حذف می‌کند.
  */
-export function registerIcons(set: IconSet, options?: { prefix?: string; registry?: string }): Cleanup {
+export function registerIcons(
+  set: IconSet,
+  options?: { prefix?: string; registry?: string },
+): Cleanup {
   const registry = ensureRegistry(options?.registry ?? defaultRegistry);
   const normalized = normalize(set, options?.prefix);
   for (const [k, v] of normalized.entries()) registry.set(k, v);
@@ -90,10 +93,7 @@ const EVENT_ATTR_RE = /\s+on[a-zA-Z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/g;
  */
 export function sanitizeIconBody(body: string): string {
   const securitySafe = sanitizeHTML(body);
-  return securitySafe
-    .replace(SCRIPT_RE, '')
-    .replace(FOREIGN_RE, '')
-    .replace(EVENT_ATTR_RE, '');
+  return securitySafe.replace(SCRIPT_RE, '').replace(FOREIGN_RE, '').replace(EVENT_ATTR_RE, '');
 }
 
 /**
@@ -120,9 +120,7 @@ export function renderIcon(
   const body = sanitizeIconBody(icon.body);
   const label = options?.label;
   const spin = options?.spin ? ' class="zen-icon-spin"' : '';
-  const titlePart = label
-    ? ` role="img" aria-label="${escapeAttr(label)}"`
-    : ' aria-hidden="true"';
+  const titlePart = label ? ` role="img" aria-label="${escapeAttr(label)}"` : ' aria-hidden="true"';
   const titleTag = label ? `<title>${escapeHtml(label)}</title>` : '';
   const w = icon.width ?? 24;
   const h = icon.height ?? 24;
@@ -147,9 +145,19 @@ function escapeHtml(value: string): string {
  * #170: مجموعهٔ پایه (5 آیکن رایج) — import جداگانه تا tree-shakable بماند.
  */
 export const BASIC_ICONS: IconSet = {
-  'menu': { body: '<path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>' },
-  'close': { body: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>' },
-  'check': { body: '<path d="M4 12l5 5 11-11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' },
-  'chevron-down': { body: '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' },
-  'search': { body: '<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' },
+  menu: {
+    body: '<path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  },
+  close: {
+    body: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  },
+  check: {
+    body: '<path d="M4 12l5 5 11-11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'chevron-down': {
+    body: '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  search: {
+    body: '<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  },
 };

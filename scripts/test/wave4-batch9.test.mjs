@@ -10,11 +10,7 @@ import {
   cleanupRouter,
   installPopstateListener,
 } from '../../packages/router/src/index.ts';
-import {
-  defineStore,
-  useStorePlugin,
-  clearStores,
-} from '../../packages/store/src/index.ts';
+import { defineStore, useStorePlugin, clearStores } from '../../packages/store/src/index.ts';
 import { createForm } from '../../packages/form/src/index.ts';
 import { http, mockHttp } from '../../packages/http/src/index.ts';
 import {

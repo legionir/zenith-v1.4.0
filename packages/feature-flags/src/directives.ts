@@ -37,7 +37,9 @@ export function processFlag(el: HTMLElement, expr: string): () => void {
   const def = parseBoolAttr(el, 'zen-flag-default', false);
 
   let fallbackEl: HTMLElement | null = null;
-  const fallbackTemplate = el.querySelector(':scope > template[zen-flag-else]') as HTMLTemplateElement | null;
+  const fallbackTemplate = el.querySelector(
+    ':scope > template[zen-flag-else]',
+  ) as HTMLTemplateElement | null;
   if (fallbackTemplate) {
     fallbackEl = document.createElement('div');
     fallbackEl.style.display = 'none';

@@ -58,4 +58,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   strict: true,
   coerce: false,
 });
-

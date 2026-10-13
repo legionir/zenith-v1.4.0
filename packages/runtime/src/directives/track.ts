@@ -286,4 +286,3 @@ export function plausibleProvider(options: { domain: string }): AnalyticsProvide
     },
   };
 }
-

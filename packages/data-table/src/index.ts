@@ -27,4 +27,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   selectable: false,
   multiSort: false,
 });
-

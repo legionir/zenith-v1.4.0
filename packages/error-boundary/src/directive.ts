@@ -180,8 +180,7 @@ export function recoverFromError(el: HTMLElement): void {
     el.innerHTML = originalHTML;
   }
   const proc = (el as any).__zenithProcessChildren__ as
-    | ((node: HTMLElement, disposes: (() => void)[]) => void)
-    | undefined;
+    ((node: HTMLElement, disposes: (() => void)[]) => void) | undefined;
   if (typeof proc === 'function') {
     const tempDisposes: (() => void)[] = [];
     for (const child of Array.from(el.children)) {

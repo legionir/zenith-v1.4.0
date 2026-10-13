@@ -47,4 +47,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   debounceMs: 250,
   throttleMs: 250,
 });
-

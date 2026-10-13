@@ -6,12 +6,7 @@
 // خطاها: ZEN-1821 (رندر مسیر شکست)، ZEN-1822 (داده در build در دسترس نیست).
 
 import { ZenithError } from '@zenith/errors';
-import {
-  renderToString,
-  generateFullPage,
-  type SSRHeadInput,
-  type SSRI18nInput,
-} from './render';
+import { renderToString, generateFullPage, type SSRHeadInput, type SSRI18nInput } from './render';
 
 export interface StaticRouteDef {
   path: string;
@@ -24,7 +19,10 @@ export interface StaticRouteDef {
 
 export interface RouterLikeRoute {
   path: string;
-  meta?: Record<string, unknown> & { prerender?: boolean; getStaticPaths?: StaticRouteDef['getStaticPaths'] };
+  meta?: Record<string, unknown> & {
+    prerender?: boolean;
+    getStaticPaths?: StaticRouteDef['getStaticPaths'];
+  };
 }
 
 /**
@@ -61,8 +59,12 @@ export interface PrerenderOptions {
   robots?: boolean | { userAgent?: string; disallow?: string[]; sitemapUrl?: string };
   failOnError?: boolean;
   timeout?: number;
-  state?: Record<string, unknown> | ((route: StaticRouteDef, url: string) => Record<string, unknown>);
-  head?: SSRHeadInput | string | ((route: StaticRouteDef, url: string) => SSRHeadInput | string | undefined);
+  state?:
+    Record<string, unknown> | ((route: StaticRouteDef, url: string) => Record<string, unknown>);
+  head?:
+    | SSRHeadInput
+    | string
+    | ((route: StaticRouteDef, url: string) => SSRHeadInput | string | undefined);
   i18n?: SSRI18nInput | ((route: StaticRouteDef, url: string) => SSRI18nInput | undefined);
 }
 
@@ -178,11 +180,17 @@ export async function prerender(options: PrerenderOptions): Promise<PrerenderArt
     options.renderPage ??
     (async (route: StaticRouteDef, url: string): Promise<string> => {
       const state =
-        typeof options.state === 'function' ? options.state(route, url) : options.state ?? route.state ?? {};
+        typeof options.state === 'function'
+          ? options.state(route, url)
+          : (options.state ?? route.state ?? {});
       const head =
-        typeof options.head === 'function' ? options.head(route, url) : options.head ?? route.head;
+        typeof options.head === 'function'
+          ? options.head(route, url)
+          : (options.head ?? route.head);
       const i18n =
-        typeof options.i18n === 'function' ? options.i18n(route, url) : options.i18n ?? route.i18n;
+        typeof options.i18n === 'function'
+          ? options.i18n(route, url)
+          : (options.i18n ?? route.i18n);
       const result = await renderToString(options.template, state as Record<string, unknown>, {
         route: url,
         app: options.app,
@@ -223,9 +231,7 @@ export async function prerender(options: PrerenderOptions): Promise<PrerenderArt
     workers.push(worker());
   }
   const results = await Promise.allSettled(workers);
-  const firstFailure = results.find(
-    (r): r is PromiseRejectedResult => r.status === 'rejected',
-  );
+  const firstFailure = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
   if (firstFailure) throw firstFailure.reason;
 
   if (options.sitemap) {

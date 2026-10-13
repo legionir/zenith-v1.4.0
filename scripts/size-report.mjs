@@ -77,6 +77,8 @@ if (isMain) {
   if (process.argv.includes('--markdown')) {
     console.log(generateSizeReportMarkdown(process.cwd()));
   } else {
-    console.log(`✅ size-report (#83): all ${cov.totalConfigured} entries covered in .size-limit.json.`);
+    console.log(
+      `✅ size-report (#83): all ${cov.totalConfigured} entries covered in .size-limit.json.`,
+    );
   }
 }

@@ -104,7 +104,11 @@ export function beaconSink(opts: BeaconSinkOptions): LogSink {
     try {
       void fetch(opts.url, {
         method: 'POST',
-        body: queue.splice(0).map((e) => entryJson(e)).join('\n') + '\n',
+        body:
+          queue
+            .splice(0)
+            .map((e) => entryJson(e))
+            .join('\n') + '\n',
         headers: { 'content-type': 'application/x-ndjson; charset=utf-8', ...opts.headers },
       }).catch(() => {});
     } catch {}

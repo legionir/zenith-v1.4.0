@@ -102,4 +102,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   includeHydrationData: true,
   timeout: 10_000,
 });
-

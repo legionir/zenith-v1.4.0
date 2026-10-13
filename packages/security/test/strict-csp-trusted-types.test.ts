@@ -79,7 +79,10 @@ describe('Strict CSP (no unsafe-eval/unsafe-inline) & TrustedTypes (#63)', () =>
     expect((window as any).trustedTypes.createPolicy).toHaveBeenCalledTimes(1);
 
     const container = document.createElement('div');
-    setSafeInnerHTML(container, '<p onclick="alert(1)">Hello <b>World</b></p><script>evil()</script>');
+    setSafeInnerHTML(
+      container,
+      '<p onclick="alert(1)">Hello <b>World</b></p><script>evil()</script>',
+    );
 
     expect(createdHTML).toHaveLength(1);
     expect(container.innerHTML).toBe('<p>Hello <b>World</b></p>');

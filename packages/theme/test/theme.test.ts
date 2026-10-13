@@ -2,11 +2,7 @@
 // @vitest-environment jsdom
 /* global document, localStorage */
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createTheme,
-  themeInitScript,
-  themePlugin,
-} from '../src/index';
+import { createTheme, themeInitScript, themePlugin } from '../src/index';
 import { flushSync } from '@zenith/scheduler';
 
 describe('@zenith/theme (#161)', () => {
@@ -54,8 +50,8 @@ describe('@zenith/theme (#161)', () => {
     const theme = createTheme({
       defaultMode: 'dark',
       tokens: {
-        light: { 'bg': '#ffffff', 'fg': '#111111' },
-        dark: { 'bg': '#000000', 'fg': '#eeeeee' },
+        light: { bg: '#ffffff', fg: '#111111' },
+        dark: { bg: '#000000', fg: '#eeeeee' },
       },
     });
     expect(document.documentElement.style.getPropertyValue('--zen-bg')).toBe('#000000');

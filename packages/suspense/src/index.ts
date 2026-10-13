@@ -23,4 +23,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   timeout: 0,
   minDelay: 0,
 });
-

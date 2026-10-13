@@ -142,7 +142,10 @@ export function checkTraceability(rootDir = process.cwd()) {
 
   // #31: Verify every claimed BUG-*/IMP-*/SEC-* ID is referenced inside at least one test file
   const allTestFiles = [
-    ...walkFiles(join(rootDir, 'packages'), (p) => p.includes('/test/') && /\.test\.(ts|mjs|js)$/.test(p)),
+    ...walkFiles(
+      join(rootDir, 'packages'),
+      (p) => p.includes('/test/') && /\.test\.(ts|mjs|js)$/.test(p),
+    ),
     ...walkFiles(join(rootDir, 'scripts', 'test'), (p) => /\.test\.(ts|mjs|js)$/.test(p)),
   ];
   const combinedTestSource = allTestFiles.map((f) => readFileSync(f, 'utf8')).join('\n');

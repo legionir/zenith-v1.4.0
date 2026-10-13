@@ -45,4 +45,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   strictDynamic: false,
   requireTrustedTypes: false,
 });
-

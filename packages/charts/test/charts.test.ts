@@ -2,12 +2,7 @@
 // @vitest-environment jsdom
 /* global document */
 import { describe, it, expect } from 'vitest';
-import {
-  createChart,
-  renderChartSvg,
-  processChart,
-  DEFAULTS,
-} from '../src/index';
+import { createChart, renderChartSvg, processChart, DEFAULTS } from '../src/index';
 import { signal } from '@zenith/state';
 import { flushSync } from '@zenith/scheduler';
 
@@ -19,7 +14,10 @@ const DATA = [
 
 describe('@zenith/charts (#169)', () => {
   it('renderChartSvg بدون document برای SSR رندر می‌کند', () => {
-    const svg = renderChartSvg({ type: 'line', data: DATA, x: 'day', y: 'value', title: 'فروش' }, DATA);
+    const svg = renderChartSvg(
+      { type: 'line', data: DATA, x: 'day', y: 'value', title: 'فروش' },
+      DATA,
+    );
     expect(svg).toContain('<svg');
     expect(svg).toContain('role="img"');
     expect(svg).toContain('aria-label="فروش"');
@@ -50,7 +48,12 @@ describe('@zenith/charts (#169)', () => {
     const el = document.createElement('div');
     document.body.appendChild(el);
     const dataSig = signal([...DATA]);
-    const chart = createChart(el, { type: 'line', data: dataSig as unknown as never, x: 'day', y: 'value' });
+    const chart = createChart(el, {
+      type: 'line',
+      data: dataSig as unknown as never,
+      x: 'day',
+      y: 'value',
+    });
     dataSig.set([{ day: 'چهارشنبه', value: 30 }]);
     flushSync();
     expect(el.innerHTML).toContain('چهارشنبه');

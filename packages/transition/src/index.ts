@@ -46,4 +46,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   easing: 'ease',
   delay: 0,
 });
-

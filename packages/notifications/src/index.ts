@@ -42,4 +42,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   position: 'top-left' as const,
   dismissible: true,
 });
-

@@ -64,9 +64,7 @@ export async function runSsg(options: SsgCliOptions): Promise<SsgCliResult> {
   try {
     ssr = (await import('@zenith/ssr')) as unknown as SsgModule;
   } catch {
-    throw new Error(
-      'zenith ssg به @zenith/ssr نیاز دارد. آن را نصب کنید: npm i @zenith/ssr',
-    );
+    throw new Error('zenith ssg به @zenith/ssr نیاز دارد. آن را نصب کنید: npm i @zenith/ssr');
   }
 
   if (!fs.existsSync(options.templatePath)) {

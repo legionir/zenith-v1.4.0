@@ -187,9 +187,9 @@ describe('Wave 5 P1 Batch 1 — New Packages & Peripheral Integration (#150, #15
   it('154: realtime client rejects insecure ws:// in production and buffers queue', () => {
     const prevDev = globalThis.__ZENITH_DEV__;
     globalThis.__ZENITH_DEV__ = false;
-    expect(() =>
-      createRealtime({ url: 'ws://evil.example.com/ws', autoConnect: false }),
-    ).toThrow(/Insecure WebSocket/);
+    expect(() => createRealtime({ url: 'ws://evil.example.com/ws', autoConnect: false })).toThrow(
+      /Insecure WebSocket/,
+    );
     expect(() =>
       createRealtime({ url: 'ws://localhost:4000/ws', autoConnect: false }),
     ).not.toThrow();

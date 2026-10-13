@@ -40,7 +40,8 @@ const ALLOWED = new Set([
 
 const top = join(root, 'node_modules');
 if (!existsSync(top)) {
-  const msg = '⚠️  node_modules موجود نیست — license check نادیده گرفته شد (در CI پس از npm ci اجرا کنید).';
+  const msg =
+    '⚠️  node_modules موجود نیست — license check نادیده گرفته شد (در CI پس از npm ci اجرا کنید).';
   if (strict) {
     console.error(`❌ ${msg}`);
     process.exit(1);

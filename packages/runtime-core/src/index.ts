@@ -358,10 +358,7 @@ export function provide<T>(key: InjectionKey<T> | string | symbol, value: T): vo
  */
 export function inject<T>(key: InjectionKey<T> | string | symbol): T | undefined;
 export function inject<T>(key: InjectionKey<T> | string | symbol, defaultValue: T): T;
-export function inject<T>(
-  key: InjectionKey<T> | string | symbol,
-  defaultValue?: T,
-): T | undefined {
+export function inject<T>(key: InjectionKey<T> | string | symbol, defaultValue?: T): T | undefined {
   let frame = currentScope;
   while (frame) {
     if (frame.provides.has(key)) {
@@ -1562,8 +1559,11 @@ export function createRovingTabindex(
     selector?: string;
   } = {},
 ): () => void {
-  const { orientation = 'horizontal', loop = true, selector = '[role="tab"], [role="menuitem"], button' } =
-    options;
+  const {
+    orientation = 'horizontal',
+    loop = true,
+    selector = '[role="tab"], [role="menuitem"], button',
+  } = options;
 
   const getItems = (): HTMLElement[] =>
     (Array.from(container.querySelectorAll(selector)) as HTMLElement[]).filter(
@@ -1640,7 +1640,9 @@ let _savedBodyOverflow = '';
 /**
  * #151: قفل شمارنده‌ای اسکرول بدنهٔ صفحه (`lockScroll() -> Cleanup`).
  */
-export function lockScroll(doc: Document | undefined = typeof document !== 'undefined' ? document : undefined): () => void {
+export function lockScroll(
+  doc: Document | undefined = typeof document !== 'undefined' ? document : undefined,
+): () => void {
   if (!doc || !doc.body) return () => {};
   if (_scrollLockCount === 0) {
     _savedBodyOverflow = doc.body.style.overflow;
@@ -1665,8 +1667,8 @@ let _deterministicIdCounter = 0;
  */
 export function useId(prefix = 'zen-id'): string {
   if (currentScope) {
-    const app = currentScope.app as (App & { idCounter?: number });
-    const next = ((app.idCounter ?? 0) + 1);
+    const app = currentScope.app as App & { idCounter?: number };
+    const next = (app.idCounter ?? 0) + 1;
     app.idCounter = next;
     return `${prefix}-${next}`;
   }
@@ -1694,7 +1696,10 @@ export function computePosition(
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight || 768 : 768;
 
   if (options.flip !== false && placement === 'bottom') {
-    if (refRect.bottom + floatRect.height + offset > viewportHeight && refRect.top > floatRect.height + offset) {
+    if (
+      refRect.bottom + floatRect.height + offset > viewportHeight &&
+      refRect.top > floatRect.height + offset
+    ) {
       placement = 'top';
     }
   }
@@ -1712,4 +1717,3 @@ export function computePosition(
   }
   return { x, y, placement };
 }
-
