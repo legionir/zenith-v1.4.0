@@ -702,5 +702,13 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#100` و `#101`: پشتیبانی جامع RTL، جهات منطقی CSS، ایزوله‌های دوجهتهٔ یونیکد (`isolateBidi`) و فرمت‌بندی بومی `Intl` در `@zenith/i18n` و `@zenith/jalali`؛
   - `#104` و `#105`: راهنمای شروع سریع و آموزش ۳۰ دقیقه‌ای (`docs/GETTING-STARTED.md`)، کتاب آشپزی ۱۰ دستورالعملی (`docs/COOKBOOK.md`)، سیاست چرخهٔ عمر پشتیبانی (`SUPPORT.md`) و جدول مهاجرت نسخه به نسخه (`docs/migration-guide.md`).
 
+- موج ۴ — دستهٔ ۷ از P1 (`#33`, `#38`, `#39`, `#56`, `#57`, `#99`, `#103`):
+  - `#33` و `#99`: رفع باگ امضای `Zen.start` در قالب PWA (`pwaMainTsTemplate`)، پیاده‌سازی ممیز خودکار دسترس‌پذیری `auditAccessibility` و `expectAccessible` در `@zenith/testing`، و افزودن تست‌های E2E قالب‌های `zenith create` و دموها (`packages/cli/test/templates-e2e.test.ts`, `e2e/demos-and-a11y.spec.ts`)؛
+  - `#38`: حذف کامل `any` از امضاهای عمومی ۱۸ پکیج پایه/مدرن (از جمله `devtools-core`) و اسکریپت ممیزی `scripts/check-public-any.mjs`؛
+  - `#39`: یکپارچه‌سازی `@zenith/logger` با حفظ بودجهٔ حجمی زیر ۲KB gzip و قانون ESLint `no-console: error`؛
+  - `#56` و `#103`: تولید خودکار اسنپ‌شات سطح API عمومی (`docs/api/api-surface.snapshot.json`) و صفحات مرجع API برای تمامی ۴۳ پکیج (`docs/api/*.md`, `docs/api/INDEX.md`, `scripts/generate-api-docs.mjs`)؛
+  - `#57`: افزودن متادیتای محیط هدف `zenith.target` و زیرمسیر `./package.json` به همهٔ پکیج‌ها و حذف شاخه‌های `__ZENITH_DEV__` در بیلد production (`scripts/build-package.mjs`).
+
+
 
 

@@ -56,6 +56,7 @@ export async function buildPackage(pkgName) {
     external: ['@zenith/*', ...peerDeps],
     define: {
       __ZENITH_PKG_VERSION__: JSON.stringify(pkgJson.version ?? '1.4.0'),
+      ...(process.env.NODE_ENV === 'production' ? { __ZENITH_DEV__: 'false' } : {}),
     },
   };
 

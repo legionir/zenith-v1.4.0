@@ -122,5 +122,8 @@
   },
   "dependencies": {
     "@zenith/runtime": "1.4.0"
+  },
+  "zenith": {
+    "target": "node"
   }
 }

@@ -29,15 +29,12 @@ export { createLogger } from './logger';
 export { consoleSink, bufferSink, beaconSink } from './sinks';
 export { deprecate, warnOnce } from './deprecate';
 
-// نمونهٔ پیش‌فرض (scope `zen`) — در ./default ساخته می‌شود (بدون چرخهٔ import).
 export { logger };
 
-/** سطح لاگر پیش‌فرض را تنظیم می‌کند (SPEC §۲.۳ — `(level) => void`). */
 export function setLogLevel(level: LogLevel): void {
   logger.setLevel(level);
 }
 
-/** sink به لاگر پیش‌فرض اضافه می‌کند؛ `Cleanup` حذفش می‌کند (SPEC §۰.۱). */
 export function addSink(sink: LogSink): Cleanup {
   return logger.addSink(sink);
 }

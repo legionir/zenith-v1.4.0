@@ -17,17 +17,17 @@ import type { LogEntry, LogSink } from './types';
 
 /** ورودی → یک خط JSON (کلیدهای ترتیب‌دار؛ undefinedها حذف). SSR SPEC §۲.۳. */
 export function entryJson(entry: LogEntry, requestId?: string | null): string {
-  const record: Record<string, unknown> = {
+  const r: Record<string, unknown> = {
     ts: entry.t,
     level: entry.level,
     scope: entry.scope,
     msg: entry.message,
   };
-  if (entry.code !== undefined) record['code'] = entry.code;
-  if (entry.suggestion) record['suggestion'] = entry.suggestion;
-  if (entry.details) record['details'] = entry.details;
-  if (requestId) record['requestId'] = requestId;
-  return JSON.stringify(record);
+  if (entry.code !== undefined) r.code = entry.code;
+  if (entry.suggestion) r.suggestion = entry.suggestion;
+  if (entry.details) r.details = entry.details;
+  if (requestId) r.requestId = requestId;
+  return JSON.stringify(r);
 }
 
 export interface ConsoleSinkOptions {
@@ -45,16 +45,10 @@ export interface ConsoleSinkOptions {
  * - سرور (`isServer()`): یک خط JSON کامل در `console.log` با `requestId` اختیاری.
  */
 export function consoleSink(opts?: ConsoleSinkOptions): LogSink {
-  return (entry) => {
-    // همان isServer() shared؛ اینجا inline شده تا bundle ≤۲KB بماند
-    // (window در node تعریف‌نشده است — چک فراخوانی، نه import-time).
-    if (typeof window === 'undefined') {
-      console.log(entryJson(entry, opts?.requestId?.()));
-      return;
-    }
-    const level = entry.level as 'debug' | 'info' | 'warn' | 'error';
-    console[level](entry.text ?? entry.message);
-  };
+  return (entry) =>
+    typeof window === 'undefined'
+      ? console.log(entryJson(entry, opts?.requestId?.()))
+      : console[entry.level as 'debug' | 'info' | 'warn' | 'error'](entry.text ?? entry.message);
 }
 
 export interface BufferSinkOptions {
@@ -102,37 +96,30 @@ export function beaconSink(opts: BeaconSinkOptions): LogSink {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const flush = (): void => {
-    if (timer !== null) {
+    if (timer) {
       clearTimeout(timer);
       timer = null;
     }
-    if (queue.length === 0) return;
-    const batch = queue.splice(0, queue.length);
-    const body = batch.map((e) => entryJson(e)).join('\n') + '\n';
-    const headers = { 'content-type': 'application/x-ndjson; charset=utf-8', ...opts.headers };
-    // node ≥18.19 و مرورگرهای هدف همه fetch دارند (DEC-027).
+    if (!queue.length) return;
     try {
-      void fetch(opts.url, { method: 'POST', body, headers }).catch(() => {});
-    } catch {
-      /* best-effort: خطای transport هرگز به حلقهٔ لاگ برنمی‌گردد */
-    }
-  };
-
-  const schedule = (): void => {
-    // lazy: تایمر فقط با اولین ورودی ساخته می‌شود (sideEffects:false).
-    if (timer !== null || typeof setTimeout !== 'function') return;
-    timer = setTimeout(() => {
-      timer = null;
-      flush();
-    }, opts.flushInterval);
-    // در node نباید پروسه را زنده نگه دارد (unref خاص node است).
-    (timer as unknown as { unref?: () => void }).unref?.();
+      void fetch(opts.url, {
+        method: 'POST',
+        body: queue.splice(0).map((e) => entryJson(e)).join('\n') + '\n',
+        headers: { 'content-type': 'application/x-ndjson; charset=utf-8', ...opts.headers },
+      }).catch(() => {});
+    } catch {}
   };
 
   const sink = (entry: LogEntry): void => {
     queue.push(entry);
     if (queue.length >= opts.batchSize) flush();
-    else schedule();
+    else if (!timer && typeof setTimeout === 'function') {
+      timer = setTimeout(() => {
+        timer = null;
+        flush();
+      }, opts.flushInterval);
+      (timer as unknown as { unref?: () => void }).unref?.();
+    }
   };
   sink.dispose = flush;
   return sink;

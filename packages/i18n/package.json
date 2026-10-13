@@ -9,7 +9,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -53,5 +54,8 @@
   "dependencies": {
     "@zenith/errors": "1.4.0",
     "@zenith/jalali": "1.5.0"
+  },
+  "zenith": {
+    "target": "universal"
   }
 }

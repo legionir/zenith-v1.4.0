@@ -35,45 +35,35 @@ interface Core {
  * catalog errors (#171/DEC-020) می‌آید؛ اینجا فقط سازندهٔ ورودی است و
  * «یک‌بار بودن» را dispatch تضمین می‌کند (sink حذف‌شده دوباره پیدا نمی‌شود).
  */
-function brokenSinkEntry(cause: unknown, name: string, t: number): LogEntry {
-  const err = createReservedError('ZEN-1091', { cause, context: { sink: name } });
-  return {
-    level: 'error',
-    scope: 'zen:logger',
-    message: err.message,
-    code: err.code,
-    suggestion: err.suggestion,
-    details: { sink: name, reason: cause instanceof Error ? cause.message : String(cause) },
-    t,
-  };
-}
-
-/**
- * entry را به sinkها می‌رساند. sink خطاکار (sync throw یا async reject)
- * حذف و — فقط وقتی `report` باشد — یک ZEN-1091 به باقی‌ماندهٔ sinkها می‌رود.
- * گزارش دوم ساخته نمی‌شود (report=false) ⇒ عمق dispatch حداکثر ۲: حلقهٔ
- * لاگ ممکن نیست و throw به برنامه پس نمی‌گردد.
- */
 function dispatch(core: Core, entry: LogEntry, report: boolean): void {
   const fail = (sink: LogSink, error: unknown): void => {
     const at = core.sinks.indexOf(sink);
-    if (at === -1) return; // قبلاً حذف شده (sync و async یکی را هدف نگیرند)
+    if (at === -1) return;
     core.sinks.splice(at, 1);
     if (!report) return;
-    const r = brokenSinkEntry(error, sink.name || `sink#${at}`, core.clock());
+    const name = sink.name || `sink#${at}`;
+    const err = createReservedError('ZEN-1091', { cause: error, context: { sink: name } });
+    const r: LogEntry = {
+      level: 'error',
+      scope: 'zen:logger',
+      message: err.message,
+      code: err.code,
+      suggestion: err.suggestion,
+      details: { sink: name, reason: error instanceof Error ? error.message : String(error) },
+      t: core.clock(),
+    };
     r.text = core.format(r);
-    // dispatch دوم با report=false: هرگز گزارش زنجیره‌ای ⇒ بدون حلقه.
     dispatch(core, r, false);
   };
   for (let i = core.sinks.length - 1; i >= 0; i--) {
     const sink = core.sinks[i]!;
     try {
-      const maybe: void | Promise<void> = sink(entry);
+      const maybe = sink(entry);
       if (maybe != null && typeof maybe.catch === 'function') {
-        maybe.catch((error: unknown) => fail(sink, error));
+        maybe.catch((e: unknown) => fail(sink, e));
       }
-    } catch (error) {
-      fail(sink, error);
+    } catch (e) {
+      fail(sink, e);
     }
   }
 }
@@ -101,25 +91,16 @@ function makeLogger(
     };
     // ادغام details فقط وقتی هر دو طرف هست؛ در غیر صورت همان مرجع می‌ماند
     // تا spread هویت چرخه را گم نکند و redact درست '[Circular]' بزند.
-    const errDetails = isZenithError(msgOrError) ? msgOrError.details : undefined;
-    const merged =
-      errDetails === undefined
-        ? details
-        : details === undefined
-          ? errDetails
-          : { ...errDetails, ...details };
+    const isZ = isZenithError(msgOrError);
+    const errDetails = isZ ? msgOrError.details : undefined;
+    const merged = errDetails && details ? { ...errDetails, ...details } : (errDetails ?? details);
     if (merged !== undefined) entry.details = redactDetails(merged, core.redact);
-    if (isZenithError(msgOrError)) {
+    if (isZ) {
       entry.code = msgOrError.code;
       entry.suggestion = msgOrError.suggestion;
-      const reporter = (globalThis as { reportError?: unknown }).reportError;
-      if (typeof reporter === 'function') {
-        try {
-          (reporter as (err: unknown) => void)(msgOrError);
-        } catch {
-          /* best-effort — مسیر گزارش نباید لاگر را بشکند */
-        }
-      }
+      try {
+        (globalThis as { reportError?: (e: unknown) => void }).reportError?.(msgOrError);
+      } catch {}
     }
     entry.text = core.format(entry);
     dispatch(core, entry, true);
@@ -143,9 +124,10 @@ function makeLogger(
       return remove;
     },
     warnOnce: (key, msg) => {
-      if (warnedOnce.has(key)) return;
-      warnedOnce.add(key);
-      write('warn', msg);
+      if (!warnedOnce.has(key)) {
+        warnedOnce.add(key);
+        write('warn', msg);
+      }
     },
   };
 }
@@ -174,14 +156,10 @@ export function createLogger(opts?: LoggerOptions): FullLogger {
     dispose: () => {
       if (core.disposed) return;
       core.disposed = true;
-      const sinks = [...core.sinks];
-      core.sinks.length = 0;
-      for (const sink of sinks) {
+      for (const s of core.sinks.splice(0)) {
         try {
-          sink.dispose?.();
-        } catch {
-          /* best-effort — آزادسازی نباید throw کند */
-        }
+          s.dispose?.();
+        } catch {}
       }
       disposer.run();
     },

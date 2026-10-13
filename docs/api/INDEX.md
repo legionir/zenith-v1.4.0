@@ -1,0 +1,49 @@
+# مرجع کامل API پکیج‌های Zenith (`#56`, `#103`)
+
+این فهرست به‌صورت خودکار از روی AST و TSDoc تمام ۴۳ پکیج TypeScript فریم‌ورک Zenith تولید شده است.
+
+| پکیج | محیط هدف (`zenith.target`) | تعداد نمادهای عمومی | صفحهٔ مرجع API |
+|------|----------------------------|---------------------|----------------|
+| `@zenith/actions` | `universal` | 15 | [actions.md](./actions.md) |
+| `@zenith/auth` | `universal` | 40 | [auth.md](./auth.md) |
+| `@zenith/cache` | `universal` | 16 | [cache.md](./cache.md) |
+| `@zenith/cli` | `node` | 1 | [cli.md](./cli.md) |
+| `@zenith/compiler` | `universal` | 13 | [compiler.md](./compiler.md) |
+| `@zenith/components` | `browser` | 20 | [components.md](./components.md) |
+| `@zenith/crud` | `universal` | 6 | [crud.md](./crud.md) |
+| `@zenith/data` | `universal` | 15 | [data.md](./data.md) |
+| `@zenith/data-table` | `browser` | 9 | [data-table.md](./data-table.md) |
+| `@zenith/dependency-graph` | `universal` | 5 | [dependency-graph.md](./dependency-graph.md) |
+| `@zenith/devtools` | `browser` | 42 | [devtools.md](./devtools.md) |
+| `@zenith/devtools-core` | `universal` | 51 | [devtools-core.md](./devtools-core.md) |
+| `@zenith/error-boundary` | `browser` | 17 | [error-boundary.md](./error-boundary.md) |
+| `@zenith/errors` | `universal` | 47 | [errors.md](./errors.md) |
+| `@zenith/events` | `browser` | 23 | [events.md](./events.md) |
+| `@zenith/expressions` | `universal` | 27 | [expressions.md](./expressions.md) |
+| `@zenith/form` | `universal` | 43 | [form.md](./form.md) |
+| `@zenith/http` | `universal` | 30 | [http.md](./http.md) |
+| `@zenith/i18n` | `universal` | 29 | [i18n.md](./i18n.md) |
+| `@zenith/jalali` | `universal` | 32 | [jalali.md](./jalali.md) |
+| `@zenith/logger` | `universal` | 22 | [logger.md](./logger.md) |
+| `@zenith/notifications` | `browser` | 20 | [notifications.md](./notifications.md) |
+| `@zenith/permission` | `universal` | 11 | [permission.md](./permission.md) |
+| `@zenith/resource` | `universal` | 11 | [resource.md](./resource.md) |
+| `@zenith/router` | `universal` | 24 | [router.md](./router.md) |
+| `@zenith/runtime` | `browser` | 159 | [runtime.md](./runtime.md) |
+| `@zenith/runtime-core` | `universal` | 30 | [runtime-core.md](./runtime-core.md) |
+| `@zenith/scheduler` | `universal` | 20 | [scheduler.md](./scheduler.md) |
+| `@zenith/schema` | `universal` | 31 | [schema.md](./schema.md) |
+| `@zenith/security` | `universal` | 12 | [security.md](./security.md) |
+| `@zenith/service-worker` | `worker` | 23 | [service-worker.md](./service-worker.md) |
+| `@zenith/shared` | `universal` | 22 | [shared.md](./shared.md) |
+| `@zenith/ssr` | `node` | 50 | [ssr.md](./ssr.md) |
+| `@zenith/state` | `universal` | 57 | [state.md](./state.md) |
+| `@zenith/stateful` | `browser` | 5 | [stateful.md](./stateful.md) |
+| `@zenith/storage` | `universal` | 32 | [storage.md](./storage.md) |
+| `@zenith/store` | `universal` | 6 | [store.md](./store.md) |
+| `@zenith/suspense` | `universal` | 13 | [suspense.md](./suspense.md) |
+| `@zenith/testing` | `universal` | 18 | [testing.md](./testing.md) |
+| `@zenith/transition` | `browser` | 26 | [transition.md](./transition.md) |
+| `@zenith/virtual-list` | `browser` | 15 | [virtual-list.md](./virtual-list.md) |
+| `@zenith/vite-plugin` | `node` | 17 | [vite-plugin.md](./vite-plugin.md) |
+| `zenith` | `universal` | 47 | [zenith.md](./zenith.md) |

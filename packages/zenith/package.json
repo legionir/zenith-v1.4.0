@@ -112,5 +112,8 @@
   "peerDependencies": {
     "@zenith/scheduler": "^1.4.0",
     "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
   }
 }

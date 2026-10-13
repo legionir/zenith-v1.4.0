@@ -66,6 +66,13 @@ export const devtoolsCoreOptionsSchema = devtoolsCoreOptions.schema;
 export const resolveDevtoolsCoreOptions = (opts?: unknown): Required<DevtoolsCoreOptions> =>
   devtoolsCoreOptions.resolve(opts);
 
+export interface UntypedSignal {
+  get(): unknown;
+  set(value: never): void;
+  peek?(): unknown;
+  subscriberCount?: number;
+}
+
 export interface SignalInfo {
   /** شناسهٔ رشته‌ای یکتا (مثلاً `'sig-1'`). */
   id: string;
@@ -80,7 +87,7 @@ export interface SignalInfo {
   /** زمان ساخت (ms). */
   createdAt: number;
   /** مرجع ضعیف به نمونهٔ Signal برای جلوگیری از نشت حافظه. */
-  signalRef: WeakRef<Signal<any>>;
+  signalRef: WeakRef<UntypedSignal>;
 }
 
 export interface StateChange {
@@ -135,7 +142,7 @@ let currentConfig: Required<DevtoolsCoreOptions> = {
   redact: [...DEVTOOLS_CORE_DEFAULTS.redact],
 };
 
-let signalToId = new WeakMap<Signal<any>, string>();
+let signalToId = new WeakMap<UntypedSignal, string>();
 const idToInfo = new Map<string, SignalInfo>();
 let nextSignalSeq = 1;
 let nextChangeSeq = 1;
@@ -206,7 +213,7 @@ function cleanupDeadSignals(): void {
 
 // ── Versioned Hook (`window.__ZENITH_DEVTOOLS_HOOK__`) ──
 
-const hookListeners = new Map<string, Set<(payload: any) => void>>();
+const hookListeners = new Map<string, Set<(payload: unknown) => void>>();
 
 export const hook: ZenithDevtoolsCoreHook = {
   version: DEVTOOLS_HOOK_VERSION,
@@ -228,12 +235,13 @@ export const hook: ZenithDevtoolsCoreHook = {
       set = new Set();
       hookListeners.set(key, set);
     }
-    set.add(handler);
+    const wrapped = handler as (payload: unknown) => void;
+    set.add(wrapped);
     let removed = false;
     return () => {
       if (removed) return;
       removed = true;
-      set?.delete(handler);
+      set?.delete(wrapped);
     };
   },
 };
@@ -257,10 +265,11 @@ export function assertHookVersion(
 /**
  * ثبت یک سیگنال و بازگرداندن شناسهٔ رشته‌ای یکتا (`sig-N`).
  */
-export function registerSignal(sig: Signal<any>, name?: string): string {
+export function registerSignal<T = unknown>(sig: Signal<T>, name?: string): string {
   if (!isTrackingEnabled()) return '';
 
-  const existing = signalToId.get(sig);
+  const untyped = sig as unknown as UntypedSignal;
+  const existing = signalToId.get(untyped);
   if (existing !== undefined) {
     if (name !== undefined) {
       const info = idToInfo.get(existing);
@@ -278,10 +287,10 @@ export function registerSignal(sig: Signal<any>, name?: string): string {
     subscriberCount: sig.subscriberCount ?? 0,
     computed: Boolean((sig as unknown as { _computed?: boolean })._computed),
     createdAt: Date.now(),
-    signalRef: new WeakRef(sig),
+    signalRef: new WeakRef(untyped),
   };
 
-  signalToId.set(sig, id);
+  signalToId.set(untyped, id);
   idToInfo.set(id, info);
   finalizationRegistry?.register(sig, id);
   hook.emit('signal:create', info);
@@ -291,9 +300,10 @@ export function registerSignal(sig: Signal<any>, name?: string): string {
 /**
  * نام‌گذاری یا تغییر نام یک سیگنال ثبت‌شده.
  */
-export function nameSignal(sig: Signal<any>, name: string): void {
+export function nameSignal<T = unknown>(sig: Signal<T>, name: string): void {
   if (!isTrackingEnabled()) return;
-  let id = signalToId.get(sig);
+  const untyped = sig as unknown as UntypedSignal;
+  let id = signalToId.get(untyped);
   if (id === undefined) {
     id = registerSignal(sig, name);
   } else {
@@ -308,8 +318,8 @@ export function nameSignal(sig: Signal<any>, name: string): void {
 /**
  * ثبت یک تغییر مقدار سیگنال در Timeline.
  */
-export function recordStateChange(
-  sig: Signal<any>,
+export function recordStateChange<T = unknown>(
+  sig: Signal<T>,
   oldValue: unknown,
   newValue: unknown,
 ): StateChange | undefined {
@@ -323,7 +333,8 @@ export function recordStateChange(
     }
   }
 
-  let id = signalToId.get(sig);
+  const untyped = sig as unknown as UntypedSignal;
+  let id = signalToId.get(untyped);
   if (id === undefined) {
     id = registerSignal(sig);
   }
@@ -399,7 +410,7 @@ export function onStateChange(cb: (change: StateChange) => void): Cleanup {
 }
 
 export function clearRegistry(): void {
-  signalToId = new WeakMap<Signal<any>, string>();
+  signalToId = new WeakMap<UntypedSignal, string>();
   idToInfo.clear();
   timeline.length = 0;
   stateChangeListeners.clear();
@@ -476,7 +487,7 @@ export function restore(snap: unknown): void {
       const sig = info?.signalRef.deref();
       if (!sig || !info) continue;
       try {
-        sig.set(structuredClone(entry.value));
+        (sig.set as (v: unknown) => void)(structuredClone(entry.value));
         info.value = formatCapturedValue(entry.value);
       } catch {
         // سیگنال readonly را نادیده بگیر
@@ -516,7 +527,7 @@ export async function replay(from: number, to: number, opts?: { speed?: number }
       if (sig && info) {
         const targetVal = step > 0 ? entry.newValue : entry.oldValue;
         try {
-          sig.set(targetVal);
+          (sig.set as (v: unknown) => void)(targetVal);
           info.value = formatCapturedValue(targetVal);
         } catch {
           // ignore readonly signal
@@ -625,7 +636,7 @@ export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
       recordStateChange(sig, oldValue, newValue);
     },
     onDispose(sig) {
-      const id = signalToId.get(sig);
+      const id = signalToId.get(sig as unknown as UntypedSignal);
       if (id !== undefined) {
         idToInfo.delete(id);
         hook.emit('signal:dispose', { id });

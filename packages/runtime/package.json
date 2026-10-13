@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -80,5 +81,8 @@
   "peerDependencies": {
     "@zenith/state": "^1.4.0",
     "@zenith/scheduler": "^1.4.0"
+  },
+  "zenith": {
+    "target": "browser"
   }
 }
