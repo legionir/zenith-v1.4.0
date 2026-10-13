@@ -18,7 +18,36 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { validateProjectName } from './validate-project-name';
+
+declare const __ZENITH_PKG_VERSION__: string | undefined;
+
+export function getCliVersion(): string {
+  if (typeof __ZENITH_PKG_VERSION__ === 'string' && __ZENITH_PKG_VERSION__.length > 0) {
+    return __ZENITH_PKG_VERSION__;
+  }
+  const candidates: string[] = [];
+  try {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    candidates.push(path.join(here, '..', 'package.json'));
+  } catch {}
+  candidates.push(path.join(process.cwd(), 'packages', 'cli', 'package.json'));
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8')) as {
+          name?: string;
+          version?: string;
+        };
+        if (parsed.version && (!parsed.name || parsed.name === '@zenith/cli')) {
+          return parsed.version;
+        }
+      }
+    } catch {}
+  }
+  return '1.4.0';
+}
 import {
   indexHtmlTemplate,
   mainTsTemplate,
@@ -66,7 +95,7 @@ function normalizeFilePath(name: string): string {
 
 const program = new Command();
 
-program.name('zenith').description('CLI for Zenith HTML-First Framework').version('0.1.0');
+program.name('zenith').description('CLI for Zenith HTML-First Framework').version(getCliVersion());
 
 // ─────────────────────────────────────────────
 // دستور: create <project-name>

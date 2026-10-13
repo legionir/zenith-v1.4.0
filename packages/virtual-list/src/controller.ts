@@ -56,6 +56,10 @@ export interface VirtualListApi<T> {
   scrollToIndex(index: number, align?: ScrollAlignment): void;
   scrollToOffset(offset: number): void;
   refresh(): void;
+  /** #18: باطل کردن اندازه‌های کش‌شده (یک کلید مشخص یا تمام کلیدها) و بازمحاسبهٔ آفست‌ها. */
+  invalidateMeasurements(key?: string | number): void;
+  /** #18: پاک‌سازی اندازه‌های کش‌شده و اندازه‌گیری مجدد آیتم‌های رندرشده. */
+  remeasure(): void;
   /** #47: وضعیت جاری range/offset/totalSize — برای wrapper دایرکتیو (getRange). */
   getState(): VirtualListState;
   dispose(): void;
@@ -198,6 +202,9 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
 
   const rendered = new Map<string | number, RenderedItem>();
   const measurements = new Map<string | number, number>();
+  // FIX (#18): نگه‌داشتن آیتم متناظر با هر اندازهٔ کش‌شده تا با تغییر هویت آیتم
+  // در همان کلید (یا حذف کلید از لیست)، اندازهٔ قدیمی باطل شود و نشت نکند.
+  const measuredItems = new Map<string | number, unknown>();
   let offsets: number[] = [];
   let totalSize = 0;
   let previousStart = -1;
@@ -205,6 +212,26 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   let scrollFrame: number | null = null;
   let resizeFrame: number | null = null;
   let disposed = false;
+
+  const syncMeasurements = (list: T[]) => {
+    if (measurements.size === 0) return;
+    const activeKeys = new Set<string | number>();
+    for (let index = 0; index < list.length; index++) {
+      const item = list[index]!;
+      const key = keyFor(item, index);
+      activeKeys.add(key);
+      if (measuredItems.has(key) && itemChanged(measuredItems.get(key), item)) {
+        measurements.delete(key);
+        measuredItems.delete(key);
+      }
+    }
+    for (const key of [...measurements.keys()]) {
+      if (!activeKeys.has(key)) {
+        measurements.delete(key);
+        measuredItems.delete(key);
+      }
+    }
+  };
 
   const sizeAt = (list: T[], index: number): number => {
     const item = list[index]!;
@@ -218,6 +245,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   };
 
   const rebuildOffsets = (list: T[]) => {
+    syncMeasurements(list);
     offsets = new Array(list.length);
     let offset = 0;
     for (let index = 0; index < list.length; index++) {
@@ -254,6 +282,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         const size = isVertical ? entry.contentRect.height : entry.contentRect.width;
         if (size > 0 && measurements.get(key) !== size) {
           measurements.set(key, size);
+          measuredItems.set(key, item);
           changed = true;
         }
       }
@@ -403,6 +432,34 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     },
     scrollToOffset,
     refresh,
+    invalidateMeasurements(key?: string | number) {
+      if (disposed) return;
+      if (key !== undefined) {
+        measurements.delete(key);
+        measuredItems.delete(key);
+      } else {
+        measurements.clear();
+        measuredItems.clear();
+      }
+      refresh();
+    },
+    remeasure() {
+      if (disposed) return;
+      measurements.clear();
+      measuredItems.clear();
+      const list = items.get();
+      for (const [key, entry] of rendered.entries()) {
+        if (entry.index >= 0 && entry.index < list.length) {
+          const rect = entry.node.getBoundingClientRect();
+          const domSize = isVertical ? rect.height : rect.width;
+          if (domSize > 0) {
+            measurements.set(key, domSize);
+            measuredItems.set(key, list[entry.index]);
+          }
+        }
+      }
+      refresh();
+    },
     getState: () => ({
       // #47: range جاری حتی اگر هنوز تغییر نکرده (previous* با initial refresh
       // در update() ست می‌شود؛ مقدار اولیه -1 نباید به بیرون نشت کند).
@@ -421,6 +478,8 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
       disposeItemsEffect();
       for (const key of [...rendered.keys()]) removeRendered(key);
+      measurements.clear();
+      measuredItems.clear();
       spacer.remove();
       content.remove();
     },

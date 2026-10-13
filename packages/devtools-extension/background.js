@@ -1,4 +1,7 @@
 // background.js — Service worker for Zenith DevTools Extension.
+// BUG-DEVTEXT-01 / BUG-DEVTEXT-08 / IMP-DEVTEXT-05 (#8):
+// دسترسی دامنه از طریق activeTab + optional_host_permissions (با تأیید کاربر) انجام می‌شود
+// و manifest.json یک JSON استاندارد بدون کامنت است.
 
 // نصب extension.
 chrome.runtime.onInstalled.addListener(() => {

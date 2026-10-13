@@ -43,9 +43,8 @@ export async function buildPackage(pkgName) {
   // Without this, e.g. @zenith/ssr inlines the whole of jsdom (~3 MB) and
   // defeats its own "is jsdom installed?" runtime check.
   const pkgJsonPath = join(pkgPath, 'package.json');
-  const peerDeps = existsSync(pkgJsonPath)
-    ? Object.keys(JSON.parse(readFileSync(pkgJsonPath, 'utf8')).peerDependencies ?? {})
-    : [];
+  const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : {};
+  const peerDeps = Object.keys(pkgJson.peerDependencies ?? {});
 
   const sharedOptions = {
     entryPoints: [srcPath],
@@ -55,6 +54,9 @@ export async function buildPackage(pkgName) {
     minify: true,
     target: 'es2022',
     external: ['@zenith/*', ...peerDeps],
+    define: {
+      __ZENITH_PKG_VERSION__: JSON.stringify(pkgJson.version ?? '1.4.0'),
+    },
   };
 
   // ESM Build
