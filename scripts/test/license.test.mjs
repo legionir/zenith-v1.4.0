@@ -10,6 +10,8 @@ const rootLicense = readFileSync('LICENSE', 'utf8');
 
 const dirs = readdirSync('packages', { withFileTypes: true })
   .filter((d) => d.isDirectory())
+  // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+  .filter((d) => d.name !== 'tmp-scaffold-verify')
   .filter((d) => existsSync(join('packages', d.name, 'package.json')))
   .map((d) => d.name);
 

@@ -32,7 +32,15 @@ export function checkPeerRule(packagesDir, currentVersion = '1.4.0') {
 
   for (const dir of dirs) {
     const pkgPath = join(packagesDir, dir, 'package.json');
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    // #172-scaffold: تست new-package دریکتوری گذرا در packages می‌سازد/حذف میکند؛
+    // فایلی که میان exists و read رخت ببندد بخشی از مخزن نیست — رد شود.
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
     if (pkg.name !== `@zenith/${dir}` && !(dir === 'zenith' && pkg.name === 'zenith')) continue;
     if (TARGETS.includes(pkg.name)) continue; // خودِ state/scheduler بررسی نمی‌شوند
 

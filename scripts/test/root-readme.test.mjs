@@ -7,8 +7,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const readmePath = join(ROOT, 'README.md');
 const readme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : '';
 
-const pkgDirs = readdirSync(join(ROOT, 'packages')).filter((d) =>
-  statSync(join(ROOT, 'packages', d)).isDirectory(),
+const pkgDirs = readdirSync(join(ROOT, 'packages')).filter(
+  (d) =>
+    // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+    d !== 'tmp-scaffold-verify' && statSync(join(ROOT, 'packages', d)).isDirectory(),
 );
 
 describe('root README.md (issue #69)', () => {

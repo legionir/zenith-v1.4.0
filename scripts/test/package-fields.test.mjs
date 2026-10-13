@@ -7,10 +7,16 @@ import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 function packageDirs() {
-  return readdirSync('packages', { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .filter((d) => existsSync(join('packages', d.name, 'package.json')))
-    .map((d) => d.name);
+  return (
+    readdirSync('packages', { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      // تست new-package دریکتوری گذرا به‌صورت موازی می‌سازد/حذف میکند؛ حضور آن
+      // شمارش ۵۰-تایی را می‌شکند و readهای وسط حذف ENOENT می‌دهند. اعتبارسنجی خودِ
+      // scaffold جدا در new-package.test انجام میشود.
+      .filter((d) => d.name !== 'tmp-scaffold-verify')
+      .filter((d) => existsSync(join('packages', d.name, 'package.json')))
+      .map((d) => d.name)
+  );
 }
 
 describe('package.json fields (#70)', () => {

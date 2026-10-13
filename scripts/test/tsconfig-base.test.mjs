@@ -22,6 +22,8 @@ describe('tsconfig.base.json (#41)', () => {
   it('every packages/*/tsconfig.json extends ../../tsconfig.base.json and is under 15 lines', () => {
     const dirs = readdirSync('packages', { withFileTypes: true })
       .filter((d) => d.isDirectory())
+      // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+      .filter((d) => d.name !== 'tmp-scaffold-verify')
       .map((d) => d.name)
       .filter((d) => existsSync(join('packages', d, 'tsconfig.json')));
 

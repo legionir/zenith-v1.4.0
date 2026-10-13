@@ -22,6 +22,7 @@ function consoleFiles() {
   const files = new Set();
   for (const d of readdirSync('packages', { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
+    if (d.name === 'tmp-scaffold-verify') continue; // ردّ دریکتوری گذرای scaffold موازی
     const base = join('packages', d.name, 'src');
     if (!existsSync(base)) continue;
     const stack = [base];

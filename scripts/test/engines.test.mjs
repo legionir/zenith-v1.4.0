@@ -20,6 +20,8 @@ describe('engines.node floor (#14)', () => {
   it('every workspace package declares the same floor', () => {
     const dirs = readdirSync('packages', { withFileTypes: true })
       .filter((d) => d.isDirectory())
+      // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+      .filter((d) => d.name !== 'tmp-scaffold-verify')
       .filter((d) => {
         try {
           readJson(join('packages', d.name, 'package.json'));
