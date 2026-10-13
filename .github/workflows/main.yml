@@ -98,6 +98,12 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # #81: پیش از اجرای سوئیت، dist واقعی بساز. در os-matrix تست‌های
+      # scripts/test مستقیماً مسیرهای dist/ types را لمس می‌کنند (report TS7016
+      # فقط روی windows-runners) — ساخت کامل، که در jobهای build/size وجود دارد،
+      # کلاس کاملِ وابستگی‌های محیطی را بدون حدس حذف می‌کند (هزینه: چند دقیقه).
+      - name: Build all packages
+        run: npm run build
       - run: npx vitest run scripts/test/
 
   # #84: benchmark خودکار CI با بودجهٔ عملکرد (benchmarks/budgets.json) —
