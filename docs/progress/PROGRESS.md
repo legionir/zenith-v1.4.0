@@ -747,7 +747,7 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#158`: زیرساخت create-zenith — `getTemplateManifest(projectName, template)` (manifest داده‌محور فایل‌های `spa`/`ssr`/`pwa`/`dashboard`/`minimal`) در `@zenith/cli` به‌همراه دستور پیش‌نمایش CLI (`create-zenith-preview`)؛
   - `#160`: پکیج جدید `@zenith/language-server` (Tooling): `analyzeZenithDocument` (استخراج دایرکتیوهای `zen-*` و سیگنال‌های `$name` با موقعیت دقیق line/character)، ثابت `LSP_METHODS`، `createZenithServerCore` (اسناد در حافظه) و `createServerLifecycle` (چرخهٔ حیات initialize/shutdown) به‌عنوان پایهٔ کلاینت نازک vscode-extension.
 
-  بازی‌گردانی انطباق monorepo پس از افزودن پکیج زبان‌سرور (۴۶ پوشهٔ packages / ۴۴ entrypoint): بروزرسانی `README.md` (ردیف جدول)، `.size-limit.json`، تست‌های `package-fields` (45)، `package-order` (45)، `root-readme` (46)، `pack-audit` (44)، `api-surface-docs` (44)، ثابت `DEFAULTS` منجمد برای `state`/`store`/`testing` (تست `defaults-tsdoc`), `docs/OPTIONS-REFERENCE.md` بازتولید، و حذف `any` از `packages/i18n/src/index.ts` (پکیج zero-any).
+  بازی‌گردانی انطباق monorepo پس از افزودن پکیج زبان‌سرور (۴۶ پوشهٔ packages / ۴۴ entrypoint): بروزرسانی `README.md` (ردیف جدول)، `.size-limit.json`، تست‌های `package-fields` (45)، `package-order` (45)، `root-readme` (46)، `pack-audit` (44)، `api-surface-docs` (44)، ثابت `DEFAULTS` منجمد برای `state`/`store`/`testing` (تست `defaults-tsdoc`), `docs/OPTIONS-REFERENCE.md` بازتولید، حذف `any` از `packages/i18n/src/index.ts` (پکیج zero-any)، تراز سقف legacy any (31) و بازتولید snapshot و `docs/api/language-server.md`.
 
 
 
