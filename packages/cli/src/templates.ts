@@ -699,3 +699,30 @@ Replace the placeholder icons in \`public/icons/\`:
 Use https://realfavicongenerator.net/ to generate all sizes from a single source image.
 `;
 }
+
+export type ZenithTemplateKind = 'spa' | 'ssr' | 'pwa' | 'dashboard' | 'minimal';
+
+/**
+ * #158: مانیفست داده‌محور فایل‌های هر قالب (`spa`، `ssr`، `pwa`، `dashboard`، `minimal`).
+ */
+export function getTemplateManifest(
+  projectName: string,
+  template: ZenithTemplateKind = 'spa',
+): Record<string, string> {
+  const baseFiles: Record<string, string> = {
+    'package.json': packageJsonTemplate(projectName),
+    'tsconfig.json': tsConfigTemplate(),
+    '.gitignore': gitignoreTemplate(),
+    'index.html': indexHtmlTemplate(projectName),
+    'src/main.ts': template === 'pwa' ? pwaMainTsTemplate() : mainTsTemplate(),
+    'vite.config.ts': template === 'pwa' ? pwaViteConfigTemplate() : viteConfigTemplate(),
+    'README.md': template === 'pwa' ? pwaReadmeTemplate(projectName) : readmeTemplate(projectName),
+  };
+
+  if (template === 'pwa') {
+    baseFiles['public/manifest.json'] = pwaManifestTemplate(projectName);
+    baseFiles['public/sw.js'] = pwaServiceWorkerTemplate();
+  }
+  return baseFiles;
+}
+

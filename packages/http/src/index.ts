@@ -16,6 +16,9 @@ export {
   cancelRequest,
   cancelAllRequests,
   mockHttp,
+  createRealtime,
+  createWebSocket,
+  createSSE,
   httpRequestOptions,
   HTTP_REQUEST_OPTIONS_DEFAULTS,
   httpRequestOptionsSchema,
@@ -38,4 +41,7 @@ export type {
   HttpError,
   RetryConfig,
   CacheConfig,
+  RealtimeStatus,
+  RealtimeOptions,
+  RealtimeClient,
 } from './http';

@@ -141,3 +141,149 @@ export function processTrack(
     seenVisibleElements.delete(el);
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #155 — Analytics Engine with Consent, DNT, and Providers
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface AnalyticsEvent {
+  type: 'track' | 'page' | 'identify';
+  name: string;
+  props?: Record<string, unknown>;
+  timestamp: number;
+}
+
+export interface AnalyticsProvider {
+  name: string;
+  send: (event: AnalyticsEvent) => void | Promise<void>;
+}
+
+export interface AnalyticsOptions {
+  providers?: AnalyticsProvider[];
+  consent?: { required?: boolean; default?: boolean };
+  respectDNT?: boolean;
+}
+
+export interface AnalyticsInstance {
+  track(name: string, props?: Record<string, unknown>): void;
+  page(path?: string, props?: Record<string, unknown>): void;
+  identify(userId: string, traits?: Record<string, unknown>): void;
+  setConsent(granted: boolean): void;
+  hasConsent(): boolean;
+  use(provider: AnalyticsProvider): () => void;
+  dispose(): void;
+}
+
+function isDntEnabled(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return (
+    (navigator as any).doNotTrack === '1' ||
+    (navigator as any).doNotTrack === 'yes' ||
+    (globalThis as any).doNotTrack === '1'
+  );
+}
+
+/**
+ * #155: موتور تحلیل رویداد با رعایت کامل رضایت کاربر (`consent`) و `Do Not Track` (`DNT`).
+ */
+export function createAnalytics(options: AnalyticsOptions = {}): AnalyticsInstance {
+  const providers = new Set<AnalyticsProvider>(options.providers ?? []);
+  const consentRequired = options.consent?.required ?? true;
+  let consentGranted = options.consent?.default ?? false;
+  const respectDNT = options.respectDNT ?? true;
+  let disposed = false;
+
+  const canSend = (): boolean => {
+    if (disposed) return false;
+    if (respectDNT && isDntEnabled()) return false;
+    if (consentRequired && !consentGranted) return false;
+    return true;
+  };
+
+  const dispatch = (event: AnalyticsEvent): void => {
+    if (!canSend()) return;
+    for (const provider of providers) {
+      try {
+        void provider.send(event);
+      } catch {
+        // provider errors must never break application flow
+      }
+    }
+  };
+
+  return {
+    track(name, props) {
+      dispatch({ type: 'track', name, props, timestamp: Date.now() });
+    },
+    page(path = '/', props) {
+      dispatch({ type: 'page', name: path, props, timestamp: Date.now() });
+    },
+    identify(userId, traits) {
+      dispatch({ type: 'identify', name: userId, props: traits, timestamp: Date.now() });
+    },
+    setConsent(granted: boolean) {
+      consentGranted = Boolean(granted);
+    },
+    hasConsent() {
+      return consentGranted;
+    },
+    use(provider: AnalyticsProvider) {
+      providers.add(provider);
+      let removed = false;
+      return () => {
+        if (removed) return;
+        removed = true;
+        providers.delete(provider);
+      };
+    },
+    dispose() {
+      disposed = true;
+      providers.clear();
+    },
+  };
+}
+
+export function consoleProvider(sink: (ev: AnalyticsEvent) => void = () => {}): AnalyticsProvider {
+  return {
+    name: 'console',
+    send(ev) {
+      sink(ev);
+    },
+  };
+}
+
+export function beaconProvider(options: { url: string }): AnalyticsProvider {
+  return {
+    name: 'beacon',
+    send(ev) {
+      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        navigator.sendBeacon(options.url, JSON.stringify(ev));
+      }
+    },
+  };
+}
+
+export function gtagProvider(options: { id: string }): AnalyticsProvider {
+  return {
+    name: `gtag:${options.id}`,
+    send(ev) {
+      const gtag = (globalThis as any).gtag;
+      if (typeof gtag === 'function') {
+        gtag('event', ev.name, ev.props ?? {});
+      }
+    },
+  };
+}
+
+export function plausibleProvider(options: { domain: string }): AnalyticsProvider {
+  return {
+    name: `plausible:${options.domain}`,
+    send(ev) {
+      const plausible = (globalThis as any).plausible;
+      if (typeof plausible === 'function') {
+        plausible(ev.name, { props: ev.props ?? {} });
+      }
+    },
+  };
+}
+

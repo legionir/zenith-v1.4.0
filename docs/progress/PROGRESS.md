@@ -736,6 +736,19 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#139`: تکمیل قرارداد ۵ متدی رجیستری در `@zenith/auth` (`hasAuth`, `listAuths`, `unregisterAuth`)، همگام‌سازی خروج بین تب‌ها (`enableCrossTabSync`) و پشتیبانی از چالش MFA/OTP (`verifyMfa`)؛
   - `#140`: اسکریپت بررسی خودکار انطباق خروجی `.d.ts` و باندل JS (`scripts/check-dts-js-parity.mjs`) در تمامی ۴۳ پکیج.
 
+- موج ۵ — دستهٔ ۱ از NEW-PACKAGES P1 (`#150`، `#151`، `#152`، `#153`، `#154`، `#155`، `#156`، `#157`، `#158`، `#160`، `#174`):
+  - `#150`: موتور چندزبانگی واکنشی در `@zenith/i18n` — `createI18n` (پیام‌های ICU شامل `plural`/`select`/`number`/`@:linked`، fallback locale، `tm`/`te`)، سیگنال‌های reactive `locale`/`dir`، `i18nPlugin`، `useI18n` و `detectLocale` (query/cookie/navigator)؛
+  - `#151`: primitiveهای دسترس‌پذیری headless در `@zenith/runtime(-core)` — `createFocusTrap` (focus trapping کامل با initialFocus/returnFocus/Escape)، `createRovingTabindex` (Arrow/Home/End + سازگاری RTL با loop)، `lockScroll` (reference-counted) و `useId` (شناسهٔ قطعی SSR-safe و per-app)؛
+  - `#152`: مدیریت `<head>` واکنشی — `createHead` (dedupe meta/link با الویت آخرین ورودی، titleTemplate، سقف maxTags)، `useHead`، `renderHead` و `titleFromRoute` در `@zenith/ssr`؛
+  - `#153`: primitive موقعیت‌دهی headless — `computePosition` (top/bottom/left/right + flip خودکار نسبت به viewport) برای popover/tooltip/menu در `@zenith/runtime(-core)`؛
+  - `#154`: کلاینت realtime در `@zenith/http` — `createRealtime`/`createWebSocket`/`createSSE` با صف آفلاین (maxSize)، سیگنال‌های status/lastMessage/messages، subscribe ژرف‌محور بر اساس topic و رد قاطع `ws://` ناامن در production (ZEN-1703/1704)؛
+  - `#155`: موتور analytics در `@zenith/runtime` — `createAnalytics` با رعایت consent (opt-in)، DNT و providerهای console/beacon/gtag/plausible؛
+  - `#156` + `#157` + `#174`: ادغام SSR — `renderToString/Stream` با پذیرش `app: () => App` (per-request factory)، ورودی‌های per-request `head: SSRHeadInput` و `i18n: SSRI18nInput`، تولید `headTags`/`htmlAttrs`/`bodyAttrs`/`__ZENITH_I18N__` در `SSRResult` و `generateFullPage`، اعلام `@internal` برای `domAls`/`installDOMGlobalGetters` و handlerهای آمادهٔ `createNodeHandler` (Node/Express/Connect + `healthz` + CSP nonce) و `createFetchHandler` (Cloudflare/Deno/Bun/Vercel Edge و aliasهای `createCloudflareHandler`/`createDenoHandler`)؛
+  - `#158`: زیرساخت create-zenith — `getTemplateManifest(projectName, template)` (manifest داده‌محور فایل‌های `spa`/`ssr`/`pwa`/`dashboard`/`minimal`) در `@zenith/cli` به‌همراه دستور پیش‌نمایش CLI (`create-zenith-preview`)؛
+  - `#160`: پکیج جدید `@zenith/language-server` (Tooling): `analyzeZenithDocument` (استخراج دایرکتیوهای `zen-*` و سیگنال‌های `$name` با موقعیت دقیق line/character)، ثابت `LSP_METHODS`، `createZenithServerCore` (اسناد در حافظه) و `createServerLifecycle` (چرخهٔ حیات initialize/shutdown) به‌عنوان پایهٔ کلاینت نازک vscode-extension.
+
+  بازی‌گردانی انطباق monorepo پس از افزودن پکیج زبان‌سرور (۴۶ پوشهٔ packages / ۴۴ entrypoint): بروزرسانی `README.md` (ردیف جدول)، `.size-limit.json`، تست‌های `package-fields` (45)، `package-order` (45)، `root-readme` (46)، `pack-audit` (44)، `api-surface-docs` (44)، ثابت `DEFAULTS` منجمد برای `state`/`store`/`testing` (تست `defaults-tsdoc`), `docs/OPTIONS-REFERENCE.md` بازتولید، و حذف `any` از `packages/i18n/src/index.ts` (پکیج zero-any).
+
 
 
 

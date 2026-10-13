@@ -120,6 +120,7 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/compiler`](packages/compiler) | Tooling | پیش‌کامپایل قالب‌ها | [📄](packages/compiler/README.md) |
 | [`@zenith/vite-plugin`](packages/vite-plugin) | Tooling | HMR و تزریق devtools | [📄](packages/vite-plugin/README.md) |
 | [`@zenith/cli`](packages/cli) | Tooling | scaffold، `check`، lighthouse | [📄](packages/cli/README.md) |
+| [`@zenith/language-server`](packages/language-server) | Tooling | هستهٔ LSP مشترک (تحلیل دایرکتیو/سیگنال — #160) | [📄](packages/language-server/README.md) |
 | [`zenith-vscode`](packages/vscode-extension) | Tooling | پشتیبانی زبان VS Code | [📄](packages/vscode-extension/README.md) |
 | [`devtools-extension`](packages/devtools-extension) | Tooling | افزونهٔ مرورگر (Chrome/Firefox) | [📄](packages/devtools-extension/README.md) |
 

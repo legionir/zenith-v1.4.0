@@ -485,3 +485,333 @@ export function toLogicalCss(cssText: string): string {
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// #150 — Reactive I18n Engine (createI18n, ICU plural/select/number, i18nPlugin, useI18n, detectLocale)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ZENITH_READABLE_SYM = Symbol.for('zenith.readable');
+
+export interface I18nReadonlySignal<T> {
+  readonly [ZENITH_READABLE_SYM]: true;
+  get(): T;
+  peek(): T;
+  subscribe(fn: (value: T) => void): () => void;
+}
+
+export interface I18nSignal<T> extends I18nReadonlySignal<T> {
+  set(value: T): void;
+}
+
+function createLocalSignal<T>(initial: T): I18nSignal<T> {
+  let current = initial;
+  const subs = new Set<(value: T) => void>();
+  return {
+    [ZENITH_READABLE_SYM]: true,
+    get() {
+      return current;
+    },
+    peek() {
+      return current;
+    },
+    set(next: T) {
+      if (Object.is(current, next)) return;
+      current = next;
+      for (const fn of [...subs]) fn(current);
+    },
+    subscribe(fn: (value: T) => void) {
+      subs.add(fn);
+      let removed = false;
+      return () => {
+        if (removed) return;
+        removed = true;
+        subs.delete(fn);
+      };
+    },
+  };
+}
+
+export interface I18nMessages {
+  [key: string]: string | number | I18nMessages;
+}
+
+export interface I18nOptions {
+  locale?: string;
+  fallbackLocale?: string;
+  messages?: Record<string, I18nMessages>;
+  loadMessages?: (locale: string) => Promise<I18nMessages>;
+}
+
+export interface TranslateOptions {
+  locale?: string;
+  default?: string;
+  count?: number;
+}
+
+export interface I18n {
+  readonly locale: I18nSignal<string>;
+  readonly dir: I18nReadonlySignal<'rtl' | 'ltr'>;
+  t(key: string, params?: Record<string, unknown>, options?: TranslateOptions): string;
+  te(key: string, locale?: string): boolean;
+  tm(key: string, locale?: string): unknown;
+  n(value: number, options?: Intl.NumberFormatOptions, locale?: string): string;
+  d(value: Date | number, options?: Intl.DateTimeFormatOptions, locale?: string): string;
+  rt(
+    value: number,
+    unit: Intl.RelativeTimeFormatUnit,
+    options?: Intl.RelativeTimeFormatOptions,
+    locale?: string,
+  ): string;
+  list(items: readonly string[], options?: Intl.ListFormatOptions, locale?: string): string;
+  setLocale(locale: string): Promise<void>;
+  addMessages(locale: string, messages: I18nMessages): () => void;
+  availableLocales(): string[];
+  dispose(): void;
+  [Symbol.dispose]?: () => void;
+}
+
+function lookupPath(obj: I18nMessages | undefined, path: string): unknown {
+  if (!obj) return undefined;
+  if (path in obj) return obj[path];
+  return path
+    .split('.')
+    .reduce<I18nMessages | string | number | undefined>(
+      (acc, part) => (acc != null && typeof acc === 'object' ? (acc as Record<string, unknown>)[part] as I18nMessages | string | number | undefined : undefined),
+      obj,
+    );
+}
+
+function formatIcuMessage(
+  template: string,
+  params: Record<string, unknown>,
+  locale: string,
+  resolveKey: (k: string) => string,
+): string {
+  // 1. Linked messages `@:other.key`
+  let out = template.replace(/@:([a-zA-Z0-9_.-]+)/g, (_m, linkedKey: string) =>
+    resolveKey(linkedKey),
+  );
+
+  // 2. ICU `{var, plural, =0{...} one{# ...} other{# ...}}` and `{var, select, a{...} other{...}}`
+  const icuBlockRe = /\{(\w+)\s*,\s*(plural|select)\s*,\s*((?:[^{}]|\{[^{}]*\})+)\}/g;
+  out = out.replace(icuBlockRe, (_full, varName: string, kind: string, branchesRaw: string) => {
+    const rawVal = params[varName];
+    const branchMap = new Map<string, string>();
+    const branchRe = /(=?\w+)\s*\{([^{}]*)\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = branchRe.exec(branchesRaw)) !== null) {
+      branchMap.set(match[1]!, match[2]!);
+    }
+
+    if (kind === 'plural') {
+      const num = Number(rawVal ?? 0);
+      const exactKey = `=${num}`;
+      let chosen = branchMap.get(exactKey);
+      if (chosen === undefined) {
+        let rule = 'other';
+        try {
+          rule = new Intl.PluralRules(locale).select(num);
+        } catch {
+          rule = num === 1 ? 'one' : 'other';
+        }
+        chosen = branchMap.get(rule) ?? branchMap.get('other') ?? '';
+      }
+      const numFormatted = locale.startsWith('fa') ? toPersianNums(num) : String(num);
+      return chosen.replace(/#/g, numFormatted);
+    }
+
+    const selKey = String(rawVal ?? 'other');
+    return branchMap.get(selKey) ?? branchMap.get('other') ?? '';
+  });
+
+  // 3. ICU `{var, number, currency}` or `{var, number}`
+  out = out.replace(
+    /\{(\w+)\s*,\s*number(?:\s*,\s*(\w+))?\}/g,
+    (_full, varName: string, style?: string) => {
+      const num = Number(params[varName] ?? 0);
+      if (style === 'currency') {
+        return formatCurrency(num, locale.startsWith('fa') ? 'IRR' : 'USD', locale);
+      }
+      return new Intl.NumberFormat(locale).format(num);
+    },
+  );
+
+  // 4. Simple `{var}` interpolation
+  out = out.replace(/\{(\w+)\}/g, (_m, varName: string) => {
+    const val = params[varName];
+    return val === undefined || val === null ? `{${varName}}` : String(val);
+  });
+
+  return out;
+}
+
+let _activeI18n: I18n | null = null;
+
+/**
+ * #150: ساخت نمونهٔ چندزبانگی واکنشی با پشتیبانی از ICU (`plural`/`select`/`number`)،
+ * بارگذاری تنبل پیام‌ها (`loadMessages`) و جهت خودکار (`dir`).
+ */
+export function createI18n(options: I18nOptions = {}): I18n {
+  const initialLocale = options.locale ?? DEFAULTS.locale;
+  const fallbackLocale = options.fallbackLocale ?? 'en';
+  const catalog = new Map<string, I18nMessages>();
+  if (options.messages) {
+    for (const [loc, msgs] of Object.entries(options.messages)) {
+      catalog.set(loc, { ...msgs });
+    }
+  }
+
+  const localeSig = createLocalSignal<string>(initialLocale);
+  const dirSig = createLocalSignal<'rtl' | 'ltr'>(getDirection(initialLocale));
+  const unsubLocale = localeSig.subscribe((loc) => {
+    dirSig.set(getDirection(loc));
+  });
+
+  const tm = (key: string, localeOverride?: string): unknown => {
+    const loc = localeOverride ?? localeSig.get();
+    const direct = lookupPath(catalog.get(loc), key);
+    if (direct !== undefined) return direct;
+    const baseLang = loc.split('-')[0]!;
+    if (baseLang !== loc) {
+      const baseMatch = lookupPath(catalog.get(baseLang), key);
+      if (baseMatch !== undefined) return baseMatch;
+    }
+    if (fallbackLocale && fallbackLocale !== loc) {
+      return lookupPath(catalog.get(fallbackLocale), key);
+    }
+    return undefined;
+  };
+
+  const te = (key: string, localeOverride?: string): boolean => {
+    return tm(key, localeOverride) !== undefined;
+  };
+
+  const t = (
+    key: string,
+    params: Record<string, unknown> = {},
+    tOpts: TranslateOptions = {},
+  ): string => {
+    const loc = tOpts.locale ?? localeSig.get();
+    const mergedParams =
+      tOpts.count !== undefined ? { count: tOpts.count, ...params } : params;
+    const raw = tm(key, loc);
+    if (typeof raw !== 'string') {
+      return tOpts.default ?? key;
+    }
+    return formatIcuMessage(raw, mergedParams, loc, (linked) => t(linked, mergedParams, tOpts));
+  };
+
+  const instance: I18n = {
+    locale: localeSig,
+    dir: dirSig,
+    t,
+    te,
+    tm,
+    n: (val, opts, loc) => new Intl.NumberFormat(loc ?? localeSig.get(), opts).format(val),
+    d: (val, opts, loc) => formatDateTime(val, loc ?? localeSig.get(), opts),
+    rt: (val, unit, opts, loc) => formatRelativeTime(val, unit, loc ?? localeSig.get(), opts),
+    list: (items, opts, loc) => formatList(items, loc ?? localeSig.get(), opts),
+    async setLocale(nextLocale: string): Promise<void> {
+      if (!catalog.has(nextLocale) && typeof options.loadMessages === 'function') {
+        const loaded = await options.loadMessages(nextLocale);
+        catalog.set(nextLocale, { ...loaded });
+      }
+      localeSig.set(nextLocale);
+    },
+    addMessages(locale: string, messages: I18nMessages): () => void {
+      const prev = catalog.get(locale) ?? {};
+      catalog.set(locale, { ...prev, ...messages });
+      let removed = false;
+      return () => {
+        if (removed) return;
+        removed = true;
+        const current = catalog.get(locale);
+        if (current) {
+          const currentRec = current as Record<string, unknown>;
+          for (const k of Object.keys(messages)) {
+            if (k in prev) currentRec[k] = prev[k];
+            else delete currentRec[k];
+          }
+        }
+      };
+    },
+    availableLocales(): string[] {
+      return Array.from(catalog.keys());
+    },
+    dispose(): void {
+      unsubLocale();
+      if (_activeI18n === instance) {
+        _activeI18n = null;
+      }
+    },
+  };
+
+  const disposeSym: unknown =
+    typeof Symbol !== 'undefined' && 'dispose' in Symbol
+      ? (Symbol as unknown as { dispose: symbol }).dispose
+      : undefined;
+  if (typeof disposeSym === 'symbol') {
+    Object.assign(instance, { [disposeSym]: () => instance.dispose() });
+  }
+
+  _activeI18n = instance;
+  return instance;
+}
+
+/**
+ * #150: دریافت نمونهٔ فعال `I18n`.
+ */
+export function useI18n(): I18n {
+  if (!_activeI18n) {
+    _activeI18n = createI18n();
+  }
+  return _activeI18n;
+}
+
+/**
+ * #150: پلاگین رسمی چندزبانگی برای `app.use(i18nPlugin(options))`.
+ */
+export function i18nPlugin(options: I18nOptions = {}) {
+  return {
+    name: 'zenith:i18n',
+    setup(app: { provide?: (key: string | symbol, value: unknown) => void }) {
+      const i18n = createI18n(options);
+      app?.provide?.('zenith:i18n', i18n);
+      return () => i18n.dispose();
+    },
+  };
+}
+
+/**
+ * #150: تشخیص خودکار locale از query، cookie یا زبان مرورگر.
+ */
+export function detectLocale(
+  options: {
+    query?: string;
+    cookie?: string;
+    navigatorLanguages?: readonly string[];
+    defaultLocale?: string;
+    detectKey?: string;
+  } = {},
+): string {
+  const key = options.detectKey ?? 'lang';
+  if (options.query) {
+    const params = new URLSearchParams(options.query.replace(/^\?/, ''));
+    const q = params.get(key);
+    if (q) return q;
+  }
+  if (options.cookie) {
+    const match = options.cookie.match(new RegExp(`(?:^|;\\s*)${key}=([^;]+)`));
+    if (match?.[1]) return decodeURIComponent(match[1]);
+  }
+  const navLangs =
+    options.navigatorLanguages ??
+    (typeof navigator !== 'undefined' && Array.isArray(navigator.languages)
+      ? navigator.languages
+      : []);
+  if (navLangs.length > 0 && navLangs[0]) {
+    return navLangs[0];
+  }
+  return options.defaultLocale ?? DEFAULTS.locale;
+}
+
+

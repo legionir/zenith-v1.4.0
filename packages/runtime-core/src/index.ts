@@ -1448,3 +1448,268 @@ export async function hydrate(
 }
 
 export const startFromSSR = hydrate;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #151 & #153 — Accessibility & Headless UI Primitives
+// (createFocusTrap, createRovingTabindex, lockScroll, useId, computePosition)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export interface FocusTrapOptions {
+  initialFocus?: string | HTMLElement;
+  returnFocus?: boolean;
+  escapeDeactivates?: boolean;
+  onDeactivate?: () => void;
+}
+
+export interface FocusTrap extends Disposable {
+  activate(): void;
+  deactivate(): void;
+  pause(): void;
+  unpause(): void;
+}
+
+/**
+ * #151: ساخت تلهٔ فوکوس (Focus Trap) منطبق با WAI-ARIA APG برای دیالوگ‌ها و منوها.
+ */
+export function createFocusTrap(container: HTMLElement, options: FocusTrapOptions = {}): FocusTrap {
+  const { returnFocus = true, escapeDeactivates = true } = options;
+  let active = false;
+  let paused = false;
+  let previouslyFocused: HTMLElement | null = null;
+
+  const getFocusable = (): HTMLElement[] =>
+    Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)) as HTMLElement[];
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!active || paused) return;
+    if (e.key === 'Escape' && escapeDeactivates) {
+      e.preventDefault();
+      deactivate();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const focusables = getFocusable();
+    if (focusables.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    const doc = container.ownerDocument ?? document;
+    if (e.shiftKey && doc.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && doc.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
+  const activate = () => {
+    if (active) return;
+    active = true;
+    const doc = container.ownerDocument ?? (typeof document !== 'undefined' ? document : null);
+    previouslyFocused = (doc?.activeElement as HTMLElement | null) ?? null;
+    container.addEventListener('keydown', onKeyDown);
+    const focusables = getFocusable();
+    let target: HTMLElement | null = null;
+    if (typeof options.initialFocus === 'string') {
+      target = container.querySelector(options.initialFocus) as HTMLElement | null;
+    } else if (options.initialFocus) {
+      target = options.initialFocus;
+    }
+    (target ?? focusables[0] ?? container).focus?.();
+  };
+
+  const deactivate = () => {
+    if (!active) return;
+    active = false;
+    container.removeEventListener('keydown', onKeyDown);
+    if (returnFocus && previouslyFocused && typeof previouslyFocused.focus === 'function') {
+      previouslyFocused.focus();
+    }
+    options.onDeactivate?.();
+  };
+
+  const trap: FocusTrap = {
+    activate,
+    deactivate,
+    pause: () => {
+      paused = true;
+    },
+    unpause: () => {
+      paused = false;
+    },
+    dispose: deactivate,
+  };
+  if (typeof Symbol !== 'undefined' && Symbol.dispose) {
+    (trap as any)[Symbol.dispose] = deactivate;
+  }
+  return trap;
+}
+
+/**
+ * #151: مدیریت Roving Tabindex (کلیدهای جهت‌نما + Home/End + RTL) برای تب‌ها، منوها و نوار ابزار.
+ */
+export function createRovingTabindex(
+  container: HTMLElement,
+  options: {
+    orientation?: 'horizontal' | 'vertical' | 'both';
+    loop?: boolean;
+    selector?: string;
+  } = {},
+): () => void {
+  const { orientation = 'horizontal', loop = true, selector = '[role="tab"], [role="menuitem"], button' } =
+    options;
+
+  const getItems = (): HTMLElement[] =>
+    (Array.from(container.querySelectorAll(selector)) as HTMLElement[]).filter(
+      (el) => !el.hasAttribute('disabled') && el.getAttribute('aria-disabled') !== 'true',
+    );
+
+  const initItems = getItems();
+  initItems.forEach((el, idx) => {
+    el.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+  });
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    const items = getItems();
+    if (items.length === 0) return;
+    const currentIdx = items.indexOf(e.target as HTMLElement);
+    if (currentIdx === -1) return;
+
+    const isRtl =
+      container.dir === 'rtl' ||
+      container.closest('[dir]')?.getAttribute('dir') === 'rtl' ||
+      (typeof document !== 'undefined' && document.documentElement.dir === 'rtl');
+
+    let step = 0;
+    if (e.key === 'Home') {
+      e.preventDefault();
+      items[currentIdx]?.setAttribute('tabindex', '-1');
+      items[0]?.setAttribute('tabindex', '0');
+      items[0]?.focus();
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      const last = items[items.length - 1]!;
+      items[currentIdx]?.setAttribute('tabindex', '-1');
+      last.setAttribute('tabindex', '0');
+      last.focus();
+      return;
+    }
+
+    if (orientation === 'horizontal' || orientation === 'both') {
+      if (e.key === 'ArrowRight') step = isRtl ? -1 : 1;
+      else if (e.key === 'ArrowLeft') step = isRtl ? 1 : -1;
+    }
+    if (orientation === 'vertical' || orientation === 'both') {
+      if (e.key === 'ArrowDown') step = 1;
+      else if (e.key === 'ArrowUp') step = -1;
+    }
+    if (step === 0) return;
+
+    e.preventDefault();
+    let nextIdx = currentIdx + step;
+    if (loop) {
+      nextIdx = (nextIdx + items.length) % items.length;
+    } else {
+      nextIdx = Math.max(0, Math.min(items.length - 1, nextIdx));
+    }
+    items[currentIdx]?.setAttribute('tabindex', '-1');
+    items[nextIdx]?.setAttribute('tabindex', '0');
+    items[nextIdx]?.focus();
+  };
+
+  container.addEventListener('keydown', onKeyDown);
+  let cleaned = false;
+  return () => {
+    if (cleaned) return;
+    cleaned = true;
+    container.removeEventListener('keydown', onKeyDown);
+  };
+}
+
+let _scrollLockCount = 0;
+let _savedBodyOverflow = '';
+
+/**
+ * #151: قفل شمارنده‌ای اسکرول بدنهٔ صفحه (`lockScroll() -> Cleanup`).
+ */
+export function lockScroll(doc: Document | undefined = typeof document !== 'undefined' ? document : undefined): () => void {
+  if (!doc || !doc.body) return () => {};
+  if (_scrollLockCount === 0) {
+    _savedBodyOverflow = doc.body.style.overflow;
+    doc.body.style.overflow = 'hidden';
+  }
+  _scrollLockCount++;
+  let unlocked = false;
+  return () => {
+    if (unlocked) return;
+    unlocked = true;
+    _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+    if (_scrollLockCount === 0 && doc.body) {
+      doc.body.style.overflow = _savedBodyOverflow;
+    }
+  };
+}
+
+let _deterministicIdCounter = 0;
+
+/**
+ * #151: تولید شناسهٔ قطعی و یکسان در SSR و کلاینت (`useId`).
+ */
+export function useId(prefix = 'zen-id'): string {
+  if (currentScope) {
+    const app = currentScope.app as (App & { idCounter?: number });
+    const next = ((app.idCounter ?? 0) + 1);
+    app.idCounter = next;
+    return `${prefix}-${next}`;
+  }
+  return `${prefix}-${++_deterministicIdCounter}`;
+}
+
+export interface ComputePositionOptions {
+  placement?: 'top' | 'bottom' | 'left' | 'right';
+  offset?: number;
+  flip?: boolean;
+}
+
+/**
+ * #153: محاسبهٔ مختصات عنصر شناور (Popover/Tooltip/Menu) نسبت به عنصر مرجع با پشتیبانی از `flip`.
+ */
+export function computePosition(
+  reference: HTMLElement,
+  floating: HTMLElement,
+  options: ComputePositionOptions = {},
+): { x: number; y: number; placement: 'top' | 'bottom' | 'left' | 'right' } {
+  const offset = options.offset ?? 8;
+  let placement = options.placement ?? 'bottom';
+  const refRect = reference.getBoundingClientRect();
+  const floatRect = floating.getBoundingClientRect();
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight || 768 : 768;
+
+  if (options.flip !== false && placement === 'bottom') {
+    if (refRect.bottom + floatRect.height + offset > viewportHeight && refRect.top > floatRect.height + offset) {
+      placement = 'top';
+    }
+  }
+
+  let x = refRect.left;
+  let y = refRect.bottom + offset;
+  if (placement === 'top') {
+    y = refRect.top - floatRect.height - offset;
+  } else if (placement === 'left') {
+    x = refRect.left - floatRect.width - offset;
+    y = refRect.top;
+  } else if (placement === 'right') {
+    x = refRect.right + offset;
+    y = refRect.top;
+  }
+  return { x, y, placement };
+}
+

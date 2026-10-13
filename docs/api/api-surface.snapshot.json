@@ -2191,6 +2191,21 @@
         "tag": "public"
       },
       {
+        "name": "createRealtime",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createSSE",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createWebSocket",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "getHttpConfig",
         "kind": "function",
         "tag": "public"
@@ -2243,6 +2258,21 @@
       {
         "name": "mockHttp",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeClient",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeStatus",
+        "kind": "type",
         "tag": "public"
       },
       {
@@ -2322,8 +2352,18 @@
         "tag": "deprecated"
       },
       {
+        "name": "createI18n",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "DEFAULTS",
         "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "detectLocale",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -2379,6 +2419,36 @@
       {
         "name": "getDirection",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "I18n",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "I18nMessages",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "I18nOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "i18nPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "I18nReadonlySignal",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "I18nSignal",
+        "kind": "interface",
         "tag": "public"
       },
       {
@@ -2448,6 +2518,16 @@
       },
       {
         "name": "toPersianNums",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TranslateOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "useI18n",
         "kind": "function",
         "tag": "public"
       }
@@ -2615,6 +2695,47 @@
       {
         "name": "weekdayName",
         "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/language-server": {
+    "slug": "language-server",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "analyzeZenithDocument",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createServerLifecycle",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createZenithServerCore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_METHODS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDocumentAnalysis",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithGrepMatch",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithLanguageServerCore",
+        "kind": "interface",
         "tag": "public"
       }
     ]
@@ -3219,6 +3340,26 @@
         "tag": "public"
       },
       {
+        "name": "AnalyticsEvent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsInstance",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsProvider",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "App",
         "kind": "type",
         "tag": "public"
@@ -3266,6 +3407,11 @@
       {
         "name": "batch",
         "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "beaconProvider",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -3319,6 +3465,11 @@
         "tag": "public"
       },
       {
+        "name": "computePosition",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
         "name": "configureAnalytics",
         "kind": "function",
         "tag": "public"
@@ -3329,12 +3480,27 @@
         "tag": "public"
       },
       {
+        "name": "consoleProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "countHydrationMarkers",
         "kind": "function",
         "tag": "public"
       },
       {
+        "name": "createAnalytics",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createFocusTrap",
         "kind": "value",
         "tag": "public"
       },
@@ -3345,6 +3511,11 @@
       },
       {
         "name": "createInjectionKey",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createRovingTabindex",
         "kind": "value",
         "tag": "public"
       },
@@ -3436,6 +3607,11 @@
       {
         "name": "getDevtoolsVersion",
         "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "gtagProvider",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -3609,6 +3785,11 @@
         "tag": "public"
       },
       {
+        "name": "lockScroll",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
         "name": "login",
         "kind": "value",
         "tag": "public"
@@ -3671,6 +3852,11 @@
       {
         "name": "PerfMeasure",
         "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "plausibleProvider",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -3934,6 +4120,11 @@
         "tag": "public"
       },
       {
+        "name": "useId",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
         "name": "User",
         "kind": "type",
         "tag": "public"
@@ -4045,12 +4236,32 @@
         "tag": "public"
       },
       {
+        "name": "computePosition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ComputePositionOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
         "name": "createApp",
         "kind": "function",
         "tag": "public"
       },
       {
+        "name": "createFocusTrap",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "createInjectionKey",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createRovingTabindex",
         "kind": "function",
         "tag": "public"
       },
@@ -4071,6 +4282,16 @@
       },
       {
         "name": "DirectiveDefinition",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FocusTrap",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FocusTrapOptions",
         "kind": "interface",
         "tag": "public"
       },
@@ -4097,6 +4318,11 @@
       {
         "name": "InjectionKey",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "lockScroll",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -4156,6 +4382,11 @@
       },
       {
         "name": "useApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useId",
         "kind": "function",
         "tag": "public"
       },
@@ -4771,6 +5002,31 @@
         "tag": "public"
       },
       {
+        "name": "createCloudflareHandler",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "createDenoHandler",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "createFetchHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createNodeHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "DEFAULTS",
         "kind": "const",
         "tag": "public"
@@ -4792,8 +5048,8 @@
       },
       {
         "name": "domAls",
-        "kind": "value",
-        "tag": "public"
+        "kind": "const",
+        "tag": "internal"
       },
       {
         "name": "DOMGlobals",
@@ -4841,6 +5097,11 @@
         "tag": "public"
       },
       {
+        "name": "HeadManager",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "hydrate",
         "kind": "function",
         "tag": "public"
@@ -4863,7 +5124,7 @@
       {
         "name": "installDOMGlobalGetters",
         "kind": "function",
-        "tag": "public"
+        "tag": "internal"
       },
       {
         "name": "isAsyncLocalStorageAvailable",
@@ -4911,12 +5172,22 @@
         "tag": "public"
       },
       {
+        "name": "renderHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "RenderOptions",
         "kind": "type",
         "tag": "public"
       },
       {
         "name": "renderServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderSSRHead",
         "kind": "function",
         "tag": "public"
       },
@@ -4966,6 +5237,21 @@
         "tag": "public"
       },
       {
+        "name": "SSRAdapterOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRHeadInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRI18nInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "SSRResult",
         "kind": "type",
         "tag": "public"
@@ -4986,7 +5272,17 @@
         "tag": "public"
       },
       {
+        "name": "titleFromRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "unregisterServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useHead",
         "kind": "function",
         "tag": "public"
       },
@@ -5064,6 +5360,11 @@
       {
         "name": "createRoot",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
         "tag": "public"
       },
       {
@@ -5550,6 +5851,11 @@
         "tag": "public"
       },
       {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
         "name": "defineStore",
         "kind": "function",
         "tag": "public"
@@ -5739,6 +6045,11 @@
       {
         "name": "createTestHarness",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
         "tag": "public"
       },
       {

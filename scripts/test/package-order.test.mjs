@@ -106,7 +106,7 @@ describe('getPackageOrder (#25)', () => {
     // throw; workspace devDep edges (e.g. runtime → permission) are honoured.
     const order = getPackageOrder({ packagesDir: join(process.cwd(), 'packages') });
     // #142: @zenith/schema (39 → 40); #145: @zenith/storage (40 → 41); #147..#149 (41 → 44).
-    expect(order).toHaveLength(44);
-    expect(new Set(order).size).toBe(44);
+    expect(order).toHaveLength(45); // #147..#149 + #160 language-server
+    expect(new Set(order).size).toBe(45);
   });
 });

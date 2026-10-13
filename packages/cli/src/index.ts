@@ -64,6 +64,7 @@ import {
   pwaViteConfigTemplate,
   pwaMainTsTemplate,
   pwaReadmeTemplate,
+  getTemplateManifest,
 } from './templates';
 import { runCheck } from './check';
 import { runLighthouseAudit, printLighthouseResult } from './lighthouse';
@@ -424,6 +425,32 @@ program
       }
     },
   );
+
+// ─────────────────────────────────────────────
+// #158: create-zenith scaffold preview (data-driven templates)
+// ─────────────────────────────────────────────
+program
+  .command('create-zenith-preview [name]')
+  .description('#158: پیش‌نمایش جادوگر npm create zenith بدون نوشتن روی دیسک')
+  .option('-t, --template <kind>', 'نوع قالب (spa|ssr|pwa|dashboard|minimal)', 'spa')
+  .action((name: string | undefined, opts: { template: string }) => {
+    try {
+      const projectName = name || 'my-zenith-app';
+      validateProjectName(projectName);
+      const manifest = getTemplateManifest(
+        projectName,
+        opts.template as 'spa' | 'ssr' | 'pwa' | 'dashboard' | 'minimal',
+      );
+      console.log(`\n📦  create-zenith — ${projectName} [template: ${opts.template}]\n`);
+      for (const relPath of Object.keys(manifest)) {
+        console.log(`   ✔  ${relPath}`);
+      }
+      console.log('\n✅ جادوگر ساخت پروژه آماده است.\n');
+    } catch (e) {
+      console.error(`[create-zenith] خطا: ${(e as Error).message}`);
+      process.exit(1);
+    }
+  });
 
 // ─────────────────────────────────────────────
 // parse و اجرا

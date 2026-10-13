@@ -65,10 +65,33 @@ export function validateHydration(clientState: any, serverState: any): boolean {
   return JSON.stringify(clientState) === JSON.stringify(serverState);
 }
 
+export interface SSRHeadInput {
+  title?: string;
+  meta?: Array<Record<string, string>>;
+  link?: Array<Record<string, string>>;
+  jsonLd?: Record<string, any> | Array<Record<string, any>>;
+  htmlAttrs?: Record<string, string>;
+  bodyAttrs?: Record<string, string>;
+}
+
+export interface SSRI18nInput {
+  locale: string;
+  dir?: 'rtl' | 'ltr';
+  messages?: Record<string, any>;
+}
+
 export interface SSRResult {
   html: string;
   state: string;
   route?: string;
+  /** #174: تگ‌های رندرشدهٔ `<head>` */
+  headTags?: string;
+  /** #174: صفت‌های تگ `<html>` (مانند `lang` و `dir`) */
+  htmlAttrs?: string;
+  /** #174: صفت‌های تگ `<body>` */
+  bodyAttrs?: string;
+  /** #174: دادهٔ سریال‌شدهٔ چندزبانگی برای `__ZENITH_I18N__` */
+  i18n?: string;
 }
 
 // SEC FIX (v1.2.6): SEC-A1 — safeScriptValue helper.
@@ -173,14 +196,18 @@ export function runOnClient<T>(fn: () => T): T | undefined {
 export interface RenderOptions {
   route?: string;
   serializeState?: boolean;
-  /** #92 / #148: نمونهٔ مستقل App ساخته‌شده با createApp */
-  app?: App;
+  /** #92 / #148 / #174: نمونهٔ مستقل App یا کارخانهٔ per-request (`() => App`) */
+  app?: App | (() => App);
   /** #92: کامپوننت‌های سرور اختصاصی این درخواست (بدون نشت به سایر درخواست‌ها) */
   serverComponents?: Record<string, ServerComponent | ServerComponent['render']>;
   /** #92: اکشن‌های اختصاصی این درخواست */
   actions?: Record<string, (ctx: any) => void | Promise<void>>;
   /** #92: زبان/locale اختصاصی این درخواست */
   locale?: string;
+  /** #174: ورودی `<head>` اختصاصی این درخواست */
+  head?: SSRHeadInput | string;
+  /** #174: وضعیت چندزبانگی (`i18n`) اختصاصی این درخواست */
+  i18n?: SSRI18nInput;
   /** #92: سازندهٔ DOM سفارشی برای محیط‌های Edge بدون jsdom */
   createDOM?: (html: string, url: string) => { window: any; close?: () => void };
   /** #91: مهلت زمانی رندر SSR به میلی‌ثانیه (در صورت عبور، خطای ZEN-1801 پرتاب می‌شود) */
@@ -189,6 +216,85 @@ export interface RenderOptions {
   renderTimeoutMs?: number;
   /** #91: فعال‌سازی کش قالب‌های parse‌شده و استخر JSDOM (پیش‌فرض: true) */
   cacheTemplates?: boolean;
+}
+
+function escapeHtmlAttr(val: string): string {
+  return String(val)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderAttrsMap(attrs?: Record<string, string>): string {
+  if (!attrs) return '';
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(attrs)) {
+    if (!/^[a-zA-Z_:][a-zA-Z0-9_.:-]*$/.test(k)) continue;
+    parts.push(`${k}="${escapeHtmlAttr(v)}"`);
+  }
+  return parts.length > 0 ? ' ' + parts.join(' ') : '';
+}
+
+/**
+ * #152 / #174: تبدیل ساختار `SSRHeadInput` به تگ‌های امن `<head>` با پشتیبانی از JSON-LD.
+ */
+export function renderSSRHead(
+  head?: SSRHeadInput | string,
+  i18n?: SSRI18nInput,
+  fallbackLocale?: string,
+): { headTags: string; htmlAttrs: string; bodyAttrs: string } {
+  const effectiveLocale = i18n?.locale ?? fallbackLocale;
+  const effectiveDir =
+    i18n?.dir ??
+    (effectiveLocale && /^(fa|ar|he|ur|ps|ckb|sd|ug|yi)\b/i.test(effectiveLocale)
+      ? 'rtl'
+      : effectiveLocale
+        ? 'ltr'
+        : undefined);
+
+  if (typeof head === 'string' || !head) {
+    const htmlMap: Record<string, string> = {};
+    if (effectiveLocale) htmlMap.lang = effectiveLocale;
+    if (effectiveDir) htmlMap.dir = effectiveDir;
+    return {
+      headTags: typeof head === 'string' ? head : '',
+      htmlAttrs: renderAttrsMap(htmlMap),
+      bodyAttrs: '',
+    };
+  }
+
+  const tags: string[] = [];
+  if (head.title) {
+    tags.push(`<title data-zen-head="title">${escapeHtmlAttr(head.title)}</title>`);
+  }
+  if (Array.isArray(head.meta)) {
+    for (const m of head.meta) {
+      tags.push(`<meta data-zen-head="meta"${renderAttrsMap(m)}>`);
+    }
+  }
+  if (Array.isArray(head.link)) {
+    for (const l of head.link) {
+      tags.push(`<link data-zen-head="link"${renderAttrsMap(l)}>`);
+    }
+  }
+  if (head.jsonLd) {
+    const items = Array.isArray(head.jsonLd) ? head.jsonLd : [head.jsonLd];
+    for (const item of items) {
+      const safeJson = safeScriptValue(JSON.stringify(item));
+      tags.push(`<script type="application/ld+json" data-zen-head="ld">${safeJson}</script>`);
+    }
+  }
+
+  const htmlMap: Record<string, string> = { ...(head.htmlAttrs ?? {}) };
+  if (effectiveLocale && !htmlMap.lang) htmlMap.lang = effectiveLocale;
+  if (effectiveDir && !htmlMap.dir) htmlMap.dir = effectiveDir;
+
+  return {
+    headTags: tags.join(''),
+    htmlAttrs: renderAttrsMap(htmlMap),
+    bodyAttrs: renderAttrsMap(head.bodyAttrs),
+  };
 }
 
 interface PooledDOMEntry {
@@ -434,7 +540,8 @@ export async function renderToString(
       });
 
     if (options.app) {
-      const unmount = options.app.mount(root, renderState);
+      const appInstance = typeof options.app === 'function' ? options.app() : options.app;
+      const unmount = appInstance.mount(root, renderState);
       flushSync();
       const resultHtml = root.outerHTML;
       unmount();
@@ -470,7 +577,28 @@ export async function renderToString(
         });
       }
     }
-    return { html: resultHtml, state: stateJson, route: options.route };
+    const renderedHead = renderSSRHead(options.head, options.i18n, options.locale);
+    const i18nJson = options.i18n
+      ? safeScriptValue(
+          JSON.stringify({
+            locale: options.i18n.locale,
+            dir:
+              options.i18n.dir ??
+              (/^(fa|ar|he|ur|ps|ckb|sd|ug|yi)\b/i.test(options.i18n.locale) ? 'rtl' : 'ltr'),
+            messages: options.i18n.messages ?? {},
+          }),
+        )
+      : undefined;
+
+    return {
+      html: resultHtml,
+      state: stateJson,
+      route: options.route,
+      headTags: renderedHead.headTags,
+      htmlAttrs: renderedHead.htmlAttrs,
+      bodyAttrs: renderedHead.bodyAttrs,
+      i18n: i18nJson,
+    };
   };
 
   const initialGlobals: DOMGlobals = {
@@ -540,11 +668,15 @@ export function generateHydrationScript(result: SSRResult, nonce?: string): stri
       routePart = `window.__ZENITH_ROUTE__=${safeScriptValue(JSON.stringify(result.route))};`;
     }
   }
-  return `<script${nonceAttr}>window.__ZENITH_STATE__=${safeState};${routePart}</script>`;
+  const i18nPart = result.i18n ? `window.__ZENITH_I18N__=${result.i18n};` : '';
+  return `<script${nonceAttr}>window.__ZENITH_STATE__=${safeState};${routePart}${i18nPart}</script>`;
 }
 
 export function generateFullPage(result: SSRResult, head = '', nonce?: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}${generateHydrationScript(result, nonce)}</head><body>${result.html}</body></html>`;
+  const htmlAttrs = result.htmlAttrs ?? '';
+  const bodyAttrs = result.bodyAttrs ?? '';
+  const combinedHead = `${result.headTags ?? ''}${head}`;
+  return `<!DOCTYPE html><html${htmlAttrs}><head><meta charset="UTF-8">${combinedHead}${generateHydrationScript(result, nonce)}</head><body${bodyAttrs}>${result.html}</body></html>`;
 }
 
 // ── Streaming SSR ──
@@ -753,3 +885,279 @@ export function renderToReadableStream(
     },
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #152 — Head Management (createHead, useHead, renderHead, titleFromRoute)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface HeadManager {
+  push(input: SSRHeadInput): { patch(next: SSRHeadInput): void; dispose(): void };
+  resolve(): SSRHeadInput;
+  dispose(): void;
+}
+
+let _activeHead: HeadManager | null = null;
+
+/**
+ * #152: ساخت مدیر واکنشی `<head>` با حذف تگ‌های تکراری (dedupe) و اولویت آخرین ورودی.
+ */
+export function createHead(options: { titleTemplate?: string; maxTags?: number } = {}): HeadManager {
+  const entries = new Set<{ current: SSRHeadInput }>();
+  const maxTags = options.maxTags ?? 100;
+
+  const manager: HeadManager = {
+    push(input: SSRHeadInput) {
+      const box = { current: { ...input } };
+      entries.add(box);
+      let disposed = false;
+      return {
+        patch(next: SSRHeadInput) {
+          if (disposed) return;
+          box.current = { ...box.current, ...next };
+        },
+        dispose() {
+          if (disposed) return;
+          disposed = true;
+          entries.delete(box);
+        },
+      };
+    },
+    resolve(): SSRHeadInput {
+      let title: string | undefined;
+      const metaMap = new Map<string, Record<string, string>>();
+      const linkMap = new Map<string, Record<string, string>>();
+      const jsonLdList: Array<Record<string, any>> = [];
+      const htmlAttrs: Record<string, string> = {};
+      const bodyAttrs: Record<string, string> = {};
+
+      for (const { current } of entries) {
+        if (current.title !== undefined) title = current.title;
+        if (current.meta) {
+          for (const m of current.meta) {
+            const key = m.key || m.name || m.property || JSON.stringify(m);
+            metaMap.set(key, m);
+          }
+        }
+        if (current.link) {
+          for (const l of current.link) {
+            const key = l.key || `${l.rel ?? ''}:${l.href ?? ''}`;
+            linkMap.set(key, l);
+          }
+        }
+        if (current.jsonLd) {
+          if (Array.isArray(current.jsonLd)) jsonLdList.push(...current.jsonLd);
+          else jsonLdList.push(current.jsonLd);
+        }
+        if (current.htmlAttrs) Object.assign(htmlAttrs, current.htmlAttrs);
+        if (current.bodyAttrs) Object.assign(bodyAttrs, current.bodyAttrs);
+      }
+
+      if (title && options.titleTemplate && options.titleTemplate.includes('%s')) {
+        title = options.titleTemplate.replace('%s', title);
+      }
+
+      const totalCount = metaMap.size + linkMap.size + jsonLdList.length;
+      if (totalCount > maxTags) {
+        throw new ZenithError({
+          code: 'ZEN-1503',
+          category: 'SSR',
+          message: `Head tag count (${totalCount}) exceeded maxTags (${maxTags}).`,
+          suggestion: 'تعداد تگ‌های meta/link را کاهش دهید یا گزینهٔ maxTags را افزایش دهید.',
+        });
+      }
+
+      return {
+        title,
+        meta: Array.from(metaMap.values()),
+        link: Array.from(linkMap.values()),
+        jsonLd: jsonLdList.length > 0 ? jsonLdList : undefined,
+        htmlAttrs,
+        bodyAttrs,
+      };
+    },
+    dispose() {
+      entries.clear();
+      if (_activeHead === manager) _activeHead = null;
+    },
+  };
+
+  _activeHead = manager;
+  return manager;
+}
+
+/**
+ * #152: ثبت ورودی `<head>` در مدیر فعال.
+ */
+export function useHead(input: SSRHeadInput): { patch(next: SSRHeadInput): void; dispose(): void } {
+  if (!_activeHead) {
+    _activeHead = createHead();
+  }
+  return _activeHead.push(input);
+}
+
+/**
+ * #152: رندر خروجی `HeadManager` یا `SSRHeadInput` به رشتهٔ HTML امن.
+ */
+export function renderHead(
+  head: HeadManager | SSRHeadInput,
+): { headTags: string; htmlAttrs: string; bodyAttrs: string } {
+  const resolved = 'resolve' in head && typeof head.resolve === 'function' ? head.resolve() : head;
+  return renderSSRHead(resolved as SSRHeadInput);
+}
+
+/**
+ * #152: استخراج عنوان صفحه از متادیتای مسیر.
+ */
+export function titleFromRoute(
+  route: { path: string; meta?: Record<string, any> },
+  template = '%s',
+): string {
+  const raw =
+    typeof route.meta?.title === 'string' && route.meta.title.length > 0
+      ? route.meta.title
+      : route.path === '/'
+        ? 'Home'
+        : route.path.replace(/^\//, '');
+  return template.includes('%s') ? template.replace('%s', raw) : raw;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #156 & #157 — Node & Edge SSR Adapters (createNodeHandler, createFetchHandler)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface SSRAdapterOptions {
+  template: string;
+  app?: () => App;
+  state?: Record<string, any> | ((url: string) => Record<string, any> | Promise<Record<string, any>>);
+  timeout?: number;
+  health?: string | false;
+  cacheControl?: string;
+  csp?: { nonce?: boolean; policy?: string };
+  head?: SSRHeadInput | ((url: string) => SSRHeadInput);
+  i18n?: SSRI18nInput | ((url: string) => SSRI18nInput);
+}
+
+/**
+ * #156: ساخت handler سازگار با Node `http` / Express / Connect / Fastify.
+ */
+export function createNodeHandler(options: SSRAdapterOptions) {
+  const healthPath = options.health === undefined ? '/healthz' : options.health;
+  const cacheControl = options.cacheControl ?? 'no-store';
+
+  return async (
+    req: { url?: string; method?: string; on?: (ev: string, fn: () => void) => void },
+    res: {
+      statusCode?: number;
+      setHeader?: (name: string, value: string) => void;
+      end?: (body?: string) => void;
+    },
+  ): Promise<void> => {
+    const rawUrl = req.url || '/';
+    const cleanPath = rawUrl.split('?')[0] || '/';
+
+    if (healthPath && cleanPath === healthPath) {
+      res.statusCode = 200;
+      res.setHeader?.('Content-Type', 'application/json; charset=utf-8');
+      res.end?.(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    const abortController = new AbortController();
+    req.on?.('close', () => abortController.abort());
+
+    try {
+      const reqState =
+        typeof options.state === 'function' ? await options.state(rawUrl) : (options.state ?? {});
+      const headInput =
+        typeof options.head === 'function' ? options.head(rawUrl) : options.head;
+      const i18nInput =
+        typeof options.i18n === 'function' ? options.i18n(rawUrl) : options.i18n;
+
+      const ssrRes = await renderToString(options.template, reqState, {
+        route: cleanPath,
+        app: options.app,
+        timeout: options.timeout ?? 10_000,
+        head: headInput,
+        i18n: i18nInput,
+      });
+
+      const nonce = options.csp?.nonce ? 'zen-ssr-nonce' : undefined;
+      const fullHtml = generateFullPage(ssrRes, '', nonce);
+      res.statusCode = 200;
+      res.setHeader?.('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader?.('Cache-Control', cacheControl);
+      if (nonce) {
+        res.setHeader?.(
+          'Content-Security-Policy',
+          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`,
+        );
+      }
+      res.end?.(fullHtml);
+    } catch (err: any) {
+      res.statusCode = err?.code === 'ZEN-1801' ? 503 : 500;
+      res.setHeader?.('Content-Type', 'text/plain; charset=utf-8');
+      res.end?.(err?.message || 'Internal Server Error');
+    }
+  };
+}
+
+/**
+ * #157: ساخت handler استاندارد WinterCG / Edge (`Request => Promise<Response>`) برای Cloudflare/Deno/Bun/Vercel Edge.
+ */
+export function createFetchHandler(options: SSRAdapterOptions) {
+  const healthPath = options.health === undefined ? '/healthz' : options.health;
+  const cacheControl = options.cacheControl ?? 'no-store';
+
+  return async (request: Request): Promise<Response> => {
+    const parsedUrl = new URL(request.url, 'http://localhost');
+    const cleanPath = parsedUrl.pathname || '/';
+
+    if (healthPath && cleanPath === healthPath) {
+      return new Response(JSON.stringify({ status: 'ok' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    try {
+      const reqState =
+        typeof options.state === 'function'
+          ? await options.state(parsedUrl.pathname + parsedUrl.search)
+          : (options.state ?? {});
+      const headInput =
+        typeof options.head === 'function' ? options.head(cleanPath) : options.head;
+      const i18nInput =
+        typeof options.i18n === 'function' ? options.i18n(cleanPath) : options.i18n;
+
+      const ssrRes = await renderToString(options.template, reqState, {
+        route: cleanPath,
+        app: options.app,
+        timeout: options.timeout ?? 10_000,
+        head: headInput,
+        i18n: i18nInput,
+      });
+
+      const nonce = options.csp?.nonce ? 'zen-edge-nonce' : undefined;
+      const fullHtml = generateFullPage(ssrRes, '', nonce);
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': cacheControl,
+      };
+      if (nonce) {
+        headers['Content-Security-Policy'] =
+          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`;
+      }
+      return new Response(fullHtml, { status: 200, headers });
+    } catch (err: any) {
+      const status = err?.code === 'ZEN-1801' ? 503 : 500;
+      return new Response(err?.message || 'Internal Server Error', {
+        status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+  };
+}
+
+export const createCloudflareHandler = createFetchHandler;
+export const createDenoHandler = createFetchHandler;
+

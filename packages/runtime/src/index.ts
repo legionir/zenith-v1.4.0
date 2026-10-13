@@ -1353,6 +1353,11 @@ export {
   assertCompatible,
   hydrate,
   startFromSSR,
+  createFocusTrap,
+  createRovingTabindex,
+  lockScroll,
+  useId,
+  computePosition,
   appOptions,
   APP_OPTIONS_DEFAULTS,
   appOptionsSchema,
@@ -1370,3 +1375,16 @@ export {
 } from '@zenith/runtime-core';
 
 export { setActionRegistryStore, setComponentRegistryStore };
+
+export {
+  createAnalytics,
+  consoleProvider,
+  beaconProvider,
+  gtagProvider,
+  plausibleProvider,
+  type AnalyticsEvent,
+  type AnalyticsProvider,
+  type AnalyticsOptions,
+  type AnalyticsInstance,
+} from './directives/track';
+

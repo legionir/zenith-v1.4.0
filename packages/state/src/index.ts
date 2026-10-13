@@ -98,3 +98,13 @@ export {
   type SignalInfo,
   type StateChange,
 } from './registry';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/state` (`AsyncOptions` / `WatchOptions`).
+ * @default { immediate: true, flush: 'sync' }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  immediate: true,
+  flush: 'sync' as const,
+});

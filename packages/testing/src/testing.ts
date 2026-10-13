@@ -828,4 +828,15 @@ export function testDirective<S extends Record<string, any> = Record<string, any
   };
 }
 
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/testing` (`A11yAuditOptions`).
+ * @default { maxViolations: 0, includeWarnings: false, level: 'AA' }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  maxViolations: 0,
+  includeWarnings: false,
+  level: 'AA' as const,
+});
+
 

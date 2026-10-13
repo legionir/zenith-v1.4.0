@@ -108,8 +108,8 @@ export interface DOMGlobals {
   locale?: string;
 }
 
-const domAls: AsyncContextStore<DOMGlobals> = createAsyncContextStore<DOMGlobals>();
-export { domAls };
+/** @internal */
+export const domAls: AsyncContextStore<DOMGlobals> = createAsyncContextStore<DOMGlobals>();
 
 export function getDOMGlobals(): DOMGlobals | undefined {
   return domAls.getStore();
@@ -131,6 +131,7 @@ const GLOBAL_KEYS = [
 
 let _installed = false;
 
+/** @internal */
 export function installDOMGlobalGetters(): void {
   if (_installed) return;
   if (typeof document !== 'undefined') return;

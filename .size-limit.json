@@ -105,6 +105,11 @@
     "limit": "4 kb"
   },
   {
+    "name": "@zenith/language-server",
+    "path": "packages/language-server/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
     "name": "@zenith/logger",
     "path": "packages/logger/dist/index.js",
     "limit": "2 kb"
