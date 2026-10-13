@@ -26,3 +26,14 @@ the exact manual action.
 - [ ] اگر لازم است: Settings → Branches → protection rule با الزام
       checks جدید (lint/format/typecheck/unit/audit/deps/build/publint/size/e2e).
       AGENT-INSTRUCTIONS اجازه تغییر تنظیمات repo را به agent نداد.
+
+## #77 — رزرو سازمان / Scope در npm (`@zenith`)
+
+- [ ] بررسی زندهٔ `registry.npmjs.org` و اسکریپت `scripts/check-npm-scope.mjs` در [`docs/release/NPM-SCOPE-AUDIT.md`](release/NPM-SCOPE-AUDIT.md) مستند شد.
+- [ ] مالک پروژه باید در [npmjs.com](https://www.npmjs.com) مالکیت سازمان `@zenith` را با حداقل دو مالک و 2FA اجباری تأیید/ثبت کند؛ در صورت عدم دسترسی به سازمان `@zenith`، با اجرای `node scripts/check-npm-scope.mjs` برنامهٔ مهاجرت به `@zenithjs` آماده است.
+
+## #61 — ممیزی امنیتی مستقل (External Security Audit)
+
+- [ ] بستهٔ کامل ممیزی امنیتی (دامنه، مدل تهدید، یافته‌های رفع‌شدهٔ `SEC-A1..A13` و دستورهای بازتولید) در [`docs/security/AUDIT-PACKAGE.md`](security/AUDIT-PACKAGE.md) و گیت خودکار `scripts/security-audit-check.mjs` آماده شد.
+- [ ] تیم/ممیز امنیتی مستقل بیرونی را انتخاب کرده، بستهٔ `docs/security/AUDIT-PACKAGE.md` را در اختیارشان قرار دهید و پس از دریافت گزارش نهایی، لینک گواهی ممیزی را در همان فایل ثبت کنید.
+
