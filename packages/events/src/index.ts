@@ -24,6 +24,9 @@ export {
 export {
   initEventDelegation,
   clearBindingCache,
+  setLinkNavigationHandler,
+  getLinkNavigationHandler,
+  type LinkNavigationHandler,
   type DelegationRoot,
   type InitEventDelegationOptions,
 } from './delegation';

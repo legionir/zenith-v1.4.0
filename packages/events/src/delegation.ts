@@ -34,7 +34,6 @@
 
 import { getAction } from '@zenith/actions';
 import { flushSync } from '@zenith/scheduler';
-import { navigate } from '@zenith/router';
 // Bug Fix #2: اولویت urgent برای event handlers.
 import { setCurrentPriority, isReadable } from '@zenith/state';
 // FIX (v1.2.7): Action errors now reported to error boundary so a
@@ -409,6 +408,36 @@ function findClosestActionElement(
 }
 
 /**
+ * #48 — جداسازی وابستگی معکوس `events -> router`.
+ * هندلر ناوبری لینک‌های `[zen-link]` از بیرون (توسط `@zenith/runtime` یا `@zenith/router`)
+ * تزریق می‌شود تا `@zenith/events` هیچ وابستگی مستقیمی به `@zenith/router` نداشته باشد.
+ */
+export type LinkNavigationHandler = (path: string) => void | Promise<void>;
+
+let _linkNavigationHandler: LinkNavigationHandler | null = null;
+
+/**
+ * ثبت هندلر ناوبری برای لینک‌های `[zen-link]`.
+ * یک تابع `Cleanup` idempotent برمی‌گرداند (#116).
+ */
+export function setLinkNavigationHandler(handler: LinkNavigationHandler | null): () => void {
+  const prev = _linkNavigationHandler;
+  _linkNavigationHandler = handler;
+  let restored = false;
+  return () => {
+    if (restored) return;
+    restored = true;
+    if (_linkNavigationHandler === handler) {
+      _linkNavigationHandler = prev;
+    }
+  };
+}
+
+export function getLinkNavigationHandler(): LinkNavigationHandler | null {
+  return _linkNavigationHandler;
+}
+
+/**
  * FIX (v1.2.7): Per-element cache of timed (debounced/throttled) handlers.
  */
 type TimedHandlerCache = Map<HTMLElement, Map<string, TimedHandler & { cancel: () => void }>>;
@@ -443,7 +472,9 @@ function delegateEvent(
       event.preventDefault();
       const path = linkEl.getAttribute('zen-link') || linkEl.getAttribute('href');
       if (path) {
-        void navigate(path);
+        if (_linkNavigationHandler) {
+          void _linkNavigationHandler(path);
+        }
         flushSync();
       } else {
         console.warn('[Zenith] <a zen-link> has no path (neither zen-link nor href attribute).');

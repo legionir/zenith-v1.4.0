@@ -12,7 +12,7 @@
 
 import { processDOM } from './walker';
 import { setRouteSignalProvider } from './context';
-import { initEventDelegation } from '@zenith/events';
+import { initEventDelegation, setLinkNavigationHandler } from '@zenith/events';
 import {
   registerAction,
   unregisterAction,
@@ -556,6 +556,7 @@ export const Zen: ZenApi = {
     // static به router وابسته نباشد. اگر @zenith/router در دسترس نباشد،
     // `$route` در Context تعریف نمی‌شود.
     setRouteSignalProvider(() => routeSignal.get());
+    setLinkNavigationHandler(navigate);
 
     // ── ۲.۵. راه‌اندازی Auth (v1.4.0) — fire-and-forget ──
     // اگر توکن قبلاً ذخیره شده باشد، session را restore می‌کند.
