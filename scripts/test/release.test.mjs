@@ -120,7 +120,11 @@ describe('scripts/release.mjs safe release pipeline (#73)', () => {
         dryRun: false,
         exec: (cmd, args, opts) => {
           // Windows: cwd بک‌اسلش دارد — پیش از مقایسه نرمال شود.
-          if (cmd === 'npm' && args[0] === 'publish' && opts.cwd.replace(/\\/g, '/').endsWith('/state')) {
+          if (
+            cmd === 'npm' &&
+            args[0] === 'publish' &&
+            opts.cwd.replace(/\\/g, '/').endsWith('/state')
+          ) {
             return { status: 1, stdout: '', stderr: 'network timeout' };
           }
           return { status: 0, stdout: '', stderr: '' };
