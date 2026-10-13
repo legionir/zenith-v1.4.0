@@ -248,7 +248,7 @@ export async function loadComponent(
               controller?.abort();
               reject(
                 new ZenithError({
-                  code: ErrorCode.HTTP_TIMEOUT,
+                  code: ErrorCode.RESOURCE_HTTP_ERROR,
                   category: 'Network',
                   message: `async-loader: Timed out loading component "${src}" after ${timeoutMs}ms.`,
                 }),
@@ -266,7 +266,7 @@ export async function loadComponent(
     } catch (err) {
       if (timedOut) {
         throw new ZenithError({
-          code: ErrorCode.HTTP_TIMEOUT,
+          code: ErrorCode.RESOURCE_HTTP_ERROR,
           category: 'Network',
           message: `async-loader: Timed out loading component "${src}" after ${timeoutMs}ms.`,
         });

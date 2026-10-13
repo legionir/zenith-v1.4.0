@@ -21,7 +21,6 @@ import {
   listActions,
   getActionMeta,
   setActionRegistryStore,
-  ActionRegistry,
 } from '@zenith/actions';
 import { loadComponents, clearComponents, setComponentRegistryStore } from '@zenith/components';
 import { flushSync } from '@zenith/scheduler';
@@ -37,7 +36,7 @@ import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
 // #115: مقدار class ZenithError + ErrorCode برای throw در مسیر framework.
 // state هم ZenithError را به‌عنوان type از errors re-export می‌کند؛ یک کلاس واحد است.
 import { ZenithError, ErrorCode } from '@zenith/errors';
-import { s, defineOptions } from '@zenith/schema';
+import { s, defineOptions, type Schema } from '@zenith/schema';
 import type { ErrorHandler } from '@zenith/state';
 
 /**
@@ -326,7 +325,7 @@ export const zenStartOptions = defineOptions<ZenStartOptions>(
       }),
       { preloadState: true, validateHydration: false },
     ),
-    onError: s.optional(s.fn() as any),
+    onError: s.optional(s.fn() as unknown as Schema<ErrorHandler>),
     strictParity: s.default(s.boolean(), false),
   }),
 );

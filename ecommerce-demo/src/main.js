@@ -1,7 +1,5 @@
 // ecommerce-demo/src/main.js
-// #145 — ماژول plain JS با importmap صفحه (بدون build pipeline؛ الگوی demos/*).
-// اکشن‌ها روی خودِ instance نشسته‌اند (defineStore: `{ [K in keyof A]: A[K] }`)؛
-// `store.actions.*` در نسخۀ قبلی undefined بود (باگ fixture) — اینجا مستقیم.
+// #145 + #9 — ماژول plain JS با importmap صفحه (بدون build pipeline؛ الگوی demos/*).
 import { Zen } from '@zenith/runtime';
 import { store } from './store.js';
 
@@ -17,7 +15,11 @@ Zen.action('removeFromCart', ({ element }) => {
   store.removeFromCart(id);
 });
 
-// همان الگوی demos/store/index.html: خودِ store instance در state می‌آید تا
-// $store در template زنده باشد (getterها Computed‌اند و context آن‌ها را
-// unwrap می‌کند)؛ نسخهٔ قبلی `store.state` (اسنپ‌شات سادهٔ object) می‌داد.
-Zen.start(document.querySelector('main'), { store });
+Zen.action('checkout', () => {
+  store.checkoutOrder();
+});
+
+const mainEl = typeof document !== 'undefined' ? document.querySelector('main') : null;
+if (mainEl) {
+  Zen.start(mainEl, { store });
+}

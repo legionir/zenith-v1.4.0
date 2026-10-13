@@ -38,14 +38,12 @@ import {
   effect,
   batch,
   untrack,
-  isSignal,
-  isComputed,
+  isReadable,
   isWritable,
   Signal,
   Computed,
   type ReadonlySignal,
   type MaybeSignal,
-  type SignalOptions,
 } from '@zenith/state';
 import { flushSync, scheduleEffect } from '@zenith/scheduler';
 import { watch, type WatchOptions, type WatchSource } from './watch';
@@ -107,9 +105,11 @@ export function assertCompatible(overrides?: Record<string, string>): void {
   for (const [pkg, ver] of Object.entries(versions)) {
     if (ver !== ZENITH_VERSION) {
       throw createReservedError('ZEN-2320', {
-        package: 'zenith',
-        expected: ZENITH_VERSION,
-        actual: `${pkg}@${ver}`,
+        details: {
+          package: 'zenith',
+          expected: ZENITH_VERSION,
+          actual: `${pkg}@${ver}`,
+        },
       });
     }
   }
@@ -174,8 +174,7 @@ export {
   effect,
   batch,
   untrack,
-  isSignal,
-  isComputed,
+  isReadable,
   isWritable,
   Signal,
   Computed,
@@ -194,7 +193,6 @@ export {
   type Plugin,
   type ReadonlySignal,
   type MaybeSignal,
-  type SignalOptions,
   type WatchOptions,
   type WatchSource,
 };

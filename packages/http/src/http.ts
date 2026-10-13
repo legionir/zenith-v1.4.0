@@ -13,7 +13,7 @@ import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
 import { deprecate } from '@zenith/errors';
 import { createCache, type Cache } from '@zenith/cache';
-import { s, defineOptions } from '@zenith/schema';
+import { s, defineOptions, type Schema } from '@zenith/schema';
 
 // ============================================================
 // Types & Interfaces
@@ -141,7 +141,7 @@ export const httpRequestOptions = defineOptions<HttpRequestOptions>(
     credentials: s.optional(s.enum(['omit', 'same-origin', 'include'] as const)),
     redirect: s.optional(s.enum(['follow', 'error', 'manual'] as const)),
     referrer: s.optional(s.string()),
-    referrerPolicy: s.optional(s.string() as any),
+    referrerPolicy: s.optional(s.string() as unknown as Schema<ReferrerPolicy>),
     integrity: s.optional(s.string()),
     keepalive: s.optional(s.boolean()),
     signal: s.optional(

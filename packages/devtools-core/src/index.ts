@@ -316,6 +316,8 @@ export function recordStateChange(
   if (!isTrackingEnabled() || isRestoring) return undefined;
 
   if (currentConfig.sampleRate < 1) {
+    // NON-SECURITY: probabilistic devtools telemetry sampling (#64)
+    // eslint-disable-next-line no-restricted-syntax
     if (currentConfig.sampleRate <= 0 || Math.random() > currentConfig.sampleRate) {
       return undefined;
     }

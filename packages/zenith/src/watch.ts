@@ -25,8 +25,8 @@ export function watch<T>(
   const read =
     typeof source === 'function'
       ? source
-      : isReadable<T>(source)
-        ? () => source.get()
+      : isReadable(source)
+        ? () => (source as Readable<T>).get()
         : () => source as T;
   let initialized = false;
   let prevValue: T | undefined;

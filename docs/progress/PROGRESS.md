@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #28
+آخرین issue کامل: #9 (همراه با #29، #15، #12، #73، #77، #61 — تکمیل موج ۳)
 issueهای باز (جزئی): #117 و #173 — کد/سند/گیت هر دو کامیت شده؛ بقایا:
 lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو موج ۴)
-بعدی: #29، #12، #15، #9، #73، #77، #61
-مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
+بعدی: موج ۴ (#13، #18، #21، #22، #37، #38، #165، #39، #40، #41، ...)
+مسدود/نیازمند انسان: #68 (تأیید مالک MIT)، #59 (فعال‌سازی Private vulnerability reporting از UI)، #73 (NPM_TOKEN + tag push)، #77 (رزرو اسکوپ `@zenithjs` روی npm)، #61 (انعقاد قرارداد ممیزی امنیتی مستقل) — همه مستند در `docs/MANUAL-STEPS.md`
 آخرین run موفق CI: 38198172598 (روی HEAD 6ae1b21 — #115/#116؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
@@ -620,4 +620,41 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
     `router` (`router-dom.test.ts`)، `components` (`components-dom.test.ts`)، `ssr` (`ssr-dom.test.ts`)،
     `data-table` (`data-table-dom.test.ts`) و `error-boundary` (`error-boundary-dom.test.ts`) در کنار
     تست‌های `transition`، `virtual-list` و `suspense` (۳۳ فایل تست / ۹۷ تست سبز در پکیج‌های DOM).
+
+- #29 انجام شد (موج ۳، کامیت 0315380): افزایش پوشش تست پکیج‌های هسته به ≥۸۰٪ و اعمال گیت CI در `vitest.config.ts`:
+  - `state` (۸۸٫۰۳٪ statements / ۸۵٫۱۴٪ lines)، `scheduler` (۸۲٫۵۸٪ statements / ۸۲٫۵۸٪ lines)،
+    `expressions` (۹۲٫۱۱٪ statements / ۹۲٫۰۲٪ lines)، `compiler` (۸۲٫۹۲٪ statements / ۸۳٫۲۱٪ lines)؛
+    افزودن تست‌های هدفمند در `packages/{state,compiler,expressions}/test/coverage-80.test.ts`.
+
+- #15 انجام شد (موج ۳، کامیت e8febd1): رفع کامل ۵ مورد باز در `BUG_REPORT.md`:
+  - `actions` (#5): snapshot کردن زنجیرهٔ middleware، قفل re-entrancy (`ZEN-ACT-004`) و سیاست صریح ثبت مجدد (`allowOverride` / `ZEN-ACT-003`)؛
+  - `crud` (#15): retry نمایی محدود با پشتیبانی از `AbortSignal` و تفکیک خطاهای retryable در `fetchWithRetry`؛
+  - `components` (#17): اضافه‌کردن `AbortController` و پاک‌سازی تایمر در `createAsyncComponent`؛
+  - `ssr` (#25): تکمیل `renderToStream` با قلاب `onFlush` و بررسی `AbortSignal` در مرزهای تگ؛
+  - `vite-plugin` (#29): کش محتوامحور LRU کامل برای `compile` به همراه آمار hit/miss.
+
+- #12 انجام شد (موج ۳، کامیت 3d6d675): جدول ردیابی کامل ۱۳۶ شناسهٔ `BUG-*` / `IMP-*` / `SEC-*`:
+  - اسکریپت ممیزی خودکار `scripts/check-traceability.mjs` (همراه با گیت CI در `.github/workflows/main.yml`)،
+    سند `docs/TRACEABILITY.md`، تکمیل تست‌های مستقیم برای شناسه‌های بدون تست در `dependency-graph`،
+    `devtools` و `permission`، و تست گیت `scripts/test/traceability.test.mjs`.
+
+- #73 انجام شد (موج ۳ / P0، کامیت 9daf006): جایگزینی اسکریپت انتشار ناایمن `scripts/release.mjs`:
+  - خط لولهٔ انتشار ایمن با حالت پیش‌فرض `--dry-run`، ترتیب توپولوژیکی از `getPackageOrder()`،
+    گیت‌های پیش‌پروازی (تست، بیلد، publint، گیت تمیز)، بررسی نسخه‌های منتشرشده در رجیستری برای
+    اجتناب از انتشار مجدد در انتشارهای ناتمام، تولید گزارش JSON و خلاصهٔ Markdown، پیکربندی
+    `.changeset/config.json`، مستندسازی گام‌های انسانی در `docs/MANUAL-STEPS.md`، و ۶ تست واحد در `scripts/test/release.test.mjs`.
+
+- #77 و #61 انجام شدند (موج ۳ / P0، کامیت 0b7c594):
+  - #77: ممیزی زندهٔ رجیستری npm و اسکریپت برنامه‌ریز مهاجرت اسکوپ `scripts/check-npm-scope.mjs` +
+    سند `docs/release/NPM-SCOPE-AUDIT.md` + ثبت گام انسانی رزرو `@zenithjs` در `docs/MANUAL-STEPS.md` + ۵ تست.
+  - #61: بستهٔ جامع ممیزی امنیتی مستقل `docs/security/AUDIT-PACKAGE.md` (مدل تهدید، سطوح حملهٔ P0/P1،
+    invariants امنیتی، دستورات بازتولید) + اسکریپت اعتبارسنجی مستمر `scripts/security-audit-check.mjs`
+    (همراه با گیت CI) + ثبت گام انسانی انتخاب ممیز خارجی در `docs/MANUAL-STEPS.md` + ۴ تست.
+
+- #9 انجام شد (موج ۳): پیاده‌سازی مدیریت موجودی کالا (`inventory`) و مستندسازی `ecommerce-demo`:
+  - افزودن وضعیت `inventory` و اکشن‌های `getStock` / `isInStock` / `setStock` / `checkoutOrder` در
+    `ecommerce-demo/src/store.js`، بررسی موجودی پیش از افزودن به سبد و کسر موجودی هنگام ثبت سفارش،
+    ثبت اکشن `checkout` در `ecommerce-demo/src/main.js`، مستندسازی در `ecommerce-demo/README.md` و
+    تست واحد در `packages/store/test/ecommerce-demo-cart.test.ts`.
+
 

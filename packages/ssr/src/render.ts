@@ -285,7 +285,7 @@ export async function renderToString(
   }
 
   const url = options.route ? `http://localhost${options.route}` : 'http://localhost/';
-  let domInstance: { window: any; close?: () => void } | null = null;
+  let domInstance = null as { window: any; close?: () => void } | null;
 
   const executeIsolatedRender = async (): Promise<SSRResult> => {
     // اجرای pre-pass کامپوننت‌های سرور در بستر ایزولهٔ درخواست (#92)

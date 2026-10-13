@@ -16,9 +16,7 @@ export {
   startFromSSR,
   assertCompatible,
   APP_OPTIONS_DEFAULTS,
-  AppOptionsSchema,
-  CORE_DIRECTIVES,
-  STRUCTURAL_DIRECTIVES,
+  appOptionsSchema,
   ZENITH_RUNTIME_CORE_VERSION,
   type App,
   type AppOptions,
@@ -35,14 +33,12 @@ export {
   effect,
   batch,
   untrack,
-  isSignal,
-  isComputed,
+  isReadable,
   isWritable,
   Signal,
   Computed,
   type ReadonlySignal,
   type MaybeSignal,
-  type SignalOptions,
 } from '@zenith/state';
 
 export { flushSync, scheduleEffect } from '@zenith/scheduler';

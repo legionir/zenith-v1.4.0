@@ -58,7 +58,7 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=18.19.0"
+    "node": ">=18.19"
   },
   "repository": {
     "type": "git",

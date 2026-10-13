@@ -16,8 +16,8 @@ function packageDirs() {
 describe('package.json fields (#70)', () => {
   const dirs = packageDirs();
 
-  it('covers all 41 packages', () => {
-    expect(dirs).toHaveLength(41); // #145: @zenith/storage (40 → 41)
+  it('covers all 44 packages', () => {
+    expect(dirs).toHaveLength(44); // #147 devtools-core, #148 runtime-core, #149 zenith (41 → 44)
   });
 
   it.each(dirs)('%s has repository with directory', (dir) => {

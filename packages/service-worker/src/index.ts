@@ -15,7 +15,7 @@
 //   - ZenithSWPlugin              — پلاگین Zenith برای نصب با Zen.use.
 
 import { deprecate } from '@zenith/errors';
-import { s, defineOptions, validate } from '@zenith/schema';
+import { s, defineOptions, validate, type Schema } from '@zenith/schema';
 import type { CacheStrategyName } from './strategies.js';
 
 export const CACHE_STRATEGIES = [
@@ -169,9 +169,11 @@ export const registerSWOptions = defineOptions<RegisterSWOptions>(
   'RegisterSWOptions',
   s.object({
     scope: s.default(s.string({ min: 1 }), '/'),
-    onUpdateFound: s.optional(s.fn() as any),
-    onControllerChange: s.optional(s.fn() as any),
-    onError: s.optional(s.fn() as any),
+    onUpdateFound: s.optional(
+      s.fn() as unknown as Schema<(registration: ServiceWorkerRegistration) => void>,
+    ),
+    onControllerChange: s.optional(s.fn() as unknown as Schema<() => void>),
+    onError: s.optional(s.fn() as unknown as Schema<(error: Error) => void>),
   }),
 );
 

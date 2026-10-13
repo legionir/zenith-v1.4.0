@@ -28,7 +28,6 @@ export const NO_CONSOLE_RATCHET = [
   'packages/crud/src/crud.ts',
   'packages/data/src/fetcher.ts',
   'packages/devtools/src/api.ts',
-  'packages/devtools/src/graph.ts',
   'packages/devtools/src/hook.ts',
   'packages/error-boundary/src/directive.ts',
   'packages/errors/src/core.ts',

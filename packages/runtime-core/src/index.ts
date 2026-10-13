@@ -206,8 +206,10 @@ export const appOptions = defineOptions<AppOptions>(
         'Logger',
       ),
     ),
-    errorHandler: s.optional(s.fn() as any),
-    warnHandler: s.optional(s.fn() as any),
+    errorHandler: s.optional(s.fn() as unknown as Schema<(err: ZenithError) => void>),
+    warnHandler: s.optional(
+      s.fn() as unknown as Schema<(msg: string, ctx?: Record<string, unknown>) => void>,
+    ),
     idPrefix: s.default(s.string({ min: 1 }), 'zen'),
     ssr: s.default(
       s.object({
