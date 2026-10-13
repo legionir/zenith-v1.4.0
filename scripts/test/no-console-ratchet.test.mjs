@@ -71,7 +71,8 @@ describe('no-console rule + ratchet (#143)', () => {
   it('baseline shrinks only via real migration (#143=62 → #115 unified hub sink)', () => {
     // #115 (DEC-031): error-path console.* now lives solely in the errors hub sink.
     // #147: packages/devtools/src/graph.ts migrated to @zenith/devtools-core (61 → 60).
-    expect(NO_CONSOLE_RATCHET.length).toBe(60);
+    // #94: packages/cli/src/telemetry.ts افزوده شد (خروجی کاربرپسند CLI؛ در دستورالعمل #39 مهاجرت می‌کند) (60 → 61).
+    expect(NO_CONSOLE_RATCHET.length).toBe(61);
     // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
     expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
   });

@@ -354,21 +354,21 @@ program
     console.log('  action     → src/actions/<name>.ts');
     console.log('');
     console.log('Check rules:');
-    console.log('  Z100  compileAndRender usage (removed for security)');
-    console.log('  Z101  eval() or new Function() in <script>');
-    console.log('  Z200  Deprecated directive');
-    console.log('  Z201  Unknown directive');
-    console.log('  Z300  zen-for without zen-key');
-    console.log('  Z301  zen-text with empty expression');
-    console.log('  Z302  zen-if with empty condition');
-    console.log('  Z400  Expression syntax error');
-    console.log('  Z500  $parent used without property access');
-    console.log('  Z600  zen-route without src');
-    console.log('  Z601  zen-route without path');
-    console.log('  Z700  zen-link without href');
-    console.log('  Z800  Compiler unsupported directive (runtime fallback warning)');
-    console.log('  Z810  zen-virtual-list without zen-dynamic-heights (info)');
-    console.log('  Z820  i18n function used without context registration (info)');
+    console.log('  ZEN-9010  compileAndRender usage (removed for security)');
+    console.log('  ZEN-9011  eval() or new Function() in <script>');
+    console.log('  ZEN-9020  Deprecated directive');
+    console.log('  ZEN-9021  Unknown directive');
+    console.log('  ZEN-9030  zen-for without zen-key');
+    console.log('  ZEN-9031  zen-text with empty expression');
+    console.log('  ZEN-9032  zen-if with empty condition');
+    console.log('  ZEN-9040  Expression syntax error');
+    console.log('  ZEN-9050  $parent used without property access');
+    console.log('  ZEN-9060  zen-route without src');
+    console.log('  ZEN-9061  zen-route without path');
+    console.log('  ZEN-9070  zen-link without href');
+    console.log('  ZEN-9080  Compiler unsupported directive (runtime fallback warning)');
+    console.log('  ZEN-9081  zen-virtual-list without zen-dynamic-heights (info)');
+    console.log('  ZEN-9082  i18n function used without context registration (info)');
   });
 
 // ─────────────────────────────────────────────
@@ -450,6 +450,21 @@ program
       console.error(`[create-zenith] خطا: ${(e as Error).message}`);
       process.exit(1);
     }
+  });
+
+// ─────────────────────────────────────────────
+// #94: zenith telemetry — opt-in، پیش‌فرض خاموش
+// ─────────────────────────────────────────────
+program
+  .command('telemetry [action]')
+  .description('#94: مدیریت telemetry اختیاری (on | off | status) — پیش‌فرض کاملاً خاموش')
+  .action((action?: string) => {
+    import('./telemetry')
+      .then((m) => process.exitCode = m.runTelemetry(action))
+      .catch(() => {
+        console.error('zenith telemetry: خطای داخلی');
+        process.exitCode = 1;
+      });
   });
 
 // ─────────────────────────────────────────────

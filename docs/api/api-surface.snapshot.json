@@ -1644,6 +1644,11 @@
         "tag": "public"
       },
       {
+        "name": "ERROR_MESSAGES_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
         "name": "ErrorCategory",
         "kind": "type",
         "tag": "public"
@@ -1674,6 +1679,11 @@
         "tag": "public"
       },
       {
+        "name": "ErrorLocale",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "ErrorLogSink",
         "kind": "type",
         "tag": "public"
@@ -1695,6 +1705,16 @@
       },
       {
         "name": "getErrorHistory",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorLocale",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorMessage",
         "kind": "function",
         "tag": "public"
       },
@@ -1721,6 +1741,11 @@
       {
         "name": "jsVmTimeoutError",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LEGACY_ERROR_MESSAGES_EN",
+        "kind": "const",
         "tag": "public"
       },
       {
@@ -1780,6 +1805,11 @@
       },
       {
         "name": "setDevMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setErrorLocale",
         "kind": "function",
         "tag": "public"
       },

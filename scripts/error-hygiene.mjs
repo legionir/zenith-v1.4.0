@@ -42,7 +42,9 @@ const THROW_ALLOWLIST = {
 // پایین‌آوردن ceiling آزاد، بالا بردن آن باید در DEC ثبت شود.
 // توجه: باقی‌مانده‌ها عمدتاً لاگ‌های غیرerror-path (debug/diagnostic) یا فایل‌های
 // allowlist-شده (cli/compiler/vite-plugin tooling) هستند که در #137 هدف‌گیری می‌شوند.
-const CONSOLE_CEILING = 201;
+// DEC-033 (#94): دو console.error UX در دستور CLI «zenith telemetry» (201 → 203)؛
+// با مهاجرت CLI در #39 به 201 بازمی‌گردد.
+const CONSOLE_CEILING = 203;
 
 function listSources(dir) {
   const out = [];

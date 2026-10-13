@@ -19,6 +19,8 @@ export const NO_CONSOLE_RATCHET = [
   'packages/cli/src/index.ts',
   'packages/cli/src/lighthouse.ts',
   'packages/cli/src/templates.ts',
+  // #94: ماژول `zenith telemetry` — خروجی/خطای کاربرپسند CLI (مانند check/index)
+  'packages/cli/src/telemetry.ts',
   'packages/compiler/src/compiler.ts',
   'packages/components/src/async-loader.ts',
   'packages/components/src/index.ts',
