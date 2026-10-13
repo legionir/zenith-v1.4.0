@@ -30,7 +30,7 @@
 //     </template>
 //   </div>
 
-import { signal, type Signal } from '@zenith/state';
+import { signal, computed, type Signal, type ReadonlySignal } from '@zenith/state';
 
 /**
  * Deep-freeze an object and all its nested properties. Used by
@@ -189,6 +189,20 @@ export class PermissionManager {
     const state = this._signal.get();
     if (state.isSuperAdmin) return true;
     return state.permissions.includes(permission);
+  }
+
+  /**
+   * #135: سیگنال واکنش‌گرا (`ReadonlySignal<boolean>`) برای بررسی مجوز `permission`.
+   */
+  canSignal(permission: string): ReadonlySignal<boolean> {
+    return computed(() => this.checkPermission(permission));
+  }
+
+  /**
+   * #135: سیگنال واکنش‌گرا (`ReadonlySignal<boolean>`) برای بررسی نقش `role`.
+   */
+  hasRoleSignal(role: string): ReadonlySignal<boolean> {
+    return computed(() => this.checkRole(role));
   }
 
   /**
@@ -362,6 +376,42 @@ export function createPermissionManager(
  */
 export function getPermissionManager(name: string = 'default'): PermissionManager | undefined {
   return permissionRegistry.get(name);
+}
+
+/** #118 / #135: ثبت PermissionManager در رجیستری با بازگشت Cleanup idempotent. */
+export function registerPermissionManager(name: string, manager: PermissionManager): () => void {
+  permissionRegistry.set(name, manager);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (permissionRegistry.get(name) === manager) {
+      permissionRegistry.delete(name);
+    }
+  };
+}
+
+/** #118 / #135: بررسی وجود PermissionManager در رجیستری (`hasX`). */
+export function hasPermissionManager(name: string = 'default'): boolean {
+  return permissionRegistry.has(name);
+}
+
+/** #118 / #135: فهرست نام تمام PermissionManagerهای ثبت‌شده (`listXs`). */
+export function listPermissionManagers(): string[] {
+  return Array.from(permissionRegistry.keys());
+}
+
+/** #118 / #135: حذف یک PermissionManager با نام از رجیستری (`unregisterX`). */
+export function unregisterPermissionManager(name: string): boolean {
+  return permissionRegistry.delete(name);
+}
+
+/** #135: تابع سطح بالای واکنش‌گرا برای بررسی دسترسی در رجیستری پیش‌فرض. */
+export function can(permission: string, managerName: string = 'default'): ReadonlySignal<boolean> {
+  return computed(() => {
+    const mgr = permissionRegistry.get(managerName);
+    return mgr ? mgr.checkPermission(permission) : false;
+  });
 }
 
 /**

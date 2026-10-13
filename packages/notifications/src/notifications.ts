@@ -47,6 +47,10 @@ export interface NotifyOptions {
   position?: NotificationPosition;
   persistent?: boolean;
   actions?: Array<{ label: string; onClick: () => void }>;
+  /** #132: حداکثر تعداد اعلان‌های هم‌زمان قابل‌نمایش (بقیه در صف قرار می‌گیرند) */
+  maxVisible?: number;
+  /** #132: ادغام اعلان‌های تکراری هم‌متن و هم‌نوع */
+  deduplicate?: boolean;
 }
 
 export interface ConfirmOptions {
@@ -69,6 +73,7 @@ export interface AlertOptions {
 // ============================================================
 
 const notifications = signal<Notification[]>([]);
+const queuedNotifications = signal<Notification[]>([]);
 const activeAlerts = signal<Array<{ id: string; options: AlertOptions; resolve: () => void }>>([]);
 const activeConfirms = signal<
   Array<{ id: string; options: ConfirmOptions; resolve: (value: boolean) => void }>
@@ -82,6 +87,8 @@ let defaultOptions: NotifyOptions = {
   type: 'info',
   duration: 4000,
   position: 'top-right',
+  maxVisible: 5,
+  deduplicate: false,
 };
 
 // ============================================================
@@ -106,11 +113,31 @@ export function getNotificationDefaults(): NotifyOptions {
 // Toast Notifications
 // ============================================================
 
+function scheduleAutoDismiss(config: Notification): void {
+  if (!config.persistent && config.duration > 0) {
+    setTimeout(() => {
+      dismissNotification(config.id);
+    }, config.duration);
+  }
+}
+
 /**
  * Show a toast notification
  */
 export function notify(message: string, options: NotifyOptions = {}): string {
   const resolvedType = options.type || defaultOptions.type || 'info';
+  const deduplicate = options.deduplicate ?? defaultOptions.deduplicate ?? false;
+  if (deduplicate) {
+    const existing = notifications
+      .get()
+      .find((n) => n.message === message && n.type === resolvedType);
+    if (existing) return existing.id;
+    const existingQueued = queuedNotifications
+      .get()
+      .find((n) => n.message === message && n.type === resolvedType);
+    if (existingQueued) return existingQueued.id;
+  }
+
   const isUrgent = resolvedType === 'error' || resolvedType === 'warning';
   const config: Notification = {
     id: generateId(),
@@ -127,14 +154,15 @@ export function notify(message: string, options: NotifyOptions = {}): string {
     ariaAtomic: true,
   };
 
-  notifications.set([...notifications.get(), config]);
-
-  // Auto-dismiss
-  if (!config.persistent && config.duration > 0) {
-    setTimeout(() => {
-      dismissNotification(config.id);
-    }, config.duration);
+  const maxVisible = options.maxVisible ?? defaultOptions.maxVisible ?? 0;
+  const currentVisible = notifications.get();
+  if (maxVisible > 0 && currentVisible.length >= maxVisible) {
+    queuedNotifications.set([...queuedNotifications.get(), config]);
+    return config.id;
   }
+
+  notifications.set([...currentVisible, config]);
+  scheduleAutoDismiss(config);
 
   return config.id;
 }
@@ -143,14 +171,31 @@ export function notify(message: string, options: NotifyOptions = {}): string {
  * Dismiss a notification by ID
  */
 export function dismissNotification(id: string): void {
-  notifications.set(notifications.get().filter((n) => n.id !== id));
+  const nextVisible = notifications.get().filter((n) => n.id !== id);
+  const queue = queuedNotifications.get().filter((n) => n.id !== id);
+  const maxVisible = defaultOptions.maxVisible ?? 0;
+  while ((maxVisible <= 0 || nextVisible.length < maxVisible) && queue.length > 0) {
+    const nextItem = queue.shift()!;
+    nextVisible.push(nextItem);
+    scheduleAutoDismiss(nextItem);
+  }
+  queuedNotifications.set(queue);
+  notifications.set(nextVisible);
 }
 
 /**
  * Clear all notifications
  */
 export function clearAllNotifications(): void {
+  queuedNotifications.set([]);
   notifications.set([]);
+}
+
+/**
+ * #132: دریافت اعلان‌های منتظر در صف.
+ */
+export function getQueuedNotifications(): Notification[] {
+  return queuedNotifications.get();
 }
 
 // Convenience methods for each type

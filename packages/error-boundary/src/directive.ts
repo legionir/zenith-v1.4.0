@@ -22,11 +22,26 @@
 import { clearError, onError } from './boundary';
 
 /**
+ * #134: گزینه‌های Error Boundary محلی شامل تلاش مجدد خودکار با backoff و fallback قابل‌پیکربندی.
+ */
+export interface ErrorBoundaryRetryOptions {
+  attempts?: number;
+  delay?: number;
+  factor?: number;
+}
+
+export interface ErrorBoundaryOptions {
+  retry?: ErrorBoundaryRetryOptions;
+  fallback?: string | ((error: unknown) => string);
+}
+
+/**
  * پردازش دایرکتیو zen-error.
  *
  * @param el              عنصری که zen-error روی آن است.
  * @param processChildren callback برای walk فرزندان.
  * @param disposes        آرایه‌ی dispose functions (سازگاری با گذشته — #116).
+ * @param options         گزینه‌های اختیاری تلاش مجدد و fallback (#134).
  * @returns Cleanup تابعی idempotent که unsubscribe و dispose فرزندان را انجام
  *           می‌دهد (#116: همهٔ `process*` باید `Cleanup` برگردانند).
  */
@@ -34,46 +49,67 @@ export function processErrorBoundary(
   el: HTMLElement,
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   disposes: (() => void)[],
+  options: ErrorBoundaryOptions = {},
 ): () => void {
-  // ── ۱. پیدا کردن fallback template ──
+  // ── ۱. پیدا کردن fallback template یا attribute ──
   const fallbackTemplate = el.querySelector(
     ':scope > template[zen-fallback]',
   ) as HTMLTemplateElement | null;
 
-  let fallbackContent = '<div style="color: red; padding: 8px;">⚠️ خطایی رخ داد</div>';
+  let fallbackContent =
+    typeof options.fallback === 'string'
+      ? options.fallback
+      : el.getAttribute('zen-error-fallback') ||
+        '<div style="color: red; padding: 8px;">⚠️ خطایی رخ داد</div>';
   if (fallbackTemplate) {
     fallbackContent = fallbackTemplate.innerHTML;
     fallbackTemplate.remove();
   }
-  // ذخیره fallback برای استفاده در showFallback.
   (el as any).__zenithFallback__ = fallbackContent;
+  (el as any).__zenithFallbackFn__ =
+    typeof options.fallback === 'function' ? options.fallback : null;
 
-  // FIX (v1.2.7): Store original HTML (with fallback template already
-  // removed) so recoverFromError can restore the boundary's content.
-  // Without this, once an error fires and we swap innerHTML for the
-  // fallback, the original content is lost forever and recovery is
-  // impossible.
-  (el as any).__zenithOriginalHTML__ = el.innerHTML;
-
-  // ── ۲. Process فرزندان ─ـ
-  // فرزندان به‌صورت معمولی walk می‌شوند. اگر خطایی در Expressions رخ دهد،
-  // به reportError گزارش می‌شود (توسط global error handler).
-  const childDisposes: (() => void)[] = [];
-  for (const child of Array.from(el.children)) {
-    processChildren(child as HTMLElement, childDisposes);
+  const retryAttr = el.getAttribute('zen-error-retry');
+  let retryConfig: Required<ErrorBoundaryRetryOptions> = {
+    attempts: options.retry?.attempts ?? 0,
+    delay: options.retry?.delay ?? 200,
+    factor: options.retry?.factor ?? 2,
+  };
+  if (retryAttr) {
+    const parsedNum = Number(retryAttr);
+    if (!Number.isNaN(parsedNum) && parsedNum > 0) {
+      retryConfig.attempts = parsedNum;
+    } else {
+      try {
+        const parsedObj = JSON.parse(retryAttr);
+        retryConfig = {
+          attempts: parsedObj.attempts ?? retryConfig.attempts,
+          delay: parsedObj.delay ?? retryConfig.delay,
+          factor: parsedObj.factor ?? retryConfig.factor,
+        };
+      } catch {
+        // ignore invalid retry attribute
+      }
+    }
   }
 
-  // FIX (v1.2.7): Install an onError listener scoped to this boundary.
-  // When an error occurs whose element is within this boundary's subtree,
-  // dispose the children and show the fallback UI. Without this, errors
-  // reported by child directives (zen-text, zen-bind, zen-html, actions,
-  // …) bubble up to the global error handler but the boundary never
-  // actually swaps in its fallback — leaving the broken UI visible.
+  (el as any).__zenithOriginalHTML__ = el.innerHTML;
+  (el as any).__zenithProcessChildren__ = processChildren;
+  (el as any).__zenithRetryCount__ = 0;
+
+  const childDisposes: (() => void)[] = [];
+  const retryTimers = new Set<ReturnType<typeof setTimeout>>();
+
+  const mountChildren = () => {
+    for (const child of Array.from(el.children)) {
+      processChildren(child as HTMLElement, childDisposes);
+    }
+  };
+  mountChildren();
+
   const unsubscribe = onError((zenithError) => {
-    // #115: مدل واحد — element روی ZenithError به‌صورت unknown است (L0 DOM-free).
     const errEl = zenithError.element as HTMLElement | undefined;
     if (errEl && el.contains(errEl)) {
-      // Dispose children first so their effects/observers stop firing.
       for (const d of childDisposes) {
         try {
           d();
@@ -82,17 +118,29 @@ export function processErrorBoundary(
         }
       }
       childDisposes.length = 0;
-      // Swap in the fallback UI.
-      showFallback(el, fallbackContent);
+
+      const currentAttempt = ((el as any).__zenithRetryCount__ ?? 0) as number;
+      if (currentAttempt < retryConfig.attempts) {
+        (el as any).__zenithRetryCount__ = currentAttempt + 1;
+        const waitMs = retryConfig.delay * Math.pow(retryConfig.factor, currentAttempt);
+        const timer = setTimeout(() => {
+          retryTimers.delete(timer);
+          recoverFromError(el);
+        }, waitMs);
+        retryTimers.add(timer);
+        return;
+      }
+
+      const customFn = (el as any).__zenithFallbackFn__ as ((e: unknown) => string) | null;
+      const renderedFallback = customFn ? customFn(zenithError) : fallbackContent;
+      showFallback(el, renderedFallback);
     }
   });
 
-  // ─ـ ۳. ثبت dispose ─ـ
-  // #116 cleanup protocol: علاوه بر پر کردن آرایهٔ disposes (سازگاری)،
-  // یک Cleanup idempotent برگردانده می‌شود تا فراخوان بتواند مستقیماً
-  // خروجی process* را dispose کند.
   const cleanup = (): void => {
     unsubscribe();
+    for (const t of retryTimers) clearTimeout(t);
+    retryTimers.clear();
     for (const d of childDisposes) {
       try {
         d();
@@ -124,20 +172,31 @@ export function showFallback(el: HTMLElement, fallback: string): void {
 
 /**
  * بازیابی محتوای اصلی (پنهان کردن fallback).
- *
- * FIX (v1.2.7): restore the original HTML that was stored on the element
- * during processErrorBoundary. After calling this, the caller must
- * re-run the runtime walker over the boundary (or call Zen.start again)
- * so the directives inside the restored content are re-processed.
- *
- * @param el عنصر هدف.
  */
 export function recoverFromError(el: HTMLElement): void {
   clearError();
-  // FIX (v1.2.7): restore the original HTML so the caller can re-run
-  // the walker over the recovered content.
   const originalHTML = (el as any).__zenithOriginalHTML__;
   if (typeof originalHTML === 'string') {
     el.innerHTML = originalHTML;
   }
+  const proc = (el as any).__zenithProcessChildren__ as
+    | ((node: HTMLElement, disposes: (() => void)[]) => void)
+    | undefined;
+  if (typeof proc === 'function') {
+    const tempDisposes: (() => void)[] = [];
+    for (const child of Array.from(el.children)) {
+      proc(child as HTMLElement, tempDisposes);
+    }
+  }
+  if (typeof CustomEvent !== 'undefined') {
+    el.dispatchEvent(new CustomEvent('zen-error-recover', { bubbles: true }));
+  }
+}
+
+/**
+ * #134: بازنشانی کامل وضعیت Error Boundary (شمارندهٔ تلاش مجدد و محتوای اصلی).
+ */
+export function resetErrorBoundary(el: HTMLElement): void {
+  (el as any).__zenithRetryCount__ = 0;
+  recoverFromError(el);
 }

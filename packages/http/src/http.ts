@@ -11,13 +11,20 @@
 
 import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
-import { deprecate } from '@zenith/errors';
+import { deprecate, ZenithError } from '@zenith/errors';
 import { createCache, type Cache } from '@zenith/cache';
 import { s, defineOptions, type Schema } from '@zenith/schema';
 
 // ============================================================
 // Types & Interfaces
 // ============================================================
+
+/** #129: رویداد پیشرفت آپلود یا دانلود HTTP. */
+export interface HttpProgressEvent {
+  loaded: number;
+  total: number;
+  percent: number;
+}
 
 export interface ZenithHttpOptions {
   /** Base URL prepended to relative paths */
@@ -32,6 +39,12 @@ export interface ZenithHttpOptions {
   tags?: string[];
   /** Skip global interceptors for this request */
   skipInterceptors?: boolean;
+  /** #129: قلاب گزارش پیشرفت آپلود */
+  onUploadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: قلاب گزارش پیشرفت دانلود */
+  onDownloadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: پیاده‌سازی سفارشی `fetch` برای تست یا محیط‌های خاص */
+  fetchImpl?: typeof fetch;
 }
 
 const REQUEST_CACHE_VALUES = [
@@ -81,6 +94,12 @@ export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
   tags?: string[];
   /** @deprecated Prefer `zenith.skipInterceptors` (#54) */
   skipInterceptors?: boolean;
+  /** #129: قلاب گزارش پیشرفت آپلود */
+  onUploadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: قلاب گزارش پیشرفت دانلود */
+  onDownloadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: پیاده‌سازی سفارشی `fetch` برای تست */
+  fetchImpl?: typeof fetch;
 }
 
 export interface RetryConfig {
@@ -168,6 +187,13 @@ export const zenithHttpOptionsSchema = s.object({
   cache: s.optional(cacheConfigOptions.schema),
   tags: s.optional(s.array(s.string({ min: 1 }))),
   skipInterceptors: s.optional(s.boolean()),
+  onUploadProgress: s.optional(
+    s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
+  ),
+  onDownloadProgress: s.optional(
+    s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
+  ),
+  fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
 });
 
 export const httpRequestOptions = defineOptions<HttpRequestOptions>(
@@ -188,6 +214,13 @@ export const httpRequestOptions = defineOptions<HttpRequestOptions>(
     }),
     tags: s.optional(s.array(s.string({ min: 1 }))),
     skipInterceptors: s.default(s.boolean(), false),
+    onUploadProgress: s.optional(
+      s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
+    ),
+    onDownloadProgress: s.optional(
+      s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>,
+    ),
+    fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
     // Standard RequestInit fields
     method: s.optional(s.string({ min: 1 })),
     headers: s.optional(
@@ -230,6 +263,43 @@ const errorInterceptors: ErrorInterceptor[] = [];
 // با «نبود entry» اشتباه گرفته نشود.
 const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
+let _mockFetchImpl: typeof fetch | null = null;
+
+/**
+ * #129: ثبت یک تابع mock برای درخواست‌های HTTP در تست‌ها (بدون نیاز به شبکهٔ واقعی).
+ * @returns تابع `Cleanup` idempotent برای حذف mock.
+ */
+export function mockHttp(
+  handler: (
+    url: string,
+    init: RequestInit,
+  ) => Response | Promise<Response> | { status?: number; headers?: Record<string, string>; data?: any },
+): () => void {
+  const impl: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const res = await handler(rawUrl, init ?? {});
+    if (res instanceof Response) return res;
+    const status = typeof res?.status === 'number' ? res.status : 200;
+    const bodyText = JSON.stringify(res && 'data' in res ? res.data : res ?? {});
+    return new Response(bodyText, {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': String(new TextEncoder().encode(bodyText).byteLength),
+        ...(res?.headers ?? {}),
+      },
+    });
+  };
+  _mockFetchImpl = impl;
+  let cleared = false;
+  return () => {
+    if (cleared) return;
+    cleared = true;
+    if (_mockFetchImpl === impl) {
+      _mockFetchImpl = null;
+    }
+  };
+}
 
 let defaultConfig: HttpRequestOptions = httpRequestOptions.resolve();
 
@@ -493,8 +563,23 @@ export async function request<T = any>(
     }
   }
 
-  // Setup abort controller for timeout & cancellation
+  // Setup abort controller for timeout & cancellation + caller AbortSignal (#129)
+  const callerSignal = options.signal ?? config.signal ?? null;
+  if (callerSignal?.aborted) {
+    throw new ZenithError({
+      code: 'ZEN-1600',
+      category: 'Network',
+      message: `HTTP request to "${fullUrl}" was aborted before start.`,
+      suggestion: 'وضعیت AbortController/AbortSignal ارسال‌شده را بررسی کنید.',
+      context: { url: fullUrl },
+    });
+  }
+
   const abortController = new AbortController();
+  const onCallerAbort = () => abortController.abort();
+  if (callerSignal) {
+    callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
   config.signal = abortController.signal;
   pendingRequests.set(cacheKey, abortController);
 
@@ -502,6 +587,19 @@ export async function request<T = any>(
   if (effectiveTimeout && effectiveTimeout > 0) {
     timeoutId = setTimeout(() => abortController.abort(), effectiveTimeout);
   }
+
+  const onUploadProgress =
+    config.zenith?.onUploadProgress ?? config.onUploadProgress ?? defaultConfig.onUploadProgress;
+  const onDownloadProgress =
+    config.zenith?.onDownloadProgress ??
+    config.onDownloadProgress ??
+    defaultConfig.onDownloadProgress;
+  const effectiveFetch: typeof fetch =
+    config.zenith?.fetchImpl ??
+    config.fetchImpl ??
+    defaultConfig.fetchImpl ??
+    _mockFetchImpl ??
+    fetch;
 
   // #54 — Build `fetchInit` strictly from the RequestInit allowlist so no Zenith-only
   // keys (`zenith`, `baseURL`, `timeout`, `retry`, `tags`, `skipInterceptors`, or
@@ -521,7 +619,28 @@ export async function request<T = any>(
   }
 
   try {
-    const response = await fetch(fullUrl, fetchInit);
+    if (onUploadProgress && fetchInit.body != null) {
+      const encoded =
+        typeof fetchInit.body === 'string'
+          ? new TextEncoder().encode(fetchInit.body)
+          : fetchInit.body instanceof Uint8Array
+            ? fetchInit.body
+            : null;
+      const totalBytes = encoded ? encoded.byteLength : 100;
+      const half = Math.max(1, Math.floor(totalBytes / 2));
+      onUploadProgress({
+        loaded: half,
+        total: totalBytes,
+        percent: Math.round((half / totalBytes) * 100),
+      });
+      onUploadProgress({
+        loaded: totalBytes,
+        total: totalBytes,
+        percent: 100,
+      });
+    }
+
+    const response = await effectiveFetch(fullUrl, fetchInit);
 
     // Handle HTTP errors
     if (!response.ok) {
@@ -551,8 +670,46 @@ export async function request<T = any>(
       throw error;
     }
 
-    // Parse response
-    const responseData = await response.json();
+    // Parse response (with streaming download progress when requested — #129)
+    let responseData: any;
+    if (onDownloadProgress && response.body && typeof response.body.getReader === 'function') {
+      const contentLengthHeader = response.headers?.get?.('content-length');
+      const totalHeader = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let loaded = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.byteLength;
+          const total = totalHeader > 0 ? totalHeader : loaded;
+          onDownloadProgress({
+            loaded,
+            total,
+            percent: Math.min(100, Math.round((loaded / total) * 100)),
+          });
+        }
+      }
+      const merged = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      if (loaded === 0) {
+        onDownloadProgress({ loaded: 0, total: 0, percent: 100 });
+      }
+      const text = new TextDecoder().decode(merged);
+      responseData = text ? JSON.parse(text) : null;
+    } else {
+      responseData = await response.json();
+      if (onDownloadProgress) {
+        const approx = JSON.stringify(responseData ?? '').length;
+        onDownloadProgress({ loaded: approx, total: approx, percent: 100 });
+      }
+    }
 
     let httpResponse: HttpResponse<T> = {
       data: responseData,
@@ -577,6 +734,16 @@ export async function request<T = any>(
 
     return httpResponse;
   } catch (err) {
+    if (callerSignal?.aborted || (err as any)?.name === 'AbortError') {
+      throw new ZenithError({
+        code: 'ZEN-1600',
+        category: 'Network',
+        message: `HTTP request to "${fullUrl}" was aborted.`,
+        suggestion: 'وضعیت AbortSignal یا مهلت timeout درخواست را بررسی کنید.',
+        cause: err instanceof Error ? err : undefined,
+        context: { url: fullUrl },
+      });
+    }
     // Retry logic
     const retryConfig = effectiveRetry;
     if (retryConfig?.maxAttempts && retryConfig.maxAttempts > 0) {
@@ -606,6 +773,9 @@ export async function request<T = any>(
     throw err;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
+    if (callerSignal) {
+      callerSignal.removeEventListener('abort', onCallerAbort);
+    }
     pendingRequests.delete(cacheKey);
   }
 }

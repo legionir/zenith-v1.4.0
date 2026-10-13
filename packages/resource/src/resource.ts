@@ -939,3 +939,23 @@ export function invalidateAllResources(): void {
     resource.invalidate();
   }
 }
+
+/**
+ * #130: باطل‌سازی Resourceها بر اساس نام/تگ (`invalidate(tags)`).
+ */
+export function invalidate(tags?: string | string[]): void {
+  if (!tags) {
+    invalidateAllResources();
+    return;
+  }
+  const tagList = Array.isArray(tags) ? tags : [tags];
+  if (tagList.length === 0) {
+    invalidateAllResources();
+    return;
+  }
+  for (const [name, resource] of resourceRegistry.entries()) {
+    if (tagList.includes(name) || tagList.some((t) => name.includes(t))) {
+      resource.invalidate();
+    }
+  }
+}

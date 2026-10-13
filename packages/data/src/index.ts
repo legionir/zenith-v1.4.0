@@ -11,6 +11,8 @@ export {
   getCachedData,
   setCachedData,
   clearFetchCache,
+  invalidate,
+  registerInvalidateHook,
 } from './fetcher';
 export type { FetchState } from './fetcher';
 

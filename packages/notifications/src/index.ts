@@ -7,6 +7,7 @@ export {
   notify,
   dismissNotification,
   clearAllNotifications,
+  getQueuedNotifications,
   toasts,
   alert,
   alert as showAlert,

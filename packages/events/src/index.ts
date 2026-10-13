@@ -14,6 +14,7 @@ export {
   clearEventModifiers,
   hasEventModifier,
   getEventModifier,
+  extractListenerOptions,
   BUILTIN_MODIFIERS,
   DELEGATED_EVENTS,
   type ParsedEventBinding,

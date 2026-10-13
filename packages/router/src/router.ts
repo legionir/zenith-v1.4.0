@@ -381,7 +381,85 @@ export type NavigationGuard = (
   from: string,
 ) => boolean | string | Promise<boolean | string>;
 
+/** #126: هوک پس از ناوبری موفق (`afterEach`). */
+export type NavigationAfterHook = (to: string, from: string) => void | Promise<void>;
+
+/** #126: موقعیت اسکرول صفحه. */
+export interface ScrollPosition {
+  left: number;
+  top: number;
+}
+
+/** #126: تابع رفتار اسکرول هنگام تغییر مسیر. */
+export type ScrollBehaviorFn = (
+  to: string,
+  from: string,
+  savedPosition: ScrollPosition | null,
+) => ScrollPosition | { el: string; behavior?: ScrollBehavior } | false | null | undefined;
+
 const _guards: NavigationGuard[] = [];
+const _afterHooks: NavigationAfterHook[] = [];
+const _savedScrollPositions = new Map<string, ScrollPosition>();
+let _scrollBehavior: ScrollBehaviorFn | null = null;
+
+/**
+ * #126: ثبت هوک `afterEach` که پس از هر تغییر مسیر موفق فراخوانی می‌شود.
+ * @returns تابع `Cleanup` idempotent برای حذف هوک.
+ */
+export function afterEach(hook: NavigationAfterHook): () => void {
+  _afterHooks.push(hook);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    const idx = _afterHooks.indexOf(hook);
+    if (idx !== -1) _afterHooks.splice(idx, 1);
+  };
+}
+
+/**
+ * #126: تنظیم رفتار اسکرول هنگام ناوبری (`scrollBehavior(to, from, savedPosition)`).
+ * @returns تابع `Cleanup` idempotent برای بازنشانی رفتار اسکرول.
+ */
+export function setScrollBehavior(fn: ScrollBehaviorFn | null): () => void {
+  _scrollBehavior = fn;
+  let cleared = false;
+  return () => {
+    if (cleared) return;
+    cleared = true;
+    if (_scrollBehavior === fn) {
+      _scrollBehavior = null;
+    }
+  };
+}
+
+function applyScrollBehavior(to: string, from: string, savedPosition: ScrollPosition | null): void {
+  if (!_scrollBehavior || typeof window === 'undefined') return;
+  const target = _scrollBehavior(to, from, savedPosition);
+  if (!target) return;
+  if ('el' in target) {
+    if (typeof document !== 'undefined') {
+      const el = document.querySelector(target.el);
+      if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+        (el as HTMLElement).scrollIntoView({ behavior: target.behavior ?? 'auto' });
+      }
+    }
+    return;
+  }
+  if (typeof window.scrollTo === 'function') {
+    window.scrollTo(target.left ?? 0, target.top ?? 0);
+  }
+}
+
+function runAfterHooks(to: string, from: string): void {
+  for (const hook of [..._afterHooks]) {
+    try {
+      void hook(to, from);
+    } catch {
+      // ignore individual hook errors
+    }
+  }
+}
 
 /**
  * IMP-RTR-01 (v1.3.0): Register a navigation guard that runs before every
@@ -413,6 +491,8 @@ export interface NavigateOptions {
    *  Useful for redirect-after-login flows where the login page should not
    *  appear in the browser's back-stack. */
   replace?: boolean;
+  /** #126: اجرای تغییر مسیر داخل انتقال صفحه (با رعایت prefers-reduced-motion). */
+  transition?: boolean;
 }
 
 export async function navigate(path: string, options?: NavigateOptions): Promise<void> {
@@ -420,8 +500,10 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
     // در محیط غیر مرورگر (SSR یا تست‌های Node): فقط Signal را آپدیت کن.
     // routeSignal proxy به‌طور خودکار به context فعلی (اگر موجود) می‌رود.
     // FIX (v1.2.3): clean path — search و hash را از path ورودی جدا کن.
+    const prevPath = routeSignal.get().path;
     const cleanPath = path.split('?')[0]!.split('#')[0]!;
     routeSignal.set({ path: cleanPath, params: {} });
+    runAfterHooks(cleanPath, prevPath);
     return;
   }
 
@@ -471,6 +553,11 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
   // IMP-RTR-02 (v1.3.0): Support replace:true option — uses
   // history.replaceState instead of pushState so the current entry
   // is overwritten rather than pushed onto the history stack.
+  _savedScrollPositions.set(currentFull, {
+    left: typeof window.scrollX === 'number' ? window.scrollX : 0,
+    top: typeof window.scrollY === 'number' ? window.scrollY : 0,
+  });
+
   if (options?.replace) {
     window.history.replaceState({}, '', path);
   } else {
@@ -479,7 +566,21 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
   // FIX (v1.2.3): clean path را در routeSignal ذخیره کن (بدون search/hash).
   // outlet و matchRoute فقط با pathname کار می‌کنند و نباید query در آن برود.
   const cleanPath = path.split('?')[0]!.split('#')[0]!;
-  routeSignal.set({ path: cleanPath, params: {} });
+  const commitRoute = () => {
+    routeSignal.set({ path: cleanPath, params: {} });
+    applyScrollBehavior(path, currentFull, null);
+    runAfterHooks(path, currentFull);
+  };
+
+  const reducedMotion =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const docAny = typeof document !== 'undefined' ? (document as any) : null;
+  if (options?.transition && !reducedMotion && docAny && typeof docAny.startViewTransition === 'function') {
+    docAny.startViewTransition(commitRoute);
+  } else {
+    commitRoute();
+  }
 }
 
 /**
@@ -547,12 +648,16 @@ export function installPopstateListener(): void {
     // در نتیجه Back/Forward به همان صفحه با query متفاوت، routeSignal را
     // آپدیت نمی‌کرد. حالا کل URL را می‌گیریم و سپس clean (split روی ? و #)
     // می‌کنیم تا outlet با pathname خالص کار کند.
+    const prevPath = routeSignal.get().path;
     const full = window.location.pathname + window.location.search + window.location.hash;
     const cleanPath = full.split('?')[0]!.split('#')[0]!;
     routeSignal.set({
       path: cleanPath,
       params: {},
     });
+    const saved = _savedScrollPositions.get(full) ?? _savedScrollPositions.get(cleanPath) ?? null;
+    applyScrollBehavior(full, prevPath, saved);
+    runAfterHooks(full, prevPath);
   };
   window.addEventListener('popstate', popstateHandler);
   popstateListenerInstalled = true;
@@ -589,10 +694,42 @@ export function cleanupRouter(): void {
     }
   }
   _routerCleanups.length = 0;
+  _guards.length = 0;
+  _afterHooks.length = 0;
+  _savedScrollPositions.clear();
+  _scrollBehavior = null;
 
   // reset browser route signal (در SSR، context signals به‌طور خودکار
   // با تمام شدن runWithRoute پاک می‌شوند).
   browserRouteSignal.set({ path: '/', params: {} });
+}
+
+export interface RouteAnnouncerOptions {
+  focusSelector?: string;
+  formatAnnouncement?: (to: string) => string;
+}
+
+/**
+ * #126: نصب خودکار اعلام‌کنندهٔ مسیر برای صفحه‌خوان‌ها (`aria-live`)، همگام‌سازی `aria-current="page"`
+ * و انتقال فوکوس به عنصر اصلی صفحه (`main, [role="main"], h1`).
+ */
+export function installRouteAnnouncer(options: RouteAnnouncerOptions = {}): () => void {
+  const focusSelector = options.focusSelector ?? 'main, [role="main"], h1';
+  return afterEach((to) => {
+    if (typeof document === 'undefined') return;
+    const message = options.formatAnnouncement
+      ? options.formatAnnouncement(to)
+      : document.title || `Navigated to ${to}`;
+    announceRouteChange(message, document);
+    syncActiveRouteLinks(to, document);
+    const target = document.querySelector(focusSelector) as HTMLElement | null;
+    if (target && typeof target.focus === 'function') {
+      if (!target.hasAttribute('tabindex')) {
+        target.setAttribute('tabindex', '-1');
+      }
+      target.focus({ preventScroll: true });
+    }
+  });
 }
 
 /**

@@ -717,6 +717,20 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#123`: پیاده‌سازی `createAsync` و `asyncComputed` در `@zenith/state` با سیگنال‌های `data`/`loading`/`error`، لغو خودکار درخواست‌های قبلی با `AbortSignal` و محافظت در برابر شرایط رقابتی (race conditions)؛
   - `#124` و `#125`: چرخهٔ عمر رسمی کامپوننت/دایرکتیو (`onMount`، `onUnmount`، `onUpdate`) و تزریق وابستگی درختی تایپ‌شده (`provide`، `inject`، `createInjectionKey<T>`) در `@zenith/runtime-core` و `@zenith/runtime`.
 
+- موج ۴ — دستهٔ ۹ از P1 (`#126`, `#127`, `#128`, `#129`, `#130`, `#131`, `#132`, `#133`, `#134`, `#135`, `#136`):
+  - `#126`: افزودن `afterEach`، `setScrollBehavior`، `installRouteAnnouncer` (انتقال فوکوس به `main` و `aria-live`) و انتقال مسیر در `@zenith/router`؛
+  - `#127`: پشتیبانی از `$subscribe(cb, { immediate })`، `$onAction`، سیستم پلاگین (`store.use` / `useStorePlugin`) و ذخیره‌سازی پایدار `persistStore` با مهاجرت نسخه (`version`/`migrate`) و `pick`/`omit` در `@zenith/store`؛
+  - `#128`: یکپارچه‌سازی ورودی `createForm(options)` برای قواعد رشته‌ای، توابع اعتبارسنجی، اسکیما و حالت چندمرحله‌ای (Wizard) در `@zenith/form`؛
+  - `#129`: پشتیبانی از `onUploadProgress`/`onDownloadProgress`، ترکیب `AbortSignal` خارجی با خطای استاندارد `ZEN-1600` و `mockHttp` در `@zenith/http`؛
+  - `#130`: باطل‌سازی سراسری مبتنی بر تگ (`invalidate(tags)`) در `@zenith/data` و `@zenith/resource`؛
+  - `#131`: مجازی‌سازی O(1) برای ۱۰۰٬۰۰۰+ ردیف (`virtualWindow` / `setScrollTop`)، خروجی استاندارد `exportCsv` با پشتیبانی از UTF-8 BOM فارسی و رندر دسترس‌پذیر `renderAriaGrid` در `@zenith/data-table`؛
+  - `#132`: صف‌بندی خودکار اعلان‌ها با سقف `maxVisible` و ادغام اعلان‌های تکراری (`deduplicate`) در `@zenith/notifications`؛
+  - `#133`: احترام کامل به `prefers-reduced-motion` در `createTransition` و تابع `runRouteTransition` (`out-in` / `in-out`) در `@zenith/transition`؛
+  - `#134`: تلاش مجدد خودکار با backoff نمایی (`zen-error-retry`)، `resetErrorBoundary`، رویداد `zen-error-recover` و fallback قابل‌پیکربندی در `@zenith/error-boundary`؛
+  - `#135`: سیگنال‌های واکنش‌گرای `can(permission)` / `canSignal` / `hasRoleSignal` و قرارداد ۵ متدی رجیستری در `@zenith/permission`؛
+  - `#136`: افزودن رسمی `passive` و `capture` به `BUILTIN_MODIFIERS` و `extractListenerOptions` در `@zenith/events`.
+
+
 
 
 

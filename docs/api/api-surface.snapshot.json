@@ -651,6 +651,11 @@
         "tag": "public"
       },
       {
+        "name": "invalidate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "LegacyInfiniteQueryRest",
         "kind": "type",
         "tag": "public"
@@ -677,6 +682,11 @@
       },
       {
         "name": "processFetchWithCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerInvalidateHook",
         "kind": "function",
         "tag": "public"
       },
@@ -712,6 +722,11 @@
         "tag": "public"
       },
       {
+        "name": "CsvExportOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "DataTableApi",
         "kind": "type",
         "tag": "public"
@@ -723,6 +738,11 @@
       },
       {
         "name": "DataTableState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DataTableVirtualWindow",
         "kind": "type",
         "tag": "public"
       },
@@ -1271,6 +1291,16 @@
         "tag": "public"
       },
       {
+        "name": "ErrorBoundaryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorBoundaryRetryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "ErrorReporterOptions",
         "kind": "type",
         "tag": "public"
@@ -1317,6 +1347,11 @@
       },
       {
         "name": "reportError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetErrorBoundary",
         "kind": "function",
         "tag": "public"
       },
@@ -1635,6 +1670,11 @@
       {
         "name": "EventModifierHandler",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "extractListenerOptions",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -2146,6 +2186,11 @@
         "tag": "public"
       },
       {
+        "name": "HttpProgressEvent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "httpRequest",
         "kind": "function",
         "tag": "public"
@@ -2168,6 +2213,11 @@
       {
         "name": "HttpResponse",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockHttp",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -2710,6 +2760,11 @@
         "tag": "public"
       },
       {
+        "name": "getQueuedNotifications",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "handleNotifyDirective",
         "kind": "function",
         "tag": "public"
@@ -2781,6 +2836,11 @@
     "target": "universal",
     "exports": [
       {
+        "name": "can",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "clearPermissionManagers",
         "kind": "function",
         "tag": "public"
@@ -2806,6 +2866,16 @@
         "tag": "public"
       },
       {
+        "name": "hasPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listPermissionManagers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "PermissionManager",
         "kind": "class",
         "tag": "public"
@@ -2826,12 +2896,22 @@
         "tag": "public"
       },
       {
+        "name": "registerPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "requirePermission",
         "kind": "function",
         "tag": "public"
       },
       {
         "name": "requireRole",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterPermissionManager",
         "kind": "function",
         "tag": "public"
       }
@@ -2868,6 +2948,11 @@
       },
       {
         "name": "hasResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "invalidate",
         "kind": "function",
         "tag": "public"
       },
@@ -2923,6 +3008,11 @@
     "target": "universal",
     "exports": [
       {
+        "name": "afterEach",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "announceRouteChange",
         "kind": "function",
         "tag": "public"
@@ -2963,6 +3053,11 @@
         "tag": "public"
       },
       {
+        "name": "installRouteAnnouncer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "matchRoute",
         "kind": "function",
         "tag": "public"
@@ -2974,6 +3069,11 @@
       },
       {
         "name": "NavigateOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NavigationAfterHook",
         "kind": "type",
         "tag": "public"
       },
@@ -3003,6 +3103,11 @@
         "tag": "public"
       },
       {
+        "name": "RouteAnnouncerOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "RouteContext",
         "kind": "type",
         "tag": "public"
@@ -3028,7 +3133,22 @@
         "tag": "public"
       },
       {
+        "name": "ScrollBehaviorFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ScrollPosition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "setRouteParams",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setScrollBehavior",
         "kind": "function",
         "tag": "public"
       },
@@ -5425,12 +5545,22 @@
         "tag": "public"
       },
       {
+        "name": "persistStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "registerStore",
         "kind": "function",
         "tag": "public"
       },
       {
         "name": "Store",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StoreActionContext",
         "kind": "type",
         "tag": "public"
       },
@@ -5445,7 +5575,27 @@
         "tag": "public"
       },
       {
+        "name": "StorePersistOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorePersistStorage",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorePlugin",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "unregisterStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useStorePlugin",
         "kind": "function",
         "tag": "public"
       }
@@ -5714,6 +5864,11 @@
       },
       {
         "name": "processAnimate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runRouteTransition",
         "kind": "function",
         "tag": "public"
       },

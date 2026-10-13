@@ -109,8 +109,9 @@ export function getCachedData(url: string, ttl: number): any | null {
  * @param url  کلید کش.
  * @param data داده‌ای که کش می‌شود.
  */
-export function setCachedData(url: string, data: any): void {
-  _fetchCache.set(url, { data, timestamp: Date.now() });
+export function setCachedData(url: string, data: any, tags?: string[]): void {
+  const autoTags = tags ?? url.split('/').filter(Boolean);
+  _fetchCache.set(url, { data, timestamp: Date.now() }, { tags: autoTags });
 }
 
 /**
@@ -118,6 +119,40 @@ export function setCachedData(url: string, data: any): void {
  */
 export function clearFetchCache(): void {
   _fetchCache.clear();
+}
+
+const _invalidateHooks = new Set<(tags: string[]) => void>();
+
+/**
+ * #130: ثبت یک قلاب باطل‌سازی سراسری برای هماهنگ‌سازی کش‌های `data`، `resource` و `http`.
+ */
+export function registerInvalidateHook(fn: (tags: string[]) => void): () => void {
+  _invalidateHooks.add(fn);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    _invalidateHooks.delete(fn);
+  };
+}
+
+/**
+ * #130: باطل‌سازی سراسری کش بر اساس تگ‌ها (`invalidate(tags)`).
+ */
+export function invalidate(tags?: string | string[]): void {
+  if (!tags) {
+    _fetchCache.clear();
+    for (const hook of _invalidateHooks) hook([]);
+    return;
+  }
+  const tagList = Array.isArray(tags) ? tags : [tags];
+  _fetchCache.invalidate(tagList);
+  for (const key of _fetchCache.keys()) {
+    if (tagList.some((t) => key.includes(t))) {
+      _fetchCache.delete(key);
+    }
+  }
+  for (const hook of _invalidateHooks) hook(tagList);
 }
 
 /**

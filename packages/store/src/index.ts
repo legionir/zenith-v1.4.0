@@ -6,7 +6,13 @@ export {
   listStores,
   unregisterStore,
   clearStores,
+  persistStore,
+  useStorePlugin,
   type Store,
   type StoreDefinition,
   type StoreContext,
+  type StorePersistOptions,
+  type StorePersistStorage,
+  type StoreActionContext,
+  type StorePlugin,
 } from './store';

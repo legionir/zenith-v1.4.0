@@ -9,6 +9,8 @@ export type {
   DataTableOptions,
   DataTableApi,
   DataTableState,
+  DataTableVirtualWindow,
+  CsvExportOptions,
   ColumnSort,
   ColumnFilter,
   SortDirection,

@@ -9,6 +9,7 @@ export {
   clearResources,
   resetResourceRegistry,
   invalidateAllResources,
+  invalidate,
   type ResourceState,
   type ResourceConfig,
   type CrudResult,

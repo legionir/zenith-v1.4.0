@@ -11,6 +11,7 @@ export {
   animate,
   animateEnter,
   animateLeave,
+  runRouteTransition,
   type TransitionDirection,
   type TransitionClasses,
   type TransitionOptions,

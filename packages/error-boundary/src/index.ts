@@ -24,7 +24,14 @@ export {
   type ErrorReporterOptions,
 } from './boundary';
 
-export { processErrorBoundary, showFallback, recoverFromError } from './directive';
+export {
+  processErrorBoundary,
+  showFallback,
+  recoverFromError,
+  resetErrorBoundary,
+  type ErrorBoundaryOptions,
+  type ErrorBoundaryRetryOptions,
+} from './directive';
 
 /**
  * #53: پیش‌فرض‌های منجمد برای `@zenith/error-boundary` (`ErrorReporterOptions`).

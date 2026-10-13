@@ -54,6 +54,38 @@ import { signal, computed, type Signal } from '@zenith/state';
 import { developerError, ErrorCode } from '@zenith/errors';
 
 /**
+ * #127: گزینه‌های ذخیره‌سازی پایدار Store (`persistStore`).
+ */
+export interface StorePersistStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem?(key: string): void;
+}
+
+export interface StorePersistOptions<S = any> {
+  key?: string;
+  storage?: StorePersistStorage;
+  version?: number;
+  migrate?: (persistedState: any, oldVersion: number) => S;
+  pick?: Array<keyof S & string>;
+  omit?: Array<keyof S & string>;
+}
+
+export interface StoreActionContext<S = any, G = any, A = any> {
+  name: string;
+  store: Store<S, G, A>;
+  args: unknown[];
+  after: (cb: (result: unknown) => void) => void;
+  onError: (cb: (error: unknown) => void) => void;
+}
+
+export type StorePlugin<S = any, G = any, A = any> = (context: {
+  name: string;
+  store: Store<S, G, A>;
+  options: StoreDefinition<S, G, A>;
+}) => void | (() => void);
+
+/**
  * تعریف یک Store.
  */
 export interface StoreDefinition<S, G, A> {
@@ -63,6 +95,8 @@ export interface StoreDefinition<S, G, A> {
   getters?: G & ThisType<StoreContext<S, G, A>>;
   /** Action ها (methods). */
   actions?: A & ThisType<StoreContext<S, G, A>>;
+  /** #127: پیکربندی اختیاری ذخیره‌سازی پایدار (persist). */
+  persist?: boolean | StorePersistOptions<S>;
 }
 
 /**
@@ -84,6 +118,10 @@ export interface StoreContext<S, G, A> {
  * برای خواندن مقدار: `store.<getter>.get()`.
  */
 export type Store<S, G, A> = {
+  /** نام یکتای Store در رجیستری (#118 / #127). */
+  readonly $name: string;
+  /** شناسهٔ Store (سازگار با نسخهٔ قبلی). */
+  readonly $id: string;
   /** Signal زیرین state (آبجکت raw). */
   _signal: Signal<S>;
   /** Signal شماره نسخه (هر mutation یک increment). */
@@ -94,11 +132,116 @@ export type Store<S, G, A> = {
   $reset(): void;
   /** $patch: اعمال patch partial روی state. */
   $patch(partial: Partial<S>): void;
-  /** #145 — اشتراک همگام تغییرات state → Cleanup (PersistTarget در @zenith/storage). */
-  $subscribe(cb: (state: S) => void): () => void;
+  /** #127 / #145 — اشتراک تغییرات state → Cleanup. */
+  $subscribe(cb: (state: S) => void, options?: { immediate?: boolean }): () => void;
+  /** #127 — اشتراک روی فراخوانی اکشن‌ها → Cleanup. */
+  $onAction(cb: (ctx: StoreActionContext<S, G, A>) => void): () => void;
+  /** #127 — نصب پلاگین روی این Store → Cleanup. */
+  use(plugin: StorePlugin<S, G, A>): () => void;
+  /** پاکسازی کامل Store و اشتراک‌های آن. */
+  dispose(): void;
   /** __dispose__: پاکسازی computed signals. */
   __dispose__(): void;
 } & { [K in keyof G]: G[K] extends (s: any) => infer R ? R : never } & { [K in keyof A]: A[K] };
+
+const _globalStorePlugins = new Set<StorePlugin<any, any, any>>();
+const _fallbackMemoryStorage = new Map<string, string>();
+const defaultMemoryStorage: StorePersistStorage = {
+  getItem: (k) => _fallbackMemoryStorage.get(k) ?? null,
+  setItem: (k, v) => void _fallbackMemoryStorage.set(k, v),
+  removeItem: (k) => void _fallbackMemoryStorage.delete(k),
+};
+
+function resolvePersistStorage(custom?: StorePersistStorage): StorePersistStorage {
+  if (custom) return custom;
+  try {
+    if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+      return (globalThis as any).localStorage as StorePersistStorage;
+    }
+  } catch {
+    // ignore SecurityError
+  }
+  return defaultMemoryStorage;
+}
+
+/**
+ * #127: ثبت پلاگین سراسری برای همهٔ Storeها.
+ */
+export function useStorePlugin(plugin: StorePlugin<any, any, any>): () => void {
+  _globalStorePlugins.add(plugin);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    _globalStorePlugins.delete(plugin);
+  };
+}
+
+/**
+ * #127: ذخیره‌سازی پایدار و بازیابی خودکار وضعیت Store با پشتیبانی از `version`/`migrate` و `pick`/`omit`.
+ */
+export function persistStore<S = any, G = any, A = any>(
+  store: Store<S, G, A>,
+  options: StorePersistOptions<S> = {},
+): () => void {
+  const storage = resolvePersistStorage(options.storage);
+  const key = options.key ?? `zenith:store:${store.$name || 'default'}`;
+  const version = options.version ?? 1;
+
+  const filterState = (raw: S): Partial<S> => {
+    if (!raw || typeof raw !== 'object') return raw;
+    if (options.pick && options.pick.length > 0) {
+      const picked: Partial<S> = {};
+      for (const k of options.pick) {
+        if (k in raw) picked[k] = raw[k];
+      }
+      return picked;
+    }
+    if (options.omit && options.omit.length > 0) {
+      const omitSet = new Set<string>(options.omit);
+      const copy: Partial<S> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        if (!omitSet.has(k)) (copy as any)[k] = v;
+      }
+      return copy;
+    }
+    return { ...raw };
+  };
+
+  // بازیابی اولیه از storage
+  try {
+    const rawStr = storage.getItem(key);
+    if (rawStr) {
+      const parsed = JSON.parse(rawStr);
+      let restoredState: any =
+        parsed && typeof parsed === 'object' && '__zenithVersion' in parsed ? parsed.state : parsed;
+      const persistedVersion =
+        parsed && typeof parsed === 'object' && typeof parsed.__zenithVersion === 'number'
+          ? parsed.__zenithVersion
+          : 0;
+      if (persistedVersion !== version && typeof options.migrate === 'function') {
+        restoredState = options.migrate(restoredState, persistedVersion);
+      }
+      if (restoredState && typeof restoredState === 'object') {
+        store.$patch(filterState(restoredState as S));
+      }
+    }
+  } catch {
+    // ignore corrupt persisted JSON
+  }
+
+  return store.$subscribe((currentState) => {
+    try {
+      const payload = JSON.stringify({
+        __zenithVersion: version,
+        state: filterState(currentState),
+      });
+      storage.setItem(key, payload);
+    } catch {
+      // ignore quota errors
+    }
+  });
+}
 
 /**
  * Registry از store ها.
@@ -296,12 +439,18 @@ export function defineStore<
     // versionSignal (effect) و هم direct انجام می‌شود ⇒ حتی اگر cb حین
     // notification بخواند، latest visible است.
     const stateSubscribers = new Set<(state: S) => void>();
+    const actionListeners = new Set<(ctx: StoreActionContext<S, G, A>) => void>();
+    const pluginCleanups: Array<() => void> = [];
+    let isDisposed = false;
+
     const notifySubscribers = (): void => {
+      if (isDisposed) return;
       for (const cb of [...stateSubscribers]) cb(stateObj as S);
     };
 
     // triggerReactive: فراخوانی پس از هر mutation.
     const triggerReactive = () => {
+      if (isDisposed) return;
       versionSignal.set(versionSignal.get() + 1);
       notifySubscribers();
     };
@@ -316,6 +465,8 @@ export function defineStore<
 
     // ساخت store object.
     const store: any = {
+      $name: id,
+      $id: id,
       _signal: stateSignal,
       _versionSignal: versionSignal,
       // state: getter که version را track می‌کند و proxy را برمی‌گرداند.
@@ -390,10 +541,43 @@ export function defineStore<
         stateSignal.set(stateObj);
         triggerReactive();
       },
-      // #145 — اشتراک همگانی state (PersistTarget)؛ cleanup idempotent.
-      $subscribe(cb: (state: S) => void): () => void {
+      // #127 / #145 — اشتراک همگانی state (PersistTarget)؛ cleanup idempotent.
+      $subscribe(cb: (state: S) => void, options?: { immediate?: boolean }): () => void {
+        if (isDisposed) return () => {};
         stateSubscribers.add(cb);
-        return () => void stateSubscribers.delete(cb);
+        if (options?.immediate) {
+          cb(stateObj as S);
+        }
+        let removed = false;
+        return () => {
+          if (removed) return;
+          removed = true;
+          stateSubscribers.delete(cb);
+        };
+      },
+      // #127 — اشتراک روی فراخوانی اکشن‌ها با after / onError.
+      $onAction(cb: (ctx: StoreActionContext<S, G, A>) => void): () => void {
+        if (isDisposed) return () => {};
+        actionListeners.add(cb);
+        let removed = false;
+        return () => {
+          if (removed) return;
+          removed = true;
+          actionListeners.delete(cb);
+        };
+      },
+      // #127 — نصب پلاگین روی این Store.
+      use(plugin: StorePlugin<S, G, A>): () => void {
+        if (isDisposed) return () => {};
+        const cleanup = plugin({ name: id, store, options: def });
+        let cleaned = false;
+        const stop = () => {
+          if (cleaned) return;
+          cleaned = true;
+          if (typeof cleanup === 'function') cleanup();
+        };
+        pluginCleanups.push(stop);
+        return stop;
       },
       // BUG-STO-03 FIX: Reflect.ownKeys برای پشتیبانی از Symbol-keyed properties.
       $patch(partial: Partial<S>) {
@@ -445,12 +629,18 @@ export function defineStore<
     if (def.actions) {
       for (const [name, action] of Object.entries(def.actions)) {
         store[name] = (...args: any[]) => {
-          // context برای action.
-          // FIX (v1.2.3): getters در context اکنون یک Proxy است که Computed
-          // objects را به‌طور خودکار unwrap می‌کند (با صدا زدن .get()). قبلاً
-          // getters خام (Computed objects) به action می‌رسیدند و توسعه‌دهنده
-          // باید دستی `.get()` صدا می‌زد — که مستعد خطا بود و کاملاً با
-          // تعریف StoreContext (که R را برمی‌گرداند) سازگار نبود.
+          const afterCbs: Array<(res: unknown) => void> = [];
+          const errorCbs: Array<(err: unknown) => void> = [];
+          for (const listener of [...actionListeners]) {
+            listener({
+              name,
+              store,
+              args,
+              after: (fn) => afterCbs.push(fn),
+              onError: (fn) => errorCbs.push(fn),
+            });
+          }
+
           const ctx: any = {
             state: stateProxy,
             getters: new Proxy(store, {
@@ -461,17 +651,54 @@ export function defineStore<
             }),
             actions: store,
           };
-          return (action as Function).apply(ctx, args);
+          try {
+            const res = (action as Function).apply(ctx, args);
+            if (res && typeof (res as Promise<unknown>).then === 'function') {
+              return (res as Promise<unknown>).then(
+                (resolved) => {
+                  for (const fn of afterCbs) fn(resolved);
+                  return resolved;
+                },
+                (err) => {
+                  for (const fn of errorCbs) fn(err);
+                  throw err;
+                },
+              );
+            }
+            for (const fn of afterCbs) fn(res);
+            return res;
+          } catch (err) {
+            for (const fn of errorCbs) fn(err);
+            throw err;
+          }
         };
       }
     }
 
-    (store as any).__dispose__ = () => {
-      // FIX (v1.2.3): store را از storeRegistry حذف کن تا در صورت تعریف
-      // مجدد با همان id، store قدیمی (که disposed شده) برنگردد.
+    const disposeStore = () => {
+      if (isDisposed) return;
+      isDisposed = true;
       storeRegistry.delete(id);
+      stateSubscribers.clear();
+      actionListeners.clear();
+      pluginCleanups.forEach((d) => d());
       computedDisposables.forEach((d) => d());
     };
+
+    (store as any).__dispose__ = disposeStore;
+    (store as any).dispose = disposeStore;
+    if (typeof Symbol !== 'undefined' && (Symbol as any).dispose) {
+      (store as any)[(Symbol as any).dispose] = disposeStore;
+    }
+
+    if (def.persist) {
+      const persistOpts = typeof def.persist === 'object' ? def.persist : {};
+      pluginCleanups.push(persistStore(store, persistOpts));
+    }
+
+    for (const globalPlugin of _globalStorePlugins) {
+      store.use(globalPlugin);
+    }
 
     storeRegistry.set(id, store);
     return store as Store<S, G, A>;

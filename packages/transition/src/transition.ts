@@ -37,6 +37,7 @@ const LEAVE_ACTIVE = 'zen-leave-active';
 
 // #47: هشدار deprecation یک‌باره با کد ZEN-DEPR-xxx (سیاست #58).
 import { deprecate } from '@zenith/errors';
+import { prefersReducedMotion } from './animate';
 
 export type TransitionDirection = 'enter' | 'leave';
 
@@ -376,6 +377,15 @@ export function createTransition(
     if (direction === 'enter') options.onBeforeEnter?.(element);
     else options.onBeforeLeave?.(element);
 
+    // #133: اگر کاربر prefers-reduced-motion را فعال کرده باشد، از اجرای
+    // transition حرکتی صرف‌نظر می‌کنیم ولی تمام callbackها را بلافاصله فراخوانی می‌کنیم.
+    if (prefersReducedMotion()) {
+      if (direction === 'enter') options.onAfterEnter?.(element);
+      else options.onAfterLeave?.(element);
+      options.onComplete?.();
+      return createCompletedRun();
+    }
+
     const from = direction === 'enter' ? classes.enterFrom : classes.leaveFrom;
     const active = direction === 'enter' ? classes.enterActive : classes.leaveActive;
     const to = direction === 'enter' ? classes.enterTo : classes.leaveTo;
@@ -666,3 +676,40 @@ export function animateLeave(
   });
   return controller.leave(el);
 }
+
+/**
+ * #133: اجرای انتقال بین دو صفحهٔ مسیریاب (`mode: 'out-in' | 'in-out'`) با رعایت `prefersReducedMotion`.
+ */
+export async function runRouteTransition(
+  outEl: HTMLElement | null,
+  inEl: HTMLElement | null,
+  options: { name?: string; duration?: number; mode?: 'out-in' | 'in-out' } = {},
+): Promise<void> {
+  const { name = 'fade', duration = 200, mode = 'out-in' } = options;
+  const controller = createTransition(name, { duration });
+  try {
+    if (mode === 'out-in') {
+      if (outEl) {
+        await controller.leave(outEl).finished;
+        outEl.remove();
+      }
+      if (inEl) {
+        await controller.enter(inEl).finished;
+      }
+    } else {
+      const promises: Promise<void>[] = [];
+      if (inEl) promises.push(controller.enter(inEl).finished);
+      if (outEl) {
+        promises.push(
+          controller.leave(outEl).finished.then(() => {
+            outEl.remove();
+          }),
+        );
+      }
+      await Promise.all(promises);
+    }
+  } finally {
+    controller.dispose();
+  }
+}
+

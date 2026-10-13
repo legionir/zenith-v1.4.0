@@ -15,6 +15,7 @@ export {
   clearCache,
   cancelRequest,
   cancelAllRequests,
+  mockHttp,
   httpRequestOptions,
   HTTP_REQUEST_OPTIONS_DEFAULTS,
   httpRequestOptionsSchema,
@@ -32,6 +33,7 @@ export {
 export type {
   HttpRequestOptions,
   ZenithHttpOptions,
+  HttpProgressEvent,
   HttpResponse,
   HttpError,
   RetryConfig,

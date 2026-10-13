@@ -149,6 +149,8 @@ export const BUILTIN_MODIFIERS = new Set<string>([
   'immediate',
   'self',
   'once',
+  'passive',
+  'capture',
   'debounce',
   'throttle',
   // Keyboard key-modifiers
@@ -249,6 +251,18 @@ export function hasEventModifier(name: string): boolean {
  */
 export function getEventModifier(name: string): EventModifierHandler | undefined {
   return _customModifiers.get(name);
+}
+
+/**
+ * #136: استخراج گزینه‌های استاندارد `AddEventListenerOptions` (`once`, `passive`, `capture`)
+ * از لیست modifierهای رویداد.
+ */
+export function extractListenerOptions(modifiers: string[]): AddEventListenerOptions {
+  return {
+    once: modifiers.includes('once'),
+    passive: modifiers.includes('passive'),
+    capture: modifiers.includes('capture'),
+  };
 }
 
 /**
