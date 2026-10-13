@@ -37,3 +37,9 @@ the exact manual action.
 - [ ] بستهٔ کامل ممیزی امنیتی (دامنه، مدل تهدید، یافته‌های رفع‌شدهٔ `SEC-A1..A13` و دستورهای بازتولید) در [`docs/security/AUDIT-PACKAGE.md`](security/AUDIT-PACKAGE.md) و گیت خودکار `scripts/security-audit-check.mjs` آماده شد.
 - [ ] تیم/ممیز امنیتی مستقل بیرونی را انتخاب کرده، بستهٔ `docs/security/AUDIT-PACKAGE.md` را در اختیارشان قرار دهید و پس از دریافت گزارش نهایی، لینک گواهی ممیزی را در همان فایل ثبت کنید.
 
+## #65 — فعال‌سازی Secret Scanning و Push Protection در تنظیمات GitHub
+
+- [ ] فایل‌های `.github/dependabot.yml`، `.gitleaks.toml`، اسکریپت `scripts/secret-scan.mjs` و گام‌های CI (`npm audit` + `gitleaks/gitleaks-action@v2`) اضافه شدند.
+- [ ] در GitHub: Settings → Code security and analysis → **Secret scanning** و **Push protection** را روی مخزن فعال کنید.
+
+

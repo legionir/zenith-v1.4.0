@@ -80,6 +80,8 @@ export interface SWRuntimeConfig {
   defaultStrategy?: CacheStrategyName;
   /** نام cache برای queued mutations (background sync). */
   backgroundSyncQueueName?: string;
+  /** #96: نسخهٔ کش (پیش‌فرض: 1). با افزایش این عدد، کش‌های نسخه‌های قدیمی در activate پاک می‌شوند. */
+  cacheVersion?: number;
   /** آیا در install event skipWaiting کنیم؟ */
   skipWaiting?: boolean;
   /** آیا در activate event clients.claim کنیم؟ */
@@ -128,8 +130,12 @@ const CACHE_VERSION = 1;
  * نام نهایی: {cachePrefix}v{CACHE_VERSION}-{baseName}
  * مثال: 'zenith-v1-precache', 'zenith-v1-api-cache'
  */
-function versionedCacheName(cachePrefix: string, baseName: string): string {
-  return `${cachePrefix}v${CACHE_VERSION}-${baseName}`;
+function versionedCacheName(
+  cachePrefix: string,
+  baseName: string,
+  version: number = _config?.cacheVersion ?? CACHE_VERSION,
+): string {
+  return `${cachePrefix}v${version}-${baseName}`;
 }
 
 /**
@@ -181,6 +187,7 @@ export const swRuntimeConfigOptions = defineOptions<SWRuntimeConfig>(
     cachePrefix: s.default(s.string(), 'zenith-'),
     defaultStrategy: s.default(s.enum(SW_CACHE_STRATEGIES), 'networkOnly'),
     backgroundSyncQueueName: s.default(s.string({ min: 1 }), 'zenith-bg-sync'),
+    cacheVersion: s.default(s.number({ int: true, min: 1 }), CACHE_VERSION),
     skipWaiting: s.default(s.boolean(), false),
     clientsClaim: s.default(s.boolean(), false),
   }),
@@ -404,6 +411,58 @@ export function setupSW(config: SWRuntimeConfig): void {
         // FEATURE (v0.5.0): _queue یک cache best-effort است؛ مقدار دقیق در IndexedDB است.
         source.postMessage({ type: 'QUEUE_SIZE', size: _queue.length });
       }
+    }
+  });
+}
+
+/**
+ * #96: Emergency Service Worker Kill Switch (`setupKillSwitchSW`).
+ * When deployed as `/sw.js` or `/sw-kill.js`, immediately skips waiting on install,
+ * deletes all CacheStorage caches on activate, unregisters itself, and reloads open clients.
+ */
+export function setupKillSwitchSW(): void {
+  if (typeof self === 'undefined') return;
+  const swSelf = self as unknown as {
+    skipWaiting?: () => Promise<void>;
+    registration?: { unregister?: () => Promise<boolean> };
+    clients?: {
+      claim?: () => Promise<void>;
+      matchAll?: (opts?: { type?: string }) => Promise<Array<{ url: string; navigate?: (url: string) => Promise<unknown> }>>;
+    };
+  };
+
+  addSWListener('install', (event: any) => {
+    const p = Promise.resolve(swSelf.skipWaiting?.());
+    if (event && typeof event.waitUntil === 'function') {
+      event.waitUntil(p);
+    }
+  });
+
+  addSWListener('activate', (event: any) => {
+    const killPromise = (async () => {
+      const cacheStore = typeof caches !== 'undefined' ? caches : null;
+      if (cacheStore) {
+        const names = await cacheStore.keys();
+        await Promise.all(names.map((name) => cacheStore.delete(name)));
+      }
+      if (swSelf.registration && typeof swSelf.registration.unregister === 'function') {
+        await swSelf.registration.unregister();
+      }
+      if (swSelf.clients && typeof swSelf.clients.claim === 'function') {
+        await swSelf.clients.claim();
+      }
+      if (swSelf.clients && typeof swSelf.clients.matchAll === 'function') {
+        const clientList = await swSelf.clients.matchAll({ type: 'window' });
+        for (const client of clientList) {
+          if (typeof client.navigate === 'function') {
+            await client.navigate(client.url);
+          }
+        }
+      }
+    })();
+
+    if (event && typeof event.waitUntil === 'function') {
+      event.waitUntil(killPromise);
     }
   });
 }

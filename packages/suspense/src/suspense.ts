@@ -728,7 +728,7 @@ export interface WithTimeoutOptions {
 
 function isTrackPromiseOptions(val: unknown): val is TrackPromiseOptions {
   if (typeof val !== 'object' || val === null) return false;
-  return !('startLoading' in val) && !('context' in val);
+  return !('startLoading' in val) && !('track' in val);
 }
 
 /**
@@ -768,16 +768,18 @@ export function trackPromise<T>(
     opts = (optionsOrSuspense as TrackPromiseOptions | undefined) ?? {};
   }
 
-  const targetCtx: SuspenseContext | undefined =
-    opts.suspense && 'context' in opts.suspense
-      ? opts.suspense.context
-      : (opts.suspense as SuspenseContext | undefined);
   const trackKey = opts.key ?? `zen-promise-${secureId(4)}`;
   const tracked =
     opts.timeout && opts.timeout > 0 ? withTimeout(promise, { ms: opts.timeout }) : promise;
 
-  if (!targetCtx) return tracked;
+  if (!opts.suspense) return tracked;
 
+  if ('track' in opts.suspense) {
+    opts.suspense.track(tracked);
+    return tracked;
+  }
+
+  const targetCtx: SuspenseContext = opts.suspense;
   targetCtx.startLoading(trackKey);
   return tracked.then(
     (value) => {

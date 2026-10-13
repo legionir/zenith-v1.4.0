@@ -1487,7 +1487,7 @@ export function toZenithError(err: unknown): ZenithError {
  */
 export function developerError(
   message: string,
-  code: string = ErrorCode.INTERNAL_DEVELOPER_ERROR,
+  code: string = 'ZEN-907',
   opts?: {
     category?: ErrorCategory;
     suggestion?: string;

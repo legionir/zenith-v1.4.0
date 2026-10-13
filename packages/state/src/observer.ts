@@ -15,6 +15,18 @@ export interface SignalObserver {
 }
 
 let activeObserver: SignalObserver | null = null;
+let legacyCreateHook: ((sig: Signal<any>, name?: string) => void) | null = null;
+let legacyChangeHook: ((sig: Signal<any>, oldValue: unknown, newValue: unknown) => void) | null =
+  null;
+
+export function _setLegacyRegistryHooks(
+  onCreate: (sig: Signal<any>, name?: string) => void,
+  onChange: (sig: Signal<any>, oldValue: unknown, newValue: unknown) => void,
+): boolean {
+  legacyCreateHook = onCreate;
+  legacyChangeHook = onChange;
+  return true;
+}
 
 /**
  * ثبت یا پاک‌کردن observer سیگنال‌ها (SPEC §۲.۷).
@@ -40,10 +52,12 @@ export function getSignalObserver(): SignalObserver | null {
 
 export function notifySignalCreate(sig: Signal<any>, name?: string): void {
   activeObserver?.onCreate?.(sig, name);
+  legacyCreateHook?.(sig, name);
 }
 
 export function notifySignalChange(sig: Signal<any>, oldValue: unknown, newValue: unknown): void {
   activeObserver?.onChange?.(sig, oldValue, newValue);
+  legacyChangeHook?.(sig, oldValue, newValue);
 }
 
 export function notifySignalDispose(sig: Signal<any>): void {

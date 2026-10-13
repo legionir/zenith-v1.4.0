@@ -92,7 +92,6 @@ export async function buildPackage(pkgName) {
   // `index.cjs` into `dist` would contradict their exports map and ship dead
   // bytes. Skip the CJS build for such packages; existing dual packages keep
   // emitting `.cjs` unchanged.
-  const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : null;
   const rootExport = pkgJson?.exports?.['.'];
   const declaresCjs =
     (rootExport && typeof rootExport === 'object' && rootExport.require) ||
@@ -102,7 +101,10 @@ export async function buildPackage(pkgName) {
       ...sharedOptions,
       outfile: join(outDir, 'index.cjs'),
       format: 'cjs',
-      define: { 'import.meta': 'undefined' },
+      define: {
+        ...sharedOptions.define,
+        'import.meta': 'undefined',
+      },
     });
   }
 

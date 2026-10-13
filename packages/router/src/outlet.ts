@@ -31,8 +31,8 @@ interface CacheEntry {
   html: string;
 }
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
-const _routeTimestamps = new Map<string, number>();
-const routeCache = createCache<CacheEntry>({
+const _routeTimestamps = /* @__PURE__ */ new Map<string, number>();
+const routeCache = /* @__PURE__ */ createCache<CacheEntry>({
   ttl: 'never',
   maxSize: 50,
   // استمپ‌ها هم با eviction پاک شوند تا Map بی‌نمو نشود (تست نشت #144).
@@ -40,6 +40,20 @@ const routeCache = createCache<CacheEntry>({
     _routeTimestamps.delete(key);
   },
 });
+
+let _outletCleanupRegistered = false;
+function ensureOutletCleanupRegistered(): void {
+  if (_outletCleanupRegistered) return;
+  _outletCleanupRegistered = true;
+  try {
+    registerRouterCleanup(() => {
+      clearRouteCache();
+      routeSrcRegistry.clear();
+    });
+  } catch {
+    // registerRouterCleanup may not be exported in all build configs
+  }
+}
 
 /** استمپ ذخیره تازه را ثبت می‌کند (رفتار stale قدیمی بدون تغییر). */
 function markRouteFresh(src: string): void {
@@ -111,6 +125,7 @@ function cleanupCurrentContent(el: HTMLElement, disposes: (() => void)[]): void 
 const prefetchedUrls = new Set<string>();
 
 export function prefetchRoute(src: string): void {
+  ensureOutletCleanupRegistered();
   if (prefetchedUrls.has(src)) return;
   prefetchedUrls.add(src);
   // Fetch and cache silently
@@ -124,6 +139,7 @@ let prefetchInstalled = false;
 // the document after HMR or page teardown, leaking DOM references.
 let _prefetchMouseoverHandler: ((e: MouseEvent) => void) | null = null;
 export function installPrefetch(): void {
+  ensureOutletCleanupRegistered();
   if (prefetchInstalled) return;
   if (typeof document === 'undefined') return;
   prefetchInstalled = true;
@@ -155,6 +171,7 @@ export function processRouter(
   processChildren: (node: HTMLElement, disposes: (() => void)[]) => void,
   parentDisposes: (() => void)[],
 ): () => void {
+  ensureOutletCleanupRegistered();
   const routes = readRouteDefinitions(el);
   if (routes.length === 0) {
     console.warn('[Zenith Router] No routes found.');
@@ -292,13 +309,5 @@ export function clearRouteCache(): void {
   }
 }
 
-// BUG-RTR-03 (v1.3.0): Register cleanup callbacks with the router so that
-// cleanupRouter() properly tears down everything outlet.ts has set up.
-try {
-  registerRouterCleanup(() => {
-    clearRouteCache();
-    routeSrcRegistry.clear();
-  });
-} catch {
-  // registerRouterCleanup may not be exported in all build configs
-}
+// BUG-RTR-03 (v1.3.0): Cleanup callbacks are registered lazily via
+// ensureOutletCleanupRegistered() when processRouter/prefetchRoute/installPrefetch run (#87).

@@ -18,7 +18,6 @@
 //   - Performance به‌طور چشمگیری بهبود می‌یابد.
 
 import { scheduleEffect } from '@zenith/scheduler';
-import { _registerSignalInternal, _recordStateChangeInternal } from './registry';
 import { notifySignalCreate, notifySignalChange, notifySignalDispose } from './observer';
 // Bug Fix #2: برای خواندن priority ذخیره‌شده روی هر Effect.
 import { getEffectPriority } from './effect';
@@ -28,7 +27,7 @@ import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup }
 // #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
 // بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
 import { ZENITH_READABLE } from './readable';
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError } from '@zenith/errors';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -46,9 +45,8 @@ export class Signal<T> {
   constructor(initialValue: T, options?: { readonly?: boolean }) {
     this._value = initialValue;
     this._readonly = options?.readonly ?? false;
-    // ── #147: اطلاع به SignalObserver (@zenith/devtools-core) + رجیستری میراث ──
+    // ── #147 / #87: اطلاع به SignalObserver (@zenith/devtools-core) + رجیستری میراث ──
     notifySignalCreate(this);
-    _registerSignalInternal(this);
   }
 
   /**
@@ -103,7 +101,7 @@ export class Signal<T> {
       // #115: خطای programmer با کد ZEN-907 (misuse عمومی API).
       throw developerError(
         'Cannot set a readonly signal. Use writable signals for mutable state.',
-        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+        'ZEN-907',
         {
           suggestion:
             'برای مقدار قابل‌تغییر signal writable بسازید؛ برای مقدار مشتق از computed استفاده کنید.',
@@ -119,9 +117,8 @@ export class Signal<T> {
 
     this._value = newValue;
 
-    // #147: اطلاع به SignalObserver + ثبت تغییر در رجیستری میراث
+    // #147 / #87: اطلاع به SignalObserver + ثبت تغییر در رجیستری میراث
     notifySignalChange(this, oldValue, newValue);
-    _recordStateChangeInternal(this, oldValue, newValue);
 
     // ── فاز ۷: Scheduler ──
     // به‌جای اجرای مستقیم (triggerEffects)، Effectها را به Scheduler می‌سپاریم.
@@ -180,7 +177,6 @@ export class Signal<T> {
     this._value = next;
     // ── فاز ۱۰ / #147: اطلاع به SignalObserver + رجیستری میراث ──
     notifySignalChange(this, oldValue, next);
-    _recordStateChangeInternal(this, oldValue, next);
     // ── فاز ۷: Scheduler ──
     this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);

@@ -186,7 +186,7 @@ function normalize(input: EmitErrorInput): ZenithError {
       ? CATEGORY_MAP[rawCategory]
       : ((rawCategory as ErrorCategory | undefined) ?? 'Runtime');
   const err = new ZenithError({
-    code: input.code ?? ErrorCode.INTERNAL_RUNTIME_FAILURE,
+    code: input.code ?? 'ZEN-905',
     category: mappedCategory,
     message: input.message,
     suggestion: input.suggestion ?? input.hint,

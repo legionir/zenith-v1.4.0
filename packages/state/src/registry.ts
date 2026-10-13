@@ -38,7 +38,7 @@ import { deprecate } from '@zenith/errors';
 import { type Signal } from './signal';
 // IMP-05 (v1.3.0): استفاده از DevTools Helper یکپارچه.
 import { isDevtoolsEnabled } from './devtools';
-import { notifySignalName } from './observer';
+import { notifySignalName, _setLegacyRegistryHooks } from './observer';
 
 /**
  * اطلاعات یک Signal در رجیستری.
@@ -389,3 +389,9 @@ export function nameSignal(sig: Signal<any>, name: string): void {
   const info = idToInfo.get(id);
   if (info) info.name = name;
 }
+
+const _legacyHooksInstalled = _setLegacyRegistryHooks(
+  _registerSignalInternal,
+  _recordStateChangeInternal,
+);
+void _legacyHooksInstalled;

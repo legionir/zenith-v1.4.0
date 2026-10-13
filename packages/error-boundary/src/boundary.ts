@@ -37,7 +37,9 @@ export { ZenithError };
  * listener داخلی روی hub پرش می‌کند — یعنی هر خطایی (directive، effect،
  * scheduler، emitError مستقیم) errorSignal را آپدیت می‌کند.
  */
-export const errorSignal: Signal<ZenithErrorInfo | null> = signal<ZenithErrorInfo | null>(null);
+export const errorSignal: Signal<ZenithErrorInfo | null> = /* @__PURE__ */ signal<ZenithErrorInfo | null>(
+  null,
+);
 
 // فید داخلی: هر خطای hub روی errorSignal منعکس می‌شود. lazy ثبت می‌شود
 // (sideEffects:false — بدون effect در زمان import): اولین باری که از مسیر
@@ -112,3 +114,152 @@ export function clearErrorBoundary(): void {
 
 // دسترسی‌های کمکی برای تست/ادیباگ (#115 شواهد).
 export { getErrorHistory };
+
+// ── #93: External Error Reporters (Sentry, OpenTelemetry, etc.) with PII Redaction ──
+
+export interface ExternalErrorReport {
+  code: string;
+  category: string;
+  message: string;
+  source?: string;
+  expression?: string;
+  context: Record<string, unknown>;
+  timestamp: number;
+  error: ZenithError;
+}
+
+export type ExternalErrorReporter = (report: ExternalErrorReport) => void | Promise<void>;
+
+export interface ErrorReporterOptions {
+  /** Redact PII fields and patterns by default (`true`). */
+  redactPII?: boolean;
+  /** Additional sensitive key names to redact. */
+  redactKeys?: string[];
+  /** Static or dynamic context enrichment (`route`, `userId`, `release`, etc.). */
+  enrichContext?: Record<string, unknown> | (() => Record<string, unknown>);
+}
+
+const DEFAULT_SENSITIVE_KEYS = new Set([
+  'password',
+  'passwd',
+  'pwd',
+  'token',
+  'accesstoken',
+  'refreshtoken',
+  'idtoken',
+  'secret',
+  'clientsecret',
+  'authorization',
+  'cookie',
+  'set-cookie',
+  'apikey',
+  'api_key',
+  'ssn',
+  'creditcard',
+  'cardnumber',
+]);
+
+const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+
+export function redactPIIValue(
+  value: unknown,
+  extraKeys?: ReadonlySet<string>,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
+  if (typeof value === 'string') {
+    return value
+      .replace(BEARER_PATTERN, 'Bearer [REDACTED]')
+      .replace(EMAIL_PATTERN, '[REDACTED_EMAIL]');
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactPIIValue(item, extraKeys, seen));
+  }
+  // Skip DOM nodes
+  if (typeof (value as { nodeType?: unknown }).nodeType === 'number') {
+    return `[DOMElement:${(value as { tagName?: string }).tagName ?? 'Node'}]`;
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedKey = k.toLowerCase().replace(/[-_]/g, '');
+    if (DEFAULT_SENSITIVE_KEYS.has(normalizedKey) || extraKeys?.has(k.toLowerCase())) {
+      out[k] = '[REDACTED]';
+    } else {
+      out[k] = redactPIIValue(v, extraKeys, seen);
+    }
+  }
+  return out;
+}
+
+/**
+ * #93: Register an external error reporter (e.g. Sentry, OpenTelemetry) with
+ * automatic PII redaction, structured context enrichment, and fault isolation.
+ *
+ * @returns Idempotent `Cleanup` function (`() => void`).
+ */
+export function addReporter(
+  reporter: ExternalErrorReporter,
+  options: ErrorReporterOptions = {},
+): () => void {
+  const shouldRedact = options.redactPII !== false;
+  const extraKeys = options.redactKeys
+    ? new Set(options.redactKeys.map((k) => k.toLowerCase()))
+    : undefined;
+
+  const unsubscribe = onError((err: ZenithError) => {
+    try {
+      const extraCtx =
+        typeof options.enrichContext === 'function'
+          ? options.enrichContext()
+          : (options.enrichContext ?? {});
+      const mergedContext: Record<string, unknown> = {
+        ...(err.context ?? {}),
+        ...(err.details ?? {}),
+        ...extraCtx,
+        ...(err.source ? { source: err.source } : {}),
+        ...(err.expression ? { expression: err.expression } : {}),
+      };
+
+      const safeContext = shouldRedact
+        ? (redactPIIValue(mergedContext, extraKeys) as Record<string, unknown>)
+        : mergedContext;
+      const safeMessage = shouldRedact
+        ? (redactPIIValue(err.message, extraKeys) as string)
+        : err.message;
+
+      const report: ExternalErrorReport = {
+        code: err.code,
+        category: err.category,
+        message: safeMessage,
+        source: err.source ?? (mergedContext.source as string | undefined),
+        expression: err.expression ?? (mergedContext.expression as string | undefined),
+        context: safeContext,
+        timestamp: err.timestamp ?? Date.now(),
+        error: err,
+      };
+
+      const maybePromise = reporter(report);
+      if (maybePromise && typeof (maybePromise as Promise<void>).catch === 'function') {
+        (maybePromise as Promise<void>).catch(() => {
+          /* fault-isolated: broken async reporter must never crash the app */
+        });
+      }
+    } catch {
+      /* fault-isolated: broken sync reporter must never crash the app */
+    }
+  });
+
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    unsubscribe();
+  };
+}

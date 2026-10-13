@@ -33,7 +33,7 @@
 
 // #115 (DEC-031): مسیر واحد انتشار خطا — hub در @zenith/errors (dependency
 // مستقیم؛ مجاز چون errors هیچ وابستگی ندارد و چرخه‌ای نمی‌سازد).
-import { ZenithError, emitError, isErrorRouted, ErrorCode, deprecate } from '@zenith/errors';
+import { ZenithError, emitError, isErrorRouted, deprecate } from '@zenith/errors';
 
 /**
  * سطح اولویت یک Effect — عدد پایین‌تر = اولویت بالاتر.
@@ -94,34 +94,45 @@ interface Task {
 }
 
 /**
- * صف Taskها — Map برای deduplication.
+ * #75: Global singleton scheduler state keyed via Symbol.for so dual ESM/CJS loads
+ * of @zenith/scheduler share the same queue, flush lock, and disposal map.
  */
-const queue: Map<() => void, Task> = new Map();
+const SCHEDULER_STATE_SYMBOL = Symbol.for('zenith.scheduler.state.v1');
 
-/**
- * شمارنده‌ی monotonic برای حفظ ترتیب ثبت.
- */
-let insertSeq = 0;
+interface GlobalSchedulerSingleton {
+  queue: Map<() => void, Task>;
+  insertSeq: number;
+  isFlushing: boolean;
+  flushPromise: Promise<void> | null;
+  effectDisposalMap: WeakMap<() => void, () => boolean>;
+  afterFlushCallbacks: Array<() => void>;
+  customAdapter: { current: SchedulerAdapter | null };
+  hooks: SchedulerHooks | null;
+}
 
-/**
- * آیا در حال flush هستیم؟
- */
-let isFlushing = false;
+function getSchedulerSingleton(): GlobalSchedulerSingleton {
+  const g = globalThis as unknown as Record<symbol, GlobalSchedulerSingleton | undefined>;
+  let instance = g[SCHEDULER_STATE_SYMBOL];
+  if (!instance) {
+    instance = {
+      queue: new Map(),
+      insertSeq: 0,
+      isFlushing: false,
+      flushPromise: null,
+      effectDisposalMap: new WeakMap(),
+      afterFlushCallbacks: [],
+      customAdapter: { current: null },
+      hooks: null,
+    };
+    g[SCHEDULER_STATE_SYMBOL] = instance;
+  }
+  return instance;
+}
 
-/**
- * Promise microtask فعلی.
- */
-let flushPromise: Promise<void> | null = null;
-
-/**
- * WeakMap برای ثبت callback disposed مربوط به هر Effect.
- */
-const effectDisposalMap = new WeakMap<() => void, () => boolean>();
-
-/**
- * afterFlush callbacks.
- */
-const afterFlushCallbacks: Array<() => void> = [];
+const _sched = /* @__PURE__ */ getSchedulerSingleton();
+const queue = _sched.queue;
+const effectDisposalMap = _sched.effectDisposalMap;
+const afterFlushCallbacks = _sched.afterFlushCallbacks;
 
 /**
  * محاسبه‌ی اولویت مؤثر با Aging.
@@ -168,7 +179,7 @@ export function scheduleEffect(
   queue.set(effectFn, {
     fn: effectFn,
     priority: normalizedPriority,
-    seq: insertSeq++,
+    seq: _sched.insertSeq++,
     createdAt: Date.now(),
     disposed: disposedCb,
   });
@@ -179,8 +190,8 @@ export function scheduleEffect(
     return;
   }
 
-  if (!isFlushing && !flushPromise) {
-    flushPromise = Promise.resolve().then(flushQueue);
+  if (!_sched.isFlushing && !_sched.flushPromise) {
+    _sched.flushPromise = Promise.resolve().then(flushQueue);
   }
 }
 
@@ -216,8 +227,8 @@ export function setEffectDisposal(effectFn: () => void, disposed: () => boolean)
  * اجرای تمام Taskهای موجود در صف.
  */
 function flushQueue(): void {
-  if (isFlushing) return;
-  isFlushing = true;
+  if (_sched.isFlushing) return;
+  _sched.isFlushing = true;
   let iterations = 0;
   let hitMaxIterations = false;
 
@@ -227,7 +238,7 @@ function flushQueue(): void {
         // #115: از طریق hub (دیگر console.error مستقیم نیست).
         emitError(
           new ZenithError({
-            code: ErrorCode.INTERNAL_RUNTIME_FAILURE,
+            code: 'ZEN-905',
             category: 'Runtime',
             message: `[Zenith Scheduler] Infinite loop detected after ${MAX_FLUSH_ITERATIONS} iterations. Clearing queue to prevent browser freeze. Pending effects are discarded.`,
             context: { source: 'scheduler', iterations },
@@ -267,7 +278,7 @@ function flushQueue(): void {
               error instanceof ZenithError
                 ? error
                 : new ZenithError({
-                    code: ErrorCode.INTERNAL_REACTIVITY_FAILURE,
+                    code: 'ZEN-906',
                     category: 'Runtime',
                     message: error instanceof Error ? error.message : String(error),
                     cause: error,
@@ -275,9 +286,9 @@ function flushQueue(): void {
                   }),
             );
           }
-          if (_hooks?.onError) {
+          if (_sched.hooks?.onError) {
             try {
-              _hooks.onError(task.fn, error);
+              _sched.hooks.onError(task.fn, error);
             } catch {
               /* ignore hook error */
             }
@@ -286,8 +297,8 @@ function flushQueue(): void {
       }
     }
   } finally {
-    isFlushing = false;
-    flushPromise = null;
+    _sched.isFlushing = false;
+    _sched.flushPromise = null;
 
     const cbs = afterFlushCallbacks.splice(0);
     for (const cb of cbs) {
@@ -299,7 +310,7 @@ function flushQueue(): void {
           e instanceof ZenithError
             ? e
             : new ZenithError({
-                code: ErrorCode.INTERNAL_RUNTIME_FAILURE,
+                code: 'ZEN-905',
                 category: 'Runtime',
                 message: e instanceof Error ? e.message : String(e),
                 cause: e,
@@ -321,7 +332,7 @@ function flushQueue(): void {
  * اجرای اجباری و Synchronous صف.
  */
 export function flushSync(): void {
-  if (isFlushing) return;
+  if (_sched.isFlushing) return;
   const adapter = _customAdapter.current;
   if (adapter) {
     adapter.flush();
@@ -347,7 +358,7 @@ export function hasPendingEffects(): boolean {
 /**
  * تعداد Taskهای در انتظار.
  */
-export function pendingEffectCount(): number {
+export function pendingEffectCount(): boolean extends never ? never : number {
   return queue.size;
 }
 
@@ -368,9 +379,9 @@ export function pendingEffectsByPriority(priority: PriorityInput): number {
  */
 export function clearScheduler(): void {
   queue.clear();
-  isFlushing = false;
-  flushPromise = null;
-  insertSeq = 0;
+  _sched.isFlushing = false;
+  _sched.flushPromise = null;
+  _sched.insertSeq = 0;
   afterFlushCallbacks.length = 0;
 }
 
@@ -394,7 +405,7 @@ export interface SchedulerAdapter {
   flush(): void;
 }
 
-export const _customAdapter: { current: SchedulerAdapter | null } = { current: null };
+export const _customAdapter: { current: SchedulerAdapter | null } = _sched.customAdapter;
 
 export function configureScheduler(adapter: SchedulerAdapter | null): void {
   _customAdapter.current = adapter;
@@ -410,14 +421,12 @@ export interface SchedulerHooks {
   onError?: (effect: () => void, error: unknown) => void;
 }
 
-let _hooks: SchedulerHooks | null = null;
-
 export function setSchedulerHooks(hooks: SchedulerHooks | null): void {
-  _hooks = hooks;
+  _sched.hooks = hooks;
 }
 
 export function getSchedulerHooks(): SchedulerHooks | null {
-  return _hooks;
+  return _sched.hooks;
 }
 
 // ── scheduleMicrotask ──

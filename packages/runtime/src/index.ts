@@ -235,8 +235,8 @@ export interface ZenithPlugin {
  * IMP-RUNT-03: Added atomic installation with Promise-based locking
  * to prevent race conditions during concurrent plugin installation.
  */
-const pluginRegistry = new Map<string, ZenithPlugin>();
-const pluginInstallLocks = new Map<string, Promise<void>>();
+const pluginRegistry = /* @__PURE__ */ new Map<string, ZenithPlugin>();
+const pluginInstallLocks = /* @__PURE__ */ new Map<string, Promise<void>>();
 
 /**
  * شیء‌ی Zen: API اصلی فریم‌ورک.
@@ -304,12 +304,12 @@ export interface ZenStartOptions {
 /**
  * #52 — Schema و پیش‌فرض‌های فریزشده برای `ZenStartOptions`.
  */
-export const zenStartOptions = defineOptions<ZenStartOptions>(
+export const zenStartOptions = /* @__PURE__ */ defineOptions<ZenStartOptions>(
   'ZenStartOptions',
-  s.object({
-    devtools: s.default(s.boolean(), true),
-    delegationRoot: s.optional(
-      s.custom<Document | ShadowRoot | HTMLElement>(
+  /* @__PURE__ */ s.object({
+    devtools: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), true),
+    delegationRoot: /* @__PURE__ */ s.optional(
+      /* @__PURE__ */ s.custom<Document | ShadowRoot | HTMLElement>(
         (v) =>
           typeof v === 'object' &&
           v !== null &&
@@ -318,20 +318,24 @@ export const zenStartOptions = defineOptions<ZenStartOptions>(
         'Document | ShadowRoot | HTMLElement (nodeType 1|9|11)',
       ),
     ),
-    ssr: s.default(
-      s.object({
-        preloadState: s.default(s.boolean(), true),
-        validateHydration: s.default(s.boolean(), false),
+    ssr: /* @__PURE__ */ s.default(
+      /* @__PURE__ */ s.object({
+        preloadState: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), true),
+        validateHydration: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), false),
       }),
       { preloadState: true, validateHydration: false },
     ),
-    onError: s.optional(s.fn() as unknown as Schema<ErrorHandler>),
-    strictParity: s.default(s.boolean(), false),
+    onError: /* @__PURE__ */ s.optional(/* @__PURE__ */ s.fn() as unknown as Schema<ErrorHandler>),
+    strictParity: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), false),
   }),
 );
 
-export const ZEN_START_OPTIONS_DEFAULTS = zenStartOptions.DEFAULTS;
-export const zenStartOptionsSchema = zenStartOptions.schema;
+export const ZEN_START_OPTIONS_DEFAULTS = /* @__PURE__ */ Object.freeze({
+  devtools: true,
+  ssr: /* @__PURE__ */ Object.freeze({ preloadState: true, validateHydration: false }),
+  strictParity: false,
+}) as ZenStartOptions;
+export const zenStartOptionsSchema = /* @__PURE__ */ (() => zenStartOptions.schema)();
 export const resolveZenStartOptions = (opts?: unknown): ZenStartOptions =>
   zenStartOptions.resolve(opts);
 
@@ -375,7 +379,7 @@ interface ZenApi {
   perf: ZenPerf;
 }
 
-export const Zen: ZenApi = {
+export const Zen: ZenApi = /* @__PURE__ */ (() => ({
   /**
    * Register a global error handler.
    * @example
@@ -1034,7 +1038,7 @@ export const Zen: ZenApi = {
       },
     };
   })(),
-};
+}))();
 
 // ── Re-exports برای راحتی کاربران ──
 

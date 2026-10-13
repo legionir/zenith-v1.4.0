@@ -350,17 +350,28 @@ export function registerSW(
   };
 }
 
+export interface UnregisterSWOptions {
+  /** #96: آیا تمام کش‌های CacheStorage همزمان با لغو ثبت پاک شوند؟ (پیش‌فرض: true) */
+  clearCaches?: boolean;
+}
+
 /**
- * FEATURE (v0.4.0): لغو ثبت SW — shortcut برای registerSW().unregister().
+ * FEATURE (v0.4.0) / #96: لغو ثبت SW و پاک‌سازی کش‌های قدیمی (kill switch سمت کلاینت).
  *
- * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند. در غیر این‌صورت false.
+ * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند و در صورت `clearCaches !== false`
+ * تمام کش‌های `caches` را نیز حذف می‌کند.
  */
-export async function unregisterSW(): Promise<boolean> {
+export async function unregisterSW(options: UnregisterSWOptions = {}): Promise<boolean> {
+  const clearCaches = options.clearCaches !== false;
   if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
+    if (clearCaches && typeof caches !== 'undefined' && typeof caches.keys === 'function') {
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+    }
     if (regs.length === 0) return false;
     let allOk = true;
     for (const reg of regs) {
@@ -372,6 +383,31 @@ export async function unregisterSW(): Promise<boolean> {
     console.error('[Zenith SW] unregisterSW failed:', err);
     return false;
   }
+}
+
+/**
+ * #96: تولید اسکریپت خودحذف اضطراری (`sw-kill.js`) برای جایگزینی با `/sw.js` روی سرور.
+ */
+export function createKillSwitchScript(): string {
+  return [
+    '// Zenith Service Worker Emergency Kill Switch (#96)',
+    "self.addEventListener('install', () => { self.skipWaiting(); });",
+    "self.addEventListener('activate', (event) => {",
+    '  event.waitUntil((async () => {',
+    "    if (typeof caches !== 'undefined') {",
+    '      const keys = await caches.keys();',
+    '      await Promise.all(keys.map((k) => caches.delete(k)));',
+    '    }',
+    '    await self.registration.unregister();',
+    '    if (self.clients && self.clients.matchAll) {',
+    "      const clients = await self.clients.matchAll({ type: 'window' });",
+    '      for (const client of clients) {',
+    '        if (client.navigate) await client.navigate(client.url);',
+    '      }',
+    '    }',
+    '  })());',
+    '});',
+  ].join('\n');
 }
 
 /**

@@ -325,5 +325,6 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 8. **اعتبارسنجی گزینه‌ها:** schema برای `AuthConfig`، `HttpRequestOptions`، `SWConfig`، `ZenithPluginOptions`، `ZenStartOptions`، با پیام خطای ZEN-xxx.
 9. **API عمومی رسمی:** TSDoc با `@public/@internal`، `api-extractor` و snapshot در CI، `exports` شرطی (`development`/`production`، `browser`/`node`/`worker`).
 10. **پکیج‌های ابزار** (`vscode-extension`، `devtools-extension`) به `tools/` منتقل شوند.
+11. **پیشگیری از Dual-Package Hazard (#75، DEC-027):** پکیج‌های جدید ۱.۵+ (`schema`, `cache`, `jalali`, `devtools-core`, `runtime-core`, `zenith`) فقط ESM منتشر می‌شوند (`DEC-027`). در پکیج‌های هستهٔ موجود (`@zenith/state` و `@zenith/scheduler`) که برای سازگاری ۱.x خروجی dual ESM/CJS دارند، تمام وضعیت‌های singleton (`EffectContext`، درخت `Owner`، و صف `Scheduler`) روی `globalThis` با کلیدهای `Symbol.for('zenith.state.context.v1')` و `Symbol.for('zenith.scheduler.state.v1')` نگهداری می‌شوند تا حتی در صورت ترکیب `import` و `require()` تنها یک نمونهٔ وضعیت واکنش‌گرا در کل فرآیند فعال باشد.
 
 تصمیم‌های باز این معماری در #175 بسته شدند (۸ ADR): فضای کد خطا DEC-020، `Readable<T>`/shared DEC-021، تعویق adapter-edge DEC-022، ترتیب ui DEC-023، charts/icons جامعه DEC-024، تقسیم runtime-core با parity DEC-025، نسخه‌گذاری lockstep DEC-026، حداقل Node و فرمت ESM-first DEC-027 — همه در `docs/decisions/`.
