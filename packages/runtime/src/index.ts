@@ -20,8 +20,10 @@ import {
   clearActions,
   listActions,
   getActionMeta,
+  setActionRegistryStore,
+  ActionRegistry,
 } from '@zenith/actions';
-import { loadComponents, clearComponents } from '@zenith/components';
+import { loadComponents, clearComponents, setComponentRegistryStore } from '@zenith/components';
 import { flushSync } from '@zenith/scheduler';
 import { navigate, routeSignal, cleanupRouter } from '@zenith/router';
 import { initDevTools, exposeDevToolsAPI } from '@zenith/devtools';
@@ -1360,3 +1362,5 @@ export {
   type HydrationResult,
   type HydrationMismatch,
 } from '@zenith/runtime-core';
+
+export { setActionRegistryStore, setComponentRegistryStore };

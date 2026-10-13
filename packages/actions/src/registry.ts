@@ -332,6 +332,22 @@ export class ActionRegistry implements Disposable {
 const _defaultRegistry = new ActionRegistry();
 
 /**
+ * #92 — ایزولاسیون رجیستری اکشن‌ها در SSR هم‌زمان.
+ * اگر provider توسط `@zenith/ssr` تنظیم شده باشد و یک `ActionRegistry` مخصوص
+ * درخواست جاری برگرداند، عملیات ثبت/حذف/پاکسازی (`clearActions` در `Zen.stop`)
+ * روی رجیستری درخواست اعمال می‌شود و رجیستری سراسری `_defaultRegistry` دست‌نخورده می‌ماند.
+ */
+let _actionStoreProvider: (() => ActionRegistry | null) | null = null;
+
+export function setActionRegistryStore(provider: (() => ActionRegistry | null) | null): void {
+  _actionStoreProvider = provider;
+}
+
+function getActiveActionRegistry(): ActionRegistry {
+  return _actionStoreProvider?.() ?? _defaultRegistry;
+}
+
+/**
  * ثبت (یا بازنویسی) یک Action روی Registry پیش‌فرض.
  *
  * @param name     نام اکشن — همان رشته‌ای که در HTML نوشته می‌شود.
@@ -342,13 +358,14 @@ const _defaultRegistry = new ActionRegistry();
  *           بعدی محافظت می‌شود).
  */
 export function registerAction(name: string, fn: ActionFn, metadata?: ActionMetadata): () => void {
-  _defaultRegistry.register(name, fn, metadata);
+  const target = getActiveActionRegistry();
+  target.register(name, fn, metadata);
   let removed = false;
   return () => {
     if (removed) return;
     removed = true;
-    if (_defaultRegistry.get(name) === fn) {
-      _defaultRegistry.unregister(name);
+    if (target.get(name) === fn) {
+      target.unregister(name);
     }
   };
 }
@@ -361,7 +378,7 @@ export function registerAction(name: string, fn: ActionFn, metadata?: ActionMeta
  *   - تست‌ها: بین هر test، registry خالی شود.
  */
 export function unregisterAction(name: string): boolean {
-  return _defaultRegistry.unregister(name);
+  return getActiveActionRegistry().unregister(name);
 }
 
 /**
@@ -370,6 +387,10 @@ export function unregisterAction(name: string): boolean {
  * @returns تابع یا `undefined` اگر ثبت نشده باشد.
  */
 export function getAction(name: string): ActionFn | undefined {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return scoped.get(name);
+  }
   return _defaultRegistry.get(name);
 }
 
@@ -377,6 +398,10 @@ export function getAction(name: string): ActionFn | undefined {
  * FEATURE (v1.3.0): دریافت متادیتای یک Action از Registry پیش‌فرض.
  */
 export function getActionMeta(name: string): ActionMetadata | undefined {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return scoped.getMeta(name);
+  }
   return _defaultRegistry.getMeta(name);
 }
 
@@ -384,6 +409,10 @@ export function getActionMeta(name: string): ActionMetadata | undefined {
  * بررسی وجود Action در Registry پیش‌فرض.
  */
 export function hasAction(name: string): boolean {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return true;
+  }
   return _defaultRegistry.has(name);
 }
 
@@ -393,7 +422,7 @@ export function hasAction(name: string): boolean {
  * ⚠️ در Production استفاده نکنید — این عملیات تمام اکشن‌های فعال را حذف می‌کند.
  */
 export function clearActions(): void {
-  _defaultRegistry.clear();
+  getActiveActionRegistry().clear();
 }
 
 /**
@@ -402,6 +431,13 @@ export function clearActions(): void {
  * برای DevTools و documentation generation استفاده می‌شود.
  */
 export function listActions(): Array<{ name: string; metadata?: ActionMetadata }> {
+  const scoped = _actionStoreProvider?.();
+  if (scoped) {
+    const merged = new Map<string, { name: string; metadata?: ActionMetadata }>();
+    for (const item of _defaultRegistry.list()) merged.set(item.name, item);
+    for (const item of scoped.list()) merged.set(item.name, item);
+    return Array.from(merged.values());
+  }
   return _defaultRegistry.list();
 }
 

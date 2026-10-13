@@ -13,18 +13,23 @@ export {
   isClient,
   runOnServer,
   runOnClient,
+  type RenderOptions,
   type SSRResult,
   type StreamChunk,
   type StreamOptions,
 } from './render';
 
-// FEATURE (v1.0.0): AsyncLocalStorage-based DOM globals isolation.
-// این ماژول race condition در SSR concurrent را با ذخیره‌ی DOM globals
-// در یک AsyncLocalStorage store به‌ازای هر درخواست برطرف می‌کند.
-// globalThis دیگر mutate نمی‌شود — به‌جای آن، getters نصب می‌شوند که از
-// store فعلی می‌خوانند. این exportها برای کاربران پیشرفته‌ای است که
-// می‌خواهند به‌صورت دستی store را مدیریت کنند (مثلاً در test helpers).
-export { domAls, getDOMGlobals, installDOMGlobalGetters, type DOMGlobals } from './dom-context';
+// FEATURE (v1.0.0) + #92: AsyncLocalStorage & Edge-compatible DOM/Request isolation.
+export {
+  domAls,
+  getDOMGlobals,
+  installDOMGlobalGetters,
+  isAsyncLocalStorageAvailable,
+  createAsyncContextStore,
+  getSSRRuntimeEnv,
+  type AsyncContextStore,
+  type DOMGlobals,
+} from './dom-context';
 
 export {
   hydrate,

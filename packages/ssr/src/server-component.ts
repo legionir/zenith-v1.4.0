@@ -1,5 +1,6 @@
 // packages/ssr/src/server-component.ts
 import { developerError, ErrorCode } from '@zenith/errors';
+import { getDOMGlobals } from './dom-context';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
 // رندر می‌شوند و در کلاینت hydrate نمی‌شوند. این مزیت بزرگ Zenith نسبت
@@ -104,9 +105,14 @@ export function registerServerComponent(comp: ServerComponent): () => void {
 
 /**
  * گرفتن یک Server Component از registry.
- * اگر وجود نداشت، undefined برمی‌گرداند.
+ * ابتدا رجیستری اختصاصی درخواست جاری (در صورت وجود در AsyncLocalStorage)
+ * و سپس رجیستری سراسری بررسی می‌شود (#92).
  */
 export function getServerComponent(name: string): ServerComponent | undefined {
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped && scoped.has(name)) {
+    return scoped.get(name);
+  }
   return serverComponentRegistry.get(name);
 }
 

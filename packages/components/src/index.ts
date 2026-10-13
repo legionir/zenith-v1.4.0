@@ -19,6 +19,7 @@ export {
   isComponent,
   clearComponents,
   componentRegistry,
+  setComponentRegistryStore,
   type ComponentDefinition,
 } from './registry';
 

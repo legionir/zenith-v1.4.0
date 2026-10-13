@@ -17,7 +17,7 @@
 // محدودیت: zen-fetch در SSR پشتیبانی نمی‌شود — داده باید از قبل آماده باشد.
 
 import { flushSync } from '@zenith/scheduler';
-import { inlineServerComponents } from './server-component';
+import { inlineServerComponents, type ServerComponent } from './server-component';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { ssrEnvironmentError, ZenithError, ErrorCode } from '@zenith/errors';
 // FEATURE (v1.0.0): AsyncLocalStorage برای isolation per-request.
@@ -32,6 +32,12 @@ import { domAls, type DOMGlobals } from './dom-context';
 // share می‌شدند — race condition. حالا SSR یک provider تنظیم می‌کند که
 // در هر call، EffectContext مخصوص همان async context را برمی‌گرداند.
 import { setEffectContextStore, type EffectContext } from '@zenith/state';
+import {
+  setComponentRegistryStore,
+  setActionRegistryStore,
+  ActionRegistry,
+  type App,
+} from '@zenith/runtime';
 
 /**
  * Serialize state for server-to-client transfer.
@@ -164,6 +170,21 @@ export function runOnClient<T>(fn: () => T): T | undefined {
  * را می‌سازد، callهای بعدی همان را برمی‌گرداند) تا بین effectهای یک درخواست
  * state به اشتراک گذاشته شود اما بین درخواست‌ها ایزوله بماند.
  */
+export interface RenderOptions {
+  route?: string;
+  serializeState?: boolean;
+  /** #92 / #148: نمونهٔ مستقل App ساخته‌شده با createApp */
+  app?: App;
+  /** #92: کامپوننت‌های سرور اختصاصی این درخواست (بدون نشت به سایر درخواست‌ها) */
+  serverComponents?: Record<string, ServerComponent | ServerComponent['render']>;
+  /** #92: اکشن‌های اختصاصی این درخواست */
+  actions?: Record<string, (ctx: any) => void | Promise<void>>;
+  /** #92: زبان/locale اختصاصی این درخواست */
+  locale?: string;
+  /** #92: سازندهٔ DOM سفارشی برای محیط‌های Edge بدون jsdom */
+  createDOM?: (html: string, url: string) => { window: any; close?: () => void };
+}
+
 let _effectContextStoreInstalled = false;
 function setEffectContextStoreOnce(): void {
   if (_effectContextStoreInstalled) return;
@@ -179,6 +200,22 @@ function setEffectContextStoreOnce(): void {
       };
     }
     return store.effectContext ?? null;
+  });
+  setComponentRegistryStore(() => {
+    const store = domAls.getStore();
+    if (!store) return null;
+    if (!store.componentRegistry) {
+      store.componentRegistry = new Map();
+    }
+    return store.componentRegistry;
+  });
+  setActionRegistryStore(() => {
+    const store = domAls.getStore();
+    if (!store) return null;
+    if (!store.actionRegistry) {
+      store.actionRegistry = new ActionRegistry();
+    }
+    return store.actionRegistry;
   });
 }
 
@@ -198,38 +235,46 @@ function setEffectContextStoreOnce(): void {
 export async function renderToString(
   html: string,
   state: Record<string, any>,
-  options: { route?: string; serializeState?: boolean } = {},
+  options: RenderOptions = {},
 ): Promise<SSRResult> {
-  // BUG-22 FIX (v1.2.2): setEffectContextStore را با یک provider تنظیم کن که
-  // در هر call، EffectContext مخصوص async context فعلی (via domAls) را
-  // برمی‌گرداند. این کار از race condition در SSR concurrent جلوگیری می‌کند.
-  // Provider یک‌بار به‌صورت سراسری تنظیم می‌شود (بدون وابستگی به request خاص)
-  // اما چون domAls.getStore() در هر call بر اساس async context فعلی عمل می‌کند،
-  // هر درخواست EffectContext مستقل خود را دریافت می‌کند.
-  // نکته: این setEffectContextStore فقط یک‌بار global تنظیم می‌شود. برای
-  // جلوگیری از re-install در هر فراخوانی renderToString، فقط در اولین call
-  // (یا وقتی provider null است) آن را set می‌کنیم.
   setEffectContextStoreOnce();
 
-  // FEATURE (v0.4.0): pre-pass برای inline کردن Server Components.
-  // این کار قبل از JSDOM انجام می‌شود چون Server Components مستقل از
-  // walker هستند و فقط HTML تولید می‌کنند. state برای resolve کردن
-  // propهای $key.path پاس داده می‌شود.
-  //
-  // نکته: این pre-pass قبل از ساخت JSDOM و setup کردن AsyncLocalStorage
-  // است تا در صورت خطا، DOM سرور آلوده نشود.
-  html = await inlineServerComponents(html, state);
+  // #92: کپی سطحی state برای جلوگیری از نشت تغییرات به آبجکت ورودی مشترک
+  const renderState: Record<string, any> = { ...state };
+  if (options.locale !== undefined && !('locale' in renderState)) {
+    renderState.locale = options.locale;
+  }
 
-  let JSDOM: any;
-  try {
-    JSDOM = (await import('jsdom')).JSDOM;
-  } catch {
-    // FEATURE (v1.0.0): پیام خطای بهبودیافته با تشخیص محیط.
-    throw ssrEnvironmentError('jsdom-missing');
+  // ساخت نقشهٔ ServerComponentهای اختصاصی درخواست (#92)
+  const scopedServerComponents = new Map<string, ServerComponent>();
+  if (options.serverComponents) {
+    for (const [name, compOrFn] of Object.entries(options.serverComponents)) {
+      if (typeof compOrFn === 'function') {
+        scopedServerComponents.set(name, { name, render: compOrFn });
+      } else if (compOrFn && typeof compOrFn.render === 'function') {
+        scopedServerComponents.set(name, compOrFn);
+      }
+    }
+  }
+
+  // ساخت رجیستری اکشن اختصاصی درخواست (#92)
+  const scopedActionRegistry = new ActionRegistry();
+  if (options.actions) {
+    for (const [actName, actFn] of Object.entries(options.actions)) {
+      scopedActionRegistry.register(actName, actFn);
+    }
+  }
+
+  let JSDOM: any = null;
+  if (!options.createDOM) {
+    try {
+      JSDOM = (await import('jsdom')).JSDOM;
+    } catch {
+      throw ssrEnvironmentError('jsdom-missing');
+    }
   }
 
   // Pre-import all modules BEFORE entering synchronous section.
-  // This eliminates await gaps inside the critical section.
   const { Zen } = await import('@zenith/runtime');
   let runWithRoute: ((path: string, fn: () => Promise<any>) => Promise<any>) | null = null;
   if (options.route) {
@@ -239,33 +284,37 @@ export async function renderToString(
     } catch {}
   }
 
-  const dom = new JSDOM(`<!DOCTYPE html><html><body>${html}</body></html>`, {
-    pretendToBeVisual: true,
-    url: options.route ? `http://localhost${options.route}` : 'http://localhost/',
-  });
+  const url = options.route ? `http://localhost${options.route}` : 'http://localhost/';
+  let domInstance: { window: any; close?: () => void } | null = null;
 
-  // FEATURE (v1.0.0): ساخت DOM globals از JSDOM برای این درخواست.
-  // این آبجکت در AsyncLocalStorage ذخیره می‌شود و globalThis getters
-  // (که در dom-context.ts نصب شده‌اند) از آن می‌خوانند. هر درخواست
-  // concurrent globals مستقل خود را دارد — globalThis دیگر mutate نمی‌شود.
-  const domGlobals: DOMGlobals = {
-    window: dom.window,
-    document: dom.window.document,
-    Node: dom.window.Node,
-    HTMLElement: dom.window.HTMLElement,
-    Element: dom.window.Element,
-    Event: dom.window.Event,
-    history: dom.window.history,
-    location: dom.window.location,
-    DOMParser: dom.window.DOMParser,
-    MouseEvent: dom.window.MouseEvent,
-    KeyboardEvent: dom.window.KeyboardEvent,
-  };
+  const executeIsolatedRender = async (): Promise<SSRResult> => {
+    // اجرای pre-pass کامپوننت‌های سرور در بستر ایزولهٔ درخواست (#92)
+    const processedHtml = await inlineServerComponents(html, renderState);
 
-  // ── Inner render function (synchronous) ──
-  // این تابع داخل runWithRoute (اگر route مشخص شده) اجرا می‌شود.
-  const doRender = (): SSRResult => {
-    const root = dom.window.document.body.firstElementChild as HTMLElement;
+    domInstance = options.createDOM
+      ? options.createDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, url)
+      : new JSDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, {
+          pretendToBeVisual: true,
+          url,
+        });
+
+    const win = domInstance!.window;
+    const activeStore = domAls.getStore();
+    if (activeStore) {
+      activeStore.window = win;
+      activeStore.document = win.document;
+      activeStore.Node = win.Node;
+      activeStore.HTMLElement = win.HTMLElement;
+      activeStore.Element = win.Element;
+      activeStore.Event = win.Event;
+      activeStore.history = win.history;
+      activeStore.location = win.location;
+      activeStore.DOMParser = win.DOMParser;
+      activeStore.MouseEvent = win.MouseEvent;
+      activeStore.KeyboardEvent = win.KeyboardEvent;
+    }
+
+    const root = win.document.body.firstElementChild as HTMLElement;
     if (!root)
       throw new ZenithError({
         code: ErrorCode.SSR_NO_ROOT_ELEMENT,
@@ -274,22 +323,33 @@ export async function renderToString(
         suggestion: 'root باید به یک element معتبر (مثلاً document.getElementById) اشاره کند.',
       });
 
-    Zen.start(root, state);
+    if (options.app) {
+      const unmount = options.app.mount(root, renderState);
+      flushSync();
+      const resultHtml = root.outerHTML;
+      unmount();
+      return finalizeResult(resultHtml);
+    }
+
+    Zen.start(root, renderState);
     flushSync(); // synchronous — no await gap
 
     const resultHtml = root.outerHTML;
+    Zen.stop(root);
+    return finalizeResult(resultHtml);
+  };
 
+  const finalizeResult = (resultHtml: string): SSRResult => {
     let stateJson = '';
     if (options.serializeState !== false) {
       const s: Record<string, any> = {};
-      for (const k in state) {
-        s[k] = state[k] && typeof state[k].get === 'function' ? state[k].get() : state[k];
+      for (const k in renderState) {
+        s[k] =
+          renderState[k] && typeof renderState[k].get === 'function'
+            ? renderState[k].get()
+            : renderState[k];
       }
-      // SEC FIX (v1.2.6): SEC-A1 — use safeScriptValue for BOTH state AND route
-      // (previously only `<` was escaped on state; route was passed raw via
-      // JSON.stringify which left `</script>`-style breaks possible).
       stateJson = safeScriptValue(JSON.stringify(s));
-      // SEC FIX (v1.2.6): SEC-A1 — also reject unsafe routes at the source.
       if (!isRouteSafe(options.route)) {
         throw new ZenithError({
           code: ErrorCode.SECURITY_XSS_BLOCKED,
@@ -300,34 +360,42 @@ export async function renderToString(
         });
       }
     }
-
-    Zen.stop(root);
     return { html: resultHtml, state: stateJson, route: options.route };
   };
 
-  // FEATURE (v1.0.0): اجرای doRender داخل AsyncLocalStorage.
-  // این کار DOM globals را برای این درخواست ایزوله می‌کند. globalThis
-  // دیگر mutate نمی‌شود — به‌جای آن، getters (که در dom-context نصب
-  // شده‌اند) از store فعلی می‌خوانند. concurrent درخواست‌ها کاملاً ایزوله‌اند.
+  const initialGlobals: DOMGlobals = {
+    window: undefined,
+    document: undefined,
+    Node: undefined,
+    HTMLElement: undefined,
+    Element: undefined,
+    Event: undefined,
+    history: undefined,
+    location: undefined,
+    DOMParser: undefined,
+    MouseEvent: undefined,
+    KeyboardEvent: undefined,
+    componentRegistry: new Map(),
+    actionRegistry: scopedActionRegistry,
+    serverComponents: scopedServerComponents,
+    locale: options.locale,
+  };
+
   try {
-    // اگر route مشخص شده، داخل runWithRoute اجرا کن تا routeSignal ایزوله باشد.
-    // در غیر این صورت، مستقیماً اجرا کن.
     if (runWithRoute && options.route) {
-      // runWithRoute یک async function است، اما doRender sync است.
-      // domAls.run داخل callback آن فراخوانی می‌شود تا store برای duration
-      // doRender تنظیم شود. AsyncLocalStorage از طریق await های داخل
-      // runWithRoute propagate می‌شود.
       return await runWithRoute(options.route, async () => {
-        return domAls.run(domGlobals, () => doRender());
+        return await domAls.run(initialGlobals, () => executeIsolatedRender());
       });
     }
-    return domAls.run(domGlobals, () => doRender());
+    return await domAls.run(initialGlobals, () => executeIsolatedRender());
   } finally {
-    // FEATURE (v1.0.0): فقط JSDOM را ببند — globalThis را restore نکن.
-    // چون globalThis دیگر mutate نشده، نیازی به restore نیست. هر درخواست
-    // AsyncLocalStorage store مستقل خود را داشت که با خروج از domAls.run
-    // به‌صورت خودکار پاک می‌شود.
-    dom.window.close();
+    if (domInstance) {
+      if (typeof domInstance.close === 'function') {
+        domInstance.close();
+      } else if (typeof domInstance.window?.close === 'function') {
+        domInstance.window.close();
+      }
+    }
   }
 }
 
