@@ -81,11 +81,12 @@ describe('Wave 6 P2 Batch 4 — repo/CI/docs quality (#42,#43,#44,#78,#81,#82,#8
 
   it('#82: jobهای مصرف‌کنندهٔ build از dist cache استفاده می‌کنند و build شرطی است', () => {
     const cacheCount = (wf.match(/Restore dist cache \(#82\)/g) ?? []).length;
-    expect(cacheCount).toBe(4); // package-lint / peer-single-instance / size / e2e
+    expect(cacheCount).toBe(3); // package-lint / peer-single-instance / e2e
+    // size job عمداً کش ندارد: سنجهٔ بودجه باید روی build تازهٔ همین commit باشد.
     expect(wf).toContain('packages/*/dist');
     expect(wf).toContain('actions/cache@v4');
     const condCount = (wf.match(/cache-hit != 'true'/g) ?? []).length;
-    expect(condCount).toBe(4);
+    expect(condCount).toBe(3);
   });
 
   it('#84: بنچمارک CI با بودجهٔ عملکرد در workflow اجرا می‌شود', () => {

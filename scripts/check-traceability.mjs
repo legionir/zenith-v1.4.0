@@ -43,7 +43,12 @@ function walkFiles(dir, predicate, out = []) {
 
 export function collectSourceClaims(rootDir = process.cwd()) {
   const packagesDir = join(rootDir, 'packages');
-  const srcFiles = walkFiles(packagesDir, (p) => p.includes('/src/') && /\.(ts|js|mjs)$/.test(p));
+  // Windows: walkFiles با join() مسیر بک‌اسلش می‌سازد؛ پیش از فیلتر نرمال شود
+  // وگرنه claims.map خالی می‌ماند (BUG-01..09 روی windows-latest غایب بودند).
+  const srcFiles = walkFiles(
+    packagesDir,
+    (p) => p.replace(/\\/g, '/').includes('/src/') && /\.(ts|js|mjs)$/.test(p),
+  );
 
   /** @type {Map<string, { sources: Set<string>; tests: Set<string> }>} */
   const claims = new Map();
