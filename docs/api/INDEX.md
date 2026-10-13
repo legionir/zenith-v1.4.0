@@ -6,7 +6,9 @@
 |------|----------------------------|---------------------|----------------|
 | `@zenith/actions` | `universal` | 15 | [actions.md](./actions.md) |
 | `@zenith/auth` | `universal` | 43 | [auth.md](./auth.md) |
+| `@zenith/auth-oauth` | `universal` | 23 | [auth-oauth.md](./auth-oauth.md) |
 | `@zenith/cache` | `universal` | 16 | [cache.md](./cache.md) |
+| `@zenith/charts` | `universal` | 11 | [charts.md](./charts.md) |
 | `@zenith/cli` | `node` | 1 | [cli.md](./cli.md) |
 | `@zenith/compiler` | `universal` | 15 | [compiler.md](./compiler.md) |
 | `@zenith/components` | `browser` | 22 | [components.md](./components.md) |
@@ -20,9 +22,11 @@
 | `@zenith/errors` | `universal` | 47 | [errors.md](./errors.md) |
 | `@zenith/events` | `browser` | 24 | [events.md](./events.md) |
 | `@zenith/expressions` | `universal` | 28 | [expressions.md](./expressions.md) |
+| `@zenith/feature-flags` | `universal` | 13 | [feature-flags.md](./feature-flags.md) |
 | `@zenith/form` | `universal` | 43 | [form.md](./form.md) |
 | `@zenith/http` | `universal` | 39 | [http.md](./http.md) |
 | `@zenith/i18n` | `universal` | 39 | [i18n.md](./i18n.md) |
+| `@zenith/icons` | `universal` | 12 | [icons.md](./icons.md) |
 | `@zenith/jalali` | `universal` | 32 | [jalali.md](./jalali.md) |
 | `@zenith/language-server` | `universal` | 7 | [language-server.md](./language-server.md) |
 | `@zenith/logger` | `universal` | 22 | [logger.md](./logger.md) |
@@ -44,6 +48,7 @@
 | `@zenith/store` | `universal` | 17 | [store.md](./store.md) |
 | `@zenith/suspense` | `universal` | 13 | [suspense.md](./suspense.md) |
 | `@zenith/testing` | `universal` | 30 | [testing.md](./testing.md) |
+| `@zenith/theme` | `universal` | 16 | [theme.md](./theme.md) |
 | `@zenith/transition` | `browser` | 27 | [transition.md](./transition.md) |
 | `@zenith/virtual-list` | `browser` | 15 | [virtual-list.md](./virtual-list.md) |
 | `@zenith/vite-plugin` | `node` | 17 | [vite-plugin.md](./vite-plugin.md) |

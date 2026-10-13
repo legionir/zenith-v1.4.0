@@ -17,7 +17,7 @@ describe('package.json fields (#70)', () => {
   const dirs = packageDirs();
 
   it('covers all 45 packages', () => {
-    expect(dirs).toHaveLength(45); // #147 devtools-core, #148 runtime-core, #149 zenith, #160 language-server (41 → 45)
+    expect(dirs).toHaveLength(50); // #147..#149,#160 + #161,#162,#168,#169,#170 (41 → 50)
   });
 
   it.each(dirs)('%s has repository with directory', (dir) => {

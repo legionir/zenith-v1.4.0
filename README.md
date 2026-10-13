@@ -121,6 +121,11 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/vite-plugin`](packages/vite-plugin) | Tooling | HMR و تزریق devtools | [📄](packages/vite-plugin/README.md) |
 | [`@zenith/cli`](packages/cli) | Tooling | scaffold، `check`، lighthouse | [📄](packages/cli/README.md) |
 | [`@zenith/language-server`](packages/language-server) | Tooling | هستهٔ LSP مشترک (تحلیل دایرکتیو/سیگنال — #160) | [📄](packages/language-server/README.md) |
+| [`@zenith/theme`](packages/theme) | L2 | حالت روشن/تاریک، tokenها، dir و اسکریپت no-flash (#161) | [📄](packages/theme/README.md) |
+| [`@zenith/auth-oauth`](packages/auth-oauth) | L2 | OAuth2/OIDC با PKCE، discovery، JWKS (#162) | [📄](packages/auth-oauth/README.md) |
+| [`@zenith/feature-flags`](packages/feature-flags) | L2 | پرچم‌های ویژگی واکنشی با rollout پایدار (#168) | [📄](packages/feature-flags/README.md) |
+| [`@zenith/charts`](packages/charts) | L2 | نمودار SVG (line/area/bar/pie/scatter) با جدول a11y (#169) | [📄](packages/charts/README.md) |
+| [`@zenith/icons`](packages/icons) | L2 | رجیستری آیکن SVG با sanitize و zen-icon (#170) | [📄](packages/icons/README.md) |
 | [`zenith-vscode`](packages/vscode-extension) | Tooling | پشتیبانی زبان VS Code | [📄](packages/vscode-extension/README.md) |
 | [`devtools-extension`](packages/devtools-extension) | Tooling | افزونهٔ مرورگر (Chrome/Firefox) | [📄](packages/devtools-extension/README.md) |
 

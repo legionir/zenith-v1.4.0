@@ -8,7 +8,7 @@ describe('Published package tarball & ATTW types resolution audit (#74)', () => 
     const res = auditPackages(process.cwd(), { runNpmPack: false });
     expect(res.errors).toEqual([]);
     expect(res.ok).toBe(true);
-    expect(res.checked).toBe(44); // #147..#149 + #160 language-server
+    expect(res.checked).toBe(49); // #147..#149 + #160,#161,#162,#168,#169,#170
   });
 
   it('runs pack-audit --pack in the CI package-lint job', () => {

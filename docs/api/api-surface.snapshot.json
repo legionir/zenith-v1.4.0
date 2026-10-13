@@ -301,6 +301,127 @@
       }
     ]
   },
+  "@zenith/auth-oauth": {
+    "slug": "auth-oauth",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "base64url",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "discover",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DiscoveryDoc",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JwtClaims",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "JwtVerifyOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "oauthAuthAdapter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthClient",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthClientOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthStatus",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthTokens",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthUser",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "parseJwt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pkceChallenge",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthCallback",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthLogin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthLogout",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "randomToken",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateClaims",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "verifyIdToken",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
   "@zenith/cache": {
     "slug": "cache",
     "target": "universal",
@@ -382,6 +503,67 @@
       },
       {
         "name": "unregisterCache",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/charts": {
+    "slug": "charts",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "Chart",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "chartOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ChartRow",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartSeries",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createChart",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "prefersReducedMotion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processChart",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderChartSvg",
         "kind": "function",
         "tag": "public"
       }
@@ -1910,6 +2092,77 @@
       }
     ]
   },
+  "@zenith/feature-flags": {
+    "slug": "feature-flags",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FlagContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Flags",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FlagsOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FlagSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "flagsPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FlagValue",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processFlag",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processFlagVariant",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "stableHashRollout",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
   "@zenith/form": {
     "slug": "form",
     "target": "universal",
@@ -2528,6 +2781,72 @@
       },
       {
         "name": "useI18n",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/icons": {
+    "slug": "icons",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "BASIC_ICONS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineIconSet",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "IconDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "IconSet",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "listIcons",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerIcons",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeIconBody",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterIcon",
         "kind": "function",
         "tag": "public"
       }
@@ -6155,6 +6474,92 @@
       {
         "name": "zenithMatchers",
         "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/theme": {
+    "slug": "theme",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processDir",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processThemeMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processThemeToggle",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveThemeOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Theme",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeDir",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "themeInitScript",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeMode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "themeOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "themePlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeTokenSet",
+        "kind": "type",
         "tag": "public"
       }
     ]

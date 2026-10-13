@@ -27,7 +27,7 @@ describe('root README.md (issue #69)', () => {
 
   it('lists all 46 package directories in the table', () => {
     // #142: schema (40 → 41)؛ #145: storage (41 → 42)؛ #147..#149: devtools-core, runtime-core, zenith (42 → 45)؛ #160: language-server (45 → 46)
-    expect(pkgDirs).toHaveLength(46);
+    expect(pkgDirs).toHaveLength(51); // #160 + پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
     for (const d of pkgDirs) {
       expect(readme, `table row for packages/${d}`).toContain(`(packages/${d})`);
     }

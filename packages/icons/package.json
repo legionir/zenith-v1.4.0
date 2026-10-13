@@ -1,0 +1,61 @@
+{
+  "name": "@zenith/icons",
+  "version": "1.4.0",
+  "description": "Zenith framework — SVG icon registry with sanitize, a11y roles and zen-icon directive (tree-shakable).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "icons",
+    "svg",
+    "a11y"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/icons"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

@@ -7,7 +7,7 @@ import { auditPublicEntrypointAny } from '../check-public-any.mjs';
 describe('Public API surface snapshot, TypeDoc reference, conditional exports & public-any audit (#38, #56, #57, #103)', () => {
   it('verifies docs/api/api-surface.snapshot.json is up-to-date and every package has README.md and docs/api/<pkg>.md (#56, #103)', () => {
     const res = generateApiDocs(process.cwd(), { checkOnly: true });
-    expect(Object.keys(res.surface).length).toBe(44); // #147..#149 + #160 language-server (41 → 44)
+    expect(Object.keys(res.surface).length).toBe(49); // #147..#149 + #160,#161,#162,#168,#169,#170 (41 → 49)
     expect(existsSync(join(process.cwd(), 'docs/api/INDEX.md'))).toBe(true);
 
     for (const [, info] of Object.entries(res.surface)) {
