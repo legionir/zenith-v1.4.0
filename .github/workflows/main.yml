@@ -279,16 +279,9 @@ jobs:
           cache: npm
       - run: npm ci
       # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
-      - name: Restore dist cache (#82)
-        id: dist
-        uses: actions/cache@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/vscode-extension/out
-          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
-      - name: Build all packages (cache miss)
-        if: steps.dist.outputs.cache-hit != 'true'
+      # #79/#83: size و wrap-up budget باید همیشه روی build تازهٔ همین commit
+      # سنجه شود؛ کش dist مشمشکل تست عملکرد سنجه را مردود می‌کند (مبهم).
+      - name: Build all packages
         run: npm run build
       - run: npm run build:browser
       # #79/#83: per-package and bundle gzip budgets (.size-limit.json).

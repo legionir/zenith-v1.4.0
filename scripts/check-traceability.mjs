@@ -14,9 +14,23 @@ const TAG_REGEX = /\b(BUG-(?:[A-Z]+-)?\d+|IMP-(?:[A-Z]+-)?\d+|SEC-[A-Z0-9-]+)\b/
 
 function walkFiles(dir, predicate, out = []) {
   if (!existsSync(dir)) return out;
-  for (const entry of readdirSync(dir)) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch (err) {
+    // #82/#172: پوشهٔ گذرای scaffold موازی ممکن است وسط walk محو شود.
+    if (err && err.code === 'ENOENT') return out;
+    throw err;
+  }
+  for (const entry of entries) {
     const full = join(dir, entry);
-    const st = statSync(full);
+    let st;
+    try {
+      st = statSync(full);
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
     if (st.isDirectory()) {
       if (entry === 'node_modules' || entry === 'dist' || entry === 'out') continue;
       walkFiles(full, predicate, out);
@@ -45,7 +59,17 @@ export function collectSourceClaims(rootDir = process.cwd()) {
           .map((f) => `packages/${pkgSlug}/test/${f}`)
       : [];
 
-    const content = readFileSync(file, 'utf8');
+    // #82/#172: به‌موازات اجرای workerهای vitest، تست scaffold دریکتوری موقت
+    // packages/tmp-scaffold-verify می‌سازد و در همان لحظه پاک می‌کند؛ فایلِ
+    // لیست‌شده ممکن است میان walk و read از بین برود (ENOENT). نادیده‌گیری امن است:
+    // فایل گذرا بخشی از حقیقت مخزن نیست.
+    let content;
+    try {
+      content = readFileSync(file, 'utf8');
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
     for (const match of content.matchAll(TAG_REGEX)) {
       const id = match[1];
       if (!claims.has(id)) {
@@ -165,7 +189,14 @@ export function checkTraceability(rootDir = process.cwd()) {
   for (const file of docAndPkgFiles) {
     const rel = relative(rootDir, file).replace(/\\/g, '/');
     if (rel === 'docs/progress/PROGRESS.md') continue;
-    const text = readFileSync(file, 'utf8');
+    // همان race تست scaffold موازی (بالاتر) — فایل گذرا را رد کن.
+    let text;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
     if (text.includes('audit/all.md')) {
       errors.push(`Broken reference to non-existent audit/all.md in ${rel}`);
     }
