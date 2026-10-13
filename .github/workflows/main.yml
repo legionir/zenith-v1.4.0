@@ -128,6 +128,8 @@ jobs:
       # #173: attribute-grammar doc ↔ directive-meta registry consistency
       # (table §۴ vs zenith.meta.seed.json; no-unknown-option pre-#159 gate).
       - run: npm run attribute-grammar
+      # #12: every BUG-*/IMP-*/SEC-* claim in src must map to an existing test in docs/TRACEABILITY.md.
+      - run: npm run traceability
 
   package-lint:
     name: Package lint (publint)
