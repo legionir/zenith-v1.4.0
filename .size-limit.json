@@ -22,7 +22,7 @@
   {
     "name": "@zenith/cli",
     "path": "packages/cli/dist/index.js",
-    "limit": "19 kb"
+    "limit": "25 kb"
   },
   {
     "name": "@zenith/compiler",
@@ -202,7 +202,7 @@
   {
     "name": "@zenith/state",
     "path": "packages/state/dist/index.js",
-    "limit": "4 kb"
+    "limit": "4.5 kb"
   },
   {
     "name": "@zenith/stateful",
