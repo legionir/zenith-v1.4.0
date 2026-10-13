@@ -42,4 +42,19 @@ the exact manual action.
 - [ ] فایل‌های `.github/dependabot.yml`، `.gitleaks.toml`، اسکریپت `scripts/secret-scan.mjs` و گام‌های CI (`npm audit` + `gitleaks/gitleaks-action@v2`) اضافه شدند.
 - [ ] در GitHub: Settings → Code security and analysis → **Secret scanning** و **Push protection** را روی مخزن فعال کنید.
 
+## #66 — پیکربندی Trusted Publishing (OIDC) در npm و محیط `release` در GitHub
+
+- [ ] ورک‌فلوی `.github/workflows/release.yml` با `id-token: write`، `environment: release` و پرچم `--provenance` ساخته شد.
+- [ ] در GitHub: Settings → Environments → یک محیط به نام **`release`** با Required reviewers (حداقل یک نگه‌دارنده از `MAINTAINERS.md`) بسازید و هرگونه Secret قدیمی `NPM_TOKEN` را حذف کنید.
+- [ ] در npmjs.com: در تنظیمات پکیج‌های `@zenith/*` و `zenith`، گزینهٔ **Trusted Publisher** را به مخزن `legionir/zenith-v1.4.0` و فایل ورک‌فلوی `release.yml` (محیط `release`) متصل کنید.
+
+## #80 — فعال‌سازی قوانین Branch Protection در تنظیمات GitHub
+
+- [ ] فایل‌های `.github/CODEOWNERS`، `MAINTAINERS.md`، `CONTRIBUTING.md`، `CODE_OF_CONDUCT.md`، `GOVERNANCE.md` و `ROADMAP.md` ایجاد شدند.
+- [ ] در GitHub: Settings → Branches → Branch protection rules روی شاخهٔ اصلی (`main`) گزینه‌های زیر را فعال کنید:
+  - **Require a pull request before merging** + **Require review from Code Owners** (حداقل ۱ تأییدیه)
+  - **Require status checks to pass before merging** (تمام چک‌های `.github/workflows/main.yml`)
+  - **Require linear history** و مسدودسازی **Allow force pushes**
+
+
 

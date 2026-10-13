@@ -175,6 +175,9 @@ jobs:
         run: node scripts/sync-license.mjs --check
       - name: publint all packages
         run: npm run publint
+      # #74: verify files allowlist, ATTW types ordering, and npm pack --dry-run tarball contents
+      - name: Audit package tarballs & types resolution
+        run: node scripts/pack-audit.mjs --pack
 
   peer-single-instance:
     name: Peer single instance (#46)
@@ -205,8 +208,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run build:browser
-      # #79 budget (.size-limit.json); per-package budgets expand in #83.
+      # #79/#83: per-package and bundle gzip budgets (.size-limit.json).
       - run: npm run size
+      - name: Publish size table to job summary
+        if: always()
+        run: node scripts/size-report.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
     name: Browser e2e (Chromium, Firefox, WebKit)

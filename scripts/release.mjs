@@ -22,6 +22,7 @@ export function parseReleaseArgs(argv = process.argv.slice(2)) {
   let dryRun = true;
   let skipChecks = false;
   let allowDirty = false;
+  let provenance = false;
   let fromPkg = null;
   let registry = null;
 
@@ -31,6 +32,8 @@ export function parseReleaseArgs(argv = process.argv.slice(2)) {
       dryRun = false;
     } else if (arg === '--dry-run') {
       dryRun = true;
+    } else if (arg === '--provenance') {
+      provenance = true;
     } else if (arg === '--skip-checks') {
       skipChecks = true;
     } else if (arg === '--allow-dirty') {
@@ -46,7 +49,7 @@ export function parseReleaseArgs(argv = process.argv.slice(2)) {
     }
   }
 
-  return { dryRun, skipChecks, allowDirty, fromPkg, registry };
+  return { dryRun, skipChecks, allowDirty, provenance, fromPkg, registry };
 }
 
 function defaultExec(cmd, args, opts = {}) {
@@ -188,7 +191,9 @@ export function runRelease(options = {}) {
 
   // 7. Publish in topological order (stopping immediately on first failure)
   const published = [];
-  const useProvenance = Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL && !registry);
+  const useProvenance = Boolean(
+    options.provenance || (process.env.ACTIONS_ID_TOKEN_REQUEST_URL && !registry),
+  );
 
   for (const pkg of targetPackages) {
     const publishArgs = ['publish', '--access', 'public'];

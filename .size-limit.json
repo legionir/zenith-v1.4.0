@@ -5,34 +5,14 @@
     "limit": "51 kb"
   },
   {
-    "name": "@zenith/state",
-    "path": "packages/state/dist/index.js",
+    "name": "@zenith/actions",
+    "path": "packages/actions/dist/index.js",
     "limit": "4 kb"
   },
   {
-    "name": "@zenith/scheduler",
-    "path": "packages/scheduler/dist/index.js",
-    "limit": "2 kb"
-  },
-  {
-    "name": "@zenith/expressions",
-    "path": "packages/expressions/dist/index.js",
-    "limit": "6 kb"
-  },
-  {
-    "name": "@zenith/compiler",
-    "path": "packages/compiler/dist/index.js",
-    "limit": "8 kb"
-  },
-  {
-    "name": "@zenith/shared",
-    "path": "packages/shared/dist/index.js",
-    "limit": "2 kb"
-  },
-  {
-    "name": "@zenith/logger",
-    "path": "packages/logger/dist/index.js",
-    "limit": "2 kb"
+    "name": "@zenith/auth",
+    "path": "packages/auth/dist/index.js",
+    "limit": "11 kb"
   },
   {
     "name": "@zenith/cache",
@@ -40,18 +20,43 @@
     "limit": "3 kb"
   },
   {
-    "name": "@zenith/jalali",
-    "path": "packages/jalali/dist/index.js",
+    "name": "@zenith/cli",
+    "path": "packages/cli/dist/index.js",
+    "limit": "19 kb"
+  },
+  {
+    "name": "@zenith/compiler",
+    "path": "packages/compiler/dist/index.js",
+    "limit": "8 kb"
+  },
+  {
+    "name": "@zenith/components",
+    "path": "packages/components/dist/index.js",
+    "limit": "7 kb"
+  },
+  {
+    "name": "@zenith/crud",
+    "path": "packages/crud/dist/index.js",
+    "limit": "11 kb"
+  },
+  {
+    "name": "@zenith/data",
+    "path": "packages/data/dist/index.js",
     "limit": "4 kb"
   },
   {
-    "name": "@zenith/schema",
-    "path": "packages/schema/dist/index.js",
+    "name": "@zenith/data-table",
+    "path": "packages/data-table/dist/index.js",
     "limit": "4 kb"
   },
   {
-    "name": "@zenith/storage",
-    "path": "packages/storage/dist/index.js",
+    "name": "@zenith/dependency-graph",
+    "path": "packages/dependency-graph/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/devtools",
+    "path": "packages/devtools/dist/index.js",
     "limit": "4 kb"
   },
   {
@@ -60,9 +65,159 @@
     "limit": "4 kb"
   },
   {
+    "name": "@zenith/error-boundary",
+    "path": "packages/error-boundary/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/errors",
+    "path": "packages/errors/dist/index.js",
+    "limit": "19 kb"
+  },
+  {
+    "name": "@zenith/events",
+    "path": "packages/events/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/expressions",
+    "path": "packages/expressions/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/form",
+    "path": "packages/form/dist/index.js",
+    "limit": "12 kb"
+  },
+  {
+    "name": "@zenith/http",
+    "path": "packages/http/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/i18n",
+    "path": "packages/i18n/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/jalali",
+    "path": "packages/jalali/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/logger",
+    "path": "packages/logger/dist/index.js",
+    "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/notifications",
+    "path": "packages/notifications/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/permission",
+    "path": "packages/permission/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/resource",
+    "path": "packages/resource/dist/index.js",
+    "limit": "8 kb"
+  },
+  {
+    "name": "@zenith/router",
+    "path": "packages/router/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/runtime",
+    "path": "packages/runtime/dist/index.js",
+    "limit": "33 kb"
+  },
+  {
     "name": "@zenith/runtime-core",
     "path": "packages/runtime-core/dist/index.js",
     "limit": "8 kb"
+  },
+  {
+    "name": "@zenith/scheduler",
+    "path": "packages/scheduler/dist/index.js",
+    "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/schema",
+    "path": "packages/schema/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/security",
+    "path": "packages/security/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/service-worker",
+    "path": "packages/service-worker/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/shared",
+    "path": "packages/shared/dist/index.js",
+    "limit": "2 kb"
+  },
+  {
+    "name": "@zenith/ssr",
+    "path": "packages/ssr/dist/index.js",
+    "limit": "9 kb"
+  },
+  {
+    "name": "@zenith/state",
+    "path": "packages/state/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/stateful",
+    "path": "packages/stateful/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/storage",
+    "path": "packages/storage/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/store",
+    "path": "packages/store/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/suspense",
+    "path": "packages/suspense/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/testing",
+    "path": "packages/testing/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/transition",
+    "path": "packages/transition/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/virtual-list",
+    "path": "packages/virtual-list/dist/index.js",
+    "limit": "7 kb"
+  },
+  {
+    "name": "@zenith/vite-plugin",
+    "path": "packages/vite-plugin/dist/index.js",
+    "limit": "8 kb"
+  },
+  {
+    "name": "zenith",
+    "path": "packages/zenith/dist/index.js",
+    "limit": "4 kb"
   },
   {
     "name": "zenith (core)",

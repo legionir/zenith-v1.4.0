@@ -1,0 +1,14 @@
+# Zenith Framework CODEOWNERS (#80, #107)
+# Default owners for everything in the repository (minimum two maintainers)
+* @legionir @zenith-framework/core-maintainers
+
+# Security-critical packages and workflows require mandatory security review
+/SECURITY.md @legionir @zenith-framework/security-reviewers
+/docs/security/ @legionir @zenith-framework/security-reviewers
+/packages/security/ @legionir @zenith-framework/security-reviewers
+/packages/auth/ @legionir @zenith-framework/security-reviewers
+/packages/permission/ @legionir @zenith-framework/security-reviewers
+/packages/expressions/ @legionir @zenith-framework/security-reviewers
+/packages/ssr/ @legionir @zenith-framework/security-reviewers
+/.github/workflows/ @legionir @zenith-framework/security-reviewers
+/scripts/release.mjs @legionir @zenith-framework/core-maintainers
