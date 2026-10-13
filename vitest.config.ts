@@ -63,18 +63,20 @@ export default defineConfig({
     globals: false,
     coverage: {
       provider: 'v8',
-      // #27: the four core packages must each reach >= 70% statement coverage.
-      // (service-worker / other packages are covered by their own targeted tests
-      // but are not part of the "core" coverage gate yet.)
+      // #29: the four core packages must each reach >= 80% statement coverage.
       include: [
         'packages/state/src/**',
         'packages/scheduler/src/**',
         'packages/expressions/src/**',
         'packages/compiler/src/**',
       ],
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'json-summary', 'html'],
       thresholds: {
-        statements: 70,
+        statements: 80,
+        'packages/state/src/**': { statements: 80 },
+        'packages/scheduler/src/**': { statements: 80 },
+        'packages/expressions/src/**': { statements: 80 },
+        'packages/compiler/src/**': { statements: 80 },
       },
     },
   },

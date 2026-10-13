@@ -73,7 +73,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      # #27: vitest with the >=70% statement coverage gate on core packages.
+      # #29: vitest with the >=80% statement coverage gate on core packages.
       - run: npm run test:coverage
       - name: Upload coverage
         if: always()
