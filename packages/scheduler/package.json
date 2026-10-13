@@ -49,9 +49,6 @@
     "access": "public",
     "provenance": true
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "dependencies": {
     "@zenith/errors": "1.4.0"
   },

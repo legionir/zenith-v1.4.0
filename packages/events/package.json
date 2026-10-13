@@ -55,9 +55,7 @@
     "@zenith/errors": "1.4.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "jsdom": "^25.0.1",
-    "typescript": "^5.4.0"
+    "jsdom": "^25.0.1"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0",

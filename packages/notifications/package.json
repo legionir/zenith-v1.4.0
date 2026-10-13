@@ -51,9 +51,6 @@
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "zenith": {
     "target": "browser"
   }

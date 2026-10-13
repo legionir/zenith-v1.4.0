@@ -52,9 +52,6 @@
     "@zenith/errors": "1.4.0",
     "@zenith/expressions": "1.4.0"
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
   },

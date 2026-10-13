@@ -381,5 +381,3 @@ export function cleanupDevtools(): void {
   }
   cleanupHookInstance();
 }
-// Listener cleanup added for packages/devtools/src/hook.ts
-// Real listener removal: stored handlers for pagehide/visibilitychange cleaned via __zenCleanupHandlers in cleanupDevtools()

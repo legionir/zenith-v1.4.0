@@ -83,6 +83,38 @@ jobs:
           path: coverage/
           retention-days: 14
 
+  # #81 (STD): ماتریس سیستم‌عامل — مسیرها/CLI/FS روی ویندوز و مک‌ هم باید سبز بمانند.
+  unit-os-matrix:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run scripts/test/
+
+  # #84: benchmark خودکار CI با بودجهٔ عملکرد (benchmarks/budgets.json) —
+  # رگرسیون هر متریک (بدتر از بودجه×۰٫۶) جریان را قرمز می‌کند.
+  benchmark:
+    name: Performance benchmark (#84)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run bench:ci
+
   audit:
     name: Dependency audit (prod + dev) & Secret Scan
     runs-on: ubuntu-latest
@@ -102,6 +134,18 @@ jobs:
       # #65: secret scan across tracked repository files
       - name: Secret scan (gitleaks rules)
         run: node scripts/secret-scan.mjs
+      # #78: SBOM (CycloneDX) برای هر push + بررسی لایسنس وابستگی‌ها در برابر allowlist.
+      - name: SBOM (CycloneDX)
+        run: npm run make:sbom
+      - name: License check (#78)
+        run: npm run license:check
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 14
 
   secret-scan:
     name: Secret scan (Gitleaks)
@@ -162,7 +206,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       # vscode-extension's publint entry (out/extension.js) is compiled here,
       # not by the esbuild pipeline (it has no src/index.ts).
       - name: Compile vscode extension
@@ -190,7 +245,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       # npm-pack state/scheduler + two consumers into a throwaway app and
       # assert exactly one copy of each singleton in the resulting tree.
       - run: npm run peer:single-instance
@@ -206,7 +272,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       - run: npm run build:browser
       # #79/#83: per-package and bundle gzip budgets (.size-limit.json).
       - run: npm run size
@@ -225,7 +302,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Run e2e

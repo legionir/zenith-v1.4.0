@@ -1,0 +1,52 @@
+# .github/ISSUE_TEMPLATE/feature_request.yml
+# #85 (STD): قالب درخواست قابلیت — هم‌راستای API-CONVENTIONS از ابتدای طراحی.
+name: ✨ درخواست قابلیت
+description: پیشنهاد API/قابلیت جدید برای فریم‌ورک
+title: "[FEAT] توضیح کوتاه"
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: مسئله‌ای که حل می‌کند
+      description: مورد استفاده (use case) و درد فعلی
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: پیشنهاد API (زبان: API-CONVENTIONS)
+      description: |
+        ساختار/options/interface را مطابق docs/API-CONVENTIONS.md
+        (§1 options object، §3 نام‌گذاری، §6 ساخت فاز init/setup/load/cleanup)
+        ترسیم کنید.
+      placeholder: |
+        ```ts
+        interface MyFeatureOptions { ... }
+        zen.doThing(opts: MyFeatureOptions): ...
+        ```
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: لایهٔ هدف
+      options:
+        - L0 — Shared/Errors
+        - L1 — State/Scheduler
+        - L2 — Domain (router/http/…)
+        - L3 — Runtime/SSR
+        - Tooling (cli/vite-plugin/…)
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: چک‌لیست انطباق با قرارداد API
+      options:
+        - label: options-object استفاده می‌کنم (نه آرگومان‌های پوزیشنال طولانی).
+          required: false
+        - label: نام‌گذاری مطابق docs/API-CONVENTIONS.md §3/§6 است.
+          required: false
+        - label: رفتار error و cleanup (ZenithError/Disposable) را مشخص کرده‌ام.
+          required: false

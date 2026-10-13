@@ -1,0 +1,56 @@
+# .github/ISSUE_TEMPLATE/bug_report.yml
+# #85 (STD): قالب گزارش باگ با چک‌لیست انطباق با قرارداد API.
+name: 🐛 گزارش باگ
+description: گزارش مشکل در رفتار فریم‌ورک یا مستندات
+title: "[BUG] توضیح کوتاه"
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ممنون از گزارش! لطفاً فیلدهای زیر را با دقت پر کنید تا رفتهرفتن (triage) سریع انجام شود.
+  - type: input
+    id: package
+    attributes:
+      label: پکیج/بخش متاثر
+      description: نام پکیج (مثلاً @zenith/router) یا ماژول
+      placeholder: "@zenith/runtime"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: نحوهٔ بازتولید
+      description: قدم‌های دقیق تا دیدن مشکل
+      placeholder: |
+        1. `Zen.start({...})` را فراخوانی کنید
+        2. با دادهٔ X ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: رفتار مورد انتظار
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: رفتار واقعی (با کد خطا/کنسول)
+      description: متن کامل خطا (با کد ZEN-####) اگر وجود دارد
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: محیط
+      placeholder: "Node 22 / Firefox 130 / Zenith 1.4.0"
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: چک‌لیست‌شيوهٔ گزارش
+      options:
+        - label: جستجو کردم و issue تکراری قبلاً باز نشده است.
+          required: true
+        - label: بازتولید بدون پلاگین‌های شخص ثالث تأیید شده است.
+          required: false

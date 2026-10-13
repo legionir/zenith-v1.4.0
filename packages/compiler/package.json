@@ -51,7 +51,6 @@
     "@zenith/dependency-graph": "1.4.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
     "jsdom": "^24.0.0"
   },
   "zenith": {

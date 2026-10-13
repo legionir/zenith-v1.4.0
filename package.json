@@ -34,6 +34,9 @@
     "test:leak": "vitest run packages/runtime/test/memory-leak-harness.test.ts",
     "pack:audit": "node scripts/pack-audit.mjs",
     "bench": "node scripts/bench.mjs",
+    "bench:ci": "node scripts/benchmark-ci.mjs",
+    "make:sbom": "node scripts/generate-sbom.mjs",
+    "license:check": "node scripts/check-licenses.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs"
   },
   "devDependencies": {

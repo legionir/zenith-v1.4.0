@@ -46,10 +46,6 @@
     "access": "public",
     "provenance": true
   },
-  "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.11.0"
-  },
   "module": "./dist/index.js",
   "dependencies": {
     "@zenith/errors": "1.4.0",

@@ -59,9 +59,6 @@
     "@zenith/state": "^1.4.0",
     "@zenith/scheduler": "^1.4.0"
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "zenith": {
     "target": "node"
   }

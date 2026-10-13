@@ -49,9 +49,6 @@
     "@zenith/error-boundary": "1.4.0",
     "@zenith/security": "1.4.0"
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "module": "./dist/index.js",
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
