@@ -945,6 +945,108 @@ export class Auth implements Disposable {
     const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
     return match ? (match[2] ?? null) : null;
   }
+
+  /**
+   * #139: فعال‌سازی همگام‌سازی خروج (logout) و تازه‌سازی توکن بین تب‌های مرورگر
+   * با استفاده از `BroadcastChannel` یا رویداد `storage`.
+   */
+  enableCrossTabSync(channelName = 'zenith:auth:sync'): () => void {
+    const cleanups: Array<() => void> = [];
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel(channelName);
+      const onMsg = (ev: MessageEvent) => {
+        if (this._destroyed) return;
+        if (ev.data?.type === 'logout') {
+          this._clearTokens();
+          this._signal.set({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            tokenExpiry: null,
+            error: null,
+          });
+        }
+      };
+      bc.addEventListener('message', onMsg);
+      const unsubLogout = this.on('logout', () => {
+        try {
+          bc.postMessage({ type: 'logout', ts: Date.now() });
+        } catch {
+          // ignore closed channel
+        }
+      });
+      cleanups.push(unsubLogout, () => {
+        bc.removeEventListener('message', onMsg);
+        bc.close();
+      });
+    }
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      const onStorage = (ev: StorageEvent) => {
+        if (this._destroyed) return;
+        if (ev.key === this._config.tokenKey && ev.newValue === null) {
+          this._signal.set({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            tokenExpiry: null,
+            error: null,
+          });
+        }
+      };
+      window.addEventListener('storage', onStorage);
+      cleanups.push(() => window.removeEventListener('storage', onStorage));
+    }
+
+    let stopped = false;
+    return () => {
+      if (stopped) return;
+      stopped = true;
+      for (const fn of cleanups) fn();
+    };
+  }
+
+  /**
+   * #139: نقطهٔ گسترش تایید دو مرحله‌ای (MFA/OTP) روی نمونهٔ Auth.
+   */
+  async verifyMfa(
+    code: string,
+    verifyUrl = `${this._config.loginUrl.replace(/\/$/, '')}/mfa`,
+  ): Promise<boolean> {
+    if (this._destroyed || !code) return false;
+    try {
+      const res = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.authHeaders(),
+        },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const token = data[this._config.tokenField] ?? this.token;
+      const user = data[this._config.userField] ?? this.user;
+      if (token) {
+        this._storeTokens(token, data[this._config.refreshTokenField]);
+        this._signal.set({
+          ...this._signal.get(),
+          token,
+          user,
+          isAuthenticated: true,
+          error: null,
+        });
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
@@ -982,6 +1084,24 @@ export function registerAuth(name: string, auth: Auth): () => void {
  */
 export function getAuth(name: string = 'default'): Auth | undefined {
   return authRegistry.get(name);
+}
+
+/** #118 / #139: بررسی وجود Auth در رجیستری (`hasX`). */
+export function hasAuth(name: string = 'default'): boolean {
+  return authRegistry.has(name);
+}
+
+/** #118 / #139: فهرست نام تمام نمونه‌های Auth ثبت‌شده (`listXs`). */
+export function listAuths(): string[] {
+  return Array.from(authRegistry.keys());
+}
+
+/** #118 / #139: حذف یک نمونهٔ Auth با نام از رجیستری (`unregisterX`). */
+export function unregisterAuth(name: string): boolean {
+  const existing = authRegistry.get(name);
+  if (!existing) return false;
+  existing.dispose();
+  return authRegistry.delete(name);
 }
 
 /**

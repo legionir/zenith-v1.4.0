@@ -120,7 +120,7 @@ const STRUCTURAL_CONFLICT_MATRIX: Array<[string, string]> = [
   ['zen-show', 'zen-else'],
 ];
 
-const COMPILABLE_DIRECTIVES = new Set([
+export const COMPILABLE_DIRECTIVES = new Set([
   'zen-text',
   'zen-if',
   'zen-show',
@@ -141,7 +141,7 @@ const COMPILABLE_DIRECTIVES = new Set([
  * این directiveها روی عنصر حفظ می‌شوند (setAttribute) و runtime walker
  * پس از render() آن‌ها را پردازش می‌کند.
  */
-const RUNTIME_DIRECTIVES = new Set([
+export const RUNTIME_DIRECTIVES = new Set([
   'zen-action',
   'zen-fetch',
   'zen-resource',
@@ -202,6 +202,13 @@ const RUNTIME_DIRECTIVES = new Set([
   'zen-island',
   'zen-memo',
   'zen-virtual',
+  // #138: ۶ دایرکتیو فقط-runtime در walker.ts که اکنون صراحتاً در RUNTIME_DIRECTIVES ثبت شده‌اند
+  'zen-resource-view',
+  'zen-action-button',
+  'zen-auth-view',
+  'zen-router',
+  'zen-button',
+  'zen-if-chain',
 ]);
 
 /**

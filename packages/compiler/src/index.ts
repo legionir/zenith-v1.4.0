@@ -1,5 +1,7 @@
 export {
   compileTemplate,
+  COMPILABLE_DIRECTIVES,
+  RUNTIME_DIRECTIVES,
   type CompiledTemplate,
   type CompilerOptions,
   type CompileOptions,

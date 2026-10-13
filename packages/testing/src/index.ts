@@ -16,6 +16,10 @@ export {
   expectAccessible,
   registerTestingReset,
   resetForTesting,
+  useFakeTimers,
+  mockHttp,
+  mockRouter,
+  testDirective,
 } from './testing';
 export type {
   TestHarness,
@@ -26,4 +30,9 @@ export type {
   A11yViolation,
   A11yAuditOptions,
   A11yAuditResult,
+  FakeTimersController,
+  MockHttpCall,
+  MockHttpController,
+  MockRouterController,
+  DirectiveTestResult,
 } from './testing';

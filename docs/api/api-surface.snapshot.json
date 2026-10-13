@@ -215,6 +215,11 @@
         "tag": "public"
       },
       {
+        "name": "hasAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "hasPermission",
         "kind": "function",
         "tag": "public"
@@ -226,6 +231,11 @@
       },
       {
         "name": "initAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listAuths",
         "kind": "function",
         "tag": "public"
       },
@@ -277,6 +287,11 @@
       {
         "name": "RouteGuard",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterAuth",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -388,6 +403,11 @@
     "target": "universal",
     "exports": [
       {
+        "name": "COMPILABLE_DIRECTIVES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
         "name": "CompiledTemplate",
         "kind": "type",
         "tag": "public"
@@ -445,6 +465,11 @@
       {
         "name": "runParityTest",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RUNTIME_DIRECTIVES",
+        "kind": "const",
         "tag": "public"
       },
       {
@@ -5717,6 +5742,11 @@
         "tag": "public"
       },
       {
+        "name": "DirectiveTestResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "expectAccessible",
         "kind": "function",
         "tag": "public"
@@ -5727,7 +5757,37 @@
         "tag": "public"
       },
       {
+        "name": "FakeTimersController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockHttp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MockHttpCall",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MockHttpController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "MockResource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockRouter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MockRouterController",
         "kind": "type",
         "tag": "public"
       },
@@ -5752,6 +5812,11 @@
         "tag": "public"
       },
       {
+        "name": "testDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "TestHarness",
         "kind": "type",
         "tag": "public"
@@ -5763,6 +5828,11 @@
       },
       {
         "name": "trackEffect",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useFakeTimers",
         "kind": "function",
         "tag": "public"
       },

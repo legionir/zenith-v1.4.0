@@ -730,6 +730,13 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#135`: سیگنال‌های واکنش‌گرای `can(permission)` / `canSignal` / `hasRoleSignal` و قرارداد ۵ متدی رجیستری در `@zenith/permission`؛
   - `#136`: افزودن رسمی `passive` و `capture` به `BUILTIN_MODIFIERS` و `extractListenerOptions` در `@zenith/events`.
 
+- موج ۴ — دستهٔ ۱۰ از P1 (`#137`, `#138`, `#139`, `#140`):
+  - `#137`: تکمیل ابزارهای ارگونومیک تست در `@zenith/testing` شامل `useFakeTimers` (یکپارچه با `flushSync`)، `mockHttp`، `mockRouter`، `testDirective` و `resetForTesting`؛
+  - `#138`: ثبت صریح ۶ دایرکتیو فقط-runtime (`zen-resource-view`, `zen-action-button`, `zen-auth-view`, `zen-router`, `zen-button`, `zen-if-chain`) در `RUNTIME_DIRECTIVES` کامپایلر، صادرات `COMPILABLE_DIRECTIVES`/`RUNTIME_DIRECTIVES` و مستند جدول انطباق (`docs/DIRECTIVE-PARITY.md`)؛
+  - `#139`: تکمیل قرارداد ۵ متدی رجیستری در `@zenith/auth` (`hasAuth`, `listAuths`, `unregisterAuth`)، همگام‌سازی خروج بین تب‌ها (`enableCrossTabSync`) و پشتیبانی از چالش MFA/OTP (`verifyMfa`)؛
+  - `#140`: اسکریپت بررسی خودکار انطباق خروجی `.d.ts` و باندل JS (`scripts/check-dts-js-parity.mjs`) در تمامی ۴۳ پکیج.
+
+
 
 
 

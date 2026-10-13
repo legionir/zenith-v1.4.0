@@ -563,3 +563,269 @@ export function resetForTesting(): void {
   }
 }
 
+export interface FakeTimersController {
+  now: () => number;
+  advanceTimersByTime: (ms: number) => void;
+  runAllTimers: () => void;
+  restore: () => void;
+  dispose: () => void;
+}
+
+/**
+ * #137: تایمرهای مصنوعی یکپارچه با `flushSync()` زمان‌بند Zenith برای تست‌های قطعی.
+ */
+export function useFakeTimers(initialNow = 1_700_000_000_000): FakeTimersController {
+  const origSetTimeout = globalThis.setTimeout;
+  const origClearTimeout = globalThis.clearTimeout;
+  let currentTime = initialNow;
+  let nextTimerId = 1;
+  let restored = false;
+
+  const queue: Array<{ id: number; due: number; fn: () => void }> = [];
+
+  (globalThis as any).setTimeout = (fn: (...args: any[]) => void, delay = 0, ...args: any[]) => {
+    const id = nextTimerId++;
+    queue.push({
+      id,
+      due: currentTime + Math.max(0, Number(delay) || 0),
+      fn: () => fn(...args),
+    });
+    queue.sort((a, b) => a.due - b.due || a.id - b.id);
+    return id as unknown as ReturnType<typeof setTimeout>;
+  };
+
+  (globalThis as any).clearTimeout = (id: any) => {
+    const idx = queue.findIndex((t) => t.id === Number(id));
+    if (idx !== -1) queue.splice(idx, 1);
+  };
+
+  const advanceTimersByTime = (ms: number): void => {
+    const target = currentTime + Math.max(0, ms);
+    while (queue.length > 0 && queue[0]!.due <= target) {
+      const next = queue.shift()!;
+      currentTime = next.due;
+      next.fn();
+      flushSync();
+    }
+    currentTime = target;
+    flushSync();
+  };
+
+  const runAllTimers = (): void => {
+    let guard = 0;
+    while (queue.length > 0 && guard++ < 10_000) {
+      const next = queue.shift()!;
+      currentTime = Math.max(currentTime, next.due);
+      next.fn();
+      flushSync();
+    }
+    flushSync();
+  };
+
+  const restore = (): void => {
+    if (restored) return;
+    restored = true;
+    queue.length = 0;
+    globalThis.setTimeout = origSetTimeout;
+    globalThis.clearTimeout = origClearTimeout;
+  };
+
+  return {
+    now: () => currentTime,
+    advanceTimersByTime,
+    runAllTimers,
+    restore,
+    dispose: restore,
+  };
+}
+
+export interface MockHttpCall {
+  url: string;
+  init: RequestInit;
+}
+
+export interface MockHttpController {
+  calls: MockHttpCall[];
+  restore: () => void;
+  dispose: () => void;
+}
+
+/**
+ * #137: شبیه‌ساز درخواست‌های `fetch` برای تست‌های بدون شبکه (مانند `zen-fetch` و `@zenith/http`).
+ */
+export function mockHttp(
+  handler: (
+    url: string,
+    init: RequestInit,
+  ) => Response | Promise<Response> | { status?: number; headers?: Record<string, string>; data?: any },
+): MockHttpController {
+  const origFetch = globalThis.fetch;
+  const calls: MockHttpCall[] = [];
+  let restored = false;
+
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const rawUrl =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const reqInit = init ?? {};
+    calls.push({ url: rawUrl, init: reqInit });
+    const res = await handler(rawUrl, reqInit);
+    if (res instanceof Response) return res;
+    const status = typeof res?.status === 'number' ? res.status : 200;
+    const bodyText = JSON.stringify(res && 'data' in res ? res.data : res ?? {});
+    return new Response(bodyText, {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(res?.headers ?? {}),
+      },
+    });
+  };
+
+  const restore = (): void => {
+    if (restored) return;
+    restored = true;
+    globalThis.fetch = origFetch;
+  };
+
+  return {
+    calls,
+    restore,
+    dispose: restore,
+  };
+}
+
+export interface MockRouterController {
+  currentPath: Signal<string>;
+  history: string[];
+  navigate: (to: string, options?: { replace?: boolean }) => void;
+  reset: () => void;
+  dispose: () => void;
+}
+
+/**
+ * #137: مسیریاب آزمایشی در حافظه برای تست کامپوننت‌ها و گاردهای مسیر بدون وابستگی به تاریخچهٔ مرورگر.
+ */
+export function mockRouter(initialPath = '/'): MockRouterController {
+  const currentPath = signal(initialPath);
+  const history: string[] = [initialPath];
+
+  const navigate = (to: string, options?: { replace?: boolean }): void => {
+    if (options?.replace && history.length > 0) {
+      history[history.length - 1] = to;
+    } else {
+      history.push(to);
+    }
+    currentPath.set(to);
+    flushSync();
+  };
+
+  const reset = (): void => {
+    history.length = 0;
+    history.push(initialPath);
+    currentPath.set(initialPath);
+    flushSync();
+  };
+
+  return {
+    currentPath,
+    history,
+    navigate,
+    reset,
+    dispose: reset,
+  };
+}
+
+export interface DirectiveTestResult<S extends Record<string, any> = Record<string, any>> {
+  container: HTMLElement;
+  el: HTMLElement;
+  state: S;
+  flush: () => void;
+  dispose: () => void;
+}
+
+/**
+ * #137: ابزار تست ایزولهٔ یک دایرکتیو روی قطعهٔ HTML و وضعیت اولیه.
+ */
+export function testDirective<S extends Record<string, any> = Record<string, any>>(
+  directive: {
+    name: string;
+    bind: (
+      el: HTMLElement,
+      ctx: {
+        expression: string;
+        arg?: string;
+        modifiers: string[];
+        state: S;
+        eval: (expr?: string) => any;
+      },
+    ) => (() => void) | void;
+  },
+  html: string,
+  state: S = {} as S,
+): DirectiveTestResult<S> {
+  if (typeof document === 'undefined') {
+    throw developerError(
+      'testDirective() requires a DOM environment (jsdom or browser)',
+      ErrorCode.INTERNAL_DEVELOPER_ERROR,
+    );
+  }
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  const prefix = directive.name.startsWith('zen-') ? directive.name : `zen-${directive.name}`;
+  const cleanups: Array<() => void> = [];
+  const allEls = [container, ...Array.from(container.querySelectorAll('*'))] as HTMLElement[];
+  let firstMatched: HTMLElement | null = null;
+
+  for (const node of allEls) {
+    if (!node.attributes) continue;
+    for (const attr of Array.from(node.attributes)) {
+      if (attr.name === prefix || attr.name.startsWith(`${prefix}:`) || attr.name.startsWith(`${prefix}.`)) {
+        if (!firstMatched) firstMatched = node;
+        const rest = attr.name.slice(prefix.length);
+        let arg: string | undefined;
+        let modifiers: string[] = [];
+        if (rest.startsWith(':')) {
+          const parts = rest.slice(1).split('.');
+          arg = parts[0];
+          modifiers = parts.slice(1);
+        } else if (rest.startsWith('.')) {
+          modifiers = rest.slice(1).split('.');
+        }
+        const expression = attr.value;
+        const stop = directive.bind(node, {
+          expression,
+          arg,
+          modifiers,
+          state,
+          eval: (expr = expression) => {
+            const key = expr.replace(/^\$/, '').trim();
+            const val = (state as any)[key];
+            return val && typeof val.get === 'function' ? val.get() : val;
+          },
+        });
+        if (typeof stop === 'function') cleanups.push(stop);
+      }
+    }
+  }
+
+  flushSync();
+  let disposed = false;
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    for (const fn of cleanups) fn();
+    container.remove();
+  };
+
+  return {
+    container,
+    el: firstMatched ?? (container.firstElementChild as HTMLElement) ?? container,
+    state,
+    flush: flushSync,
+    dispose,
+  };
+}
+
+

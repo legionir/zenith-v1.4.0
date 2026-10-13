@@ -5,10 +5,10 @@
 | پکیج | محیط هدف (`zenith.target`) | تعداد نمادهای عمومی | صفحهٔ مرجع API |
 |------|----------------------------|---------------------|----------------|
 | `@zenith/actions` | `universal` | 15 | [actions.md](./actions.md) |
-| `@zenith/auth` | `universal` | 40 | [auth.md](./auth.md) |
+| `@zenith/auth` | `universal` | 43 | [auth.md](./auth.md) |
 | `@zenith/cache` | `universal` | 16 | [cache.md](./cache.md) |
 | `@zenith/cli` | `node` | 1 | [cli.md](./cli.md) |
-| `@zenith/compiler` | `universal` | 13 | [compiler.md](./compiler.md) |
+| `@zenith/compiler` | `universal` | 15 | [compiler.md](./compiler.md) |
 | `@zenith/components` | `browser` | 22 | [components.md](./components.md) |
 | `@zenith/crud` | `universal` | 6 | [crud.md](./crud.md) |
 | `@zenith/data` | `universal` | 17 | [data.md](./data.md) |
@@ -42,7 +42,7 @@
 | `@zenith/storage` | `universal` | 32 | [storage.md](./storage.md) |
 | `@zenith/store` | `universal` | 16 | [store.md](./store.md) |
 | `@zenith/suspense` | `universal` | 13 | [suspense.md](./suspense.md) |
-| `@zenith/testing` | `universal` | 20 | [testing.md](./testing.md) |
+| `@zenith/testing` | `universal` | 29 | [testing.md](./testing.md) |
 | `@zenith/transition` | `browser` | 27 | [transition.md](./transition.md) |
 | `@zenith/virtual-list` | `browser` | 15 | [virtual-list.md](./virtual-list.md) |
 | `@zenith/vite-plugin` | `node` | 17 | [vite-plugin.md](./vite-plugin.md) |
