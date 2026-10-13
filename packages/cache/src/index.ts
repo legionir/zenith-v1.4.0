@@ -36,4 +36,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   policy: 'lru' as const,
   staleWhileRevalidate: false,
 });
-

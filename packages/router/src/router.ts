@@ -576,7 +576,12 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const docAny = typeof document !== 'undefined' ? (document as any) : null;
-  if (options?.transition && !reducedMotion && docAny && typeof docAny.startViewTransition === 'function') {
+  if (
+    options?.transition &&
+    !reducedMotion &&
+    docAny &&
+    typeof docAny.startViewTransition === 'function'
+  ) {
     docAny.startViewTransition(commitRoute);
   } else {
     commitRoute();
@@ -781,4 +786,3 @@ export function syncActiveRouteLinks(
     }
   });
 }
-

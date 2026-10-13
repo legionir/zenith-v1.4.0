@@ -73,7 +73,14 @@ export const chartOptionsSchema = defineOptions<ChartOptions>(
 );
 
 const PALETTE = /* @__PURE__ */ Object.freeze([
-  '#4f7cff', '#34a853', '#f9a825', '#d93025', '#9c27b0', '#00bcd4', '#ff7043', '#607d8b',
+  '#4f7cff',
+  '#34a853',
+  '#f9a825',
+  '#d93025',
+  '#9c27b0',
+  '#00bcd4',
+  '#ff7043',
+  '#607d8b',
 ]);
 
 function escapeXml(value: string): string {
@@ -166,9 +173,16 @@ function buildNormalized(options: ChartOptions, data: ChartRow[]): Normalized {
     return { label: def.label ?? def.key, color, points };
   });
 
-  if (!Number.isFinite(minX)) { minX = 0; maxX = 1; }
-  if (!Number.isFinite(maxY)) { maxY = 1; }
-  if (maxY === minY) { maxY = minY + 1; }
+  if (!Number.isFinite(minX)) {
+    minX = 0;
+    maxX = 1;
+  }
+  if (!Number.isFinite(maxY)) {
+    maxY = 1;
+  }
+  if (maxY === minY) {
+    maxY = minY + 1;
+  }
 
   const padding = { top: 16, right: 24, bottom: 32, left: 48 };
   return {
@@ -210,12 +224,13 @@ function axesSvg(n: Normalized): string {
     const py = sy(n, yVal);
     ticks.push(
       `<line x1="${padding.left}" y1="${py}" x2="${x2}" y2="${py}" stroke="#e3e3e3" stroke-width="1"/>` +
-      `<text x="${padding.left - 6}" y="${py + 4}" text-anchor="end" font-size="10" fill="currentColor">${escapeXml(fmt.format(yVal))}</text>`,
+        `<text x="${padding.left - 6}" y="${py + 4}" text-anchor="end" font-size="10" fill="currentColor">${escapeXml(fmt.format(yVal))}</text>`,
     );
   }
   const first = n.series[0];
   const maxLabels = 6;
-  const stride = first && first.points.length > maxLabels ? Math.ceil(first.points.length / maxLabels) : 1;
+  const stride =
+    first && first.points.length > maxLabels ? Math.ceil(first.points.length / maxLabels) : 1;
   if (first) {
     first.points.forEach((pt, idx) => {
       if (idx % stride !== 0 && first.points.length > 2) return;
@@ -363,12 +378,11 @@ export function renderChartSvg(options: ChartOptions, data: ChartRow[]): string 
   const n = buildNormalized(options, data);
   const isPie = n.opts.type === 'pie';
   const motion = options.animate && !prefersReducedMotion();
-  const motionStyle = motion && (n.opts.type === 'line' || n.opts.type === 'area')
-    ? '<style>@keyframes zen-chart-draw{from{stroke-dasharray:0 1000}to{opacity:1}}</style>'
-    : '';
-  const content = isPie
-    ? seriesSvg(n)
-    : `${axesSvg(n)}${seriesSvg(n)}${legendSvg(n)}`;
+  const motionStyle =
+    motion && (n.opts.type === 'line' || n.opts.type === 'area')
+      ? '<style>@keyframes zen-chart-draw{from{stroke-dasharray:0 1000}to{opacity:1}}</style>'
+      : '';
+  const content = isPie ? seriesSvg(n) : `${axesSvg(n)}${seriesSvg(n)}${legendSvg(n)}`;
   return (
     `<svg role="img" aria-label="${escapeXml(n.opts.title)}" xmlns="http://www.w3.org/2000/svg" ` +
     `viewBox="0 0 ${n.width} ${n.height}" width="100%" height="${n.height}" preserveAspectRatio="xMidYMid meet">${motionStyle}${content}</svg>`
@@ -376,18 +390,19 @@ export function renderChartSvg(options: ChartOptions, data: ChartRow[]): string 
 }
 
 function isSignal<T>(value: unknown): value is ReadonlySignal<T> {
-  return typeof value === 'object' && value !== null && typeof (value as { get?: () => T }).get === 'function';
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { get?: () => T }).get === 'function'
+  );
 }
 
 /**
  * #169: ساخت نمودار واکنشی — update روی data سیگنال هم کار می‌کند.
  */
-export function createChart(
-  el: HTMLElement,
-  options: ChartOptions,
-): Chart {
+export function createChart(el: HTMLElement, options: ChartOptions): Chart {
   const dataSig: Signal<ChartRow[]> = isSignal<ChartRow[]>(options.data)
-    ? (options.data as ReadonlySignal<ChartRow[]>) as Signal<ChartRow[]>
+    ? (options.data as ReadonlySignal<ChartRow[]> as Signal<ChartRow[]>)
     : signal((options.data as ChartRow[]) ?? []);
 
   const render = (): void => {

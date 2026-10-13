@@ -165,12 +165,7 @@ describe('Wave 4 P1 Batch 8 — Registry Uniformity, Unambiguous Exports, Direct
   it('validates directive attributes via shared parseConfigAttr and supports lifecycle + provide/inject (#120, #124, #125)', () => {
     const el = document.createElement('div');
     el.setAttribute('data-cfg', '{"delay":150}');
-    const cfg = parseConfigAttr(
-      el,
-      'data-cfg',
-      s.object({ delay: s.number() }),
-      'zen-test',
-    );
+    const cfg = parseConfigAttr(el, 'data-cfg', s.object({ delay: s.number() }), 'zen-test');
     expect(cfg).toEqual({ delay: 150 });
 
     const ThemeKey = createInjectionKey('theme');

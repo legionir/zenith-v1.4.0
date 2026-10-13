@@ -460,7 +460,7 @@ program
   .description('#94: مدیریت telemetry اختیاری (on | off | status) — پیش‌فرض کاملاً خاموش')
   .action((action?: string) => {
     import('./telemetry')
-      .then((m) => process.exitCode = m.runTelemetry(action))
+      .then((m) => (process.exitCode = m.runTelemetry(action)))
       .catch(() => {
         console.error('zenith telemetry: خطای داخلی');
         process.exitCode = 1;

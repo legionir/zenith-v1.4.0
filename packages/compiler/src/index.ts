@@ -31,4 +31,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   sourceMap: false,
   mode: 'spa' as const,
 });
-

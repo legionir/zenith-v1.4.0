@@ -22,11 +22,7 @@ describe('Browser (Chrome/Firefox/Safari) & Node (18.19/20/22) compatibility (#3
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
     expect(Array.isArray(pkg.browserslist)).toBe(true);
     expect(pkg.browserslist).toEqual(
-      expect.arrayContaining([
-        'Chrome >= 109',
-        'Firefox >= 115',
-        'Safari >= 16.4',
-      ]),
+      expect.arrayContaining(['Chrome >= 109', 'Firefox >= 115', 'Safari >= 16.4']),
     );
 
     const readme = readFileSync(join(root, 'README.md'), 'utf8');

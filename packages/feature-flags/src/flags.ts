@@ -12,8 +12,7 @@ import type { Disposable, Cleanup } from '@zenith/shared';
 
 export type FlagValue = boolean | { enabled: boolean; rollout?: number; variant?: string };
 export type FlagSource =
-  | Record<string, FlagValue>
-  | ((context: FlagContext) => Promise<Record<string, FlagValue>>);
+  Record<string, FlagValue> | ((context: FlagContext) => Promise<Record<string, FlagValue>>);
 
 export interface FlagContext {
   userId?: string;
@@ -69,7 +68,10 @@ export function stableHashRollout(name: string, userId: string): number {
   return h % 100;
 }
 
-function normalize(value: FlagValue | undefined, def: boolean): { enabled: boolean; variant: string | null } {
+function normalize(
+  value: FlagValue | undefined,
+  def: boolean,
+): { enabled: boolean; variant: string | null } {
   if (value === undefined) return { enabled: def, variant: null };
   if (typeof value === 'boolean') return { enabled: value, variant: null };
   return { enabled: Boolean(value.enabled), variant: value.variant ?? null };

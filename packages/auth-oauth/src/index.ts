@@ -14,7 +14,13 @@ export {
 
 export { randomToken, pkceChallenge, base64url } from './pkce';
 
-export { parseJwt, validateClaims, verifyIdToken, type JwtClaims, type JwtVerifyOptions } from './jwt';
+export {
+  parseJwt,
+  validateClaims,
+  verifyIdToken,
+  type JwtClaims,
+  type JwtVerifyOptions,
+} from './jwt';
 
 export {
   processOAuthLogin,

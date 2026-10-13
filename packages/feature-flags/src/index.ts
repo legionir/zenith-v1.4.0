@@ -11,9 +11,4 @@ export {
   type FlagContext,
 } from './flags';
 
-export {
-  processFlag,
-  processFlagVariant,
-  setActiveFlags,
-  getActiveFlags,
-} from './directives';
+export { processFlag, processFlagVariant, setActiveFlags, getActiveFlags } from './directives';

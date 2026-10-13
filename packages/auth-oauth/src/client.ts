@@ -56,7 +56,12 @@ export interface OAuthClient extends Disposable {
   readonly user: ReadonlySignal<OAuthUser | null>;
   readonly status: Signal<OAuthStatus>;
   readonly idTokenClaims: ReadonlySignal<JwtClaims | null>;
-  login(opts?: { provider?: string; scopes?: string[]; prompt?: string; loginHint?: string }): Promise<string>;
+  login(opts?: {
+    provider?: string;
+    scopes?: string[];
+    prompt?: string;
+    loginHint?: string;
+  }): Promise<string>;
   handleCallback(url?: string): Promise<OAuthTokens>;
   logout(opts?: { federated?: boolean }): void;
   refresh(): Promise<OAuthTokens>;
@@ -185,12 +190,14 @@ export function createOAuthClient(options: OAuthClientOptions): OAuthClient {
     } catch (cause) {
       throw createReservedError('ZEN-2102', { details: { reason: 'exchange-failed' }, cause });
     }
-    if (!res.ok) throw createReservedError('ZEN-2102', {
-      details: { reason: 'token-status', status: res.status },
-    });
+    if (!res.ok)
+      throw createReservedError('ZEN-2102', {
+        details: { reason: 'token-status', status: res.status },
+      });
     const json = (await res.json()) as Record<string, unknown>;
     const accessToken = json.access_token as string | undefined;
-    if (!accessToken) throw createReservedError('ZEN-2102', { details: { reason: 'no-access-token' } });
+    if (!accessToken)
+      throw createReservedError('ZEN-2102', { details: { reason: 'no-access-token' } });
 
     const result: OAuthTokens = {
       accessToken,
@@ -213,7 +220,7 @@ export function createOAuthClient(options: OAuthClientOptions): OAuthClient {
       claimsSig.set(claims);
       userSig.set({
         sub: String(claims.sub ?? ''),
-        ...((claims as Record<string, unknown>) as object),
+        ...(claims as Record<string, unknown> as object),
       } as OAuthUser);
     }
     return result;
@@ -323,9 +330,10 @@ export function createOAuthClient(options: OAuthClientOptions): OAuthClient {
       } catch (cause) {
         throw createReservedError('ZEN-2104', { cause });
       }
-      if (!res.ok) throw createReservedError('ZEN-2104', {
-        details: { status: res.status },
-      });
+      if (!res.ok)
+        throw createReservedError('ZEN-2104', {
+          details: { status: res.status },
+        });
       const json = (await res.json()) as Record<string, unknown>;
       const next: OAuthTokens = {
         accessToken: json.access_token as string,
@@ -334,7 +342,8 @@ export function createOAuthClient(options: OAuthClientOptions): OAuthClient {
       };
       const expiresIn = typeof json.expires_in === 'number' ? json.expires_in : undefined;
       next.expiresAt = expiresIn !== undefined ? Date.now() + expiresIn * 1000 : current.expiresAt;
-      next.refreshToken = typeof json.refresh_token === 'string' ? json.refresh_token : current.refreshToken;
+      next.refreshToken =
+        typeof json.refresh_token === 'string' ? json.refresh_token : current.refreshToken;
       if (typeof json.id_token === 'string') {
         next.idToken = json.id_token;
         if (claimsSig.get()) {

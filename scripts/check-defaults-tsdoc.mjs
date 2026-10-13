@@ -24,9 +24,9 @@ export function collectPackageOptions(rootDir = process.cwd()) {
     const optionsInterfaces = [...combined.matchAll(/export\s+interface\s+(\w+Options)\b/g)].map(
       (m) => m[1],
     );
-    const defaultsExports = [
-      ...combined.matchAll(/export\s+const\s+([A-Z0-9_]*DEFAULTS)\b/g),
-    ].map((m) => m[1]);
+    const defaultsExports = [...combined.matchAll(/export\s+const\s+([A-Z0-9_]*DEFAULTS)\b/g)].map(
+      (m) => m[1],
+    );
     const hasDefaultTag = combined.includes('@default');
 
     if (optionsInterfaces.length > 0 || defaultsExports.length > 0) {

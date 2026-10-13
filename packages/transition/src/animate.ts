@@ -139,7 +139,9 @@ export function zenAnimate(
 export function zenAnimate(
   el: HTMLElement,
   keyframesOrConfig: Keyframe[] | ZenAnimateConfig,
-  legacyOptions: KeyframeAnimationOptions & { respectReducedMotion?: boolean } = DEFAULT_ANIMATE_OPTIONS,
+  legacyOptions: KeyframeAnimationOptions & {
+    respectReducedMotion?: boolean;
+  } = DEFAULT_ANIMATE_OPTIONS,
 ): Promise<void> {
   const keyframes = Array.isArray(keyframesOrConfig)
     ? keyframesOrConfig

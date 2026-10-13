@@ -35,7 +35,8 @@ export const TELEMETRY_FIELDS = [
   'ci (true/false)',
 ] as const;
 
-const SENSITIVE_KEY = /path|dir|file|home|name|user|email|token|secret|key|url|host|repo|project|cwd/i;
+const SENSITIVE_KEY =
+  /path|dir|file|home|name|user|email|token|secret|key|url|host|repo|project|cwd/i;
 
 function configDir(): string {
   return process.env.ZENITH_CONFIG_HOME?.trim() || path.join(os.homedir(), '.zenith');
@@ -86,9 +87,7 @@ function endpoint(): string | undefined {
 }
 
 /** حذف کلیدهای بالقوهٔ PII از props — هر چیزی که به مسیر/نام/توکن شبیه باشد. */
-export function sanitizeTelemetryProps(
-  props?: Record<string, unknown>,
-): Record<string, unknown> {
+export function sanitizeTelemetryProps(props?: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!props) return out;
   for (const [k, v] of Object.entries(props)) {
@@ -107,10 +106,7 @@ let pending: Promise<unknown>[] = [];
  * #94: ثبت رویداد. اگر telemetry غیرفعال/endpoint ناموجود باشد، no-op کامل است.
  * منتظر نمی‌ماند و هرگز throw نمی‌کند.
  */
-export function telemetryEvent(
-  event: string,
-  props?: Record<string, unknown>,
-): void {
+export function telemetryEvent(event: string, props?: Record<string, unknown>): void {
   const status = telemetryStatus();
   if (!status.enabled || !status.endpoint) return;
   const payload = {
@@ -152,7 +148,8 @@ export function runTelemetry(action: string | undefined): number {
     case 'on': {
       setTelemetryEnabled(true);
       console.log(
-        '✅ [#94] telemetry فعال شد — فقط: ' + TELEMETRY_FIELDS.join('، ') +
+        '✅ [#94] telemetry فعال شد — فقط: ' +
+          TELEMETRY_FIELDS.join('، ') +
           '. قطع هر وقت خواستید: zenith telemetry off یا ZENITH_TELEMETRY=0.',
       );
       return 0;

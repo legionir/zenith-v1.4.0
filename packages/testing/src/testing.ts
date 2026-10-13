@@ -10,7 +10,13 @@
 import { signal, effect, computed, createRoot } from '@zenith/state';
 import type { Signal, ReadonlySignal } from '@zenith/state';
 import { flushSync, nextTick } from '@zenith/scheduler';
-import { developerError, ErrorCode, ZenithError, resetDeprecationWarnings, clearErrorHistory } from '@zenith/errors';
+import {
+  developerError,
+  ErrorCode,
+  ZenithError,
+  resetDeprecationWarnings,
+  clearErrorHistory,
+} from '@zenith/errors';
 
 // ============================================================
 // Test Harness - isolated reactivity environment
@@ -326,7 +332,7 @@ export const zenithMatchers = {
           : `Expected signal to have value ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
     };
   },
-    toBeReadonly(received: any) {
+  toBeReadonly(received: any) {
     const pass = received && typeof received.set === 'undefined';
     return {
       pass,
@@ -483,7 +489,8 @@ export function auditAccessibility(
       pushViolation({
         id: 'aria-dialog-name',
         impact: 'serious',
-        description: 'Dialogs and alertdialogs must have an accessible name (aria-label or aria-labelledby).',
+        description:
+          'Dialogs and alertdialogs must have an accessible name (aria-label or aria-labelledby).',
         selector: dlg.id ? `#${dlg.id}` : '[role="dialog"]',
       });
     }
@@ -526,7 +533,8 @@ export function expectAccessible(
       code: 'ZEN-1403',
       category: 'Validation',
       message: `Accessibility audit failed with ${result.violations.length} violation(s): ${details}`,
-      suggestion: 'خطاهای ARIA/برچسب عناصر را برطرف کنید یا در صورت موجه بودن به allowlist اضافه نمایید.',
+      suggestion:
+        'خطاهای ARIA/برچسب عناصر را برطرف کنید یا در صورت موجه بودن به allowlist اضافه نمایید.',
       context: { violations: result.violations },
     });
   }
@@ -657,7 +665,10 @@ export function mockHttp(
   handler: (
     url: string,
     init: RequestInit,
-  ) => Response | Promise<Response> | { status?: number; headers?: Record<string, string>; data?: any },
+  ) =>
+    | Response
+    | Promise<Response>
+    | { status?: number; headers?: Record<string, string>; data?: any },
 ): MockHttpController {
   const origFetch = globalThis.fetch;
   const calls: MockHttpCall[] = [];
@@ -671,7 +682,7 @@ export function mockHttp(
     const res = await handler(rawUrl, reqInit);
     if (res instanceof Response) return res;
     const status = typeof res?.status === 'number' ? res.status : 200;
-    const bodyText = JSON.stringify(res && 'data' in res ? res.data : res ?? {});
+    const bodyText = JSON.stringify(res && 'data' in res ? res.data : (res ?? {}));
     return new Response(bodyText, {
       status,
       headers: {
@@ -781,7 +792,11 @@ export function testDirective<S extends Record<string, any> = Record<string, any
   for (const node of allEls) {
     if (!node.attributes) continue;
     for (const attr of Array.from(node.attributes)) {
-      if (attr.name === prefix || attr.name.startsWith(`${prefix}:`) || attr.name.startsWith(`${prefix}.`)) {
+      if (
+        attr.name === prefix ||
+        attr.name.startsWith(`${prefix}:`) ||
+        attr.name.startsWith(`${prefix}.`)
+      ) {
         if (!firstMatched) firstMatched = node;
         const rest = attr.name.slice(prefix.length);
         let arg: string | undefined;
@@ -838,5 +853,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   includeWarnings: false,
   level: 'AA' as const,
 });
-
-

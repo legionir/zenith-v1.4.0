@@ -75,7 +75,7 @@ describe('Wave 6 P2 Batch 4 — repo/CI/docs quality (#42,#43,#44,#78,#81,#82,#8
   it('#81: CI ماتریس سیستم‌عامل (windows/macos) دارد که تست‌ها را اجرا می‌کند', () => {
     expect(wf).toContain('unit-os-matrix:');
     expect(wf).toContain('os: [windows-latest, macos-latest]');
-    expect(wf).toContain("runs-on: ${{ matrix.os }}");
+    expect(wf).toContain('runs-on: ${{ matrix.os }}');
     expect(wf).toContain('npx vitest run scripts/test/');
   });
 
@@ -102,9 +102,7 @@ describe('Wave 6 P2 Batch 4 — repo/CI/docs quality (#42,#43,#44,#78,#81,#82,#8
   it('#85: قالب‌های Issue/PR با چک‌لیست انطباق API-CONVENTIONS وجود دارند', () => {
     const bug = read('.github', 'ISSUE_TEMPLATE', 'bug_report.yml');
     expect(bug).toContain('گزارش باگ');
-    expect(read('.github', 'ISSUE_TEMPLATE', 'feature_request.yml')).toContain(
-      'API-CONVENTIONS',
-    );
+    expect(read('.github', 'ISSUE_TEMPLATE', 'feature_request.yml')).toContain('API-CONVENTIONS');
     const pr = read('.github', 'PULL_REQUEST_TEMPLATE.md');
     expect(pr).toContain('docs/API-CONVENTIONS.md');
     expect(pr).toContain('ZenithError');

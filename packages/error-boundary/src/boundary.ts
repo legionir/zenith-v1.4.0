@@ -37,9 +37,8 @@ export { ZenithError };
  * listener داخلی روی hub پرش می‌کند — یعنی هر خطایی (directive، effect،
  * scheduler، emitError مستقیم) errorSignal را آپدیت می‌کند.
  */
-export const errorSignal: Signal<ZenithErrorInfo | null> = /* @__PURE__ */ signal<ZenithErrorInfo | null>(
-  null,
-);
+export const errorSignal: Signal<ZenithErrorInfo | null> =
+  /* @__PURE__ */ signal<ZenithErrorInfo | null>(null);
 
 // فید داخلی: هر خطای hub روی errorSignal منعکس می‌شود. lazy ثبت می‌شود
 // (sideEffects:false — بدون effect در زمان import): اولین باری که از مسیر

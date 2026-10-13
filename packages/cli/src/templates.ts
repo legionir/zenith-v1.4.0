@@ -725,4 +725,3 @@ export function getTemplateManifest(
   }
   return baseFiles;
 }
-

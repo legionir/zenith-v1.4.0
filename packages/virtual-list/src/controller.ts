@@ -268,7 +268,9 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     const measured = measurements.get(key);
     if (measured !== undefined) return measured;
     const estimated =
-      typeof rawSizeOption === 'function' ? untrack(() => rawSizeOption(item, index)) : rawSizeOption;
+      typeof rawSizeOption === 'function'
+        ? untrack(() => rawSizeOption(item, index))
+        : rawSizeOption;
     return Number.isFinite(estimated) && estimated > 0 ? estimated : 1;
   };
 

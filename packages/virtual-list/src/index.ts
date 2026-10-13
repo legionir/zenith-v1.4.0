@@ -29,4 +29,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   overscan: 3,
   direction: 'vertical' as const,
 });
-

@@ -12,9 +12,7 @@ const workspaceSourcePlugin = {
     build.onResolve({ filter: /^@zenith\// }, (args) => {
       const rest = args.path.slice('@zenith/'.length);
       const [pkg, ...sub] = rest.split('/');
-      const pkgJson = JSON.parse(
-        readFileSync(join(ROOT, 'packages', pkg, 'package.json'), 'utf8'),
-      );
+      const pkgJson = JSON.parse(readFileSync(join(ROOT, 'packages', pkg, 'package.json'), 'utf8'));
       const entry = sub.length > 0 ? `${sub.join('/')}.ts` : 'index.ts';
       return {
         path: join(ROOT, 'packages', pkg, 'src', entry),
@@ -30,9 +28,7 @@ const workspaceSourcePlugin = {
       const m = args.importer.match(/\/packages\/([^/]+)\//);
       if (!m) return undefined;
       const pkg = m[1];
-      const pkgJson = JSON.parse(
-        readFileSync(join(ROOT, 'packages', pkg, 'package.json'), 'utf8'),
-      );
+      const pkgJson = JSON.parse(readFileSync(join(ROOT, 'packages', pkg, 'package.json'), 'utf8'));
       const resolvedPath = join(
         args.resolveDir,
         args.path.endsWith('.ts') ? args.path : `${args.path}.ts`,

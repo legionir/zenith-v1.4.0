@@ -70,7 +70,9 @@ export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = 
             );
           }
           if (subpath === '.' && !keys.includes('import') && !keys.includes('default')) {
-            errors.push(`${pkg.name}: exports["."] must provide an "import" or "default" condition`);
+            errors.push(
+              `${pkg.name}: exports["."] must provide an "import" or "default" condition`,
+            );
           }
         }
       }

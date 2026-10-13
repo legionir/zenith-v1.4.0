@@ -84,7 +84,7 @@ export function processDir(el: HTMLElement, expr: string): () => void {
   const dir = expr.trim();
   if (dir !== 'ltr' && dir !== 'rtl' && dir !== 'auto') return () => {};
   const prev = el.getAttribute('dir');
-  el.setAttribute('dir', dir === 'auto' ? getActiveTheme()?.dir.get() ?? 'ltr' : dir);
+  el.setAttribute('dir', dir === 'auto' ? (getActiveTheme()?.dir.get() ?? 'ltr') : dir);
   return () => {
     if (prev === null) el.removeAttribute('dir');
     else el.setAttribute('dir', prev);

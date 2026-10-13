@@ -342,7 +342,8 @@ function createSSRTimeoutError(timeoutMs: number): ZenithError {
     code: 'ZEN-1801',
     category: 'SSR',
     message: `SSR render timed out after ${timeoutMs}ms.`,
-    suggestion: 'renderTimeoutMs / timeout را افزایش دهید یا داده‌های کندِ مسیر را به بافر/کش منتقل کنید.',
+    suggestion:
+      'renderTimeoutMs / timeout را افزایش دهید یا داده‌های کندِ مسیر را به بافر/کش منتقل کنید.',
     context: { timeoutMs },
   });
 }
@@ -472,7 +473,10 @@ export async function renderToString(
     const processedHtml = await inlineServerComponents(html, renderState);
 
     if (options.createDOM) {
-      domInstance = options.createDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, url);
+      domInstance = options.createDOM(
+        `<!DOCTYPE html><html><body>${processedHtml}</body></html>`,
+        url,
+      );
     } else if (useTemplateCache) {
       pooledEntry = _jsdomPool.pop() ?? null;
       if (!pooledEntry) {
@@ -901,7 +905,9 @@ let _activeHead: HeadManager | null = null;
 /**
  * #152: ساخت مدیر واکنشی `<head>` با حذف تگ‌های تکراری (dedupe) و اولویت آخرین ورودی.
  */
-export function createHead(options: { titleTemplate?: string; maxTags?: number } = {}): HeadManager {
+export function createHead(
+  options: { titleTemplate?: string; maxTags?: number } = {},
+): HeadManager {
   const entries = new Set<{ current: SSRHeadInput }>();
   const maxTags = options.maxTags ?? 100;
 
@@ -998,9 +1004,11 @@ export function useHead(input: SSRHeadInput): { patch(next: SSRHeadInput): void;
 /**
  * #152: رندر خروجی `HeadManager` یا `SSRHeadInput` به رشتهٔ HTML امن.
  */
-export function renderHead(
-  head: HeadManager | SSRHeadInput,
-): { headTags: string; htmlAttrs: string; bodyAttrs: string } {
+export function renderHead(head: HeadManager | SSRHeadInput): {
+  headTags: string;
+  htmlAttrs: string;
+  bodyAttrs: string;
+} {
   const resolved = 'resolve' in head && typeof head.resolve === 'function' ? head.resolve() : head;
   return renderSSRHead(resolved as SSRHeadInput);
 }
@@ -1028,7 +1036,8 @@ export function titleFromRoute(
 export interface SSRAdapterOptions {
   template: string;
   app?: () => App;
-  state?: Record<string, any> | ((url: string) => Record<string, any> | Promise<Record<string, any>>);
+  state?:
+    Record<string, any> | ((url: string) => Record<string, any> | Promise<Record<string, any>>);
   timeout?: number;
   health?: string | false;
   cacheControl?: string;
@@ -1068,10 +1077,8 @@ export function createNodeHandler(options: SSRAdapterOptions) {
     try {
       const reqState =
         typeof options.state === 'function' ? await options.state(rawUrl) : (options.state ?? {});
-      const headInput =
-        typeof options.head === 'function' ? options.head(rawUrl) : options.head;
-      const i18nInput =
-        typeof options.i18n === 'function' ? options.i18n(rawUrl) : options.i18n;
+      const headInput = typeof options.head === 'function' ? options.head(rawUrl) : options.head;
+      const i18nInput = typeof options.i18n === 'function' ? options.i18n(rawUrl) : options.i18n;
 
       const ssrRes = await renderToString(options.template, reqState, {
         route: cleanPath,
@@ -1124,10 +1131,8 @@ export function createFetchHandler(options: SSRAdapterOptions) {
         typeof options.state === 'function'
           ? await options.state(parsedUrl.pathname + parsedUrl.search)
           : (options.state ?? {});
-      const headInput =
-        typeof options.head === 'function' ? options.head(cleanPath) : options.head;
-      const i18nInput =
-        typeof options.i18n === 'function' ? options.i18n(cleanPath) : options.i18n;
+      const headInput = typeof options.head === 'function' ? options.head(cleanPath) : options.head;
+      const i18nInput = typeof options.i18n === 'function' ? options.i18n(cleanPath) : options.i18n;
 
       const ssrRes = await renderToString(options.template, reqState, {
         route: cleanPath,
@@ -1160,4 +1165,3 @@ export function createFetchHandler(options: SSRAdapterOptions) {
 
 export const createCloudflareHandler = createFetchHandler;
 export const createDenoHandler = createFetchHandler;
-

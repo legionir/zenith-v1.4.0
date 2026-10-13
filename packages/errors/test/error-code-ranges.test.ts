@@ -118,8 +118,8 @@ describe('4-digit ranges table (#171)', () => {
     const starts = ERROR_CODE_RANGES.map((r) => r.from);
     expect(new Set(starts).size).toBe(17);
     for (const expected of [
-      1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 9000,
-      2500,
+      1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400,
+      9000, 2500,
     ]) {
       expect(starts).toContain(expected);
     }

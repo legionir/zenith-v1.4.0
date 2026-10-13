@@ -17,3 +17,4 @@ benchmarks
 *.min.js
 # Markdown reports (AUDIT/PLAN/…) are prose; formatting churn > value (#36).
 *.md
+.github/dependabot.yml

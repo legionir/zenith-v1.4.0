@@ -57,7 +57,12 @@ export function auditPublicEntrypointAny(rootDir = process.cwd()) {
     }
   }
 
-  return { counts, totalAnyInEntrypoints, violations, zeroAnyPackagesCount: ZERO_ANY_PACKAGES.size };
+  return {
+    counts,
+    totalAnyInEntrypoints,
+    violations,
+    zeroAnyPackagesCount: ZERO_ANY_PACKAGES.size,
+  };
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];

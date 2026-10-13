@@ -42,4 +42,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   initialPage: 1,
   pageSize: 20,
 });
-

@@ -84,7 +84,6 @@ export { Priority } from '@zenith/scheduler';
 // ── #147: SignalObserver hook برای @zenith/devtools-core (SPEC §۲.۷) ──
 export { setSignalObserver, getSignalObserver, type SignalObserver } from './observer';
 
-
 // ── فاز ۱۰: State Registry (منسوخ‌شده در #147؛ حذف در ۲.۰ — DEC-026) ──
 export {
   registerSignal,

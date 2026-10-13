@@ -21,7 +21,8 @@ describe('Public API surface snapshot, TypeDoc reference, conditional exports & 
     const validTargets = new Set(['universal', 'browser', 'node', 'worker']);
     const pkgDirs = readdirSync(join(process.cwd(), 'packages'), { withFileTypes: true })
       .filter(
-        (d) => d.isDirectory() && existsSync(join(process.cwd(), 'packages', d.name, 'package.json')),
+        (d) =>
+          d.isDirectory() && existsSync(join(process.cwd(), 'packages', d.name, 'package.json')),
       )
       .map((d) => d.name);
 

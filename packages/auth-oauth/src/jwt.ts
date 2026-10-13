@@ -32,9 +32,10 @@ export interface JwtVerifyOptions {
 function decodeSegment(seg: string): Uint8Array {
   const b64 = seg.replace(/-/g, '+').replace(/_/g, '/');
   const pad = '='.repeat((4 - (b64.length % 4)) % 4);
-  const bin = typeof atob === 'function'
-    ? atob(b64 + pad)
-    : Buffer.from(b64 + pad, 'base64').toString('binary');
+  const bin =
+    typeof atob === 'function'
+      ? atob(b64 + pad)
+      : Buffer.from(b64 + pad, 'base64').toString('binary');
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
@@ -100,7 +101,9 @@ async function fetchJwks(jwksUri: string, fetchImpl?: typeof fetch): Promise<Jso
     throw createReservedError('ZEN-2102', { details: { reason: 'jwks-fetch' }, cause });
   }
   if (!res.ok) {
-    throw createReservedError('ZEN-2102', { details: { reason: 'jwks-status', status: res.status } });
+    throw createReservedError('ZEN-2102', {
+      details: { reason: 'jwks-status', status: res.status },
+    });
   }
   const body = (await res.json()) as { keys?: JsonWebKey[] };
   if (!Array.isArray(body.keys)) {
@@ -129,15 +132,23 @@ function jwkToCryptoKey(jwk: JsonWebKey, alg: string): Promise<CryptoKey> {
   if (alg === 'ES256' || alg === 'ES384') {
     const crv = alg === 'ES256' ? 'P-256' : 'P-384';
     const hash = alg === 'ES256' ? 'SHA-256' : 'SHA-384';
-    return subtle.importKey(
-      'jwk',
-      { ...jwk, kty: 'EC', crv, ext: true } as unknown as JsonWebKey,
-      { name: 'ECDSA', namedCurve: crv },
-      false,
-      ['verify'],
-    ).then((key) => key, (cause) => {
-      throw createReservedError('ZEN-2102', { details: { reason: 'import-failed', hash }, cause });
-    });
+    return subtle
+      .importKey(
+        'jwk',
+        { ...jwk, kty: 'EC', crv, ext: true } as unknown as JsonWebKey,
+        { name: 'ECDSA', namedCurve: crv },
+        false,
+        ['verify'],
+      )
+      .then(
+        (key) => key,
+        (cause) => {
+          throw createReservedError('ZEN-2102', {
+            details: { reason: 'import-failed', hash },
+            cause,
+          });
+        },
+      );
   }
   throw createReservedError('ZEN-2102', { details: { reason: 'unsupported-alg', alg } });
 }
@@ -170,7 +181,12 @@ export async function verifyIdToken(
         sig.byteOffset + sig.byteLength,
       ) as ArrayBuffer;
       if (alg.startsWith('RS')) {
-        verified = await cryptoApi!.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, sigBytes, data);
+        verified = await cryptoApi!.subtle.verify(
+          { name: 'RSASSA-PKCS1-v1_5' },
+          key,
+          sigBytes,
+          data,
+        );
       } else if (alg.startsWith('ES')) {
         verified = await cryptoApi!.subtle.verify(
           { name: 'ECDSA', hash: alg === 'ES256' ? 'SHA-256' : 'SHA-384' },
@@ -183,7 +199,8 @@ export async function verifyIdToken(
         throw createReservedError('ZEN-2102', { details: { reason: 'invalid-signature' } });
       }
     } catch (cause) {
-      if (cause instanceof Error && /ZEN-2102/.test((cause as { code?: string }).code ?? '')) throw cause;
+      if (cause instanceof Error && /ZEN-2102/.test((cause as { code?: string }).code ?? ''))
+        throw cause;
       throw createReservedError('ZEN-2102', { details: { reason: 'jwks-verify' }, cause });
     }
   }

@@ -30,14 +30,18 @@ describe('Wave 5 Batch 2: پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
     const src = readFileSync(join(pkg('theme'), 'src', 'index.ts'), 'utf8');
     expect(src).toContain('createTheme');
     expect(src).toContain('themePlugin');
-    expect(readFileSync(join(pkg('theme'), 'src', 'theme.ts'), 'utf8')).toContain('themeInitScript');
+    expect(readFileSync(join(pkg('theme'), 'src', 'theme.ts'), 'utf8')).toContain(
+      'themeInitScript',
+    );
     const directives = readFileSync(join(pkg('theme'), 'src', 'directives.ts'), 'utf8');
     expect(directives).toContain('theme-toggle');
     expect(directives).toContain('zen-dir');
   });
 
   it('#162: auth-oauth — PKCE S256 در buildAuthorizeUrl و state/nonceردیابی می‌شود', async () => {
-    const { randomToken, pkceChallenge } = await import(join(root, 'packages/auth-oauth/src/pkce.ts'));
+    const { randomToken, pkceChallenge } = await import(
+      join(root, 'packages/auth-oauth/src/pkce.ts')
+    );
     const token = randomToken(32);
     expect(token).toMatch(/^[A-Za-z0-9_-]{43,64}$/);
     const ch = await pkceChallenge(token);
@@ -46,8 +50,12 @@ describe('Wave 5 Batch 2: پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
     // callback flow: state نامشخص باید ZEN-2101 رد شود
     const { createOAuthClient } = await import(join(root, 'packages/auth-oauth/src/index.ts'));
     const client = createOAuthClient({
-      issuer: 'https://issuer.example', clientId: 'app', redirectUri: 'http://x/cb',
-      fetchImpl: (async () => { throw new Error('net'); }),
+      issuer: 'https://issuer.example',
+      clientId: 'app',
+      redirectUri: 'http://x/cb',
+      fetchImpl: async () => {
+        throw new Error('net');
+      },
     });
     await expect(client.handleCallback('http://x/cb?code=c&state=unknown')).rejects.toMatchObject({
       code: 'ZEN-2101',
@@ -63,22 +71,36 @@ describe('Wave 5 Batch 2: پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
     flushSync();
     expect(sig.get()).toBe(true);
     expect(flags.flag('legacy').get()).toBe(false);
-    const cleanup = flags.override('legacy', true); flushSync();
+    const cleanup = flags.override('legacy', true);
+    flushSync();
     expect(flags.flag('legacy').get()).toBe(true);
-    cleanup(); flushSync();
+    cleanup();
+    flushSync();
     expect(flags.flag('legacy').get()).toBe(false);
     flags.dispose();
     // rollout hash: همان userId نتیجهٔ پایدار دارد (در دو instance).
-    const a = createFlags({ source: { campaign: true }, context: { userId: 'u-1' }, rollout: 'hash' });
-    const b = createFlags({ source: { campaign: true }, context: { userId: 'u-1' }, rollout: 'hash' });
+    const a = createFlags({
+      source: { campaign: true },
+      context: { userId: 'u-1' },
+      rollout: 'hash',
+    });
+    const b = createFlags({
+      source: { campaign: true },
+      context: { userId: 'u-1' },
+      rollout: 'hash',
+    });
     flushSync();
     expect(a.flag('campaign').get()).toBe(b.flag('campaign').get());
-    a.dispose(); b.dispose();
+    a.dispose();
+    b.dispose();
   });
 
   it('#169: charts — renderChartSvg در Node (بدون DOM) خروجی یکسان SSR می‌سازد', async () => {
     const { renderChartSvg } = await import(join(root, 'packages/charts/src/charts.ts'));
-    const data = [{ x: 'الف', v: 1 }, { x: 'ب', v: 2 }];
+    const data = [
+      { x: 'الف', v: 1 },
+      { x: 'ب', v: 2 },
+    ];
     const a = renderChartSvg({ type: 'line', data, x: 'x', y: 'v' }, data);
     const b = renderChartSvg({ type: 'line', data, x: 'x', y: 'v' }, data);
     expect(a).toBe(b);
@@ -86,9 +108,11 @@ describe('Wave 5 Batch 2: پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
   });
 
   it('#170: icons — sanitize بدنهٔ SVG بدخواه + BASIC_ICONS حداقل ۵ آیکن', async () => {
-    const { sanitizeIconBody, BASIC_ICONS, defineIconSet, hasIcon, registerIcons } =
-      await import(join(root, 'packages/icons/src/icons.ts'));
-    const hostile = '<path d="M0 0h10"/><script>alert(1)</script><circle onload="x()" r="2"></circle>';
+    const { sanitizeIconBody, BASIC_ICONS, defineIconSet, hasIcon, registerIcons } = await import(
+      join(root, 'packages/icons/src/icons.ts')
+    );
+    const hostile =
+      '<path d="M0 0h10"/><script>alert(1)</script><circle onload="x()" r="2"></circle>';
     const clean = sanitizeIconBody(hostile);
     expect(clean).not.toContain('script');
     expect(clean).toContain('d="M0 0h10"');

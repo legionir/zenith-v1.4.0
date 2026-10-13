@@ -92,7 +92,9 @@ export function extractPackageExports(entryFile, visited = new Set()) {
           ? stmt.moduleSpecifier.text
           : null;
       const targetFile = spec ? resolveLocalModulePath(entryFile, spec) : null;
-      const targetSymbols = targetFile ? extractPackageExports(targetFile, new Set(visited)) : new Map();
+      const targetSymbols = targetFile
+        ? extractPackageExports(targetFile, new Set(visited))
+        : new Map();
 
       if (!stmt.exportClause) {
         // export * from './...'
@@ -121,7 +123,12 @@ export function extractPackageExports(entryFile, visited = new Set()) {
 export function buildApiSurfaceSnapshot(rootDir = process.cwd()) {
   const packagesDir = join(rootDir, 'packages');
   const slugs = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && existsSync(join(packagesDir, d.name, 'src', 'index.ts')))
+    .filter(
+      (d) =>
+        d.isDirectory() &&
+        existsSync(join(packagesDir, d.name, 'package.json')) &&
+        existsSync(join(packagesDir, d.name, 'src', 'index.ts')),
+    )
     .map((d) => d.name)
     .sort();
 

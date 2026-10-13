@@ -12,8 +12,13 @@ export function randomToken(byteLength = 32): string {
     cryptoApi.getRandomValues(bytes);
   } else {
     // Node 18: crypto.randomFillSync از node:crypto (فقط در محیط Node).
-    const nodeCrypto = (globalThis as unknown as { process?: { getBuiltinModule?: (m: string) => { randomFillSync: (arr: Uint8Array) => void } } })
-      .process?.getBuiltinModule?.('node:crypto');
+    const nodeCrypto = (
+      globalThis as unknown as {
+        process?: {
+          getBuiltinModule?: (m: string) => { randomFillSync: (arr: Uint8Array) => void };
+        };
+      }
+    ).process?.getBuiltinModule?.('node:crypto');
     if (nodeCrypto) {
       nodeCrypto.randomFillSync(bytes);
     } else {
@@ -27,7 +32,8 @@ export function base64url(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
   // btoa در browser و Node ≥16 هر دو وجود دارد.
-  const b64 = typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
+  const b64 =
+    typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
@@ -40,8 +46,15 @@ export async function pkceChallenge(verifier: string): Promise<string> {
     return base64url(new Uint8Array(digest));
   }
   // Node fallback
-  const nodeCrypto = (globalThis as unknown as { process?: { getBuiltinModule?: (m: string) => { createHash: (a: string) => { update: (d: Uint8Array) => { digest: () => Buffer } } } } })
-    .process?.getBuiltinModule?.('node:crypto');
+  const nodeCrypto = (
+    globalThis as unknown as {
+      process?: {
+        getBuiltinModule?: (m: string) => {
+          createHash: (a: string) => { update: (d: Uint8Array) => { digest: () => Buffer } };
+        };
+      };
+    }
+  ).process?.getBuiltinModule?.('node:crypto');
   if (nodeCrypto) {
     const digest = nodeCrypto.createHash('sha256').update(enc.encode(verifier)).digest();
     return base64url(new Uint8Array(digest.buffer, digest.byteOffset, digest.byteLength));

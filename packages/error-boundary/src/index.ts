@@ -41,4 +41,3 @@ export {
 export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   redactPII: true,
 });
-

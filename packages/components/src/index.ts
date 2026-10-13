@@ -209,4 +209,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   retryDelay: 1_000,
   rootMargin: '200px',
 });
-

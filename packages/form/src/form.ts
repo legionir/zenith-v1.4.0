@@ -577,9 +577,7 @@ export function createForm<T extends Record<string, any>>(
 export function createForm<T extends Record<string, any>>(
   options: FormOptions<T> & { initialValues: T },
 ): AdvancedFormApi<T>;
-export function createForm(
-  fields: Record<string, { initial: any; rules?: string }>,
-): FormStore;
+export function createForm(fields: Record<string, { initial: any; rules?: string }>): FormStore;
 export function createForm<T extends Record<string, any>>(
   fieldsOrOptions:
     | Record<string, { initial: any; rules?: string }>
@@ -739,9 +737,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
           return msg;
         }
       } else if (result.ok === false && Array.isArray(result.issues)) {
-        const issue = result.issues.find(
-          (i) => i.path === name || i.path?.startsWith(`${name}.`),
-        );
+        const issue = result.issues.find((i) => i.path === name || i.path?.startsWith(`${name}.`));
         if (issue) {
           const msg = issue.message || 'Invalid value';
           setFieldError(name, msg);

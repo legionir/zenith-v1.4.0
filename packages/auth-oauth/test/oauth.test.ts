@@ -15,18 +15,23 @@ import {
 const ISSUER = 'https://idp.example.com';
 
 function makeJwt(payload: Record<string, unknown>, header = { alg: 'RS256', kid: 'k1' }): string {
-  const b64 = (o: unknown): string =>
-    base64url(new TextEncoder().encode(JSON.stringify(o)));
+  const b64 = (o: unknown): string => base64url(new TextEncoder().encode(JSON.stringify(o)));
   return `${b64(header)}.${b64(payload)}.${base64url(new TextEncoder().encode('fake-sig'))}`;
 }
 
 describe('@zenith/auth-oauth (#162)', () => {
   it('discover مستند well-known را واکشی و اعتبارسنجی می‌کند', async () => {
-    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
-      authorization_endpoint: `${ISSUER}/auth`,
-      token_endpoint: `${ISSUER}/token`,
-      jwks_uri: `${ISSUER}/jwks`,
-    }), { status: 200 }));
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+          { status: 200 },
+        ),
+    );
     const doc = await discover(ISSUER, fetchImpl as unknown as typeof fetch);
     expect(doc.authorization_endpoint).toBe(`${ISSUER}/auth`);
     expect(fetchImpl).toHaveBeenCalledWith(`${ISSUER}/.well-known/openid-configuration`);
@@ -42,11 +47,14 @@ describe('@zenith/auth-oauth (#162)', () => {
       issuer: ISSUER,
       clientId: 'zen-app',
       redirectUri: 'http://localhost:3000/cb',
-      fetchImpl: (async () => new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }))) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+        )) as unknown as typeof fetch,
     });
     const url = await client.login({ scopes: ['openid', 'profile'] });
     const u = new URL(url);
@@ -65,11 +73,14 @@ describe('@zenith/auth-oauth (#162)', () => {
       issuer: ISSUER,
       clientId: 'zen-app',
       redirectUri: 'http://localhost/cb',
-      fetchImpl: (async () => new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }))) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+        )) as unknown as typeof fetch,
     });
     await expect(
       client.handleCallback('http://localhost/cb?code=abc&state=wrong'),
@@ -82,11 +93,14 @@ describe('@zenith/auth-oauth (#162)', () => {
       issuer: ISSUER,
       clientId: 'zen-app',
       redirectUri: 'http://localhost/cb',
-      fetchImpl: (async () => new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }))) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+        )) as unknown as typeof fetch,
     });
     await expect(client.handleCallback('http://localhost/cb?state=x')).rejects.toMatchObject({
       code: 'ZEN-2105',
@@ -96,11 +110,13 @@ describe('@zenith/auth-oauth (#162)', () => {
 
   it('handleCallback کامل: مبادلهٔ code + اعتبارسنجی nonce در id_token', async () => {
     const initialFetch = async (_input: RequestInfo | URL): Promise<Response> =>
-      new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }));
+      new Response(
+        JSON.stringify({
+          authorization_endpoint: `${ISSUER}/auth`,
+          token_endpoint: `${ISSUER}/token`,
+          jwks_uri: `${ISSUER}/jwks`,
+        }),
+      );
     const client = createOAuthClient({
       issuer: ISSUER,
       clientId: 'zen-app',
@@ -119,13 +135,16 @@ describe('@zenith/auth-oauth (#162)', () => {
       nonce,
     });
 
-    const tokenFetch = vi.fn(async (): Promise<Response> =>
-      new Response(JSON.stringify({
-        access_token: 'AT-1',
-        token_type: 'Bearer',
-        expires_in: 3600,
-        id_token: idToken,
-      })),
+    const tokenFetch = vi.fn(
+      async (): Promise<Response> =>
+        new Response(
+          JSON.stringify({
+            access_token: 'AT-1',
+            token_type: 'Bearer',
+            expires_in: 3600,
+            id_token: idToken,
+          }),
+        ),
     );
     expect(tokenFetch).toBeDefined();
 
@@ -153,11 +172,14 @@ describe('@zenith/auth-oauth (#162)', () => {
       issuer: ISSUER,
       clientId: 'zen-app',
       redirectUri: 'http://localhost/cb',
-      fetchImpl: (async () => new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }))) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+        )) as unknown as typeof fetch,
     });
     await expect(client.refresh()).rejects.toMatchObject({ code: 'ZEN-2104' });
     client.dispose();
@@ -176,11 +198,14 @@ describe('@zenith/auth-oauth (#162)', () => {
       issuer: ISSUER,
       clientId: 'zen-app',
       redirectUri: 'http://localhost/cb',
-      fetchImpl: (async () => new Response(JSON.stringify({
-        authorization_endpoint: `${ISSUER}/auth`,
-        token_endpoint: `${ISSUER}/token`,
-        jwks_uri: `${ISSUER}/jwks`,
-      }))) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({
+            authorization_endpoint: `${ISSUER}/auth`,
+            token_endpoint: `${ISSUER}/token`,
+            jwks_uri: `${ISSUER}/jwks`,
+          }),
+        )) as unknown as typeof fetch,
     });
     const plugin = oauthAuthAdapter(client);
     expect(plugin.name).toBe('zenith:auth-oauth');

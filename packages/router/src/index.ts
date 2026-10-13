@@ -49,4 +49,3 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   mode: 'hash' as const,
   replace: false,
 });
-
