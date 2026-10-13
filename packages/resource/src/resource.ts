@@ -883,6 +883,37 @@ export function getResource(name: string): Resource<any> | undefined {
   return resourceRegistry.get(name);
 }
 
+/** #118: ثبت مستقیم Resource در رجیستری با بازگشت Cleanup idempotent. */
+export function registerResource<T = any>(name: string, resource: Resource<T>): () => void {
+  resourceRegistry.set(name, resource);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (resourceRegistry.get(name) === resource) {
+      resourceRegistry.delete(name);
+    }
+  };
+}
+
+/** #118: بررسی وجود Resource در رجیستری (`hasX`). */
+export function hasResource(name: string): boolean {
+  return resourceRegistry.has(name);
+}
+
+/** #118: فهرست نام تمام Resourceهای ثبت‌شده (`listXs`). */
+export function listResources(): string[] {
+  return Array.from(resourceRegistry.keys());
+}
+
+/** #118: حذف یک Resource با نام از رجیستری (`unregisterX`). */
+export function unregisterResource(name: string): boolean {
+  const existing = resourceRegistry.get(name);
+  if (!existing) return false;
+  existing.reset();
+  return resourceRegistry.delete(name);
+}
+
 /**
  * پاکسازی همه‌ی Resource ها (برای تست‌ها).
  */

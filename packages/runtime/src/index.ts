@@ -1348,6 +1348,7 @@ export {
   onUpdate,
   provide,
   inject,
+  createInjectionKey,
   useApp,
   assertCompatible,
   hydrate,
@@ -1365,6 +1366,7 @@ export {
   type Plugin as RuntimeCorePlugin,
   type HydrationResult,
   type HydrationMismatch,
+  type InjectionKey,
 } from '@zenith/runtime-core';
 
 export { setActionRegistryStore, setComponentRegistryStore };

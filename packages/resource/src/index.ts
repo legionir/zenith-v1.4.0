@@ -1,7 +1,11 @@
 export {
   Resource,
   createResource,
+  registerResource,
   getResource,
+  hasResource,
+  listResources,
+  unregisterResource,
   clearResources,
   resetResourceRegistry,
   invalidateAllResources,

@@ -485,6 +485,38 @@ export function getStore(id: string): Store<any, any, any> | undefined {
   return storeRegistry.get(id);
 }
 
+/** #118: ثبت مستقیم Store در رجیستری با بازگشت Cleanup idempotent. */
+export function registerStore(name: string, store: Store<any, any, any>): () => void {
+  storeRegistry.set(name, store);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (storeRegistry.get(name) === store) {
+      storeRegistry.delete(name);
+    }
+  };
+}
+
+/** #118: بررسی وجود Store ثبت‌شده (`hasX`). */
+export function hasStore(name: string): boolean {
+  return storeRegistry.has(name);
+}
+
+/** #118: فهرست نام تمام Storeهای ثبت‌شده (`listXs`). */
+export function listStores(): string[] {
+  return Array.from(storeRegistry.keys());
+}
+
+/** #118: حذف یک Store با نام از رجیستری (`unregisterX`). */
+export function unregisterStore(name: string): boolean {
+  const existing = storeRegistry.get(name);
+  if (!existing) return false;
+  (existing as any).__dispose__?.();
+  storeRegistry.delete(name);
+  return true;
+}
+
 /**
  * پاکسازی همه‌ی store ها (برای تست‌ها).
  */

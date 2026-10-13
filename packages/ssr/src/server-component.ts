@@ -126,6 +126,23 @@ export function unregisterServerComponent(name: string): boolean {
   return serverComponentRegistry.delete(name);
 }
 
+/** #118: بررسی وجود ServerComponent در رجیستری (`hasX`). */
+export function hasServerComponent(name: string): boolean {
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped && scoped.has(name)) return true;
+  return serverComponentRegistry.has(name);
+}
+
+/** #118: فهرست نام تمام ServerComponentهای ثبت‌شده (`listXs`). */
+export function listServerComponents(): string[] {
+  const keys = new Set<string>(serverComponentRegistry.keys());
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped) {
+    for (const k of scoped.keys()) keys.add(k);
+  }
+  return Array.from(keys);
+}
+
 /**
  * پاکسازی کل registry.
  * عمدتاً برای تست‌ها.

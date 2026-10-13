@@ -327,9 +327,21 @@ export function onUpdate(fn: () => void): void {
 }
 
 /**
+ * #125: کلید تایپ‌شده برای Dependency Injection (`provide` / `inject`).
+ */
+export type InjectionKey<T> = symbol & { readonly __zenithInjectionType?: T };
+
+/**
+ * #125: ساخت یک `InjectionKey<T>` تایپ‌شده بر پایهٔ `Symbol(description)`.
+ */
+export function createInjectionKey<T>(description?: string): InjectionKey<T> {
+  return Symbol(description) as InjectionKey<T>;
+}
+
+/**
  * ثبت مقدار در درخت Dependency Injection دامنهٔ فعلی (یا اپ فعال).
  */
-export function provide<T>(key: string | symbol, value: T): void {
+export function provide<T>(key: InjectionKey<T> | string | symbol, value: T): void {
   if (currentScope) {
     currentScope.provides.set(key, value);
     return;
@@ -344,7 +356,12 @@ export function provide<T>(key: string | symbol, value: T): void {
 /**
  * خواندن مقدار از نزدیک‌ترین دامنهٔ والد در درخت (یا سطح App).
  */
-export function inject<T>(key: string | symbol, defaultValue?: T): T | undefined {
+export function inject<T>(key: InjectionKey<T> | string | symbol): T | undefined;
+export function inject<T>(key: InjectionKey<T> | string | symbol, defaultValue: T): T;
+export function inject<T>(
+  key: InjectionKey<T> | string | symbol,
+  defaultValue?: T,
+): T | undefined {
   let frame = currentScope;
   while (frame) {
     if (frame.provides.has(key)) {

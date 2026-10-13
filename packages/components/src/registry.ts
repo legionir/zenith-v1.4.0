@@ -163,6 +163,21 @@ export function isComponent(name: string): boolean {
   return componentRegistry.has(key);
 }
 
+/** #118: بررسی وجود کامپوننت ثبت‌شده (`hasX`). */
+export function hasComponent(name: string): boolean {
+  return isComponent(name);
+}
+
+/** #118: فهرست نام تمام کامپوننت‌های ثبت‌شده (`listXs`). */
+export function listComponents(): string[] {
+  const keys = new Set<string>(componentRegistry.keys());
+  const scoped = _componentStoreProvider?.();
+  if (scoped) {
+    for (const k of scoped.keys()) keys.add(k);
+  }
+  return Array.from(keys);
+}
+
 /**
  * پاکسازی کل Registry (فقط برای تست‌ها و teardown کامل).
  *

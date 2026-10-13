@@ -14,6 +14,8 @@ export {
   zenithMatchers,
   auditAccessibility,
   expectAccessible,
+  registerTestingReset,
+  resetForTesting,
 } from './testing';
 export type {
   TestHarness,

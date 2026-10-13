@@ -35,6 +35,20 @@ export {
   type EffectOptions,
 } from './effect';
 export { computed, Computed } from './computed';
+export {
+  watch,
+  type WatchSource,
+  type WatchCallback,
+  type WatchOptions,
+  type WatchCleanupRegistrar,
+} from './watch';
+export {
+  createAsync,
+  asyncComputed,
+  type AsyncComputeContext,
+  type AsyncOptions,
+  type AsyncSignal,
+} from './async';
 // #187 FIX: brand و type-guard برای مقادیر واکنش‌گرای قابل‌خواندن (Signal/Computed).
 export { isReadable, isWritable, ZENITH_READABLE, type Readable } from './readable';
 // #141 / DEC-021 — «مقدار یا ظرف خواندنی» با نام قراردادی SPEC:

@@ -514,7 +514,17 @@
         "tag": "public"
       },
       {
+        "name": "hasComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "isComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listComponents",
         "kind": "function",
         "tag": "public"
       },
@@ -1709,6 +1719,11 @@
         "tag": "public"
       },
       {
+        "name": "clearExpressionCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "compile",
         "kind": "value",
         "tag": "public"
@@ -2128,6 +2143,11 @@
       {
         "name": "HttpError",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "httpRequest",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -2740,6 +2760,16 @@
         "tag": "public"
       },
       {
+        "name": "showAlert",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "showConfirm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "toasts",
         "kind": "const",
         "tag": "public"
@@ -2837,12 +2867,27 @@
         "tag": "public"
       },
       {
+        "name": "hasResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "invalidateAllResources",
         "kind": "function",
         "tag": "public"
       },
       {
+        "name": "listResources",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "processResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerResource",
         "kind": "function",
         "tag": "public"
       },
@@ -2864,6 +2909,11 @@
       {
         "name": "ResourceState",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterResource",
+        "kind": "function",
         "tag": "public"
       }
     ]
@@ -3149,6 +3199,11 @@
         "tag": "public"
       },
       {
+        "name": "createInjectionKey",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
         "name": "CustomDirectiveHandler",
         "kind": "type",
         "tag": "public"
@@ -3376,6 +3431,11 @@
       {
         "name": "inject",
         "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "InjectionKey",
+        "kind": "type",
         "tag": "public"
       },
       {
@@ -3845,6 +3905,11 @@
         "tag": "public"
       },
       {
+        "name": "createInjectionKey",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "defaultApp",
         "kind": "function",
         "tag": "public"
@@ -3882,6 +3947,11 @@
       {
         "name": "inject",
         "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "InjectionKey",
+        "kind": "type",
         "tag": "public"
       },
       {
@@ -4621,6 +4691,11 @@
         "tag": "public"
       },
       {
+        "name": "hasServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "hydrate",
         "kind": "function",
         "tag": "public"
@@ -4662,6 +4737,11 @@
       },
       {
         "name": "isServer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listServerComponents",
         "kind": "function",
         "tag": "public"
       },
@@ -4782,6 +4862,26 @@
     "target": "universal",
     "exports": [
       {
+        "name": "AsyncComputeContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "asyncComputed",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AsyncOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AsyncSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "batch",
         "kind": "function",
         "tag": "public"
@@ -4804,6 +4904,11 @@
       {
         "name": "Computed",
         "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "createAsync",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -5057,6 +5162,31 @@
         "tag": "public"
       },
       {
+        "name": "watch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "WatchCallback",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchCleanupRegistrar",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "ZENITH_READABLE",
         "kind": "const",
         "tag": "public"
@@ -5285,6 +5415,21 @@
         "tag": "public"
       },
       {
+        "name": "hasStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listStores",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "Store",
         "kind": "type",
         "tag": "public"
@@ -5297,6 +5442,11 @@
       {
         "name": "StoreDefinition",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterStore",
+        "kind": "function",
         "tag": "public"
       }
     ]
@@ -5432,6 +5582,11 @@
         "tag": "public"
       },
       {
+        "name": "registerTestingReset",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "render",
         "kind": "function",
         "tag": "public"
@@ -5439,6 +5594,11 @@
       {
         "name": "RenderResult",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resetForTesting",
+        "kind": "function",
         "tag": "public"
       },
       {

@@ -709,6 +709,15 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
   - `#56` و `#103`: تولید خودکار اسنپ‌شات سطح API عمومی (`docs/api/api-surface.snapshot.json`) و صفحات مرجع API برای تمامی ۴۳ پکیج (`docs/api/*.md`, `docs/api/INDEX.md`, `scripts/generate-api-docs.mjs`)؛
   - `#57`: افزودن متادیتای محیط هدف `zenith.target` و زیرمسیر `./package.json` به همهٔ پکیج‌ها و حذف شاخه‌های `__ZENITH_DEV__` در بیلد production (`scripts/build-package.mjs`).
 
+- موج ۴ — دستهٔ ۸ از P1 (`#118`, `#119`, `#120`, `#121`, `#122`, `#123`, `#124`, `#125`):
+  - `#118`: یکسان‌سازی کامل قرارداد ۵ متدی رجیستری‌های سراسری (`registerX` با خروجی `Cleanup` idempotent، `getX`، `hasX`، `listXs`، `unregisterX`) در `actions`، `components`، `resource`، `store` و `ssr`، به همراه `registerTestingReset` و `resetForTesting()` در `@zenith/testing`؛
+  - `#119`: تعریف نام‌های غیرمبهم عمومی (`clearHttpCache`، `httpRequest`، `clearExpressionCache`، `showAlert`، `showConfirm`، `scheduleEffect`)؛
+  - `#120` و `#121`: استانداردسازی دایرکتیوها با `parseConfigAttr` و مجموعه تست انطباق خودکار قرارداد (`scripts/test/api-conformance.test.mjs`)؛
+  - `#122`: پیاده‌سازی `watch(source, cb, options)` در `@zenith/state` با پشتیبانی از منبع تکی/آرایه‌ای، `oldValue`/`newValue`، `immediate`، `flush: 'pre' | 'post' | 'sync'`، `deep`، `once`، `onCleanup` و `untrack` خودکار بدنهٔ `cb`؛
+  - `#123`: پیاده‌سازی `createAsync` و `asyncComputed` در `@zenith/state` با سیگنال‌های `data`/`loading`/`error`، لغو خودکار درخواست‌های قبلی با `AbortSignal` و محافظت در برابر شرایط رقابتی (race conditions)؛
+  - `#124` و `#125`: چرخهٔ عمر رسمی کامپوننت/دایرکتیو (`onMount`، `onUnmount`، `onUpdate`) و تزریق وابستگی درختی تایپ‌شده (`provide`، `inject`، `createInjectionKey<T>`) در `@zenith/runtime-core` و `@zenith/runtime`.
+
+
 
 
 

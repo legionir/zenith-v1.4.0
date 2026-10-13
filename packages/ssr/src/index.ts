@@ -52,6 +52,8 @@ export {
   defineServerComponent,
   registerServerComponent,
   getServerComponent,
+  hasServerComponent,
+  listServerComponents,
   unregisterServerComponent,
   clearServerComponents,
   renderServerComponent,

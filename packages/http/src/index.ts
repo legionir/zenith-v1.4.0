@@ -5,6 +5,7 @@
 export {
   http,
   request,
+  request as httpRequest,
   setHttpConfig,
   getHttpConfig,
   addRequestInterceptor,

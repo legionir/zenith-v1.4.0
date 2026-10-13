@@ -17,6 +17,8 @@ export {
   unregisterComponent,
   getComponent,
   isComponent,
+  hasComponent,
+  listComponents,
   clearComponents,
   componentRegistry,
   setComponentRegistryStore,

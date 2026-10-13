@@ -10,7 +10,7 @@
 import { signal, effect, computed, createRoot } from '@zenith/state';
 import type { Signal, ReadonlySignal } from '@zenith/state';
 import { flushSync, nextTick } from '@zenith/scheduler';
-import { developerError, ErrorCode, ZenithError } from '@zenith/errors';
+import { developerError, ErrorCode, ZenithError, resetDeprecationWarnings, clearErrorHistory } from '@zenith/errors';
 
 // ============================================================
 // Test Harness - isolated reactivity environment
@@ -532,3 +532,34 @@ export function expectAccessible(
   }
   return result;
 }
+
+const _testingResetHooks = new Set<() => void>();
+
+/**
+ * #118: ثبت یک هوک پاکسازی سراسری برای فراخوانی در `resetForTesting()`.
+ */
+export function registerTestingReset(fn: () => void): () => void {
+  _testingResetHooks.add(fn);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    _testingResetHooks.delete(fn);
+  };
+}
+
+/**
+ * #118 / #137: بازنشانی یکپارچه رجیستری‌ها، هشدارهای منسوخ‌شده و تاریخچه خطاها برای تست‌ها.
+ */
+export function resetForTesting(): void {
+  resetDeprecationWarnings();
+  clearErrorHistory();
+  for (const hook of Array.from(_testingResetHooks)) {
+    try {
+      hook();
+    } catch {
+      // ignore teardown errors
+    }
+  }
+}
+
