@@ -286,6 +286,12 @@ jobs:
       - run: npm run build:browser
       # #79/#83: per-package and bundle gzip budgets (.size-limit.json).
       - run: npm run size
+      - name: Annotate size failures
+        if: failure()
+        run: |
+          npm run size 2>&1 | grep -E "has exceeded|Size limit|Size:" | while IFS= read -r line; do
+            echo "::error file=.size-limit.json::$line"
+          done
       - name: Publish size table to job summary
         if: always()
         run: node scripts/size-report.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
