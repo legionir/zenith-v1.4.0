@@ -205,15 +205,20 @@ const RUNTIME_DIRECTIVES = new Set([
 ]);
 
 /**
- * گزینه‌های compile.
+ * گزینه‌های compile (#50: نام یکتای `CompilerOptions`).
  */
-export interface CompileOptions {
+export interface CompilerOptions {
   /**
    * اگر true، در صورت وجود directive پشتیبانی‌نشده خطا پرتاب کند.
    * اگر false (پیش‌فرض)، warning چاپ کند و directive را به runtime بسپارد.
    */
   strict?: boolean;
 }
+
+/**
+ * @deprecated از `CompilerOptions` استفاده کنید (#50: رفع ابهام با `VitePluginCompileOptions`).
+ */
+export type CompileOptions = CompilerOptions;
 
 /**
  * Compile یک رشته‌ی HTML به کد JavaScript.
@@ -224,7 +229,7 @@ export interface CompileOptions {
  */
 export async function compileTemplate(
   html: string,
-  options: CompileOptions = {},
+  options: CompilerOptions = {},
 ): Promise<CompiledTemplate> {
   // Parse HTML با DOMParser (در محیط Node با JSDOM).
   const parser = createParser();

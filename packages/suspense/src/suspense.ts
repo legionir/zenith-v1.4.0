@@ -40,6 +40,7 @@
 
 import { signal, effect, untrack, type ReadonlySignal, type Signal } from '@zenith/state';
 import { reportError } from '@zenith/error-boundary';
+import { deprecate } from '@zenith/errors';
 // FIX (#64): شناسه‌های داخلی با CSPRNG (crypto.getRandomValues) به‌جای Math.random.
 import { secureId } from '@zenith/security';
 
@@ -91,10 +92,31 @@ export interface SuspenseContext {
  *                   تا parent context به‌صورت هم‌زمان (بدون gap میکروتسک)
  *                   از وضعیت فرزند مطلع شود.
  */
+export interface SuspenseContextOptions {
+  timeoutMs?: number;
+  onSettle?: (settled: boolean) => void;
+}
+
+/**
+ * ساخت یک SuspenseContext جدید (#55: پشتیبانی از options object).
+ */
+export function createSuspenseContext(options?: SuspenseContextOptions): SuspenseContext;
 export function createSuspenseContext(
-  timeoutMs: number = 0,
+  timeoutMs?: number,
   onSettle?: (settled: boolean) => void,
+): SuspenseContext;
+export function createSuspenseContext(
+  timeoutOrOptions: number | SuspenseContextOptions = 0,
+  legacyOnSettle?: (settled: boolean) => void,
 ): SuspenseContext {
+  const timeoutMs =
+    typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
+      ? (timeoutOrOptions.timeoutMs ?? 0)
+      : timeoutOrOptions;
+  const onSettle =
+    typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
+      ? timeoutOrOptions.onSettle
+      : legacyOnSettle;
   const loadingSet = new Set<string>();
   const sig = signal<SuspenseState>({
     loading: false,
@@ -689,4 +711,127 @@ export function processSuspense(
   };
   disposes.push(idempotentCleanup);
   return idempotentCleanup;
+}
+
+// ── #55: Options-object helpers for promise tracking and timeout ──
+
+export interface TrackPromiseOptions {
+  suspense?: SuspenseContext | SuspenseController;
+  key?: string;
+  timeout?: number;
+}
+
+export interface WithTimeoutOptions {
+  ms: number;
+  message?: string;
+}
+
+function isTrackPromiseOptions(val: unknown): val is TrackPromiseOptions {
+  if (typeof val !== 'object' || val === null) return false;
+  return !('startLoading' in val) && !('context' in val);
+}
+
+/**
+ * Track a promise inside a Suspense boundary (#55: options-object signature).
+ */
+export function trackPromise<T>(promise: Promise<T>, options?: TrackPromiseOptions): Promise<T>;
+/** @deprecated Use `trackPromise(promise, { suspense, key, timeout })` (#55, ZEN-DEPR-037). */
+export function trackPromise<T>(
+  promise: Promise<T>,
+  suspense?: SuspenseContext | SuspenseController,
+  key?: string,
+  timeout?: number,
+): Promise<T>;
+export function trackPromise<T>(
+  promise: Promise<T>,
+  optionsOrSuspense?: TrackPromiseOptions | SuspenseContext | SuspenseController,
+  legacyKey?: string,
+  legacyTimeout?: number,
+): Promise<T> {
+  let opts: TrackPromiseOptions;
+  if (
+    legacyKey !== undefined ||
+    legacyTimeout !== undefined ||
+    (optionsOrSuspense !== undefined && !isTrackPromiseOptions(optionsOrSuspense))
+  ) {
+    deprecate(
+      'ZEN-DEPR-037',
+      'trackPromise(promise, suspense, key, timeout)',
+      'trackPromise(promise, { suspense, key, timeout })',
+    );
+    opts = {
+      suspense: optionsOrSuspense as SuspenseContext | SuspenseController | undefined,
+      key: legacyKey,
+      timeout: legacyTimeout,
+    };
+  } else {
+    opts = (optionsOrSuspense as TrackPromiseOptions | undefined) ?? {};
+  }
+
+  const targetCtx: SuspenseContext | undefined =
+    opts.suspense && 'context' in opts.suspense
+      ? opts.suspense.context
+      : (opts.suspense as SuspenseContext | undefined);
+  const trackKey = opts.key ?? `zen-promise-${secureId(4)}`;
+  const tracked =
+    opts.timeout && opts.timeout > 0 ? withTimeout(promise, { ms: opts.timeout }) : promise;
+
+  if (!targetCtx) return tracked;
+
+  targetCtx.startLoading(trackKey);
+  return tracked.then(
+    (value) => {
+      targetCtx.stopLoading(trackKey);
+      return value;
+    },
+    (err) => {
+      targetCtx.reportError(err instanceof Error ? err.message : String(err));
+      throw err;
+    },
+  );
+}
+
+/**
+ * Wrap a promise with a timeout (#55: options-object signature).
+ */
+export function withTimeout<T>(promise: Promise<T>, options: WithTimeoutOptions): Promise<T>;
+/** @deprecated Use `withTimeout(promise, { ms, message })` (#55, ZEN-DEPR-038). */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
+export function withTimeout<T>(
+  promise: Promise<T>,
+  msOrOptions: number | WithTimeoutOptions,
+  legacyMessage?: string,
+): Promise<T> {
+  let ms: number;
+  let message: string;
+  if (typeof msOrOptions === 'number') {
+    deprecate(
+      'ZEN-DEPR-038',
+      'withTimeout(promise, ms, message)',
+      'withTimeout(promise, { ms, message })',
+    );
+    ms = msOrOptions;
+    message = legacyMessage ?? `Operation timed out after ${ms}ms`;
+  } else {
+    ms = msOrOptions.ms;
+    message = msOrOptions.message ?? `Operation timed out after ${ms}ms`;
+  }
+
+  if (ms <= 0) return promise;
+
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message));
+    }, ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }

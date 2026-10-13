@@ -38,6 +38,7 @@ import {
   COMPILE_OPTIONS_DEFAULTS,
   compileOptionsSchema,
   resolveCompileOptions,
+  type VitePluginCompileOptions,
   type CompileOptions,
 } from './compile';
 
@@ -50,6 +51,7 @@ export {
   COMPILE_OPTIONS_DEFAULTS,
   compileOptionsSchema,
   resolveCompileOptions,
+  type VitePluginCompileOptions,
   type CompileOptions,
 };
 

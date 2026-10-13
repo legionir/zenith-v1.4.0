@@ -13,3 +13,17 @@ export {
   clearFetchCache,
 } from './fetcher';
 export type { FetchState } from './fetcher';
+
+export {
+  createMutation,
+  type MutationOptions,
+  type LegacyMutationCallbacks,
+  type MutationController,
+} from './mutation';
+
+export {
+  createInfiniteQuery,
+  type InfiniteQueryOptions,
+  type LegacyInfiniteQueryRest,
+  type InfiniteQueryController,
+} from './infinite-query';

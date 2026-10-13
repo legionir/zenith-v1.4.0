@@ -180,26 +180,10 @@ export function scaffoldPackage(rawOptions) {
   };
 
   const tsconfig = {
+    extends: '../../tsconfig.base.json',
     compilerOptions: {
-      target: 'ES2022',
-      module: 'ESNext',
-      moduleResolution: 'Bundler',
-      lib: ['ES2022', 'DOM'],
-      strict: true,
-      noEmit: false,
-      declaration: true,
-      declarationMap: true,
-      sourceMap: true,
       outDir: './dist',
       rootDir: './src',
-      esModuleInterop: true,
-      skipLibCheck: true,
-      forceConsistentCasingInFileNames: true,
-      noUnusedLocals: true,
-      noUnusedParameters: true,
-      noUncheckedIndexedAccess: true,
-      noImplicitReturns: true,
-      isolatedModules: true,
     },
     include: ['src/**/*'],
   };

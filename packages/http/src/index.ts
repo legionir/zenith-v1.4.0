@@ -26,5 +26,13 @@ export {
   CACHE_CONFIG_DEFAULTS,
   cacheConfigSchema,
   resolveCacheConfig,
+  zenithHttpOptionsSchema,
 } from './http';
-export type { HttpRequestOptions, HttpResponse, HttpError, RetryConfig, CacheConfig } from './http';
+export type {
+  HttpRequestOptions,
+  ZenithHttpOptions,
+  HttpResponse,
+  HttpError,
+  RetryConfig,
+  CacheConfig,
+} from './http';

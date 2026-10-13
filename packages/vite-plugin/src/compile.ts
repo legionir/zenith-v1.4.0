@@ -67,9 +67,9 @@ function replaceAll(input: string, search: string, replacement: string): string 
 }
 
 /**
- * گزینه‌های compile.
+ * گزینه‌های compile در پلاگین Vite (#50: نام یکتای `VitePluginCompileOptions`).
  */
-export interface CompileOptions {
+export interface VitePluginCompileOptions {
   /**
    * آیا compile در build time فعال باشد؟
    * پیش‌فرض: true در build، false در dev (در dev از runtime walker استفاده می‌شود).
@@ -92,6 +92,11 @@ export interface CompileOptions {
    */
   strict?: boolean;
 }
+
+/**
+ * @deprecated از `VitePluginCompileOptions` استفاده کنید (#50: رفع ابهام با `CompilerOptions`).
+ */
+export type CompileOptions = VitePluginCompileOptions;
 
 /**
  * #52 — Schema و پیش‌فرض‌های فریزشده برای `CompileOptions`.

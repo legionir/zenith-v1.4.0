@@ -181,7 +181,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (34 after #147 devtools-core)', () => {
+  it('contains exactly the issued codes with api/replacement (41 after #55 positional-options)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -222,6 +222,14 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       'ZEN-DEPR-032',
       'ZEN-DEPR-033',
       'ZEN-DEPR-034',
+      // #55 — هفت امضای positional که به options object مهاجرت کردند
+      'ZEN-DEPR-035',
+      'ZEN-DEPR-036',
+      'ZEN-DEPR-037',
+      'ZEN-DEPR-038',
+      'ZEN-DEPR-039',
+      'ZEN-DEPR-040',
+      'ZEN-DEPR-041',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');

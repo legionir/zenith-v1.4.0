@@ -110,11 +110,27 @@ const DEFAULT_ANIMATE_OPTIONS: KeyframeAnimationOptions = {
  * @param options  گزینه‌های KeyframeAnimationOptions (duration, easing, …).
  * @returns Promise‌ای که بعد از پایان (یا لغو) انیمیشن resolve می‌شود.
  */
+export interface ZenAnimateConfig extends KeyframeAnimationOptions {
+  keyframes: Keyframe[];
+}
+
+export function zenAnimate(el: HTMLElement, config: ZenAnimateConfig): Promise<void>;
 export function zenAnimate(
   el: HTMLElement,
   keyframes: Keyframe[],
-  options: KeyframeAnimationOptions,
+  options?: KeyframeAnimationOptions,
+): Promise<void>;
+export function zenAnimate(
+  el: HTMLElement,
+  keyframesOrConfig: Keyframe[] | ZenAnimateConfig,
+  legacyOptions: KeyframeAnimationOptions = DEFAULT_ANIMATE_OPTIONS,
 ): Promise<void> {
+  const keyframes = Array.isArray(keyframesOrConfig)
+    ? keyframesOrConfig
+    : keyframesOrConfig.keyframes;
+  const options: KeyframeAnimationOptions = Array.isArray(keyframesOrConfig)
+    ? legacyOptions
+    : keyframesOrConfig;
   // SSR / older browser guard: اگر Web Animations API در دسترس نیست، no-op.
   if (typeof el.animate !== 'function') {
     return Promise.resolve();

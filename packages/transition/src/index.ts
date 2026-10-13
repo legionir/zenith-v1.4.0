@@ -8,11 +8,16 @@ export {
   validateEasing,
   animateGroup,
   createTransition,
+  animate,
+  animateEnter,
+  animateLeave,
   type TransitionDirection,
   type TransitionClasses,
   type TransitionOptions,
   type TransitionRun,
   type TransitionController,
+  type AnimateCallOptions,
+  type AnimateDirectionOptions,
 } from './transition';
 
 // FEATURE (v0.5.0): zen-animate — Web Animations API.
@@ -25,4 +30,5 @@ export {
   parseAnimateAttr,
   processAnimate,
   type ParsedAnimateAttr,
+  type ZenAnimateConfig,
 } from './animate';

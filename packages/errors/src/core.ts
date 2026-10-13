@@ -924,6 +924,42 @@ export const DEPRECATION_CODES: Readonly<
     replacement: '@zenith/devtools-core clearRegistry',
     removedIn: '2.0.0',
   },
+  // #55 — حذف آرگومان‌های positional از توابع با >2 پارامتر (تبدیل به options object).
+  'ZEN-DEPR-035': {
+    api: 'createMutation(fn, options)',
+    replacement: 'createMutation({ fn, ...options })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-036': {
+    api: 'createInfiniteQuery(key, fn, options)',
+    replacement: 'createInfiniteQuery({ key, fn, ...options })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-037': {
+    api: 'trackPromise(promise, suspense, key, timeout)',
+    replacement: 'trackPromise(promise, { suspense, key, timeout })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-038': {
+    api: 'withTimeout(promise, ms, message)',
+    replacement: 'withTimeout(promise, { ms, message })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-039': {
+    api: 'animate(el, keyframes, duration, easing, delay, fill, onFinish)',
+    replacement: 'animate(el, { keyframes, duration, easing, delay, fill, onFinish })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-040': {
+    api: 'animateEnter(el, name, duration, easing, onFinish)',
+    replacement: 'animateEnter(el, { name, duration, easing, onFinish })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-041': {
+    api: 'animateLeave(el, name, duration, easing, onFinish)',
+    replacement: 'animateLeave(el, { name, duration, easing, onFinish })',
+    removedIn: '2.0.0',
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

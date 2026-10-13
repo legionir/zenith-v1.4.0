@@ -24,12 +24,25 @@ export interface ValidationRule {
 }
 
 /**
- * Simple reactive form options.
+ * Unified reactive form options (#50: یکسان‌سازی `FormOptions` و `AdvancedFormOptions`).
  */
-export interface FormOptions<T extends Record<string, any>> {
+export interface FormOptions<T extends Record<string, any> = Record<string, any>> {
   initialValues?: T;
   validation?: Partial<Record<keyof T, ValidationRule | ValidationRule[]>>;
+  validate?: Partial<Record<keyof T, Validator | Validator[]>>;
+  validateForm?: (values: T) => ValidationResult;
+  schema?: {
+    parse: (values: any) => any;
+    safeParse: (values: any) => { success: boolean; error?: any; data?: any };
+  };
   onSubmit?: (values: T) => void | Promise<void>;
+  autoSave?: {
+    enabled: boolean;
+    interval?: number;
+    handler: (values: T) => void | Promise<void>;
+  };
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
 }
 
 /**
@@ -579,22 +592,11 @@ export interface FormState<T> {
   valid: ReadonlySignal<boolean>;
 }
 
-export interface AdvancedFormOptions<T extends Record<string, any>> {
+/**
+ * @deprecated از `FormOptions<T>` یکپارچه استفاده کنید (#50).
+ */
+export interface AdvancedFormOptions<T extends Record<string, any>> extends FormOptions<T> {
   initialValues: T;
-  validate?: Partial<Record<keyof T, Validator | Validator[]>>;
-  validateForm?: (values: T) => ValidationResult;
-  schema?: {
-    parse: (values: any) => any;
-    safeParse: (values: any) => { success: boolean; error?: any; data?: any };
-  };
-  onSubmit?: (values: T) => void | Promise<void>;
-  autoSave?: {
-    enabled: boolean;
-    interval?: number;
-    handler: (values: T) => void | Promise<void>;
-  };
-  validateOnChange?: boolean;
-  validateOnBlur?: boolean;
 }
 
 export interface AdvancedFormApi<T extends Record<string, any>> extends FormState<T> {

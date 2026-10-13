@@ -10,7 +10,7 @@
 import type { Signal } from '@zenith/state';
 import { getErrorHistory } from '@zenith/state';
 
-export interface SignalInfo {
+export interface DevToolsSignalInfo {
   id: string;
   name?: string;
   value: any;
@@ -18,6 +18,11 @@ export interface SignalInfo {
   computed: boolean;
   createdAt: number;
 }
+
+/**
+ * @deprecated از `SignalInfo` در `@zenith/devtools-core` یا `DevToolsSignalInfo` استفاده کنید (#50 / #147).
+ */
+export type SignalInfo = DevToolsSignalInfo;
 
 export interface EffectInfo {
   id: string;
@@ -38,7 +43,7 @@ export interface ComponentInfo {
   createdAt: number;
 }
 
-export interface StateChange {
+export interface DevToolsStateChange {
   id: string;
   signalId: string;
   signalName?: string;
@@ -47,6 +52,11 @@ export interface StateChange {
   timestamp: number;
   stack?: string;
 }
+
+/**
+ * @deprecated از `StateChange` در `@zenith/devtools-core` یا `DevToolsStateChange` استفاده کنید (#50 / #147).
+ */
+export type StateChange = DevToolsStateChange;
 
 export interface DevToolsAPI {
   version: string;

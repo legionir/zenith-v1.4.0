@@ -43,9 +43,7 @@ import { notifySignalName } from './observer';
 /**
  * اطلاعات یک Signal در رجیستری.
  *
- * نکته: `signalRef` اکنون یک WeakRef است تا GC بتواند Signal های dispose
- * شده را به‌طور خودکار پاک کند. برای backward compatibility، `signal`
- * به‌عنوان یک getter که `signalRef.deref()` را برمی‌گرداند باقی مانده است.
+ * @deprecated از `SignalInfo` در `@zenith/devtools-core` استفاده کنید (#147 / #50، ZEN-DEPR-029).
  */
 export interface SignalInfo {
   /** ID یکتای Signal. */
@@ -72,6 +70,8 @@ export interface SignalInfo {
 
 /**
  * اطلاعات یک تغییر State (برای Timeline).
+ *
+ * @deprecated از `StateChange` در `@zenith/devtools-core` استفاده کنید (#147 / #50، ZEN-DEPR-031).
  */
 export interface StateChange {
   /** ID Signal که تغییر کرده. */

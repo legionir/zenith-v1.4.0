@@ -428,9 +428,29 @@ npx tsc --noEmit
 
 ---
 
+## Deprecation & Migration Matrix (v1.4.x → v1.5.0 / v2.0.0) (#58)
+
+تمامی APIهای منسوخ‌شده در نسخهٔ ۱.۵.۰ طبق سیاست رسمی [`docs/DEPRECATION-POLICY.md`](./DEPRECATION-POLICY.md) تا نسخهٔ `2.0.0` با حفظ سازگاری کامل کار می‌کنند و در حالت توسعه فقط یک‌بار هشدار `ZEN-DEPR-xxx` چاپ می‌کنند:
+
+| کد هشدار | API قدیمی (Deprecated) | جایگزین پیشنهادی در ۱.۵+ | نسخهٔ حذف |
+|---|---|---|---|
+| `ZEN-DEPR-001` | `processVirtualList(...)` | `createVirtualList({ items, itemSize, container, renderItem })` | `2.0.0` |
+| `ZEN-DEPR-002`..`004` | `enterTransition` / `leaveTransition` / `animateGroup` | `createTransition(name, options)` | `2.0.0` |
+| `ZEN-DEPR-005` | `clearCache` در `@zenith/http` | `clearHttpCache` | `2.0.0` |
+| `ZEN-DEPR-006`..`015` | توابع تاریخ جلالی در `@zenith/i18n` | پکیج مستقل `@zenith/jalali` | `2.0.0` |
+| `ZEN-DEPR-016`..`018` | `fromZod` / `validateWithZod` / `fromJsonSchema` در `@zenith/form` | `@zenith/schema/zod` و `@zenith/schema/json-schema` | `2.0.0` |
+| `ZEN-DEPR-019`..`024` | متدهای `destroy()` در `actions`, `auth`, `crud`, `form`, `resource`, `service-worker` | متد استاندارد `dispose()` (`Disposable`) | `2.0.0` |
+| `ZEN-DEPR-025` | `schedule()` در `@zenith/scheduler` | `scheduleEffect()` | `2.0.0` |
+| `ZEN-DEPR-026` | `installStatefulComponents()` | `Zen.use(ZenithStatefulPlugin)` | `2.0.0` |
+| `ZEN-DEPR-027`..`034` | توابع رجیستری DevTools در `@zenith/state` | `@zenith/devtools-core` | `2.0.0` |
+| `ZEN-DEPR-035`..`041` | فراخوانی‌های positional بیش از ۲ آرگومان (`createMutation`, `createInfiniteQuery`, `trackPromise`, `withTimeout`, `animate`, `animateEnter`, `animateLeave`) | فراخوانی مبتنی بر شیء تنظیمات (`options object`) | `2.0.0` |
+
+---
+
 ##seealso
 
 - [API Reference v1.0.0](./api-v1.0.md)
+- [Public API Stability & Deprecation Policy](./DEPRECATION-POLICY.md)
 - [Performance Tuning Guide](./performance-tuning.md)
 - [Changelog v1.0.0](../CHANGELOG.md)
 - [Security Audit Report](../../tests/v1.0/security-audit/README.md)

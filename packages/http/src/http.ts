@@ -19,9 +19,7 @@ import { s, defineOptions, type Schema } from '@zenith/schema';
 // Types & Interfaces
 // ============================================================
 
-// `cache` is redefined below as a Zenith CacheConfig object, which conflicts
-// with the RequestCache string union in RequestInit, so it is omitted here.
-export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
+export interface ZenithHttpOptions {
   /** Base URL prepended to relative paths */
   baseURL?: string;
   /** Request timeout in ms (0 = no timeout) */
@@ -33,6 +31,55 @@ export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
   /** Tags for cache invalidation */
   tags?: string[];
   /** Skip global interceptors for this request */
+  skipInterceptors?: boolean;
+}
+
+const REQUEST_CACHE_VALUES = [
+  'default',
+  'no-store',
+  'reload',
+  'no-cache',
+  'force-cache',
+  'only-if-cached',
+] as const;
+
+const REQUEST_INIT_ALLOWLIST: ReadonlyArray<keyof RequestInit> = Object.freeze([
+  'method',
+  'headers',
+  'body',
+  'mode',
+  'credentials',
+  'cache',
+  'redirect',
+  'referrer',
+  'referrerPolicy',
+  'integrity',
+  'keepalive',
+  'signal',
+  'priority',
+  'window',
+]);
+
+// #54: Zenith-specific options live under `zenith?: ZenithHttpOptions` so standard
+// `RequestInit['cache']` (`RequestCache`) and `zenith.cache` (`CacheConfig`) do not collide.
+// Top-level Zenith fields remain supported as deprecated aliases for backward compatibility.
+export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
+  /** #54: Namespace for Zenith-specific HTTP options */
+  zenith?: ZenithHttpOptions;
+  /**
+   * Standard Fetch `RequestCache` mode (`'no-store'`, `'reload'`, ...) OR
+   * legacy Zenith `CacheConfig` object (prefer `zenith: { cache: ... }`).
+   */
+  cache?: CacheConfig | RequestCache;
+  /** @deprecated Prefer `zenith.baseURL` (#54) */
+  baseURL?: string;
+  /** @deprecated Prefer `zenith.timeout` (#54) */
+  timeout?: number;
+  /** @deprecated Prefer `zenith.retry` (#54) */
+  retry?: RetryConfig;
+  /** @deprecated Prefer `zenith.tags` (#54) */
+  tags?: string[];
+  /** @deprecated Prefer `zenith.skipInterceptors` (#54) */
   skipInterceptors?: boolean;
 }
 
@@ -114,9 +161,19 @@ export const CACHE_CONFIG_DEFAULTS = cacheConfigOptions.DEFAULTS;
 export const cacheConfigSchema = cacheConfigOptions.schema;
 export const resolveCacheConfig = (cfg?: unknown): CacheConfig => cacheConfigOptions.resolve(cfg);
 
+export const zenithHttpOptionsSchema = s.object({
+  baseURL: s.optional(s.string()),
+  timeout: s.optional(s.duration({ min: 0 })),
+  retry: s.optional(retryConfigOptions.schema),
+  cache: s.optional(cacheConfigOptions.schema),
+  tags: s.optional(s.array(s.string({ min: 1 }))),
+  skipInterceptors: s.optional(s.boolean()),
+});
+
 export const httpRequestOptions = defineOptions<HttpRequestOptions>(
   'HttpRequestOptions',
   s.object({
+    zenith: s.optional(zenithHttpOptionsSchema),
     baseURL: s.optional(s.string()),
     timeout: s.default(s.duration({ min: 0 }), 30000),
     retry: s.default(retryConfigOptions.schema, {
@@ -176,6 +233,13 @@ const pendingRequests = new Map<string, AbortController>();
 
 let defaultConfig: HttpRequestOptions = httpRequestOptions.resolve();
 
+const fetchRequestCacheOptions = defineOptions<{ cache?: RequestCache }>(
+  'HttpRequestInitCache',
+  s.object({
+    cache: s.optional(s.enum(REQUEST_CACHE_VALUES)),
+  }),
+);
+
 function mergeAndValidateHttpOptions(
   base: HttpRequestOptions,
   override: unknown,
@@ -187,17 +251,45 @@ function mergeAndValidateHttpOptions(
     return httpRequestOptions.resolve(override);
   }
   const raw = override as Record<string, unknown>;
+  const zenithRaw =
+    raw.zenith !== undefined &&
+    raw.zenith !== null &&
+    typeof raw.zenith === 'object' &&
+    !Array.isArray(raw.zenith)
+      ? (raw.zenith as Record<string, unknown>)
+      : undefined;
+
+  const baseCacheObj =
+    typeof base.cache === 'object' && base.cache !== null ? base.cache : base.zenith?.cache;
+
+  const isStringCache = typeof raw.cache === 'string';
+  if (isStringCache) {
+    fetchRequestCacheOptions.resolve({ cache: raw.cache });
+  }
+
   const candidate: Record<string, unknown> = {
     ...base,
     ...raw,
   };
+  if (isStringCache) {
+    candidate.cache = baseCacheObj ?? { enabled: false, ttl: 60000 };
+  }
+  if (zenithRaw) {
+    if (zenithRaw.baseURL !== undefined) candidate.baseURL = zenithRaw.baseURL;
+    if (zenithRaw.timeout !== undefined) candidate.timeout = zenithRaw.timeout;
+    if (zenithRaw.tags !== undefined) candidate.tags = zenithRaw.tags;
+    if (zenithRaw.skipInterceptors !== undefined) {
+      candidate.skipInterceptors = zenithRaw.skipInterceptors;
+    }
+  }
+  const effectiveRetry = zenithRaw?.retry ?? raw.retry;
   if (
-    raw.retry !== undefined &&
-    raw.retry !== null &&
-    typeof raw.retry === 'object' &&
-    !Array.isArray(raw.retry)
+    effectiveRetry !== undefined &&
+    effectiveRetry !== null &&
+    typeof effectiveRetry === 'object' &&
+    !Array.isArray(effectiveRetry)
   ) {
-    candidate.retry = { ...base.retry, ...(raw.retry as Record<string, unknown>) };
+    candidate.retry = { ...base.retry, ...(effectiveRetry as Record<string, unknown>) };
   }
   if (
     raw.cache !== undefined &&
@@ -205,9 +297,37 @@ function mergeAndValidateHttpOptions(
     typeof raw.cache === 'object' &&
     !Array.isArray(raw.cache)
   ) {
-    candidate.cache = { ...base.cache, ...(raw.cache as Record<string, unknown>) };
+    candidate.cache = {
+      ...baseCacheObj,
+      ...(raw.cache as Record<string, unknown>),
+    };
   }
-  return httpRequestOptions.resolve(candidate);
+  if (
+    zenithRaw?.cache !== undefined &&
+    zenithRaw.cache !== null &&
+    typeof zenithRaw.cache === 'object' &&
+    !Array.isArray(zenithRaw.cache)
+  ) {
+    const mergedZenithCache = {
+      ...baseCacheObj,
+      ...(zenithRaw.cache as Record<string, unknown>),
+    };
+    candidate.zenith = {
+      ...zenithRaw,
+      cache: mergedZenithCache,
+    };
+    if (!isStringCache) {
+      candidate.cache = mergedZenithCache;
+    }
+  }
+  const resolved = httpRequestOptions.resolve(candidate);
+  if (isStringCache) {
+    return {
+      ...resolved,
+      cache: raw.cache as RequestCache,
+    };
+  }
+  return resolved;
 }
 
 // ============================================================
@@ -324,22 +444,43 @@ export async function request<T = any>(
     },
   };
 
+  // Resolve Zenith-specific options from `config.zenith` first, falling back to top-level (#54)
+  const zenithOpts: ZenithHttpOptions = {
+    baseURL: config.zenith?.baseURL ?? config.baseURL,
+    timeout: config.zenith?.timeout ?? config.timeout,
+    retry: config.zenith?.retry ?? config.retry,
+    cache:
+      config.zenith?.cache ??
+      (typeof config.cache === 'object' && config.cache !== null ? config.cache : undefined),
+    tags: config.zenith?.tags ?? config.tags,
+    skipInterceptors: config.zenith?.skipInterceptors ?? config.skipInterceptors,
+  };
+
   // Prepend base URL
   const fullUrl =
-    config.baseURL && !url.startsWith('http')
-      ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+    zenithOpts.baseURL && !url.startsWith('http')
+      ? `${zenithOpts.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
       : url;
 
   // Run request interceptors
-  if (!config.skipInterceptors) {
+  if (!zenithOpts.skipInterceptors) {
     for (const interceptor of requestInterceptors) {
       Object.assign(config, await interceptor(config));
     }
   }
 
+  const effectiveCacheConfig: CacheConfig | undefined =
+    config.zenith?.cache ??
+    (typeof config.cache === 'object' && config.cache !== null ? config.cache : zenithOpts.cache);
+  const effectiveTags = config.zenith?.tags ?? config.tags ?? zenithOpts.tags;
+  const effectiveTimeout = config.zenith?.timeout ?? config.timeout ?? zenithOpts.timeout;
+  const effectiveRetry = config.zenith?.retry ?? config.retry ?? zenithOpts.retry;
+  const effectiveSkipInterceptors =
+    config.zenith?.skipInterceptors ?? config.skipInterceptors ?? zenithOpts.skipInterceptors;
+
   // Check cache
-  const cacheKey = config.cache?.key || `${config.method || 'GET'}:${fullUrl}`;
-  if (config.cache?.enabled) {
+  const cacheKey = effectiveCacheConfig?.key || `${config.method || 'GET'}:${fullUrl}`;
+  if (effectiveCacheConfig?.enabled) {
     const cached = httpCache.get(cacheKey);
     if (cached) {
       return {
@@ -358,23 +499,29 @@ export async function request<T = any>(
   pendingRequests.set(cacheKey, abortController);
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  if (config.timeout && config.timeout > 0) {
-    timeoutId = setTimeout(() => abortController.abort(), config.timeout);
+  if (effectiveTimeout && effectiveTimeout > 0) {
+    timeoutId = setTimeout(() => abortController.abort(), effectiveTimeout);
   }
 
-  // Strip Zenith-specific options; `fetch` only understands RequestInit.
-  const {
-    baseURL: _baseURL,
-    timeout: _timeout,
-    retry: _retry,
-    cache: _cache,
-    tags: _tags,
-    skipInterceptors: _skipInterceptors,
-    ...fetchInit
-  } = config as HttpRequestOptions & Record<string, unknown>;
+  // #54 — Build `fetchInit` strictly from the RequestInit allowlist so no Zenith-only
+  // keys (`zenith`, `baseURL`, `timeout`, `retry`, `tags`, `skipInterceptors`, or
+  // `cache` when it is a `CacheConfig` object) ever leak into `fetch()`.
+  const fetchInit: RequestInit = {};
+  const rawConfig = config as Record<string, unknown>;
+  for (const key of REQUEST_INIT_ALLOWLIST) {
+    const value = rawConfig[key];
+    if (value === undefined) continue;
+    if (key === 'cache') {
+      if (typeof value === 'string') {
+        fetchInit.cache = value as RequestCache;
+      }
+      continue;
+    }
+    (fetchInit as Record<string, unknown>)[key] = value;
+  }
 
   try {
-    const response = await fetch(fullUrl, fetchInit as RequestInit);
+    const response = await fetch(fullUrl, fetchInit);
 
     // Handle HTTP errors
     if (!response.ok) {
@@ -416,22 +563,22 @@ export async function request<T = any>(
     };
 
     // Run response interceptors
-    if (!config.skipInterceptors) {
+    if (!effectiveSkipInterceptors) {
       for (const interceptor of responseInterceptors) {
         httpResponse = await interceptor(httpResponse);
       }
     }
 
     // Store in cache (TTL + tags per entry; lazy expiry in @zenith/cache)
-    if (config.cache?.enabled) {
-      const ttl = config.cache.ttl || 60000;
-      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: config.tags });
+    if (effectiveCacheConfig?.enabled) {
+      const ttl = effectiveCacheConfig.ttl || 60000;
+      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: effectiveTags });
     }
 
     return httpResponse;
   } catch (err) {
     // Retry logic
-    const retryConfig = config.retry;
+    const retryConfig = effectiveRetry;
     if (retryConfig?.maxAttempts && retryConfig.maxAttempts > 0) {
       const status = (err as HttpError).status;
       const shouldRetry = !status || (retryConfig.retryOn || []).includes(status);
@@ -447,9 +594,11 @@ export async function request<T = any>(
 
         await new Promise((r) => setTimeout(r, delay));
 
+        const nextRetry = { ...retryConfig, maxAttempts: remainingAttempts };
         return request<T>(url, {
           ...config,
-          retry: { ...retryConfig, maxAttempts: remainingAttempts },
+          retry: nextRetry,
+          ...(config.zenith ? { zenith: { ...config.zenith, retry: nextRetry } } : {}),
         });
       }
     }

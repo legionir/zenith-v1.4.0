@@ -20,6 +20,9 @@ import { createForm, type FormStore } from './form';
 // ── Zod Adapter ──
 // Zod یک optional peer dependency است. اگر نصب باشد، از آن استفاده می‌کنیم.
 
+/**
+ * @deprecated از `@zenith/schema/zod` استفاده کنید (#142 / #50، ZEN-DEPR-016).
+ */
 export interface ZodSchema {
   // Minimal interface — فقط چه چیزی نیاز داریم.
   safeParse(data: any): {
@@ -166,6 +169,9 @@ export async function validateWithZod(form: FormStore, zodSchema: ZodSchema): Pr
 
 // ── JSON Schema Adapter ──
 
+/**
+ * @deprecated از `JsonSchemaInput` در `@zenith/schema/json-schema` استفاده کنید (#142 / #50، ZEN-DEPR-018).
+ */
 export interface JsonSchema {
   type?: string;
   properties?: Record<

@@ -62,8 +62,10 @@ export {
   markEffectDisposed,
   recordStateChange,
   type DevToolsAPI,
+  type DevToolsSignalInfo,
   type SignalInfo,
   type EffectInfo,
   type ComponentInfo,
+  type DevToolsStateChange,
   type StateChange,
 } from './api';
