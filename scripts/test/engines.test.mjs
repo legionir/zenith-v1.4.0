@@ -44,8 +44,7 @@ describe('engines.node floor (#14)', () => {
 
   it('CI matrix covers the floor and the current LTS', () => {
     const wf = readFileSync('.github/workflows/main.yml', 'utf8');
-    // Node 18 on GitHub runners resolves to the newest 18.x (>=18.19), and 22
-    // is the active LTS — both must appear in the build matrix.
-    expect(wf).toMatch(/node: \['18', '22'\]/);
+    // Node 18.19 (floor), 20, and 22 (active LTS) must appear in the build matrix (#14, #32).
+    expect(wf).toMatch(/node: \['18(?:\.19)?', (?:'20', )?'22'\]/);
   });
 });

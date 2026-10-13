@@ -21,6 +21,7 @@ export {
   getOwner,
   setOwner,
   onCleanup,
+  resetStateInstanceTrackingForTesting,
   type Owner,
 } from './context';
 // IMP-07 (v1.3.0): export onEffectError برای Error Boundary.
@@ -56,6 +57,7 @@ export {
   resetErrorHubForTesting,
   setDevMode,
   isDevMode,
+  registerStateInstance,
 } from './error';
 export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './error';
 
@@ -67,6 +69,7 @@ export { Priority } from '@zenith/scheduler';
 
 // ── #147: SignalObserver hook برای @zenith/devtools-core (SPEC §۲.۷) ──
 export { setSignalObserver, getSignalObserver, type SignalObserver } from './observer';
+
 
 // ── فاز ۱۰: State Registry (منسوخ‌شده در #147؛ حذف در ۲.۰ — DEC-026) ──
 export {

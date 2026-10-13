@@ -32,3 +32,16 @@ export {
   type ParsedAnimateAttr,
   type ZenAnimateConfig,
 } from './animate';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/transition` (`TransitionOptions`).
+ * @default { duration: 300, easing: 'ease', delay: 0 }
+ * @unit ms (duration, delay)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  duration: 300,
+  easing: 'ease',
+  delay: 0,
+});
+

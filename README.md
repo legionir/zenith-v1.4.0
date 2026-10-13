@@ -155,6 +155,15 @@ npm run deps          # dependency-cruiser gate
 
 CI کامل (۱۱ job موازی: lint/format/typecheck/unit+coverage/audit/deps/build×Node18/22/publint/size/e2e) در [.github/CI.md](.github/CI.md) مستند است؛ تصمیم‌ها در [docs/decisions/](docs/decisions/).
 
+## 🌐 سازگاری مرورگرها و Node.js (`browserslist` — `#32`)
+
+- **Node.js**: نسخه‌های `>= 18.19`، `20` (LTS) و `22` (Active LTS) در ماتریس CI بیلد و تست می‌شوند.
+- **مرورگرهای پشتیبانی‌شده (`browserslist`)**:
+  - `Chrome >= 109` · `Edge >= 109`
+  - `Firefox >= 115`
+  - `Safari >= 16.4` · `iOS >= 16.4`
+- تست‌های E2E با Playwright برای موتورهای `chromium`، `firefox` و `webkit` پیکربندی شده‌اند. جزئیات بیشتر در [docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
+
 ## 🤝 مشارکت و امنیت
 
 - مشارکت: [docs/README.md](docs/README.md) · گزارش باگ/ویژگی: [Issues](https://github.com/legionir/zenith-v1.4.0/issues) (CONTRIBUTING.md کامل → [#107](https://github.com/legionir/zenith-v1.4.0/issues/107))

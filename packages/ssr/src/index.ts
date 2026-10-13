@@ -59,3 +59,15 @@ export {
   SERVER_COMPONENT_CLOSE_PREFIX,
   type ServerComponent,
 } from './server-component';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/ssr` (`RenderOptions` / `StreamOptions`).
+ * @default { includeHydrationData: true, timeout: 10000 }
+ * @unit ms (timeout)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  includeHydrationData: true,
+  timeout: 10_000,
+});
+

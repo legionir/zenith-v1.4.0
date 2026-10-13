@@ -50,11 +50,15 @@ export interface EffectContext {
  * of @zenith/state share a single reactive tracking context and owner tree.
  */
 const STATE_CONTEXT_SYMBOL = Symbol.for('zenith.state.context.v1');
+const STATE_MODULE_TOKEN = {};
 
 interface GlobalStateContextSingleton {
   currentOwner: Owner | null;
   effectContextProvider: (() => EffectContext | null) | null;
   moduleLevelContext: EffectContext;
+  moduleTokens?: Set<object>;
+  warnedDuplicate?: boolean;
+  onDuplicateHandler?: (count: number) => void;
 }
 
 function getStateContextSingleton(): GlobalStateContextSingleton {
@@ -73,6 +77,37 @@ function getStateContextSingleton(): GlobalStateContextSingleton {
     g[STATE_CONTEXT_SYMBOL] = instance;
   }
   return instance;
+}
+
+/**
+ * #34: Register a module instance of @zenith/state and emit a one-time ZEN-0301
+ * warning if more than one module copy is loaded in the same process.
+ */
+export function registerStateContextToken(
+  token: object = STATE_MODULE_TOKEN,
+  onDuplicate?: (count: number) => void,
+): number {
+  const instance = getStateContextSingleton();
+  instance.moduleTokens ??= new Set([STATE_MODULE_TOKEN]);
+  if (onDuplicate) {
+    instance.onDuplicateHandler = onDuplicate;
+  }
+  instance.moduleTokens.add(token);
+  const count = instance.moduleTokens.size;
+  if (count > 1 && !instance.warnedDuplicate) {
+    instance.warnedDuplicate = true;
+    (onDuplicate ?? instance.onDuplicateHandler)?.(count);
+  }
+  return count;
+}
+
+/**
+ * #34: Reset duplicate-instance tracking (testing utility).
+ */
+export function resetStateInstanceTrackingForTesting(): void {
+  const instance = getStateContextSingleton();
+  instance.moduleTokens = new Set([STATE_MODULE_TOKEN]);
+  instance.warnedDuplicate = false;
 }
 
 /**

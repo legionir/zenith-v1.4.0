@@ -30,3 +30,14 @@ export {
 } from './router';
 
 export { processRouter, prefetchRoute, clearRouteCache } from './outlet';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/router` (`NavigateOptions`).
+ * @default { mode: 'hash', replace: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  mode: 'hash' as const,
+  replace: false,
+});
+

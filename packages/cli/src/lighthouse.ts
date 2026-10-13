@@ -30,17 +30,45 @@ const require = createRequire(import.meta.url);
  * گزینه‌های lighthouse audit.
  */
 export interface LighthouseOptions {
-  /** پورت برای static server (پیش‌فرض: 0 = random port). */
+  /**
+   * پورت برای static server.
+   * @default 0
+   * @since 1.4.0
+   */
   port?: number;
-  /** آیا در حالت CI اجرا شود (exit 1 اگر PWA score < threshold). */
+  /**
+   * آیا در حالت CI اجرا شود (exit 1 اگر PWA score < threshold).
+   * @default false
+   * @since 1.4.0
+   */
   ci?: boolean;
-  /** حداقل امتیاز PWA برای CI mode (پیش‌فرض: 90). */
+  /**
+   * حداقل امتیاز PWA برای CI mode.
+   * @default 90
+   * @since 1.4.0
+   */
   minScore?: number;
   /** مسیر Chrome executable (در صورت نیاز). */
   chromePath?: string;
-  /** آیا خروجی verbose باشد. */
+  /**
+   * آیا خروجی verbose باشد.
+   * @default false
+   * @since 1.4.0
+   */
   verbose?: boolean;
 }
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `LighthouseOptions`.
+ * @default { port: 0, ci: false, minScore: 90, verbose: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  port: 0,
+  ci: false,
+  minScore: 90,
+  verbose: false,
+});
 
 /**
  * نتیجه‌ی lighthouse audit.

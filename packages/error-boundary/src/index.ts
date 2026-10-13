@@ -25,3 +25,13 @@ export {
 } from './boundary';
 
 export { processErrorBoundary, showFallback, recoverFromError } from './directive';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/error-boundary` (`ErrorReporterOptions`).
+ * @default { redactPII: true }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  redactPII: true,
+});
+

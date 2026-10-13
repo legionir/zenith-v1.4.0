@@ -98,6 +98,7 @@ interface Task {
  * of @zenith/scheduler share the same queue, flush lock, and disposal map.
  */
 const SCHEDULER_STATE_SYMBOL = Symbol.for('zenith.scheduler.state.v1');
+const SCHEDULER_MODULE_TOKEN = {};
 
 interface GlobalSchedulerSingleton {
   queue: Map<() => void, Task>;
@@ -108,6 +109,38 @@ interface GlobalSchedulerSingleton {
   afterFlushCallbacks: Array<() => void>;
   customAdapter: { current: SchedulerAdapter | null };
   hooks: SchedulerHooks | null;
+  moduleTokens?: Set<object>;
+  warnedDuplicate?: boolean;
+}
+
+/**
+ * #34: Register a module instance of @zenith/scheduler and emit a one-time ZEN-0201
+ * warning if more than one copy is loaded in the same runtime.
+ */
+export function registerSchedulerInstance(token: object = SCHEDULER_MODULE_TOKEN): number {
+  const g = globalThis as unknown as Record<symbol, GlobalSchedulerSingleton | undefined>;
+  const instance = g[SCHEDULER_STATE_SYMBOL] ?? getSchedulerSingleton();
+  instance.moduleTokens ??= new Set([SCHEDULER_MODULE_TOKEN]);
+  instance.moduleTokens.add(token);
+  const count = instance.moduleTokens.size;
+  if (count > 1 && !instance.warnedDuplicate) {
+    instance.warnedDuplicate = true;
+    emitError({
+      code: 'ZEN-0201',
+      category: 'Runtime',
+      severity: 'warning',
+      message:
+        `[Zenith] ZEN-0201: Multiple instances of @zenith/scheduler detected (${count} copies). ` +
+        'Run "npm ls @zenith/scheduler" to deduplicate.',
+    });
+  }
+  return count;
+}
+
+export function resetSchedulerInstanceTrackingForTesting(): void {
+  const instance = getSchedulerSingleton();
+  instance.moduleTokens = new Set([SCHEDULER_MODULE_TOKEN]);
+  instance.warnedDuplicate = false;
 }
 
 function getSchedulerSingleton(): GlobalSchedulerSingleton {

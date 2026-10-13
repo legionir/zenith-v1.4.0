@@ -23,3 +23,17 @@ export type {
 export { createCache } from './cache';
 export { parseCacheAttr } from './attr';
 export { registerCache, unregisterCache, listCaches, setSignalAdapter } from './registry';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/cache`.
+ * @default { maxEntries: 500, defaultTtl: 300000, policy: 'lru', staleWhileRevalidate: false }
+ * @unit ms (defaultTtl)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  maxEntries: 500,
+  defaultTtl: 300_000,
+  policy: 'lru' as const,
+  staleWhileRevalidate: false,
+});
+

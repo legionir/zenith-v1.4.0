@@ -41,3 +41,15 @@ export function setLogLevel(level: LogLevel): void {
 export function addSink(sink: LogSink): Cleanup {
   return logger.addSink(sink);
 }
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/logger` (`LoggerOptions`).
+ * @default { level: 'warn', scope: 'zen', maxBufferSize: 100 }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  level: 'warn' as const,
+  scope: 'zen',
+  maxBufferSize: 100,
+});
+

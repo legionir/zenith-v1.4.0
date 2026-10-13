@@ -140,6 +140,20 @@ export function checkTraceability(rootDir = process.cwd()) {
     }
   }
 
+  // #31: Verify every claimed BUG-*/IMP-*/SEC-* ID is referenced inside at least one test file
+  const allTestFiles = [
+    ...walkFiles(join(rootDir, 'packages'), (p) => p.includes('/test/') && /\.test\.(ts|mjs|js)$/.test(p)),
+    ...walkFiles(join(rootDir, 'scripts', 'test'), (p) => /\.test\.(ts|mjs|js)$/.test(p)),
+  ];
+  const combinedTestSource = allTestFiles.map((f) => readFileSync(f, 'utf8')).join('\n');
+  const untestedIds = [];
+  for (const id of claims.keys()) {
+    if (!combinedTestSource.includes(id)) {
+      untestedIds.push(id);
+      errors.push(`${id}: no regression test references identifier '${id}' (#31)`);
+    }
+  }
+
   // Ensure no broken references to audit/all.md in packages/ or docs/
   const docAndPkgFiles = [
     ...walkFiles(join(rootDir, 'docs'), (p) => /\.(md|ts|js|mjs)$/.test(p)),
@@ -154,7 +168,7 @@ export function checkTraceability(rootDir = process.cwd()) {
     }
   }
 
-  return { ok: errors.length === 0, errors, count: claims.size };
+  return { ok: errors.length === 0, errors, count: claims.size, untestedIds };
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];

@@ -194,3 +194,17 @@ export function preloadVisibleComponents(): void {
     if (el) observer.observe(el);
   }
 }
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/components` (`LoadComponentOptions`).
+ * @default { timeout: 10000, retries: 2, retryDelay: 1000, rootMargin: '200px' }
+ * @unit ms (timeout, retryDelay)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  timeout: 10_000,
+  retries: 2,
+  retryDelay: 1_000,
+  rootMargin: '200px',
+});
+

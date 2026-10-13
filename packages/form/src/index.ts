@@ -48,3 +48,16 @@ export {
   type ZodSchema,
   type JsonSchema,
 } from './schema';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/form` (`FormOptions`).
+ * @default { debounceMs: 300, validateOnChange: true, validateOnBlur: true }
+ * @unit ms (debounceMs)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  debounceMs: 300,
+  validateOnChange: true,
+  validateOnBlur: true,
+});
+

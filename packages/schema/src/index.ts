@@ -48,3 +48,14 @@ export {
   type ZenithMetaDoc,
   type HtmlCustomData,
 } from './manifest';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/schema` (`ValidateOptions`).
+ * @default { strict: true, coerce: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  strict: true,
+  coerce: false,
+});
+

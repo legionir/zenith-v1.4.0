@@ -34,3 +34,15 @@ export {
 
 // #64: شناسه‌ی امن با CSPRNG (crypto.getRandomValues)
 export { secureId } from './secure-id';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/security` (`SanitizeOptions` / `CSPOptions`).
+ * @default { allowDataAttributes: true, strictDynamic: false, requireTrustedTypes: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  allowDataAttributes: true,
+  strictDynamic: false,
+  requireTrustedTypes: false,
+});
+

@@ -30,7 +30,8 @@
     "attribute-grammar": "node scripts/attribute-grammar.mjs",
     "traceability": "node scripts/check-traceability.mjs",
     "peer:single-instance": "node scripts/peer-single-instance.mjs",
-    "new:package": "node scripts/new-package.mjs"
+    "new:package": "node scripts/new-package.mjs",
+    "test:leak": "vitest run packages/runtime/test/memory-leak-harness.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -52,5 +53,13 @@
   },
   "engines": {
     "node": ">=18.19"
-  }
+  },
+  "browserslist": [
+    "Chrome >= 109",
+    "Edge >= 109",
+    "Firefox >= 115",
+    "Safari >= 16.4",
+    "iOS >= 16.4",
+    "not dead"
+  ]
 }
