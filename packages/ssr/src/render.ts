@@ -438,6 +438,32 @@ export interface StreamOptions {
   head?: string;
   /** AbortSignal برای لغو streaming در صورت نیاز. */
   signal?: AbortSignal;
+  /** #15: کالبک اختیاری برای flush تدریجی هر قطعه بلافاصله پس از تولید. */
+  onFlush?: (chunk: StreamChunk) => void | Promise<void>;
+}
+
+function createAbortError(): Error {
+  if (typeof DOMException !== 'undefined') {
+    return new DOMException('SSR streaming aborted.', 'AbortError');
+  }
+  const err = new Error('SSR streaming aborted.');
+  err.name = 'AbortError';
+  return err;
+}
+
+async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) throw createAbortError();
+  let onAbort: (() => void) | undefined;
+  const abortPromise = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(createAbortError());
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([promise, abortPromise]);
+  } finally {
+    if (onAbort) signal.removeEventListener('abort', onAbort);
+  }
 }
 
 /**
@@ -458,7 +484,7 @@ export interface StreamOptions {
 export async function* renderToStream(
   html: string,
   state: Record<string, any>,
-  options: { route?: string; head?: string; signal?: AbortSignal } = {},
+  options: StreamOptions = {},
 ): AsyncGenerator<StreamChunk> {
   const head = options.head || '';
 
@@ -490,38 +516,46 @@ export async function* renderToStream(
   }
 
   // BUG-SSR-06 FIX (v1.3.0): بررسی AbortSignal بین هر chunk.
-  // اگر caller سیگنال abort داده باشد، generator را متوقف کن.
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Phase 1: Head + opening — فوراً stream کن (با state واقعی، بدون placeholder).
-  yield {
+  const headChunk: StreamChunk = {
     html: `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}<script>window.__ZENITH_STATE__=${safeStateJson};window.__ZENITH_ROUTE__=${routeLiteral};</script></head><body><div id="app">`,
     done: false,
   };
+  await options.onFlush?.(headChunk);
+  yield headChunk;
 
   // BUG-SSR-06 FIX: بعد از yield اول
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
-  // Phase 2: Render content.
-  const result = await renderToString(html, state, { route: options.route, serializeState: false });
+  // Phase 2: Render content (با توقف فوری در صورت abort حین رندر async).
+  const result = await raceWithAbort(
+    renderToString(html, state, { route: options.route, serializeState: false }),
+    options.signal,
+  );
 
   // BUG-SSR-06 FIX: بعد از await renderToString (که ممکن است طولانی باشد)
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Stream body content (state already injected via head chunk).
-  yield { html: result.html, done: false };
+  const bodyChunk: StreamChunk = { html: result.html, done: false };
+  await options.onFlush?.(bodyChunk);
+  yield bodyChunk;
 
   // BUG-SSR-06 FIX: قبل از yield آخر
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Phase 3: Closing tags.
-  yield { html: '</div></body></html>', done: true };
+  const closeChunk: StreamChunk = { html: '</div></body></html>', done: true };
+  await options.onFlush?.(closeChunk);
+  yield closeChunk;
 }

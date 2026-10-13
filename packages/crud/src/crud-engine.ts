@@ -96,6 +96,14 @@ export interface CrudEngineConfig {
   }>;
   /** permission required to see the table. */
   permission?: string;
+  /**
+   * #15: آیا هنگام رندر اولیه داده به‌صورت خودکار واکشی شود؟ (پیش‌فرض: false)
+   */
+  autoFetch?: boolean;
+  /**
+   * #15: سقف تعداد تلاش مجدد در صورت خطای شبکه (پیش‌فرض: 3، سقف مطلق: 10).
+   */
+  maxRetries?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -156,6 +164,9 @@ export class CrudEngine implements Disposable {
   private rendered = false;
   // #116: فلگ dispose برای idempotency (alias destroy همان را می‌خواند).
   private _disposed = false;
+  // #15: جلوگیری از حلقهٔ بی‌پایان fetch و ردیابی تعداد تلاش‌ها
+  private _fetching = false;
+  private _retryCount = 0;
 
   constructor(config: CrudEngineConfig, host: HTMLElement) {
     this.config = config;
@@ -250,6 +261,10 @@ export class CrudEngine implements Disposable {
     //  این کار باید به‌صورت دستی انجام شود، همانند permission demo.)
     this.wirePermissions();
 
+    if (this.config.autoFetch) {
+      void this.fetchWithRetry(true);
+    }
+
     // ۵. جلوگیری از double-firing اکشن‌ها توسط event delegation تکراری.
     // وقتی CrudEngine داخل یک Zen app دیگر استفاده می‌شود، هر دو document-level
     // delegation روی یک کلیک فراخوانی می‌شوند. teardown مالک خود را فراخوانی
@@ -289,6 +304,40 @@ export class CrudEngine implements Disposable {
 
     // Dispose Computedها (دارای dispose داخلی برای cleanup effect).
     this.disposeComputeds();
+  }
+
+  /**
+   * #15: واکشی دادهٔ Resource با سقف تلاش مشخص (`maxRetries`، پیش‌فرض 3)
+   * و گارد همزمانی تا هیچ حلقهٔ نامحدودی رخ ندهد.
+   */
+  async fetchWithRetry(force = true): Promise<boolean> {
+    if (this._disposed || this._fetching) return false;
+    this._fetching = true;
+    const maxRetries = Math.max(0, Math.min(this.config.maxRetries ?? 3, 10));
+    const maxAttempts = maxRetries + 1;
+    this._retryCount = 0;
+
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (this._disposed) return false;
+        this._retryCount = attempt;
+        try {
+          await this.resource.list(force);
+          if (!this.resource.error) {
+            return true;
+          }
+        } catch {
+          // خطا در تلاش فعلی؛ تا سقف maxAttempts ادامه می‌یابد
+        }
+      }
+      return false;
+    } finally {
+      this._fetching = false;
+    }
+  }
+
+  getRetryCount(): number {
+    return this._retryCount;
   }
 
   /**

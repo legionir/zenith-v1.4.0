@@ -149,25 +149,50 @@ export class ActionRegistry implements Disposable {
    * @param ctx  Context اجرا.
    */
   async execute(name: string, ctx: ActionContext): Promise<void> {
-    const entry = this._actions.get(name);
-    if (!entry) {
+    if (this._disposed) {
+      throw developerError(
+        `Cannot execute action "${name}" on a disposed ActionRegistry.`,
+        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+      );
+    }
+    const initialEntry = this._actions.get(name);
+    if (!initialEntry) {
       throw developerError(`Action "${name}" not found.`, ErrorCode.RUNTIME_COMPONENT_NOT_FOUND);
     }
 
-    const handler = entry.fn;
+    // #15 FIX: اسنپ‌شات زنجیرهٔ middleware در لحظهٔ شروع برای جلوگیری از race
+    // هنگام تغییر لیست middlewareها در میانهٔ اجرای async، به‌همراه گارد
+    // فراخوانی چندبارهٔ next() و خواندن آخرین handler ثبت‌شده در انتهای زنجیره.
+    const middlewares = [...this._middlewares];
 
-    if (this._middlewares.length === 0) {
-      return handler(ctx);
+    const runTarget = (): void | Promise<void> => {
+      const currentEntry = this._actions.get(name) ?? initialEntry;
+      return currentEntry.fn(ctx);
+    };
+
+    if (middlewares.length === 0) {
+      return runTarget();
     }
 
-    // زنجیره middleware: از آخرین به اولین ساخته می‌شود
-    // تا اولین middleware ثبت‌شده اولین اجرا شود
-    const chain = this._middlewares.reduceRight(
-      (next: () => void | Promise<void>, mw: ActionMiddleware) => () => mw(name, ctx, next),
-      () => handler(ctx),
-    );
+    const dispatch = (index: number): void | Promise<void> => {
+      if (index >= middlewares.length) {
+        return runTarget();
+      }
+      const mw = middlewares[index]!;
+      let nextCalled = false;
+      return mw(name, ctx, () => {
+        if (nextCalled) {
+          throw developerError(
+            `Action middleware for "${name}" called next() multiple times.`,
+            ErrorCode.INTERNAL_DEVELOPER_ERROR,
+          );
+        }
+        nextCalled = true;
+        return dispatch(index + 1);
+      });
+    };
 
-    return chain();
+    return dispatch(0);
   }
 
   /**

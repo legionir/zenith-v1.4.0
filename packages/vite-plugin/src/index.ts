@@ -32,6 +32,8 @@ import { s, defineOptions } from '@zenith/schema';
 import {
   transformHtml,
   hasZenithDirectives,
+  clearCompileCache,
+  getCompileCacheStats,
   compileOptions,
   COMPILE_OPTIONS_DEFAULTS,
   compileOptionsSchema,
@@ -42,6 +44,8 @@ import {
 export {
   transformHtml,
   hasZenithDirectives,
+  clearCompileCache,
+  getCompileCacheStats,
   compileOptions,
   COMPILE_OPTIONS_DEFAULTS,
   compileOptionsSchema,
