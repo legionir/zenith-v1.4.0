@@ -26,6 +26,7 @@ export {
 // runtime walker، processAnimate را export می‌کنیم.
 export {
   zenAnimate,
+  prefersReducedMotion,
   ANIMATE_PRESETS,
   parseAnimateAttr,
   processAnimate,

@@ -1,6 +1,9 @@
 export {
   renderToString,
   renderToStream,
+  renderToReadableStream,
+  clearSSRTemplateCache,
+  getSSRTemplateCacheStats,
   generateHydrationScript,
   generateFullPage,
   serializeState,

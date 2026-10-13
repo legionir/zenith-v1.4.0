@@ -6,7 +6,7 @@
  * all publishable `@zenith/*` and `zenith` packages (per `.changeset/config.json`),
  * and generates formatted Keep-a-Changelog entries.
  */
-import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 

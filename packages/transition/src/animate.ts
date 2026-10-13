@@ -112,25 +112,67 @@ const DEFAULT_ANIMATE_OPTIONS: KeyframeAnimationOptions = {
  */
 export interface ZenAnimateConfig extends KeyframeAnimationOptions {
   keyframes: Keyframe[];
+  /** #98: رعایت تنظیم سیستم‌عامل prefers-reduced-motion (پیش‌فرض: true) */
+  respectReducedMotion?: boolean;
+}
+
+/**
+ * #98 (WCAG 2.2 AA 2.3.3): بررسی فعال بودن `prefers-reduced-motion: reduce`.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
 }
 
 export function zenAnimate(el: HTMLElement, config: ZenAnimateConfig): Promise<void>;
 export function zenAnimate(
   el: HTMLElement,
   keyframes: Keyframe[],
-  options?: KeyframeAnimationOptions,
+  options?: KeyframeAnimationOptions & { respectReducedMotion?: boolean },
 ): Promise<void>;
 export function zenAnimate(
   el: HTMLElement,
   keyframesOrConfig: Keyframe[] | ZenAnimateConfig,
-  legacyOptions: KeyframeAnimationOptions = DEFAULT_ANIMATE_OPTIONS,
+  legacyOptions: KeyframeAnimationOptions & { respectReducedMotion?: boolean } = DEFAULT_ANIMATE_OPTIONS,
 ): Promise<void> {
   const keyframes = Array.isArray(keyframesOrConfig)
     ? keyframesOrConfig
     : keyframesOrConfig.keyframes;
-  const options: KeyframeAnimationOptions = Array.isArray(keyframesOrConfig)
+  const options: KeyframeAnimationOptions & { respectReducedMotion?: boolean } = Array.isArray(
+    keyframesOrConfig,
+  )
     ? legacyOptions
     : keyframesOrConfig;
+
+  const reduced = options.respectReducedMotion !== false && prefersReducedMotion();
+  if (reduced && keyframes.length > 0) {
+    const finalFrame = keyframes[keyframes.length - 1]!;
+    if (finalFrame.opacity !== undefined) {
+      el.style.opacity = String(finalFrame.opacity);
+    }
+    if (typeof el.animate !== 'function') {
+      return Promise.resolve();
+    }
+    const effectiveOptions = { ...options, duration: 0, delay: 0, fill: 'forwards' as FillMode };
+    return new Promise((resolve) => {
+      const anim = el.animate(keyframes, effectiveOptions);
+      anim.onfinish = () => {
+        try {
+          anim.commitStyles();
+        } catch {}
+        anim.cancel();
+        resolve();
+      };
+      anim.oncancel = () => resolve();
+    });
+  }
+
   // SSR / older browser guard: اگر Web Animations API در دسترس نیست، no-op.
   if (typeof el.animate !== 'function') {
     return Promise.resolve();

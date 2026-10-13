@@ -1,3 +1,4 @@
+/* global self, caches */
 // Zenith Service Worker Emergency Kill Switch (#96)
 // Deploy this file at your Service Worker URL (e.g. /sw.js or /sw-kill.js)
 // to immediately evict all caches and unregister a broken Service Worker.

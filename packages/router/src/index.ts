@@ -22,6 +22,8 @@ export {
   beforeEach,
   defineRoutes,
   useRoute,
+  announceRouteChange,
+  syncActiveRouteLinks,
   type RouteState,
   type NavigationGuard,
   type NavigateOptions,

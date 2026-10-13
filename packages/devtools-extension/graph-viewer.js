@@ -345,19 +345,19 @@
       // جاذبه‌ی یال‌ها (فنر)
       for (var e = 0; e < state.edges.length; e++) {
         var ed = state.edges[e];
-        var dx = ed.to.x - ed.from.x,
-          dy = ed.to.y - ed.from.y;
-        var d = Math.sqrt(dx * dx + dy * dy) + 0.01;
-        var f = (d - LEN) * SPRING * alpha;
-        var fx = (dx / d) * f,
-          fy = (dy / d) * f;
+        var edx = ed.to.x - ed.from.x,
+          edy = ed.to.y - ed.from.y;
+        var edist = Math.sqrt(edx * edx + edy * edy) + 0.01;
+        var ef = (edist - LEN) * SPRING * alpha;
+        var efx = (edx / edist) * ef,
+          efy = (edy / edist) * ef;
         if (ed.from.fx === null) {
-          ed.from.vx += fx;
-          ed.from.vy += fy;
+          ed.from.vx += efx;
+          ed.from.vy += efy;
         }
         if (ed.to.fx === null) {
-          ed.to.vx -= fx;
-          ed.to.vy -= fy;
+          ed.to.vx -= efx;
+          ed.to.vy -= efy;
         }
       }
       // جذب به مرکز + اعمال سرعت
@@ -632,14 +632,9 @@
 
   // ── drag نودها ──
   function enableDrag(g, n) {
-    var dragging = false,
-      offX = 0,
-      offY = 0;
+    var dragging = false;
     g.addEventListener('mousedown', function (ev) {
       dragging = true;
-      var pt = svgPoint(ev);
-      offX = pt.x - n.x;
-      offY = pt.y - n.y;
       n.fx = n.x;
       n.fy = n.y;
       canvas.classList.add('dragging');

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+/* global document */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resetDeprecationWarnings } from '../../packages/errors/src';
 import { createMutation, createInfiniteQuery } from '../../packages/data/src';

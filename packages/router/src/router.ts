@@ -594,3 +594,54 @@ export function cleanupRouter(): void {
   // با تمام شدن runWithRoute پاک می‌شوند).
   browserRouteSignal.set({ path: '/', params: {} });
 }
+
+/**
+ * #98 (WCAG 2.2 AA 2.4.2 / 4.1.3): اعلان تغییر مسیر SPA برای صفحه‌خوان‌ها
+ * با استفاده از ناحیهٔ زندهٔ `aria-live="polite"` و `aria-atomic="true"`.
+ */
+export function announceRouteChange(
+  titleOrPath: string,
+  doc: Document | undefined = typeof document !== 'undefined' ? document : undefined,
+): HTMLElement | null {
+  if (!doc || !doc.body) return null;
+  let region = doc.getElementById('zen-route-announcer') as HTMLElement | null;
+  if (!region) {
+    region = doc.createElement('div');
+    region.id = 'zen-route-announcer';
+    region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-atomic', 'true');
+    region.style.position = 'absolute';
+    region.style.width = '1px';
+    region.style.height = '1px';
+    region.style.overflow = 'hidden';
+    region.style.clip = 'rect(0 0 0 0)';
+    region.style.whiteSpace = 'nowrap';
+    doc.body.appendChild(region);
+  }
+  region.textContent = titleOrPath;
+  return region;
+}
+
+/**
+ * #98 (WCAG 2.2 AA): همگام‌سازی خودکار `aria-current="page"` روی لینک‌های فعال.
+ */
+export function syncActiveRouteLinks(
+  currentPath: string,
+  root: ParentNode | undefined = typeof document !== 'undefined' ? document : undefined,
+): void {
+  if (!root || typeof root.querySelectorAll !== 'function') return;
+  const links = root.querySelectorAll('a[href], [zen-link]');
+  const normalizedCurrent = currentPath.split('?')[0]!.split('#')[0]! || '/';
+  links.forEach((node) => {
+    const el = node as HTMLElement;
+    const rawHref = el.getAttribute('zen-link') || el.getAttribute('href') || '';
+    const cleanHref = rawHref.replace(/^#/, '').split('?')[0]!.split('#')[0]! || '/';
+    if (cleanHref === normalizedCurrent) {
+      el.setAttribute('aria-current', 'page');
+    } else if (el.getAttribute('aria-current') === 'page') {
+      el.removeAttribute('aria-current');
+    }
+  });
+}
+

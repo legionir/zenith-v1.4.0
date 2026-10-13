@@ -15,6 +15,8 @@ export {
   getNotificationsByPosition,
   notificationsAPI,
   handleNotifyDirective,
+  renderAccessibleToast,
+  renderAccessibleDialog,
 } from './notifications';
 export type {
   Notification,

@@ -4,7 +4,7 @@
  * هیچ دو پکیجی نباید یک نام نوع غیر-deprecated یکسان با معنای متفاوت صادر کنند.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 export function auditUniqueTypeNames(rootDir = process.cwd()) {
   const pkgsDir = join(rootDir, 'packages');

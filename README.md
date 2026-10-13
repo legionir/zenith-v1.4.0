@@ -172,6 +172,8 @@ CI کامل (۱۱ job موازی: lint/format/typecheck/unit+coverage/audit/deps
 
 ## 📜 مستندات بیشتر
 
+- [شروع سریع و آموزش گام‌به‌گام](docs/GETTING-STARTED.md) · [کتاب آشپزی (Cookbook)](docs/COOKBOOK.md)
+- [سیاست پشتیبانی و چرخهٔ عمر نسخه‌ها](SUPPORT.md) · [مشارکت در پروژه](CONTRIBUTING.md)
 - [راهنمای مهاجرت](docs/migration-guide.md) · [CHANGELOG](docs/CHANGELOG.md)
 - [راهنمای LLM/دستیار کدنویسی](docs/LLM-GUIDE.md) · [بنچمارک‌ها](docs/BENCHMARKS.md)
 - [معیارهای آماده‌به‌تولید](PRODUCTION-READINESS.md) · [طرح استانداردسازی](STANDARDIZATION-PLAN.md)

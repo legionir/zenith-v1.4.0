@@ -89,7 +89,7 @@ describe('virtual-list measurements invalidation & pruning (#18)', () => {
     Object.defineProperty(container, 'clientHeight', { value: 200, configurable: true });
     document.body.appendChild(container);
 
-    let customHeight = 50;
+    const customHeight = 50;
     const items = signal<RowItem[]>([
       { id: 'k1', height: 40 },
       { id: 'k2', height: 40 },

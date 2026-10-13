@@ -178,6 +178,27 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   const isVertical = direction === 'vertical';
   const scrollProperty = isVertical ? 'scrollTop' : 'scrollLeft';
   const clientProperty = isVertical ? 'clientHeight' : 'clientWidth';
+  const rawSizeOption =
+    options.itemSize ?? (options as unknown as { itemHeight?: number }).itemHeight ?? 40;
+  const fixedNumericSize =
+    typeof rawSizeOption === 'number' && Number.isFinite(rawSizeOption) && rawSizeOption > 0
+      ? rawSizeOption
+      : null;
+
+  const isRtlHorizontal = (): boolean => {
+    if (isVertical) return false;
+    const explicitDir =
+      container.getAttribute('dir') ||
+      container.closest?.('[dir]')?.getAttribute('dir') ||
+      document.documentElement.getAttribute('dir');
+    if (explicitDir) return explicitDir.toLowerCase() === 'rtl';
+    return getComputedStyle(container).direction === 'rtl';
+  };
+
+  const getScrollOffset = (): number => {
+    const raw = container[scrollProperty];
+    return !isVertical && isRtlHorizontal() ? Math.abs(raw) : raw;
+  };
 
   const computedPosition = getComputedStyle(container).position;
   if (computedPosition === 'static') container.style.position = 'relative';
@@ -207,6 +228,9 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   const measuredItems = new Map<string | number, unknown>();
   let offsets: number[] = [];
   let totalSize = 0;
+  let offsetsDirty = true;
+  let lastListRef: T[] | null = null;
+  let lastListLength = -1;
   let previousStart = -1;
   let previousEnd = -1;
   let scrollFrame: number | null = null;
@@ -223,42 +247,69 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       if (measuredItems.has(key) && itemChanged(measuredItems.get(key), item)) {
         measurements.delete(key);
         measuredItems.delete(key);
+        offsetsDirty = true;
       }
     }
     for (const key of [...measurements.keys()]) {
       if (!activeKeys.has(key)) {
         measurements.delete(key);
         measuredItems.delete(key);
+        offsetsDirty = true;
       }
     }
   };
 
   const sizeAt = (list: T[], index: number): number => {
+    if (fixedNumericSize !== null && measurements.size === 0) {
+      return fixedNumericSize;
+    }
     const item = list[index]!;
     const key = keyFor(item, index);
     const measured = measurements.get(key);
     if (measured !== undefined) return measured;
-    const sizeOption = options.itemSize;
     const estimated =
-      typeof sizeOption === 'function' ? untrack(() => sizeOption(item, index)) : sizeOption;
+      typeof rawSizeOption === 'function' ? untrack(() => rawSizeOption(item, index)) : rawSizeOption;
     return Number.isFinite(estimated) && estimated > 0 ? estimated : 1;
   };
 
-  const rebuildOffsets = (list: T[]) => {
-    syncMeasurements(list);
-    offsets = new Array(list.length);
-    let offset = 0;
-    for (let index = 0; index < list.length; index++) {
-      offsets[index] = offset;
-      offset += sizeAt(list, index);
+  const offsetAt = (index: number): number => {
+    if (fixedNumericSize !== null && measurements.size === 0) {
+      return index * fixedNumericSize;
     }
-    totalSize = offset;
+    return offsets[index] ?? 0;
+  };
+
+  const rebuildOffsets = (list: T[], force = false) => {
+    if (!force && !offsetsDirty && lastListRef === list && lastListLength === list.length) {
+      return;
+    }
+    syncMeasurements(list);
+    lastListRef = list;
+    lastListLength = list.length;
+    offsetsDirty = false;
+
+    if (fixedNumericSize !== null && measurements.size === 0) {
+      offsets = [];
+      totalSize = list.length * fixedNumericSize;
+    } else {
+      offsets = new Array(list.length);
+      let offset = 0;
+      for (let index = 0; index < list.length; index++) {
+        offsets[index] = offset;
+        offset += sizeAt(list, index);
+      }
+      totalSize = offset;
+    }
     if (isVertical) spacer.style.height = `${totalSize}px`;
     else spacer.style.width = `${totalSize}px`;
   };
 
-  const findIndexAtOffset = (offset: number): number => {
-    if (offsets.length === 0 || offset <= 0) return 0;
+  const findIndexAtOffset = (list: T[], offset: number): number => {
+    if (list.length === 0 || offset <= 0) return 0;
+    if (fixedNumericSize !== null && measurements.size === 0) {
+      return Math.min(list.length - 1, Math.max(0, Math.floor(offset / fixedNumericSize)));
+    }
+    if (offsets.length === 0) return 0;
     let low = 0;
     let high = offsets.length - 1;
     while (low < high) {
@@ -283,6 +334,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         if (size > 0 && measurements.get(key) !== size) {
           measurements.set(key, size);
           measuredItems.set(key, item);
+          offsetsDirty = true;
           changed = true;
         }
       }
@@ -320,6 +372,12 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       if (!wanted.has(key)) removeRendered(key);
     }
 
+    const rtlHoriz = isRtlHorizontal();
+    if (!isVertical) {
+      content.style.left = rtlHoriz ? '' : '0';
+      content.style.right = rtlHoriz ? '0' : '';
+    }
+
     const nextVisible: VirtualItem<T>[] = [];
     for (let index = start; index < end; index++) {
       const item = list[index]!;
@@ -341,15 +399,25 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
         rendered.set(key, entry);
         itemResizeObserver?.observe(node);
       }
+      const itemOffset = offsetAt(index);
       entry.index = index;
       entry.node.dataset.zenVirtualIndex = String(index);
-      entry.node.style.transform = isVertical
-        ? `translateY(${offsets[index] ?? 0}px)`
-        : `translateX(${offsets[index] ?? 0}px)`;
-      if (!isVertical) entry.node.style.height = '100%';
+      if (isVertical) {
+        entry.node.style.transform = `translateY(${itemOffset}px)`;
+      } else if (rtlHoriz) {
+        entry.node.style.right = '0';
+        entry.node.style.left = '';
+        entry.node.style.transform = `translateX(-${itemOffset}px)`;
+        entry.node.style.height = '100%';
+      } else {
+        entry.node.style.left = '0';
+        entry.node.style.right = '';
+        entry.node.style.transform = `translateX(${itemOffset}px)`;
+        entry.node.style.height = '100%';
+      }
       // #47: نود کش‌شده در index جدید — wrapper باید $index را همگام کند.
       options.onItemUpdated?.(entry.node, item, index);
-      nextVisible.push({ item, index, offset: offsets[index] ?? 0 });
+      nextVisible.push({ item, index, offset: itemOffset });
     }
     visibleItems.set(nextVisible);
   };
@@ -358,10 +426,10 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     if (disposed) return;
     const list = items.get();
     rebuildOffsets(list);
-    const offset = container[scrollProperty];
+    const offset = getScrollOffset();
     const viewportSize = container[clientProperty];
-    const firstVisible = findIndexAtOffset(offset);
-    const endVisible = Math.min(list.length, findIndexAtOffset(offset + viewportSize) + 1);
+    const firstVisible = findIndexAtOffset(list, offset);
+    const endVisible = Math.min(list.length, findIndexAtOffset(list, offset + viewportSize) + 1);
     const start = Math.max(0, firstVisible - overscan);
     const end = Math.min(list.length, endVisible + overscan);
 
@@ -378,7 +446,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
     // اطمینان از عدم track شدن (استفادهٔ مجدد در context) untrack می‌شود.
     untrack(() =>
       options.onScroll?.({
-        offset: container[scrollProperty],
+        offset: getScrollOffset(),
         viewportSize: container[clientProperty],
         totalSize,
         direction,
@@ -406,12 +474,16 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
   containerResizeObserver?.observe(container);
   const disposeItemsEffect = effect(update);
 
-  const refresh = () => update();
+  const refresh = () => {
+    offsetsDirty = true;
+    update();
+  };
   const scrollToOffset = (offset: number) => {
-    container[scrollProperty] = Math.max(
+    const clamped = Math.max(
       0,
       Math.min(offset, Math.max(0, totalSize - container[clientProperty])),
     );
+    container[scrollProperty] = isRtlHorizontal() ? -clamped : clamped;
     update();
   };
   refresh();
@@ -425,7 +497,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       rebuildOffsets(list);
       const itemSize = sizeAt(list, index);
       const viewportSize = container[clientProperty];
-      let offset = offsets[index] ?? 0;
+      let offset = offsetAt(index);
       if (align === 'center') offset -= (viewportSize - itemSize) / 2;
       if (align === 'end') offset -= viewportSize - itemSize;
       scrollToOffset(offset);
@@ -466,7 +538,7 @@ export function createVirtualList<T>(options: VirtualListOptions<T>): VirtualLis
       start: Math.max(0, previousStart),
       end: Math.max(0, previousEnd),
       totalSize,
-      offset: container[scrollProperty],
+      offset: getScrollOffset(),
     }),
     dispose() {
       if (disposed) return;

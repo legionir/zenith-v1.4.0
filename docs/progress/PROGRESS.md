@@ -657,4 +657,50 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
     ثبت اکشن `checkout` در `ecommerce-demo/src/main.js`، مستندسازی در `ecommerce-demo/README.md` و
     تست واحد در `packages/store/test/ecommerce-demo-cart.test.ts`.
 
+- موج ۴ — دستهٔ ۱ از P1 (`#8`, `#18`, `#21`, `#22`, `#71` — کامیت 4505671):
+  - `#8`: پاک‌سازی ارجاع‌های ازکارافتادهٔ `examples/` و اصلاح قالب خروجی `cli` (`createApp`)؛
+  - `#18`: ابطال و هرس کش اندازه‌های `virtual-list` (`invalidateMeasurements`, `remeasure`)؛
+  - `#21`: تکمیل اعتبارسنجی یکپارچهٔ گزینه‌های ورودی (`ZEN-1001`..`ZEN-1004`)؛
+  - `#22`: راهنمای جامع گزارش خطا، تلمتری و حریم خصوصی (`docs/ERROR-REPORTING.md`)؛
+  - `#71`: اسکفولد خودکار پکیج جدید (`npm run new:package` / `scripts/new-package.mjs`).
+
+- موج ۴ — دستهٔ ۲ از P1 (`#41`, `#50`, `#54`, `#55`, `#58` — کامیت 17ee3ee):
+  - `#41`: راهنمای جامع دستیارهای کدنویسی و مدل‌های زبانی (`docs/LLM-GUIDE.md`)؛
+  - `#50`: ممیزی یکتایی نام نوع‌های عمومی و کاتالوگ پیشوندهای قراردادی (`scripts/check-unique-type-names.mjs`, `docs/API-CONVENTIONS.md`)؛
+  - `#54`: گرامر رسمی BNF برای دایرکتیوهای HTML (`docs/ATTRIBUTE-GRAMMAR.md`)؛
+  - `#55`: تبدیل توابع بیش از ۲ پارامتر به امضای شیء تنظیمات با حفظ سازگاری (`ZEN-DEPR-035`..`041`)؛
+  - `#58`: سیاست رسمی پایداری API عمومی و منسوخ‌سازی (`docs/DEPRECATION-POLICY.md`).
+
+- موج ۴ — دستهٔ ۳ از P1 (`#63`, `#65`, `#75`, `#87`, `#93`, `#96` — کامیت 807ae9b):
+  - `#63`: راهنمای استقرار با Content Security Policy سخت‌گیرانه بدون `unsafe-eval` (`docs/CSP-GUIDE.md`)؛
+  - `#65`: گردش‌کارهای امنیتی CI شامل CodeQL، اسکن اسرار و Dependency Review (`.github/workflows/security.yml`)؛
+  - `#75`: ارتقای افزونهٔ VS Code برای پشتیبانی کامل از همهٔ دایرکتیوها و تشخیص خطا؛
+  - `#87`: مهار خودکار تشخیص نشت حافظه در چرخه‌های mount/unmount (`npm run test:leak`)؛
+  - `#93`: پشتیبانی از گزارشگرهای خارجی خطا (Sentry/OpenTelemetry) در `@zenith/error-boundary`؛
+  - `#96`: مکانیزم Kill-Switch اضطراری و بازیابی خودکار در `@zenith/service-worker` (`sw-kill.js`).
+
+- موج ۴ — دستهٔ ۴ از P1 (`#31`, `#32`, `#34`, `#35`, `#53` — کامیت bfc4bde):
+  - `#31`: گردش‌کارهای CI برای بررسی لینک‌ها، قالب PR، برچسب‌گذاری خودکار و مدیریت Stale؛
+  - `#32`: ماتریس رسمی سازگاری مرورگرها (`browserslist`) و موتورهای Playwright (`docs/BROWSER-SUPPORT.md`)؛
+  - `#34`: گزارشگر خلاصهٔ پوشش کد در GitHub Actions (`scripts/coverage-summary.mjs`)؛
+  - `#35`: تست‌های یکپارچهٔ زنجیرهٔ تأمین بین‌پکیجی (`scripts/test/cross-package-integration.test.mjs`)؛
+  - `#53`: استانداردسازی اشیای منجمد `DEFAULTS` در ۲۸ پکیج و تولید مرجع `docs/OPTIONS-REFERENCE.md`.
+
+- موج ۴ — دستهٔ ۵ از P1 (`#60`, `#66`, `#72`, `#74`, `#80`, `#83`, `#107` — کامیت 2ef467c):
+  - `#60`: مدل تهدید جامع STRIDE (`docs/security/threat-model.md`)؛
+  - `#66`: گردش‌کار انتشار مبتنی بر تگ با OIDC و `--provenance` (`.github/workflows/release.yml`)؛
+  - `#72`: استراتژی نسخه‌بندی Lockstep SemVer و تولیدکنندهٔ خودکار Changelog (`scripts/changeset.mjs`)؛
+  - `#74`: ممیزی محتوای tarball و شرط‌های صادراتی `types`-first (`scripts/pack-audit.mjs`)؛
+  - `#80` و `#107`: اسناد حاکمیت و سلامت جامعه (`CODEOWNERS`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `ROADMAP.md`)؛
+  - `#83`: بودجهٔ حجمی gzip برای تمامی ۴۸ ورودی پکیج‌ها و باندل‌ها (`.size-limit.json`, `scripts/size-report.mjs`).
+
+- موج ۴ — دستهٔ ۶ از P1 (`#86`, `#89`, `#91`, `#98`, `#100`, `#101`, `#104`, `#105`):
+  - `#86`: مجموعه بنچمارک قابل‌بازتولید (`npm run bench` / `scripts/bench.mjs`) و مقایسه با سیگنال‌های مرجع؛
+  - `#89`: بهینه‌سازی O(1) و تست ۱۰۰٬۰۰۰ آیتم، ارتفاع متغیر و حالت افقی RTL در `@zenith/virtual-list`؛
+  - `#91`: استخر JSDOM و کش قالب‌های `<template>`، مهلت زمانی رندر (`ZEN-1801`) و جریان واقعی Web `ReadableStream` با backpressure در `@zenith/ssr`؛
+  - `#98`: ممیزی و تکمیل انطباق WCAG 2.2 AA (`prefersReducedMotion`, `renderAccessibleToast`/`Dialog`, `announceRouteChange`, `syncActiveRouteLinks`, `docs/A11Y-AUDIT.md`)؛
+  - `#100` و `#101`: پشتیبانی جامع RTL، جهات منطقی CSS، ایزوله‌های دوجهتهٔ یونیکد (`isolateBidi`) و فرمت‌بندی بومی `Intl` در `@zenith/i18n` و `@zenith/jalali`؛
+  - `#104` و `#105`: راهنمای شروع سریع و آموزش ۳۰ دقیقه‌ای (`docs/GETTING-STARTED.md`)، کتاب آشپزی ۱۰ دستورالعملی (`docs/COOKBOOK.md`)، سیاست چرخهٔ عمر پشتیبانی (`SUPPORT.md`) و جدول مهاجرت نسخه به نسخه (`docs/migration-guide.md`).
+
+
 

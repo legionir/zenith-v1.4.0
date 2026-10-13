@@ -183,6 +183,77 @@ export interface RenderOptions {
   locale?: string;
   /** #92: سازندهٔ DOM سفارشی برای محیط‌های Edge بدون jsdom */
   createDOM?: (html: string, url: string) => { window: any; close?: () => void };
+  /** #91: مهلت زمانی رندر SSR به میلی‌ثانیه (در صورت عبور، خطای ZEN-1801 پرتاب می‌شود) */
+  timeout?: number;
+  /** #91: نام مستعار مهلت زمانی رندر SSR (میلی‌ثانیه) */
+  renderTimeoutMs?: number;
+  /** #91: فعال‌سازی کش قالب‌های parse‌شده و استخر JSDOM (پیش‌فرض: true) */
+  cacheTemplates?: boolean;
+}
+
+interface PooledDOMEntry {
+  window: any;
+  templates: Map<string, any>;
+}
+
+const MAX_DOM_POOL_SIZE = 8;
+const MAX_TEMPLATE_CACHE_ENTRIES = 128;
+const _jsdomPool: PooledDOMEntry[] = [];
+const _templateParseCounts = new Map<string, number>();
+
+/**
+ * #91: پاک‌سازی کش قالب‌های SSR و استخر JSDOM.
+ */
+export function clearSSRTemplateCache(): void {
+  _templateParseCounts.clear();
+  while (_jsdomPool.length > 0) {
+    const entry = _jsdomPool.pop();
+    try {
+      entry?.window?.close?.();
+    } catch {
+      /* ignore close errors */
+    }
+  }
+}
+
+/**
+ * #91: آمار کش قالب‌های SSR برای تست و مانیتورینگ عملکرد.
+ */
+export function getSSRTemplateCacheStats(): {
+  cachedTemplates: number;
+  pooledDOMInstances: number;
+  parseCountFor: (html: string) => number;
+} {
+  return {
+    cachedTemplates: _templateParseCounts.size,
+    pooledDOMInstances: _jsdomPool.length,
+    parseCountFor: (html: string) => _templateParseCounts.get(html) ?? 0,
+  };
+}
+
+function createSSRTimeoutError(timeoutMs: number): ZenithError {
+  return new ZenithError({
+    code: 'ZEN-1801',
+    category: 'SSR',
+    message: `SSR render timed out after ${timeoutMs}ms.`,
+    suggestion: 'renderTimeoutMs / timeout را افزایش دهید یا داده‌های کندِ مسیر را به بافر/کش منتقل کنید.',
+    context: { timeoutMs },
+  });
+}
+
+async function raceWithTimeout<T>(promise: Promise<T>, timeoutMs?: number): Promise<T> {
+  if (timeoutMs === undefined || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return promise;
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(createSSRTimeoutError(timeoutMs)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 let _effectContextStoreInstalled = false;
@@ -285,18 +356,57 @@ export async function renderToString(
   }
 
   const url = options.route ? `http://localhost${options.route}` : 'http://localhost/';
+  const useTemplateCache = options.cacheTemplates !== false && !options.createDOM;
+  const effectiveTimeout = options.timeout ?? options.renderTimeoutMs;
   let domInstance = null as { window: any; close?: () => void } | null;
+  let pooledEntry: PooledDOMEntry | null = null;
 
   const executeIsolatedRender = async (): Promise<SSRResult> => {
     // اجرای pre-pass کامپوننت‌های سرور در بستر ایزولهٔ درخواست (#92)
     const processedHtml = await inlineServerComponents(html, renderState);
 
-    domInstance = options.createDOM
-      ? options.createDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, url)
-      : new JSDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, {
+    if (options.createDOM) {
+      domInstance = options.createDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, url);
+    } else if (useTemplateCache) {
+      pooledEntry = _jsdomPool.pop() ?? null;
+      if (!pooledEntry) {
+        const freshDom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
           pretendToBeVisual: true,
           url,
         });
+        pooledEntry = {
+          window: freshDom.window,
+          templates: new Map(),
+        };
+      } else {
+        try {
+          pooledEntry.window.history.replaceState(null, '', options.route || '/');
+        } catch {
+          /* ignore history errors on custom schemes */
+        }
+      }
+      const win = pooledEntry.window;
+      let tpl = pooledEntry.templates.get(processedHtml);
+      if (!tpl) {
+        tpl = win.document.createElement('template');
+        tpl.innerHTML = processedHtml;
+        if (pooledEntry.templates.size >= MAX_TEMPLATE_CACHE_ENTRIES) {
+          const oldestKey = pooledEntry.templates.keys().next().value;
+          if (oldestKey !== undefined) pooledEntry.templates.delete(oldestKey);
+        }
+        pooledEntry.templates.set(processedHtml, tpl);
+        _templateParseCounts.set(processedHtml, (_templateParseCounts.get(processedHtml) ?? 0) + 1);
+      }
+      win.document.body.innerHTML = '';
+      win.document.body.appendChild(tpl.content.cloneNode(true));
+      domInstance = { window: win };
+    } else {
+      _templateParseCounts.set(processedHtml, (_templateParseCounts.get(processedHtml) ?? 0) + 1);
+      domInstance = new JSDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, {
+        pretendToBeVisual: true,
+        url,
+      });
+    }
 
     const win = domInstance!.window;
     const activeStore = domAls.getStore();
@@ -382,14 +492,29 @@ export async function renderToString(
   };
 
   try {
-    if (runWithRoute && options.route) {
-      return await runWithRoute(options.route, async () => {
-        return await domAls.run(initialGlobals, () => executeIsolatedRender());
-      });
-    }
-    return await domAls.run(initialGlobals, () => executeIsolatedRender());
+    const runTask = async () => {
+      if (runWithRoute && options.route) {
+        return await runWithRoute(options.route, async () => {
+          return await domAls.run(initialGlobals, () => executeIsolatedRender());
+        });
+      }
+      return await domAls.run(initialGlobals, () => executeIsolatedRender());
+    };
+    return await raceWithTimeout(runTask(), effectiveTimeout);
   } finally {
-    if (domInstance) {
+    const activePool = pooledEntry as PooledDOMEntry | null;
+    if (activePool) {
+      try {
+        activePool.window.document.body.innerHTML = '';
+        if (_jsdomPool.length < MAX_DOM_POOL_SIZE) {
+          _jsdomPool.push(activePool);
+        } else {
+          activePool.window.close?.();
+        }
+      } catch {
+        activePool.window.close?.();
+      }
+    } else if (domInstance) {
       if (typeof domInstance.close === 'function') {
         domInstance.close();
       } else if (typeof domInstance.window?.close === 'function') {
@@ -431,15 +556,15 @@ export interface StreamChunk {
 /**
  * BUG-SSR-06 FIX (v1.3.0): گزینه‌های streaming SSR با پشتیبانی AbortSignal.
  */
-export interface StreamOptions {
-  /** Route برای hydration. */
-  route?: string;
+export interface StreamOptions extends RenderOptions {
   /** محتوای head (meta, title, styles). */
   head?: string;
   /** AbortSignal برای لغو streaming در صورت نیاز. */
   signal?: AbortSignal;
   /** #15: کالبک اختیاری برای flush تدریجی هر قطعه بلافاصله پس از تولید. */
   onFlush?: (chunk: StreamChunk) => void | Promise<void>;
+  /** #91: اندازهٔ قطعه (کاراکتر) برای ارسال تدریجی بدنه با رعایت backpressure */
+  chunkSize?: number;
 }
 
 function createAbortError(): Error {
@@ -533,9 +658,12 @@ export async function* renderToStream(
     throw createAbortError();
   }
 
-  // Phase 2: Render content (با توقف فوری در صورت abort حین رندر async).
+  // Phase 2: Render content (با توقف فوری در صورت abort یا timeout حین رندر async).
   const result = await raceWithAbort(
-    renderToString(html, state, { route: options.route, serializeState: false }),
+    renderToString(html, state, {
+      ...options,
+      serializeState: false,
+    }),
     options.signal,
   );
 
@@ -545,9 +673,24 @@ export async function* renderToStream(
   }
 
   // Stream body content (state already injected via head chunk).
-  const bodyChunk: StreamChunk = { html: result.html, done: false };
-  await options.onFlush?.(bodyChunk);
-  yield bodyChunk;
+  const chunkSize = options.chunkSize && options.chunkSize > 0 ? Math.floor(options.chunkSize) : 0;
+  if (chunkSize > 0 && result.html.length > chunkSize) {
+    for (let offset = 0; offset < result.html.length; offset += chunkSize) {
+      if (options.signal?.aborted) {
+        throw createAbortError();
+      }
+      const sliceChunk: StreamChunk = {
+        html: result.html.slice(offset, offset + chunkSize),
+        done: false,
+      };
+      await options.onFlush?.(sliceChunk);
+      yield sliceChunk;
+    }
+  } else {
+    const bodyChunk: StreamChunk = { html: result.html, done: false };
+    await options.onFlush?.(bodyChunk);
+    yield bodyChunk;
+  }
 
   // BUG-SSR-06 FIX: قبل از yield آخر
   if (options.signal?.aborted) {
@@ -558,4 +701,55 @@ export async function* renderToStream(
   const closeChunk: StreamChunk = { html: '</div></body></html>', done: true };
   await options.onFlush?.(closeChunk);
   yield closeChunk;
+}
+
+/**
+ * #91: تبدیل جریان SSR به Web `ReadableStream<Uint8Array>` واقعی با پشتیبانی
+ * کامل از backpressure (`pull`) و لغو خودکار رندر در `cancel()`.
+ */
+export function renderToReadableStream(
+  html: string,
+  state: Record<string, any>,
+  options: StreamOptions = {},
+): ReadableStream<Uint8Array> {
+  const internalAbort = new AbortController();
+  const externalSignal = options.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      internalAbort.abort();
+    } else {
+      externalSignal.addEventListener('abort', () => internalAbort.abort(), { once: true });
+    }
+  }
+  const encoder = new TextEncoder();
+  const iterator = renderToStream(html, state, {
+    ...options,
+    signal: internalAbort.signal,
+  });
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { value, done } = await iterator.next();
+        if (done || !value) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(encoder.encode(value.html));
+        if (value.done) {
+          controller.close();
+        }
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+    async cancel() {
+      internalAbort.abort();
+      try {
+        await iterator.return?.(undefined as any);
+      } catch {
+        /* ignore generator return error on cancel */
+      }
+    },
+  });
 }

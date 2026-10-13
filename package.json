@@ -32,7 +32,8 @@
     "peer:single-instance": "node scripts/peer-single-instance.mjs",
     "new:package": "node scripts/new-package.mjs",
     "test:leak": "vitest run packages/runtime/test/memory-leak-harness.test.ts",
-    "pack:audit": "node scripts/pack-audit.mjs"
+    "pack:audit": "node scripts/pack-audit.mjs",
+    "bench": "node scripts/bench.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
