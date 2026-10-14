@@ -341,7 +341,13 @@ jobs:
           npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
           code=$?
           if [ $code -ne 0 ]; then
-            tail -160 "$RUNNER_TEMP/e2e.out" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | cut -c1-380 | while IFS= read -r ln; do
+            # نمایش هر بخش مرتبط با شکست (همهٔ پروژه‌ها/اسپک‌ها + خطاهای pageerror/console)
+            {
+              echo "== playwright exit=$code =="
+              grep -nE "✘|✗|[0-9]+ (failed|passed)|pageerror|browserError|Error:|Timed out|timeout" "$RUNNER_TEMP/e2e.out" | head -250
+              echo "== آخر ۶۰ خط =="
+              tail -60 "$RUNNER_TEMP/e2e.out"
+            } | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | cut -c1-380 | while IFS= read -r ln; do
               echo "::error file=playwright.config.ts::${ln//%/%25}"
             done
           fi
