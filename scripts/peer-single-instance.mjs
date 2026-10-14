@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os';
 
 // #142: form حالا errors+schema را dependency دارد (و schema → shared)؛ همهٔ
 // یالهای transitive باید tarball شوند وگرنه npm install به registry می‌زند.
-const PACKAGES = ['state', 'scheduler', 'store', 'form', 'errors', 'schema', 'shared'];
+const PACKAGES = ['state', 'scheduler', 'store', 'form', 'errors', 'schema', 'shared', 'logger'];
 const SINGLETONS = ['state', 'scheduler'];
 
 function sh(cmd, args, opts = {}) {

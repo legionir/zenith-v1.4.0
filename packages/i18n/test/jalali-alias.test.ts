@@ -20,7 +20,7 @@ import {
   jalaliMonthName,
 } from '../src/index';
 import { resetDeprecationWarnings } from '@zenith/errors';
-import { logger, bufferSink, type BufferSink } from '@zenith/logger';
+import { logger, bufferSink } from '@zenith/logger';
 
 // مسیرهای delegated در بازهٔ مدرن، Date را با منطقهٔ زمانی «محلی» می‌خوانند؛
 // برای deterministic بودن تست در هر CI، محلی را روی UTC قفل می‌کنیم.

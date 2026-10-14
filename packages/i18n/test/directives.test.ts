@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { effect } from '@zenith/state';
 import { flushSync } from '@zenith/scheduler';
 import { createApp, type App } from '../../runtime/src/index.ts';
-import { createI18n, i18nPlugin, useI18n, __resetActiveI18n } from '../src/index';
+import { i18nPlugin, useI18n, __resetActiveI18n } from '../src/index';
 import type { I18n } from '../src/index';
 
 const FA = {

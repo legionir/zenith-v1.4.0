@@ -206,7 +206,7 @@ export function createI18n(input: I18nOptions = {}): I18n {
     for (const lc of effectiveChain(localeCode)) {
       const msgs = messagesByLocale.get(lc);
       if (!msgs) continue;
-      let raw = lookupPath(msgs, key);
+      const raw = lookupPath(msgs, key);
       if (raw === undefined) continue;
       if (typeof raw !== 'string') return undefined; // شاخهٔ میانی — مسیر باید برگ برسد
       if (raw.startsWith('@:')) {
