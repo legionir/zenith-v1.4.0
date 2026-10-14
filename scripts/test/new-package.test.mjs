@@ -143,8 +143,12 @@ describe('new-package scaffold (#172, SPEC §6)', () => {
       updateWorkspaceFiles: false,
     });
 
-    // Ensure peer targets have emitted declarations when running in a fresh checkout before npm run build
-    for (const dep of ['errors', 'scheduler', 'state']) {
+    // Ensure peer targets have emitted declarations when running in a fresh checkout before npm run build.
+    // Full dependency closure, TOPOLOGICAL order (typed `exports.types` point at dist/*.d.ts):
+    // errors is the L0 root imported by shared/scheduler/logger; state needs all four upstream.
+    // Without this, tsc hits TS2307 (e.g. '@zenith/logger' from packages/state/src) on a pristine
+    // CI checkout where `npm run build` never ran (unit job has no build step, unlike os-matrix).
+    for (const dep of ['errors', 'shared', 'scheduler', 'logger', 'state']) {
       if (!existsSync(join(ROOT, 'packages', dep, 'dist', 'index.d.ts'))) {
         await buildPackage(dep);
       }
