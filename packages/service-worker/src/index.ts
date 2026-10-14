@@ -31,9 +31,18 @@ export const CACHE_STRATEGIES = [
 // NOTE: نوع ZenithPlugin را به‌صورت structural تعریف می‌کنیم تا از وابستگیِ
 // compile-time به @zenith/runtime جلوگیری شود. در صورت نیاز کاربر می‌تواند
 // واقعی import کند و این شیء به‌عنوان ZenithPlugin استفاده شود.
+//
+// #38: حداقل ساختار Zen مورد نیاز این پلاگین (به‌جای any): فقط `sw` و
+// `action` — مطابق بدنهٔ install زیر. options به‌صورت unknown دریافت و در
+// مرز با swConfigOptions.resolve اعتبارسنجی می‌شود.
+interface ZenLikeForSW {
+  sw?: SWController;
+  action?: (name: string, fn: (ctx: unknown) => unknown) => unknown;
+}
+
 interface ZenithPluginStructural {
   name: string;
-  install: (zen: any, options?: any) => void;
+  install: (zen: ZenLikeForSW, options?: unknown) => void;
 }
 
 /**
@@ -468,7 +477,7 @@ export async function updateSW(): Promise<boolean> {
  */
 export const zenithSWPlugin: ZenithPluginStructural = {
   name: 'zenith-service-worker',
-  install: (zen: any, options?: any): void => {
+  install: (zen: ZenLikeForSW, options?: unknown): void => {
     // #52 — اعتبارسنجی SWConfig در مرز ورودی پلاگین
     const config: SWConfig = swConfigOptions.resolve(options);
 

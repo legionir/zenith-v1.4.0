@@ -32,7 +32,8 @@ import { type ASTNode } from './parser';
  *   evaluateExpression('$user.age > 18', { $user: { age: 25 } })
  *   // → true
  */
-export function evaluateExpression(expr: string, context: object): any {
+// #38: نتیجهٔ ارزیابی unknown است؛ مصرف‌کننده باید narrow کند (بار API عمومی صفر any).
+export function evaluateExpression(expr: string, context: object): unknown {
   const ast = compile(expr);
   return evaluate(ast, context);
 }
@@ -108,7 +109,7 @@ export type { ASTNode };
  * در حالت عادی نیازی به فراخوانی این تابع نیست، ولی در تست‌ها
  * یا بعد از تغییرات بزرگ در Expressionهای template ممکن است مفید باشد.
  */
-export { clearCache } from './cache';
+export { clearCache, clearCache as clearExpressionCache } from './cache';
 
 /**
  * تعداد Expressionهای Cache شده (فقط برای Debug).

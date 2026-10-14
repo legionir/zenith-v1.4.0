@@ -102,7 +102,8 @@ function isDevMode(): boolean {
   if (typeof globalThis === 'undefined') return false;
 
   // 1. Explicit global flag (highest priority)
-  const explicitFlag = (globalThis as any).__ZENITH_DEV__;
+  // #38: فلگ ambient با cast ساخت‌یافته (به‌جای any) — طبق الگوی runtime-core.
+  const explicitFlag = (globalThis as { __ZENITH_DEV__?: boolean }).__ZENITH_DEV__;
   if (explicitFlag === false) return false;
   if (explicitFlag === true) return true;
 
@@ -223,11 +224,30 @@ export interface ZenPerf {
  * نصب:
  *   Zen.use(myPlugin, { foo: 'bar' });
  */
+// ── #38: تایپ‌های ambient محلی (به‌جای cast‌های untyped متفرقه) ──
+
+/** عنصر root نشانه‌گذاری‌شدهٔ Zen (تله‌ها و disposes در event delegation). */
+interface ZenithRootElement extends HTMLElement {
+  __zenithDelegationTeardown?: TeardownFn;
+  __zenithDisposes?: (() => void)[];
+}
+
+/** globalThis حامل reload function برای HMR (فاز ۱۰). */
+interface ZenithReloadGlobal {
+  __ZENITH_RELOAD__?: (changedPath?: string) => void;
+}
+
+/** globalThis نگه‌دارندهٔ وضعیت DevTools (window.__ZENITH__ + پرچم dev قدیمی). */
+interface ZenithDevtoolsGlobal {
+  __ZENITH__?: { root?: unknown };
+  __ZENITH_DEV__?: boolean;
+}
+
 export interface ZenithPlugin {
   /** نام یکتای پلاگین (برای جلوگیری از نصب مجدد). */
   name: string;
   /** یک‌بار توسط Zen.use فراخوانی می‌شود. */
-  install: (zen: typeof Zen, options?: any) => void;
+  install: (zen: typeof Zen, options?: unknown) => void;
 }
 
 /**
@@ -372,7 +392,7 @@ interface ZenApi {
   flushSync: () => void;
   navigate: typeof navigate;
   route: typeof routeSignal;
-  use(plugin: ZenithPlugin, options?: any): ZenApi;
+  use(plugin: ZenithPlugin, options?: unknown): ZenApi;
   plugins(): string[];
   cloakCSS(): string;
   __injectCloakStyle(): boolean;
@@ -462,7 +482,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
 
     // BUG-RUNT-05 FIX: If start was already called on this root without stop,
     // clean up the previous instance first to prevent resource leaks.
-    const existingTeardown = (root as any).__zenithDelegationTeardown as TeardownFn | undefined;
+    const existingTeardown = (root as ZenithRootElement).__zenithDelegationTeardown;
     if (existingTeardown) {
       if (isDevMode()) {
         // #39: logger مرکزی — گاید isDevMode بیرونی نگه داشته شد (flip زمان‌اجرا در تست).
@@ -481,7 +501,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
         }
       }
       // Also dispose previous effects
-      const existingDisposes = (root as any).__zenithDisposes as (() => void)[] | undefined;
+      const existingDisposes = (root as ZenithRootElement).__zenithDisposes;
       if (existingDisposes) {
         existingDisposes.forEach((d) => d());
       }
@@ -598,7 +618,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
       state,
       delegationRoot ? { root: delegationRoot } : undefined,
     );
-    (root as any).__zenithDelegationTeardown = teardown as TeardownFn;
+    (root as ZenithRootElement).__zenithDelegationTeardown = teardown;
 
     // FEATURE (v0.6.0): تزریق CSS ضد-FOUC (Flash of Unstyled Content) قبل از
     // processDOM. این style تمام عناصری که هنوز دایرکتیوهای zen-* دارند را
@@ -633,12 +653,12 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
     // BUG-RUNT-06 FIX: Clean up any existing HMR reload function before setting new one
     if (typeof globalThis !== 'undefined') {
       // Store previous reload function for cleanup if needed
-      const prevReload = (globalThis as any).__ZENITH_RELOAD__;
+      const prevReload = (globalThis as ZenithReloadGlobal).__ZENITH_RELOAD__;
       if (prevReload && isDevMode()) {
         logger.warn('[Zen.start] Overwriting existing HMR reload function');
       }
     }
-    (globalThis as any).__ZENITH_RELOAD__ = (_changedPath?: string) => {
+    (globalThis as ZenithReloadGlobal).__ZENITH_RELOAD__ = (_changedPath?: string) => {
       logger.debug(`[Zenith HMR] Re-processing DOM...${_changedPath ? ` (${_changedPath})` : ''}`);
       // Cleanup کامل: stopEffect، Event Delegation، Components، Router.
       Zen.stop(root);
@@ -669,18 +689,18 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
   stop(root: HTMLElement): void {
     Zen.perf.mark('zen.stop');
     // ─ـ ۱. Teardown Event Delegation ──
-    const teardown = (root as any).__zenithDelegationTeardown as TeardownFn | undefined;
+    const teardown = (root as ZenithRootElement).__zenithDelegationTeardown;
     if (teardown) {
       teardown();
-      delete (root as any).__zenithDelegationTeardown;
+      delete (root as ZenithRootElement).__zenithDelegationTeardown;
     }
 
     // ── ۲. Dispose Effectهای دایرکتیوها ──
-    const disposes = (root as any).__zenithDisposes as (() => void)[] | undefined;
+    const disposes = (root as ZenithRootElement).__zenithDisposes;
     if (disposes) {
       disposes.forEach((d) => d());
       disposes.length = 0;
-      delete (root as any).__zenithDisposes;
+      delete (root as ZenithRootElement).__zenithDisposes;
     }
 
     // ── ۳. پاکسازی Component Registry ──
@@ -710,7 +730,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
     // IMP-RUNT-07: Clean up HMR reload function to prevent stale functions
     // from accumulating in SPAs with multiple HMR cycles.
     if (typeof globalThis !== 'undefined') {
-      delete (globalThis as any).__ZENITH_RELOAD__;
+      delete (globalThis as ZenithReloadGlobal).__ZENITH_RELOAD__;
     }
 
     // ─ـ ۷. پاکسازی Action Registry (IMP-RUNT-10) ──
@@ -729,7 +749,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
     // ─ـ ۹. پاکسازی DevTools References (IMP-RUNT-10) ──
     // Prevent stale global references in SPAs
     if (typeof globalThis !== 'undefined') {
-      const g = globalThis as any;
+      const g = globalThis as unknown as ZenithDevtoolsGlobal;
       if (g.__ZENITH__ && g.__ZENITH__.root === root) {
         // Only clean up if this root was the one that registered devtools
         delete g.__ZENITH__;
@@ -828,7 +848,7 @@ export const Zen: ZenApi = /* @__PURE__ */ (() => ({
   //
   // IMP-RUNT-03: Added atomic installation with Promise-based locking
   // to prevent race conditions during concurrent plugin installation.
-  use(plugin: ZenithPlugin, options?: any): typeof Zen {
+  use(plugin: ZenithPlugin, options?: unknown): typeof Zen {
     if (!plugin || typeof plugin.install !== 'function') {
       logger.warn('[Zenith] Zen.use: plugin must have an install() method.');
       return Zen;
