@@ -29,10 +29,15 @@ export default defineConfig({
         { name: 'firefox', use: { browserName: 'firefox' } },
         { name: 'webkit', use: { browserName: 'webkit' } },
       ],
-  webServer: {
-    command: 'node scripts/e2e-server.mjs',
-    url: 'http://127.0.0.1:8089/e2e/fixture.html',
-    reuseExistingServer: !process.env.CI,
-    timeout: 15_000,
-  },
+  // CI diag: ZENITH_E2E_NO_SERVER=1 means the workflow started scripts/e2e-server.mjs
+  // itself (kept alive after test failure!) so post-mortem curl probes can inspect
+  // what the static server actually served while tests timed out.
+  webServer: process.env.ZENITH_E2E_NO_SERVER
+    ? undefined
+    : {
+        command: 'node scripts/e2e-server.mjs',
+        url: 'http://127.0.0.1:8089/e2e/fixture.html',
+        reuseExistingServer: !process.env.CI,
+        timeout: 15_000,
+      },
 });

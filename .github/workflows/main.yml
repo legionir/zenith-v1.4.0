@@ -335,10 +335,19 @@ jobs:
         run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
+      - name: Start e2e static server (manual, kept alive for post-mortem probes)
+        run: |
+          nohup node scripts/e2e-server.mjs > "$RUNNER_TEMP/e2e-server.out" 2>&1 &
+          echo $! > "$RUNNER_TEMP/e2e-server.pid"
+          for i in $(seq 1 30); do
+            curl -sf --max-time 2 http://127.0.0.1:8089/e2e/fixture.html >/dev/null && break
+            sleep 1
+          done
+          curl -s -o /dev/null -w "server-ready-check=%{http_code}\n" --max-time 3 http://127.0.0.1:8089/e2e/fixture.html
       - name: Run e2e
         run: |
           set +e
-          npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
+          ZENITH_E2E_NO_SERVER=1 npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
           code=$?
           if [ $code -ne 0 ]; then
             # health-probe سرور استاتیک*زنده* اگر هنوز بالاست
