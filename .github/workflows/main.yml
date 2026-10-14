@@ -81,7 +81,9 @@ jobs:
           npm run test:coverage > "$RUNNER_TEMP/unit.out" 2>&1
           code=$?
           if [ $code -ne 0 ]; then
-            echo "::error file=package.json::$(tail -80 "$RUNNER_TEMP/unit.out" | head -c 7000)"
+            # خروجی آن‌برد: exit سیگنال (timeout/OOM) یا failrun vitest؟
+            { echo ""; echo "=== exit=$code ==="; echo "=== node: $(node --version) | vitest: $(npx vitest --version 2>/dev/null) ===";               echo "=== free-mem: $(free -h | head -2) ==="; echo "====== آخر ۱۲۰ خط ======";               tail -120 "$RUNNER_TEMP/unit.out"; } | paste -sd '\\n' | sed 's/%/%25/g;s/\\r//g' | cut -c1-7900 > /tmp/diag.txt
+            while IFS= read -r ln; do echo "::error file=package.json::${ln[*]:0:400}"; done < /tmp/diag.txt
           fi
           exit $code
       - name: Upload coverage
