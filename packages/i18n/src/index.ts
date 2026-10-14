@@ -494,7 +494,15 @@ export function toLogicalCss(cssText: string): string {
 // plugin و detectFromSources), options.ts (schema پیش‌فرض‌ها), types.ts
 // (رسوم API). این بخش فقط آن‌ها را با نام‌های عمومی spec بازصادر می‌کند.
 
-export { createI18n, i18nPlugin, useI18n, bindI18nToApp, __resetActiveI18n } from './core';
+export {
+  createI18n,
+  i18nPlugin,
+  useI18n,
+  bindI18nToApp,
+  __resetActiveI18n,
+  readSsrI18nData,
+  clearSsrI18nData,
+} from './core';
 export {
   i18nOptionsSchema,
   resolveI18nOptions,
@@ -504,11 +512,18 @@ export {
 } from './options';
 export { formatTemplate, icuInvalid } from './icu';
 export type { FormatHooks } from './icu';
+export { createI18nDirectives, i18nStateGlobals, escapeHtmlStrict } from './directives';
+export type {
+  I18nDirectiveDefinition,
+  I18nDirectiveBindContext,
+  I18nDirectiveOptions,
+} from './directives';
 export type {
   I18n,
   I18nOptions,
   I18nParams,
   Messages,
+  SsrI18nData,
   MissingStrategy,
   DetectSource,
   CalendarName,

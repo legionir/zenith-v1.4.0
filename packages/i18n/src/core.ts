@@ -4,19 +4,28 @@
 // زنجیره‌ای، لینک‌های @:، قالب عدد/تاریخ/نسبی/فهرست با Intl، بارگذاری تنبل
 // (setLocale → Promise)، sync <html lang/dir>، persist در storage (اختیاری).
 
-import { signal, computed } from '@zenith/state';
+import { signal, computed, ZENITH_READABLE } from '@zenith/state';
 import type { Cleanup } from '@zenith/shared';
 import { createCache } from '@zenith/cache';
 import { logger } from '@zenith/logger';
 import { createReservedError } from '@zenith/errors';
 import { formatTemplate, icuInvalid, type FormatHooks } from './icu';
+import { createI18nDirectives, i18nStateGlobals } from './directives';
 import {
   i18nOptionsSchema,
   resolveI18nOptions,
   languageOf,
   type ResolvedI18nOptions,
 } from './options';
-import type { I18n, I18nOptions, I18nParams, Messages, TCallOptions, DetectContext } from './types';
+import type {
+  I18n,
+  I18nOptions,
+  I18nParams,
+  Messages,
+  TCallOptions,
+  DetectContext,
+  SsrI18nData,
+} from './types';
 
 /** escape HTML در پارامترهای رشته‌ای (پیش‌فرض فعال). */
 const HTML_ESCAPES: Record<string, string> = {
@@ -167,6 +176,12 @@ export function createI18n(input: I18nOptions = {}): I18n {
   const dirSubs = new Set<(v: 'rtl' | 'ltr') => void>();
   const availableSubs = new Set<(v: readonly string[]) => void>();
   let lastDir = dirFor(opts.locale);
+  // موج ۲ (§۶.۲): dispose idempotent؛ متدهای Mutable پس از dispose warn+no-op.
+  let disposed = false;
+  function warnIfDisposed(api: string): boolean {
+    if (disposed) logger.warn(`[zenith:i18n] ${api} بعد از dispose() نادیده گرفته شد (no-op).`);
+    return disposed;
+  }
   function fireLocaleChange(): void {
     const v = localeSig.get();
     for (const fn of [...localeSubs]) fn(v);
@@ -360,8 +375,12 @@ export function createI18n(input: I18nOptions = {}): I18n {
   }
 
   // ── API عمومی ──
+  // #150-wave2: برند ZENITH_READABLE روی هر سه جعبه تا createEvalContext
+  // (runtime-core) هنگام تزریق در state — مثل addState(i18nStateGlobals(i18n)) —
+  // آن‌ها را به‌صورت واکنشی unwrap کند (`$locale`/`$dir` بدون `.get()`).
   const i18n: I18n = {
     locale: {
+      [ZENITH_READABLE]: true as const,
       get: () => localeSig.get(),
       peek: () => localeSig.peek(),
       set: (v: string) => {
@@ -376,6 +395,7 @@ export function createI18n(input: I18nOptions = {}): I18n {
       },
     },
     dir: {
+      [ZENITH_READABLE]: true as const,
       get: () => dirSig.get(),
       peek: () => dirSig.get(),
       subscribe: (fn: (v: 'rtl' | 'ltr') => void) => {
@@ -386,6 +406,7 @@ export function createI18n(input: I18nOptions = {}): I18n {
       },
     },
     availableLocales: {
+      [ZENITH_READABLE]: true as const,
       get: () => availableSig.get(),
       peek: () => availableSig.get(),
       subscribe: (fn: (v: readonly string[]) => void) => {
@@ -435,6 +456,7 @@ export function createI18n(input: I18nOptions = {}): I18n {
     },
 
     async setLocale(nextLocale: string): Promise<void> {
+      if (warnIfDisposed('setLocale')) return;
       const current = localeSig.get();
       if (nextLocale === current) return;
       if (hasLocale(messagesByLocale, nextLocale)) {
@@ -467,6 +489,7 @@ export function createI18n(input: I18nOptions = {}): I18n {
     },
 
     addMessages(newLocale: string, msgs: Messages, o?: { merge?: boolean }): Cleanup {
+      if (warnIfDisposed('addMessages')) return () => {};
       const merge = o?.merge !== false;
       const prev = messagesByLocale.get(newLocale);
       if (merge && prev) {
@@ -488,6 +511,8 @@ export function createI18n(input: I18nOptions = {}): I18n {
     },
 
     dispose(): void {
+      if (disposed) return;
+      disposed = true;
       activeI18n = activeI18n === i18n ? null : activeI18n;
       messagesByLocale.clear();
       intlCache.clear?.();
@@ -613,19 +638,112 @@ function pathLocale(ctx?: DetectContext): string | undefined {
  * پلاگین `app.use(i18nPlugin(opts))` — instance را با key عمومی provid می‌کند.
  * در directive های بعدی (§۳.۱ wave 2) از همین key خوانده می‌شود.
  */
+// ─────────────────────────────────────────────────────────────
+// SSR payload (`window.__ZENITH_I18N__` #174) — مصرف در سمت client.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * دادهٔ سریال‌شدهٔ SSR چندزبانگی را از `window.__ZENITH_I18N__` می‌خواند.
+ * بدون تغییر در window باقی می‌ماند تا چنداپ روی یک صفحه هم‌زمان کار کنند؛
+ * برای پاک‌سازی «بعد از مصرف» به‌صورت اختیاری `clearSsrI18nData` را صدا بزنید
+ * (مانند الگوی hydrate.ts؛ پلاگین به‌صورت پیش‌فرض پس از مصرف پاک می‌کند).
+ * در محیط غیر-Browser یا وقتی payload نامعتبر باشد null برمی‌گرداند (SSR-safe).
+ */
+export function readSsrI18nData(): SsrI18nData | null {
+  if (typeof window === 'undefined') return null;
+  const raw = (window as unknown as Record<string, unknown>)['__ZENITH_I18N__'];
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const data = raw as SsrI18nData;
+  const localeValid = typeof data.locale === 'string' && data.locale.length >= 2;
+  const dirValid = data.dir === undefined || data.dir === 'rtl' || data.dir === 'ltr';
+  const messagesValid =
+    data.messages === undefined ||
+    (typeof data.messages === 'object' && data.messages !== null && !Array.isArray(data.messages));
+  return localeValid || dirValid || messagesValid ? data : null;
+}
+
+/** پاک‌سازی `window.__ZENITH_I18N__` پس از مصرف (جلوگیری از رشد حافظه/replay). */
+export function clearSsrI18nData(): void {
+  if (typeof window === 'undefined') return;
+  delete (window as unknown as Record<string, unknown>)['__ZENITH_I18N__'];
+}
+
+/**
+ * پلاگین رسمی `app.use(i18nPlugin(options))`.
+ *
+ * در install این کارها انجام می‌شود (موج ۲):
+ *   1. `createI18n(opts)` و `provide('zenith:i18n', i18n)`؛
+ *   2. اگر `window.__ZENITH_I18N__` (#174) موجود باشد: پیام‌های SSR در موتور
+ *      seed می‌شوند و locale همان‌جا با مسیر sync (بدون fetch) تنظیم می‌شود تا
+ *      hydration mismatch و درخواست اضافه نسازد؛ سپس payload پاک می‌شود.
+ *   3. دایرکتیوهای zen-t* با `app.directive(...)` ثبت می‌شوند (اگر موتور
+ *      registry داشته باشد؛ duck-typed — بدون import لایهٔ runtime).
+ *   4. expression گلوبال‌ها با `app.addState({...})` تزریق می‌شوند
+ *      (`$t/$te/$n/$d/$rt/$list/$locale/$dir`).
+ *   5. detectLocale خودکار (اگر payload SSR نخورد باشد).
+ *
+ * Cleanup: دایرکتیوها unregister و موتور dispose می‌شود.
+ */
 export function i18nPlugin(opts: I18nOptions = {}) {
   return {
     name: 'zenith:i18n',
     install(app: {
       provide?: (key: string | symbol, value: unknown) => void;
+      directive?: (def: unknown) => (() => void) | void;
+      addState?: (values: Record<string, unknown>, options?: { overwrite?: boolean }) => unknown;
       dispose?: () => void;
     }) {
       const i18n = createI18n(opts);
       app?.provide?.('zenith:i18n', i18n);
       bindI18nToApp(app as object, i18n);
-      const detect = i18n.detectLocale();
-      if (detect) void i18n.setLocale(detect).catch(() => {});
-      return () => i18n.dispose();
+
+      const cleanups: (() => void)[] = [];
+
+      // ۲) SSR seeding — قبل از هر detect/loader تا fetch صورت نگیرد.
+      const ssrData = readSsrI18nData();
+      if (ssrData) {
+        if (ssrData.messages) {
+          for (const [loc, msgs] of Object.entries(ssrData.messages)) {
+            i18n.addMessages(loc, msgs);
+          }
+        }
+        // locale سرور = منبع حقیقت در UX؛ با مسیر sync ثبت می‌شود (پیام‌ها حالا
+        // از messages موجودند ⇒ loadMessages صدا زده نمی‌شود).
+        if (ssrData.locale) {
+          void i18n.setLocale(ssrData.locale).catch(() => {});
+        }
+        clearSsrI18nData();
+      }
+
+      // ۳) دایرکتیوها — zen-t/zen-t-html/zen-t-attr/zen-locale/zen-dir.
+      if (typeof app?.directive === 'function') {
+        for (const def of createI18nDirectives(i18n, { sanitizeHtml: opts.sanitizeHtml })) {
+          const c = app.directive(def);
+          if (typeof c === 'function') cleanups.push(c);
+        }
+      }
+
+      // ۴) expression globals — در mount به context تزریق می‌شوند.
+      if (typeof app?.addState === 'function') {
+        app.addState(i18nStateGlobals(i18n));
+      }
+
+      // ۵) auto-detect — فقط اگر SSR locale نداده بود (ترتیب: SSR ⇒ detect).
+      if (!ssrData?.locale) {
+        const detect = i18n.detectLocale();
+        if (detect) void i18n.setLocale(detect).catch(() => {});
+      }
+
+      return () => {
+        for (const c of cleanups) {
+          try {
+            c();
+          } catch {
+            // cleanup نباید خطا پرتاب کند
+          }
+        }
+        i18n.dispose();
+      };
     },
   };
 }

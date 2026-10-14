@@ -71,6 +71,9 @@ export const i18nOptionsSchema = defineOptions<I18nOptions>(
     syncDocument: s.optional(s.boolean()),
     rtlLocales: s.optional(s.custom<readonly string[]>(isStringArray, 'string[]')),
     defaultCurrency: s.optional(s.string({ min: 3, max: 3 })),
+    sanitizeHtml: s.optional(
+      s.custom<(html: string) => string>((v) => typeof v === 'function', 'sanitizer fn'),
+    ),
   }),
 );
 
@@ -86,8 +89,9 @@ export function regionOf(locale: string): string {
 }
 
 /** خروجی نهایی resolver — همه‌فیلدها معین (به‌جز لودر آپشنال). */
-export type ResolvedI18nOptions = Required<Omit<I18nOptions, 'loadMessages'>> & {
+export type ResolvedI18nOptions = Required<Omit<I18nOptions, 'loadMessages' | 'sanitizeHtml'>> & {
   loadMessages?: I18nOptions['loadMessages'];
+  sanitizeHtml?: I18nOptions['sanitizeHtml'];
 };
 
 /**

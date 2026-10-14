@@ -156,6 +156,18 @@ export interface App extends Disposable {
   directive(nameOrDef: string | DirectiveDefinition, def?: DirectiveDefinition): Cleanup;
   provide<T>(key: string | symbol, value: T): App;
   inject<T>(key: string | symbol, defaultValue?: T): T | undefined;
+  /**
+   * #150-wave2: افزودن به state سراسری اپ پس از ایجاد اپ (globalStateHub).
+   *
+   * پلاگین‌ها (مثل `@zenith/i18n`) با این API شناسه‌هایی مثل `t`/`locale` را به
+   * state تزریق می‌کنند تا در expressionها به‌صورت `$t(...)`/`$locale` در دسترس
+   * باشند. مقادیر در `config.state` ابجکت merge می‌شوند و از mount بعدی فعال‌اند
+   * (روی mountهای پیش‌نیامده هم اثر دارد).
+   *
+   * سیاست برخورد: بدون `overwrite` بر کلید موجود بازنویسی انجام نمی‌شود و در حالت
+   * dev با `warnHandler`/`logger` هشدار می‌دهد (فیلدهای تزریقی باید اسم‌فضا داشته باشند).
+   */
+  addState(values: Record<string, unknown>, options?: { overwrite?: boolean }): App;
   action(
     name: string,
     fn: (ctx: {
@@ -1252,6 +1264,23 @@ export function createApp(options?: AppOptions): App {
         return appProvides.get(key) as T;
       }
       return defaultValue;
+    },
+
+    addState(values: Record<string, unknown>, options?: { overwrite?: boolean }): App {
+      const overwrite = options?.overwrite ?? false;
+      for (const [key, value] of Object.entries(values)) {
+        if (!overwrite && key in resolvedConfig.state) {
+          const msg = `[Zenith] addState: کلید «${key}» قبلاً در state موجود است؛ بازنویسی نشد (overwrite: true برای حالت override).`;
+          if (resolvedConfig.warnHandler) {
+            resolvedConfig.warnHandler(msg, { key });
+          } else {
+            resolvedConfig.logger.warn(msg);
+          }
+          continue;
+        }
+        resolvedConfig.state[key] = value;
+      }
+      return app;
     },
 
     action(name, fn): Cleanup {

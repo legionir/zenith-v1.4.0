@@ -2645,12 +2645,22 @@
         "tag": "public"
       },
       {
+        "name": "clearSsrI18nData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "compareJalali",
         "kind": "function",
         "tag": "deprecated"
       },
       {
         "name": "createI18n",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createI18nDirectives",
         "kind": "function",
         "tag": "public"
       },
@@ -2676,6 +2686,11 @@
       },
       {
         "name": "detectTextDirection",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "escapeHtmlStrict",
         "kind": "function",
         "tag": "public"
       },
@@ -2750,6 +2765,21 @@
         "tag": "public"
       },
       {
+        "name": "I18nDirectiveBindContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18nDirectiveDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18nDirectiveOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "I18nOptions",
         "kind": "type",
         "tag": "public"
@@ -2766,6 +2796,11 @@
       },
       {
         "name": "i18nPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "i18nStateGlobals",
         "kind": "function",
         "tag": "public"
       },
@@ -2835,6 +2870,11 @@
         "tag": "deprecated"
       },
       {
+        "name": "readSsrI18nData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "regionOf",
         "kind": "function",
         "tag": "public"
@@ -2852,6 +2892,11 @@
       {
         "name": "RTL_LOCALES",
         "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SsrI18nData",
+        "kind": "type",
         "tag": "public"
       },
       {

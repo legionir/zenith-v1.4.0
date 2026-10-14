@@ -85,6 +85,19 @@ export interface I18nOptions {
    * تعریف نشده باشد (افزونهٔ Zenith نسبت به جدول spec — fa ⇒ 'IRR').
    */
   defaultCurrency?: string;
+  /**
+   * موج ۲ — sanitizer سفارشی برای دایرکتیو zen-t-html (مثلاً sanitizeHTML از
+   * @zenith/security). پیش‌فرض در دایرکتیوها escapeِ کامل است (امن‌به‌پیش‌فرض).
+   * @zenith/security طبق قرارداد #150 جزو وابستگی‌های i18n نیست؛ تزریق می‌شود.
+   */
+  sanitizeHtml?: (html: string) => string;
+}
+
+/** payload سریال‌شدهٔ SSR در `window.__ZENITH_I18N__` (#174). */
+export interface SsrI18nData {
+  locale?: string;
+  dir?: 'rtl' | 'ltr';
+  messages?: Record<string, Messages>;
 }
 
 /** کانتکست درخواست SSR برای detectLocale (اختیاری). */
