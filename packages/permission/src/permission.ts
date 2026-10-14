@@ -30,7 +30,8 @@
 //     </template>
 //   </div>
 
-import { signal, type Signal } from '@zenith/state';
+import { signal, computed, type Signal, type ReadonlySignal } from '@zenith/state';
+import { logger } from '@zenith/logger';
 
 /**
  * Deep-freeze an object and all its nested properties. Used by
@@ -79,7 +80,7 @@ export class PermissionManager {
   // This lets application code pin the client-side permission state after
   // initial hydration so a later XSS or stray import cannot tamper with it
   // to escalate privileges in the UI. (Real authorization must still happen
-  // server-side — see console.info below.)
+  // server-side — see logger.info below.)
   private _frozen = false;
 
   constructor(config: { superAdminRole?: string } = {}) {
@@ -98,7 +99,7 @@ export class PermissionManager {
 
   /**
    * SEC FIX (v1.2.6): SEC-A7 — Freeze the manager. After this is called,
-   * setUserAccess() and clear() become no-ops (with a console.error). Use
+   * setUserAccess() and clear() become no-ops (with a logger.error). Use
    * this once your client-side permission state has been hydrated from the
    * server to prevent later mutations (e.g. by a follow-up XSS payload).
    *
@@ -125,7 +126,7 @@ export class PermissionManager {
   setUserAccess(roles: string[], permissions: string[] = []): void {
     // SEC FIX (v1.2.6): SEC-A7 — deny mutations after freeze().
     if (this._frozen) {
-      console.error(
+      logger.error(
         '[Zenith Permission] PermissionManager is frozen — refusing to mutate user access. Call thaw() or create a new manager if you genuinely need to change permissions.',
       );
       return;
@@ -143,7 +144,7 @@ export class PermissionManager {
   clear(): void {
     // SEC FIX (v1.2.6): SEC-A7 — deny mutations after freeze().
     if (this._frozen) {
-      console.error(
+      logger.error(
         '[Zenith Permission] PermissionManager is frozen — refusing to clear user access.',
       );
       return;
@@ -189,6 +190,20 @@ export class PermissionManager {
     const state = this._signal.get();
     if (state.isSuperAdmin) return true;
     return state.permissions.includes(permission);
+  }
+
+  /**
+   * #135: سیگنال واکنش‌گرا (`ReadonlySignal<boolean>`) برای بررسی مجوز `permission`.
+   */
+  canSignal(permission: string): ReadonlySignal<boolean> {
+    return computed(() => this.checkPermission(permission));
+  }
+
+  /**
+   * #135: سیگنال واکنش‌گرا (`ReadonlySignal<boolean>`) برای بررسی نقش `role`.
+   */
+  hasRoleSignal(role: string): ReadonlySignal<boolean> {
+    return computed(() => this.checkRole(role));
   }
 
   /**
@@ -252,9 +267,8 @@ export class PermissionManager {
       const rest = trimmed.slice(4);
       const perms = rest.split(',').map((s) => s.trim());
       if (perms.length > 1 || !rest.includes(':')) {
-        console.warn(
-          '[Zenith Permission] `any:` prefix is deprecated and collides with permission names like `any:thing`. Use `any(...)` syntax instead. Expression:',
-          expr,
+        logger.warn(
+          `[Zenith Permission] \`any:\` prefix is deprecated and collides with permission names like \`any:thing\`. Use \`any(...)\` syntax instead. Expression: ${expr}`,
         );
         return this.canAny(perms);
       }
@@ -263,9 +277,8 @@ export class PermissionManager {
       const rest = trimmed.slice(4);
       const perms = rest.split(',').map((s) => s.trim());
       if (perms.length > 1 || !rest.includes(':')) {
-        console.warn(
-          '[Zenith Permission] `all:` prefix is deprecated and collides with permission names like `all:thing`. Use `all(...)` syntax instead. Expression:',
-          expr,
+        logger.warn(
+          `[Zenith Permission] \`all:\` prefix is deprecated and collides with permission names like \`all:thing\`. Use \`all(...)\` syntax instead. Expression: ${expr}`,
         );
         return this.canAll(perms);
       }
@@ -310,9 +323,8 @@ export class PermissionManager {
       const rest = trimmed.slice(4);
       const roles = rest.split(',').map((s) => s.trim());
       if (roles.length > 1 || !rest.includes(':')) {
-        console.warn(
-          '[Zenith Permission] `any:` prefix is deprecated; use `any(...)` syntax. Expression:',
-          expr,
+        logger.warn(
+          `[Zenith Permission] \`any:\` prefix is deprecated; use \`any(...)\` syntax. Expression: ${expr}`,
         );
         return this.hasAnyRole(roles);
       }
@@ -321,9 +333,8 @@ export class PermissionManager {
       const rest = trimmed.slice(4);
       const roles = rest.split(',').map((s) => s.trim());
       if (roles.length > 1 || !rest.includes(':')) {
-        console.warn(
-          '[Zenith Permission] `all:` prefix is deprecated; use `all(...)` syntax. Expression:',
-          expr,
+        logger.warn(
+          `[Zenith Permission] \`all:\` prefix is deprecated; use \`all(...)\` syntax. Expression: ${expr}`,
         );
         return this.hasAllRoles(roles);
       }
@@ -349,7 +360,7 @@ export function createPermissionManager(
   // permission checks only hide/show UI; they are trivially bypassable by an
   // attacker who can run JS in the page (XSS) or who simply edits the local
   // signal. Real authorization MUST happen on the server.
-  console.info(
+  logger.info(
     '[Zenith Permission] Client-side permissions are for UI only — always enforce server-side.',
   );
   const manager = new PermissionManager(config);
@@ -362,6 +373,42 @@ export function createPermissionManager(
  */
 export function getPermissionManager(name: string = 'default'): PermissionManager | undefined {
   return permissionRegistry.get(name);
+}
+
+/** #118 / #135: ثبت PermissionManager در رجیستری با بازگشت Cleanup idempotent. */
+export function registerPermissionManager(name: string, manager: PermissionManager): () => void {
+  permissionRegistry.set(name, manager);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (permissionRegistry.get(name) === manager) {
+      permissionRegistry.delete(name);
+    }
+  };
+}
+
+/** #118 / #135: بررسی وجود PermissionManager در رجیستری (`hasX`). */
+export function hasPermissionManager(name: string = 'default'): boolean {
+  return permissionRegistry.has(name);
+}
+
+/** #118 / #135: فهرست نام تمام PermissionManagerهای ثبت‌شده (`listXs`). */
+export function listPermissionManagers(): string[] {
+  return Array.from(permissionRegistry.keys());
+}
+
+/** #118 / #135: حذف یک PermissionManager با نام از رجیستری (`unregisterX`). */
+export function unregisterPermissionManager(name: string): boolean {
+  return permissionRegistry.delete(name);
+}
+
+/** #135: تابع سطح بالای واکنش‌گرا برای بررسی دسترسی در رجیستری پیش‌فرض. */
+export function can(permission: string, managerName: string = 'default'): ReadonlySignal<boolean> {
+  return computed(() => {
+    const mgr = permissionRegistry.get(managerName);
+    return mgr ? mgr.checkPermission(permission) : false;
+  });
 }
 
 /**
@@ -397,7 +444,7 @@ export function requirePermission(
   return (_to: string, _from: string): true | string => {
     const manager = getPermissionManager();
     if (!manager) {
-      console.error(
+      logger.error(
         '[Zenith Permission] No PermissionManager registered — requirePermission denies access.',
       );
       return redirectTo;
@@ -408,7 +455,7 @@ export function requirePermission(
       }
     } catch {
       // Fail-closed on unexpected errors
-      console.error('[Zenith Permission] Unexpected error checking permission — denying access.');
+      logger.error('[Zenith Permission] Unexpected error checking permission — denying access.');
       return redirectTo;
     }
     return redirectTo;
@@ -436,7 +483,7 @@ export function requireRole(
   return (_to: string, _from: string): true | string => {
     const manager = getPermissionManager();
     if (!manager) {
-      console.error(
+      logger.error(
         '[Zenith Permission] No PermissionManager registered — requireRole denies access.',
       );
       return redirectTo;
@@ -446,7 +493,7 @@ export function requireRole(
         return true;
       }
     } catch {
-      console.error('[Zenith Permission] Unexpected error checking role — denying access.');
+      logger.error('[Zenith Permission] Unexpected error checking role — denying access.');
       return redirectTo;
     }
     return redirectTo;
@@ -484,7 +531,7 @@ export function createGuard(
         // Explicit opt-in to legacy behaviour.
         return true;
       }
-      console.error(
+      logger.error(
         '[Zenith Permission] No PermissionManager registered — guard is denying access by default (fail-closed). Create a manager with createPermissionManager(), or pass { failOpen: true } to createGuard() to restore legacy fail-open behaviour.',
       );
       return false;
@@ -502,7 +549,7 @@ export function createGuard(
       // یا استثنای ناشناخته)، قبلاً خطا bubble می‌کرد و fail-closed را دور
       // می‌زد. حالا catch می‌کنیم و false برمی‌گردانیم تا دسترسی رد شود.
       if (!failOpen) {
-        console.error(
+        logger.error(
           '[Zenith Permission] Unexpected error in guard — denying access (fail-closed).',
         );
       }

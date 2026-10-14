@@ -51,6 +51,25 @@ export interface ComponentDefinition<TProps extends Record<string, any> = Record
 export const componentRegistry = new Map<string, HTMLTemplateElement>();
 
 /**
+ * #92 — ایزولاسیون رجیستری کامپوننت‌ها در SSR هم‌زمان.
+ * اگر provider توسط `@zenith/ssr` نصب شده باشد و یک Map مخصوص درخواست جاری
+ * برگرداند، عملیات ثبت/حذف/پاکسازی روی همان Map درخواست انجام می‌شود و
+ * خواندن (`getComponent`/`isComponent`) ابتدا Map درخواست و سپس
+ * `componentRegistry` سراسری را بررسی می‌کند.
+ */
+let _componentStoreProvider: (() => Map<string, HTMLTemplateElement> | null) | null = null;
+
+export function setComponentRegistryStore(
+  provider: (() => Map<string, HTMLTemplateElement> | null) | null,
+): void {
+  _componentStoreProvider = provider;
+}
+
+function getActiveComponentMap(): Map<string, HTMLTemplateElement> {
+  return _componentStoreProvider?.() ?? componentRegistry;
+}
+
+/**
  * Type guard برای تشخیص HTMLTemplateElement.
  *
  * از instanceof استفاده نمی‌کنیم چون:
@@ -96,13 +115,14 @@ export function registerComponent(name: string, template: HTMLTemplateElement): 
     );
   }
   const key = name.toLowerCase();
-  componentRegistry.set(key, template);
+  const targetMap = getActiveComponentMap();
+  targetMap.set(key, template);
   let removed = false;
   return () => {
     if (removed) return;
     removed = true;
-    if (componentRegistry.get(key) === template) {
-      componentRegistry.delete(key);
+    if (targetMap.get(key) === template) {
+      targetMap.delete(key);
     }
   };
 }
@@ -111,7 +131,7 @@ export function registerComponent(name: string, template: HTMLTemplateElement): 
  * حذف یک کامپوننت از Registry.
  */
 export function unregisterComponent(name: string): boolean {
-  return componentRegistry.delete(name.toLowerCase());
+  return getActiveComponentMap().delete(name.toLowerCase());
 }
 
 /**
@@ -120,7 +140,12 @@ export function unregisterComponent(name: string): boolean {
  * @returns قالب یا `undefined` اگر ثبت نشده باشد.
  */
 export function getComponent(name: string): HTMLTemplateElement | undefined {
-  return componentRegistry.get(name.toLowerCase());
+  const key = name.toLowerCase();
+  const scoped = _componentStoreProvider?.();
+  if (scoped && scoped.has(key)) {
+    return scoped.get(key);
+  }
+  return componentRegistry.get(key);
 }
 
 /**
@@ -130,7 +155,27 @@ export function getComponent(name: string): HTMLTemplateElement | undefined {
  * <app-product-card>) یک کامپوننت است یا یک تگ HTML معمولی.
  */
 export function isComponent(name: string): boolean {
-  return componentRegistry.has(name.toLowerCase());
+  const key = name.toLowerCase();
+  const scoped = _componentStoreProvider?.();
+  if (scoped && scoped.has(key)) {
+    return true;
+  }
+  return componentRegistry.has(key);
+}
+
+/** #118: بررسی وجود کامپوننت ثبت‌شده (`hasX`). */
+export function hasComponent(name: string): boolean {
+  return isComponent(name);
+}
+
+/** #118: فهرست نام تمام کامپوننت‌های ثبت‌شده (`listXs`). */
+export function listComponents(): string[] {
+  const keys = new Set<string>(componentRegistry.keys());
+  const scoped = _componentStoreProvider?.();
+  if (scoped) {
+    for (const k of scoped.keys()) keys.add(k);
+  }
+  return Array.from(keys);
 }
 
 /**
@@ -139,7 +184,7 @@ export function isComponent(name: string): boolean {
  * ⚠️ در Production استفاده نکنید.
  */
 export function clearComponents(): void {
-  componentRegistry.clear();
+  getActiveComponentMap().clear();
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -183,7 +228,7 @@ export function trackComponentLifecycle(element: HTMLElement, dispose: () => voi
     _lifecycleObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const removedNode of mutation.removedNodes) {
-          if (!(removedNode instanceof HTMLElement)) continue;
+          if (typeof HTMLElement === 'undefined' || !(removedNode instanceof HTMLElement)) continue;
           // Direct match.
           const cleanup = componentDisposes.get(removedNode);
           if (cleanup) {
@@ -225,10 +270,10 @@ export function stopComponentTracking(): void {
  * Usage:
  * ```typescript
  * defineComponent<ProductCardProps>('app-product-card', template, {
- *   lifecycle: {
- *     onMount() { console.log('mounted'); },
- *     onDestroy() { console.log('destroyed'); },
- *   },
+ * lifecycle: {
+ *   onMount() { logger.debug('mounted'); },
+ *   onDestroy() { logger.debug('destroyed'); },
+ * },
  * });
  * ```
  *

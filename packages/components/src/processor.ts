@@ -37,6 +37,7 @@
 import { compileExpression } from '@zenith/expressions';
 import { getComponent, trackComponentLifecycle } from './registry';
 import { developerError, ErrorCode, reportError } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 
 // ─────────────────────────────────────────────────────────────────────────
 // BUG-COM-04 (v1.3.0): Circular Dependency Detection
@@ -166,7 +167,7 @@ function buildComponentContext(
     if (attrName.startsWith(PROP_PREFIX)) {
       const rawPropName = attrName.slice(PROP_PREFIX.length);
       if (rawPropName.length === 0) {
-        console.warn(`[Zenith] Empty prop name on <${el.tagName.toLowerCase()}>`);
+        logger.warn(`[Zenith] Empty prop name on <${el.tagName.toLowerCase()}>`);
         continue;
       }
       // نام prop را همانطور که هست استفاده می‌کنیم (HTML آن را lowercase کرده).
@@ -187,7 +188,7 @@ function buildComponentContext(
           try {
             return evalFn(parentContext);
           } catch (err) {
-            console.warn(
+            logger.warn(
               `[Zenith] Failed to evaluate prop "${propName}"="${expr}" on ` +
                 `<${el.tagName.toLowerCase()}>: ${(err as Error).message}.`,
             );
@@ -244,7 +245,7 @@ function fillSlots(content: DocumentFragment, slotContents: Map<string, HTMLElem
     if (replacements.length > 0) {
       const parent = slotEl.parentNode;
       if (!parent) {
-        console.warn('[Zenith] <slot> has no parent node — cannot fill.');
+        logger.warn('[Zenith] <slot> has no parent node — cannot fill.');
         return;
       }
       // درج محتوا قبل از <slot>، به ترتیب.
@@ -385,7 +386,7 @@ export function processComponent(
       const hasSlotContent = Array.from(slotContents.values()).some((arr) => arr.length > 0);
       const templateSlots = content.querySelectorAll('slot');
       if (hasSlotContent && templateSlots.length === 0) {
-        console.warn(
+        logger.warn(
           `[Zenith] Component "${tagName}" has slot content but no <slot> ` +
             `element in its template. The slot content will not be rendered.`,
         );
@@ -435,7 +436,11 @@ export function processComponent(
           }
         }
       } catch (err) {
-        console.error(`[Zenith] Lifecycle onMount error for "${tagName}":`, err);
+        logger.error(
+          `[Zenith] Lifecycle onMount error for "${tagName}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
     }
 
@@ -451,7 +456,7 @@ export function processComponent(
         try {
           d();
         } catch (err) {
-          // #116/DEC-031: لاگ از hub؛ نه console.error مستقیم.
+          // #116/DEC-031: لاگ از hub؛ نه چاپ مستقیم در کنسول.
           reportError(err, `component:${tagName}`, { phase: 'dispose' });
         }
       }

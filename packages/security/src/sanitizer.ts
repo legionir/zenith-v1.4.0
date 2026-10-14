@@ -29,6 +29,8 @@
 //   - از Content-Security-Policy (CSP) استفاده کنید.
 //   - ورودی کاربر را قبل از ذخیره در دیتابیس اعتبارسنجی کنید.
 
+import { logger } from '@zenith/logger';
+
 /**
  * تگ‌هایی که کاملاً ممنوع هستند (حذف کامل).
  *
@@ -571,20 +573,19 @@ function cleanNodeWithOptions(node: Node, forbidden: Set<string>, allowed: Set<s
 // هدف اصلی آن صرفاً یک «نشانه‌ی قابل‌حسابرسی» (auditable marker) بودن است:
 //   1) جستجو در codebase برای `sanitizeHTMLTrusted` فوراً همه‌ی escape hatch ها
 //      را نشان می‌دهد.
-//   2) یک console.warn در حالت Development چاپ می‌کند تا در زمان اجرا هم
+//   2) یک هشدار `logger.debug` (سطح dev) چاپ می‌کند تا در زمان اجرا هم
 //      قابل شناسایی باشد.
 //   3) به‌عنوان یک مرز صریح عمل می‌کند: هیچ‌گاه نباید برای محتوای کاربر
 //      استفاده شود.
 export function sanitizeHTMLTrusted(html: string): string {
   // FEATURE (v0.4.0): zen-html-trusted dev-mode warning.
-  // هشدار قابل‌شناسایی در کنسول مرورگر — برای audit و دیباگ.
+  // #39: از لاگر مرکزی با سطح debug استفاده می‌شود — پیش‌فرض لاگر در dev
+  // ( __ZENITH_DEV__ !== false ) سطح debug است و در prod سرکوب می‌شود؛
+  // یعنی دقیقاً همان پنجرهٔ «فقط Development» بدون وابستگی نویز به console.
   if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false) {
-    // ایمن‌سازی دسترسی به console (در برخی محیط‌های SSR ممکن است نباشد).
-    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
-      console.warn(
-        '⚠️ [Zenith] zen-html-trusted: rendering unsanitized HTML. Ensure this content is trusted (e.g. from your own server, sanitized upstream).',
-      );
-    }
+    logger.debug(
+      '⚠️ [Zenith] zen-html-trusted: rendering unsanitized HTML. Ensure this content is trusted (e.g. from your own server, sanitized upstream).',
+    );
   }
   // نکته: همیشه ورودی را به‌صورت رشته برمی‌گردانیم. null/undefined به '' تبدیل
   // می‌شوند تا رفتار innerHTML قابل پیش‌بینی بماند.
@@ -639,8 +640,12 @@ export interface CSPOptions {
   allowInlineScript?: boolean;
   /** آیا استایل‌های inline مجاز باشند؟ (پیش‌فرض: false) */
   allowInlineStyle?: boolean;
-  /** Nonce value برای script-src. */
+  /** Nonce value برای script-src (و style-src در صورت عدم allowInlineStyle). */
   nonce?: string;
+  /** #63: افزودن `'strict-dynamic'` به `script-src`. */
+  strictDynamic?: boolean;
+  /** #63: افزودن `require-trusted-types-for 'script'; trusted-types zenith`. */
+  requireTrustedTypes?: boolean;
   /** دامنه‌های اضافی برای script-src. */
   extraScriptSrc?: string[];
   /** دامنه‌های اضافی برای style-src. */
@@ -654,50 +659,58 @@ export interface CSPOptions {
 /**
  * تولید رشته‌ی Content-Security-Policy برای استفاده در HTTP Header یا meta tag.
  *
- * @example
- *   const csp = generateCSP({ allowWebSockets: true });
- *   // "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' ws: wss:"
- *
- * @param options گزینه‌های تنظیم CSP.
- * @returns رشته‌ی CSP آماده برای استفاده در Content-Security-Policy header.
+ * #63: پشتیبانی از `strictDynamic` و `requireTrustedTypes` بدون نیاز به `unsafe-eval`.
  */
 export function generateCSP(options?: CSPOptions): string {
+  const scriptParts = [
+    `'self'`,
+    options?.allowInlineScript ? `'unsafe-inline'` : '',
+    options?.nonce ? `'nonce-${options.nonce}'` : '',
+    options?.strictDynamic ? `'strict-dynamic'` : '',
+    ...(options?.extraScriptSrc ?? []),
+  ].filter(Boolean);
+
+  const styleParts = [
+    `'self'`,
+    options?.allowInlineStyle ? `'unsafe-inline'` : '',
+    !options?.allowInlineStyle && options?.nonce ? `'nonce-${options.nonce}'` : '',
+    ...(options?.extraStyleSrc ?? []),
+  ].filter(Boolean);
+
   const directives = [
     `default-src 'self'`,
-    `script-src 'self'${options?.allowInlineScript ? " 'unsafe-inline'" : ''}${options?.nonce ? ` 'nonce-${options.nonce}'` : ''}${options?.extraScriptSrc ? ' ' + options.extraScriptSrc.join(' ') : ''}`,
-    `style-src 'self'${options?.allowInlineStyle ? " 'unsafe-inline'" : ''}${options?.extraStyleSrc ? ' ' + options.extraStyleSrc.join(' ') : ''}`,
+    `script-src ${scriptParts.join(' ')}`,
+    `style-src ${styleParts.join(' ')}`,
     `img-src 'self' data: https:${options?.extraImgSrc ? ' ' + options.extraImgSrc.join(' ') : ''}`,
     options?.allowWebSockets ? `connect-src 'self' ws: wss:` : `connect-src 'self'`,
+    `object-src 'none'`,
+    `base-uri 'self'`,
+    options?.requireTrustedTypes ? `require-trusted-types-for 'script'` : '',
+    options?.requireTrustedTypes ? `trusted-types zenith` : '',
   ].filter(Boolean);
 
   return directives.join('; ');
 }
 
 // ──────────────────────────────────────────────
-// IMP-SEC-03: Trusted Types Integration
+// IMP-SEC-03 / #63: Trusted Types Integration
 // ──────────────────────────────────────────────
 
+let cachedTrustedTypesPolicy: TrustedTypePolicy | null = null;
+
 /**
- * ایجاد یک Trusted Type policy برای @zenith.
- *
- * Trusted Types یک API مرورگر مدرن است که DOM XSS را ریشه‌کن می‌کند.
- * با این policy، فقط `sanitizeHTML` و `sanitizeHTMLTrusted` می‌توانند
- * HTML را به DOM تزریق کنند.
- *
- * @example
- *   import { createTrustedTypesPolicy } from '@zenith/security';
- *   const policy = createTrustedTypesPolicy();
- *   element.innerHTML = policy.createHTML(unsafeHTML);
- *
- * @returns TrustedTypePolicy یا null اگر Trusted Types پشتیبانی نشود.
+ * ایجاد (یا بازگرداندن نمونهٔ کش‌شدهٔ) یک Trusted Type policy برای @zenith.
  */
 export function createTrustedTypesPolicy(): TrustedTypePolicy | null {
   if (typeof window === 'undefined' || !window.trustedTypes || !window.trustedTypes.createPolicy) {
     return null;
   }
+  if (cachedTrustedTypesPolicy) {
+    return cachedTrustedTypesPolicy;
+  }
 
   try {
-    return window.trustedTypes.createPolicy('zenith', {
+    cachedTrustedTypesPolicy = window.trustedTypes.createPolicy('zenith', {
       createHTML: (html: string) => sanitizeHTML(html),
       createScriptURL: (url: string) => {
         // Only allow same-origin URLs for scripts
@@ -715,11 +728,28 @@ export function createTrustedTypesPolicy(): TrustedTypePolicy | null {
         return '';
       },
     });
+    return cachedTrustedTypesPolicy;
   } catch {
-    // Policy with name 'zenith' may already exist
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn('[Zenith] Trusted Types policy already exists. Returning existing policy.');
-    }
-    return null;
+    return cachedTrustedTypesPolicy;
+  }
+}
+
+/**
+ * #63: بازنشانی کش TrustedTypes (مخصوص تست).
+ */
+export function resetTrustedTypesPolicyCache(): void {
+  cachedTrustedTypesPolicy = null;
+}
+
+/**
+ * #63: تزریق امن HTML به عنصر با پشتیبانی خودکار از TrustedTypes (در صورت فعال بودن).
+ */
+export function setSafeInnerHTML(el: Element, html: string, trusted: boolean = false): void {
+  const sanitized = trusted ? sanitizeHTMLTrusted(html) : sanitizeHTML(html);
+  const policy = createTrustedTypesPolicy();
+  if (policy && typeof policy.createHTML === 'function') {
+    el.innerHTML = policy.createHTML(sanitized) as unknown as string;
+  } else {
+    el.innerHTML = sanitized;
   }
 }

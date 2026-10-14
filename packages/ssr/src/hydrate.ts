@@ -18,6 +18,7 @@
 
 import { signal } from '@zenith/state';
 import { flushSync } from '@zenith/scheduler';
+import { logger } from '@zenith/logger';
 
 export interface HydrationResult {
   success: boolean;
@@ -70,7 +71,7 @@ export function deserializeState(serializedState: Record<string, any>): Record<s
     serializedState === null ||
     Array.isArray(serializedState)
   ) {
-    console.error('[Zenith hydrate] __ZENITH_STATE__ must be a plain object');
+    logger.error('[Zenith hydrate] __ZENITH_STATE__ must be a plain object');
     return state;
   }
 

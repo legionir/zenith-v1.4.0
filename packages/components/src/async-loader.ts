@@ -31,6 +31,7 @@ import { registerComponent } from './registry';
 // getOrLoad استفاده نشده تا AbortError همان AbortError بماند).
 import { createCache, type Cache } from '@zenith/cache';
 import { developerError, resourceHttpError, ZenithError, ErrorCode } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 
 /**
  * Cache entry for a loaded component.
@@ -52,11 +53,19 @@ export interface ComponentCacheConfig {
   ttl: number;
   /** Maximum number of entries. LRU eviction when exceeded. */
   maxSize: number;
+  /** #15: Fetch timeout in ms (default: 10000). Set <= 0 to disable. */
+  timeout: number;
+}
+
+export interface LoadComponentOptions {
+  signal?: AbortSignal;
+  timeout?: number;
 }
 
 let cacheConfig: ComponentCacheConfig = {
   ttl: 5 * 60 * 1000, // 5 minutes
   maxSize: 64,
+  timeout: 10_000,
 };
 
 // #144: ttl/maxSize/LRU به @zenith/cache سپرده شده؛ storedAt صرفاً برای
@@ -100,8 +109,9 @@ const errorCache = createCache<ErrorCacheEntry>({ ttl: ERROR_CACHE_TTL_MS, maxSi
  */
 export function configureComponentCache(opts: Partial<ComponentCacheConfig>): void {
   const prev = { ...cacheConfig, ...opts };
-  if (prev.ttl !== cacheConfig.ttl || prev.maxSize !== cacheConfig.maxSize) {
-    cacheConfig = prev;
+  const ttlOrSizeChanged = prev.ttl !== cacheConfig.ttl || prev.maxSize !== cacheConfig.maxSize;
+  cacheConfig = prev;
+  if (ttlOrSizeChanged) {
     // ttl/maxSize در @zenith_cache زمان ساخت خوانده می‌شوند ⇒ نمونهٔ تازه با
     // انتقال entryهای زنده (peek ⇒ بدون تغییر آمار/ترتگی). trim داخلی
     // همان «evict anything that no longer fits» قدیمی است.
@@ -154,11 +164,18 @@ export function escapeHTML(s: string): string {
  */
 export async function loadComponent(
   src: string,
-  signal?: AbortSignal,
+  signalOrOptions?: AbortSignal | LoadComponentOptions,
 ): Promise<HTMLTemplateElement> {
   if (!src) {
     throw developerError('async-loader: src is required.', ErrorCode.INTERNAL_DEVELOPER_ERROR);
   }
+
+  const callerSignal =
+    signalOrOptions && 'aborted' in signalOrOptions ? signalOrOptions : signalOrOptions?.signal;
+  const timeoutMs =
+    signalOrOptions && !('aborted' in signalOrOptions) && signalOrOptions.timeout !== undefined
+      ? signalOrOptions.timeout
+      : cacheConfig.timeout;
 
   // FIX (v1.2.8): P2-5 — Check the errorCache first. If this URL recently
   // failed (within ERROR_CACHE_TTL_MS), re-throw the cached error
@@ -198,7 +215,68 @@ export async function loadComponent(
         suggestion: 'async-loader فقط در مرورگر کار می‌کند.',
       });
     }
-    const res = await fetch(src, signal ? { signal } : undefined);
+
+    // #15 FIX: اعمال timeout قابل‌پیکربندی با AbortController و تایمر سقف‌دار
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onCallerAbort = (): void => {
+      controller?.abort();
+    };
+    if (callerSignal) {
+      if (callerSignal.aborted) {
+        controller?.abort();
+      } else {
+        callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+      }
+    }
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller?.abort();
+      }, timeoutMs);
+    }
+
+    let res: Response;
+    try {
+      const fetchPromise = fetch(src, controller ? { signal: controller.signal } : undefined);
+      if (timeoutMs > 0) {
+        res = await Promise.race([
+          fetchPromise,
+          new Promise<never>((_resolve, reject) => {
+            const checkTimeout = setTimeout(() => {
+              timedOut = true;
+              controller?.abort();
+              reject(
+                new ZenithError({
+                  code: ErrorCode.RESOURCE_HTTP_ERROR,
+                  category: 'Network',
+                  message: `async-loader: Timed out loading component "${src}" after ${timeoutMs}ms.`,
+                }),
+              );
+            }, timeoutMs);
+            void fetchPromise.then(
+              () => clearTimeout(checkTimeout),
+              () => clearTimeout(checkTimeout),
+            );
+          }),
+        ]);
+      } else {
+        res = await fetchPromise;
+      }
+    } catch (err) {
+      if (timedOut) {
+        throw new ZenithError({
+          code: ErrorCode.RESOURCE_HTTP_ERROR,
+          category: 'Network',
+          message: `async-loader: Timed out loading component "${src}" after ${timeoutMs}ms.`,
+        });
+      }
+      throw err;
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      if (callerSignal) callerSignal.removeEventListener('abort', onCallerAbort);
+    }
     if (!res.ok) {
       throw resourceHttpError(src, res.status, res.statusText);
     }
@@ -282,9 +360,8 @@ export function processAsyncComponent(
 ): () => void {
   const src = el.getAttribute('src');
   if (!src) {
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn('[Zenith async-loader] <zen-async-component> without src attribute.');
-    }
+    // #39: لاگر مرکزی؛ گارد موجودیت console دیگر لازم نیست (مسیر مستقیم console فقط در consoleSink است).
+    logger.warn('[Zenith async-loader] <zen-async-component> without src attribute.');
     return () => {};
   }
 
@@ -317,9 +394,11 @@ export function processAsyncComponent(
       try {
         processChildren(el, context, localDisposes);
       } catch (err) {
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('[Zenith async-loader] processChildren failed:', err);
-        }
+        logger.error(
+          `[Zenith async-loader] processChildren failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
     })
     .catch((err: Error) => {

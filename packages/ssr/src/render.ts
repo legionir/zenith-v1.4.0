@@ -17,7 +17,8 @@
 // محدودیت: zen-fetch در SSR پشتیبانی نمی‌شود — داده باید از قبل آماده باشد.
 
 import { flushSync } from '@zenith/scheduler';
-import { inlineServerComponents } from './server-component';
+import { logger } from '@zenith/logger';
+import { inlineServerComponents, type ServerComponent } from './server-component';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { ssrEnvironmentError, ZenithError, ErrorCode } from '@zenith/errors';
 // FEATURE (v1.0.0): AsyncLocalStorage برای isolation per-request.
@@ -32,6 +33,12 @@ import { domAls, type DOMGlobals } from './dom-context';
 // share می‌شدند — race condition. حالا SSR یک provider تنظیم می‌کند که
 // در هر call، EffectContext مخصوص همان async context را برمی‌گرداند.
 import { setEffectContextStore, type EffectContext } from '@zenith/state';
+import {
+  setComponentRegistryStore,
+  setActionRegistryStore,
+  ActionRegistry,
+  type App,
+} from '@zenith/runtime';
 
 /**
  * Serialize state for server-to-client transfer.
@@ -59,10 +66,33 @@ export function validateHydration(clientState: any, serverState: any): boolean {
   return JSON.stringify(clientState) === JSON.stringify(serverState);
 }
 
+export interface SSRHeadInput {
+  title?: string;
+  meta?: Array<Record<string, string>>;
+  link?: Array<Record<string, string>>;
+  jsonLd?: Record<string, any> | Array<Record<string, any>>;
+  htmlAttrs?: Record<string, string>;
+  bodyAttrs?: Record<string, string>;
+}
+
+export interface SSRI18nInput {
+  locale: string;
+  dir?: 'rtl' | 'ltr';
+  messages?: Record<string, any>;
+}
+
 export interface SSRResult {
   html: string;
   state: string;
   route?: string;
+  /** #174: تگ‌های رندرشدهٔ `<head>` */
+  headTags?: string;
+  /** #174: صفت‌های تگ `<html>` (مانند `lang` و `dir`) */
+  htmlAttrs?: string;
+  /** #174: صفت‌های تگ `<body>` */
+  bodyAttrs?: string;
+  /** #174: دادهٔ سریال‌شدهٔ چندزبانگی برای `__ZENITH_I18N__` */
+  i18n?: string;
 }
 
 // SEC FIX (v1.2.6): SEC-A1 — safeScriptValue helper.
@@ -164,6 +194,176 @@ export function runOnClient<T>(fn: () => T): T | undefined {
  * را می‌سازد، callهای بعدی همان را برمی‌گرداند) تا بین effectهای یک درخواست
  * state به اشتراک گذاشته شود اما بین درخواست‌ها ایزوله بماند.
  */
+export interface RenderOptions {
+  route?: string;
+  serializeState?: boolean;
+  /** #92 / #148 / #174: نمونهٔ مستقل App یا کارخانهٔ per-request (`() => App`) */
+  app?: App | (() => App);
+  /** #92: کامپوننت‌های سرور اختصاصی این درخواست (بدون نشت به سایر درخواست‌ها) */
+  serverComponents?: Record<string, ServerComponent | ServerComponent['render']>;
+  /** #92: اکشن‌های اختصاصی این درخواست */
+  actions?: Record<string, (ctx: any) => void | Promise<void>>;
+  /** #92: زبان/locale اختصاصی این درخواست */
+  locale?: string;
+  /** #174: ورودی `<head>` اختصاصی این درخواست */
+  head?: SSRHeadInput | string;
+  /** #174: وضعیت چندزبانگی (`i18n`) اختصاصی این درخواست */
+  i18n?: SSRI18nInput;
+  /** #92: سازندهٔ DOM سفارشی برای محیط‌های Edge بدون jsdom */
+  createDOM?: (html: string, url: string) => { window: any; close?: () => void };
+  /** #91: مهلت زمانی رندر SSR به میلی‌ثانیه (در صورت عبور، خطای ZEN-1801 پرتاب می‌شود) */
+  timeout?: number;
+  /** #91: نام مستعار مهلت زمانی رندر SSR (میلی‌ثانیه) */
+  renderTimeoutMs?: number;
+  /** #91: فعال‌سازی کش قالب‌های parse‌شده و استخر JSDOM (پیش‌فرض: true) */
+  cacheTemplates?: boolean;
+}
+
+function escapeHtmlAttr(val: string): string {
+  return String(val)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderAttrsMap(attrs?: Record<string, string>): string {
+  if (!attrs) return '';
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(attrs)) {
+    if (!/^[a-zA-Z_:][a-zA-Z0-9_.:-]*$/.test(k)) continue;
+    parts.push(`${k}="${escapeHtmlAttr(v)}"`);
+  }
+  return parts.length > 0 ? ' ' + parts.join(' ') : '';
+}
+
+/**
+ * #152 / #174: تبدیل ساختار `SSRHeadInput` به تگ‌های امن `<head>` با پشتیبانی از JSON-LD.
+ */
+export function renderSSRHead(
+  head?: SSRHeadInput | string,
+  i18n?: SSRI18nInput,
+  fallbackLocale?: string,
+): { headTags: string; htmlAttrs: string; bodyAttrs: string } {
+  const effectiveLocale = i18n?.locale ?? fallbackLocale;
+  const effectiveDir =
+    i18n?.dir ??
+    (effectiveLocale && /^(fa|ar|he|ur|ps|ckb|sd|ug|yi)\b/i.test(effectiveLocale)
+      ? 'rtl'
+      : effectiveLocale
+        ? 'ltr'
+        : undefined);
+
+  if (typeof head === 'string' || !head) {
+    const htmlMap: Record<string, string> = {};
+    if (effectiveLocale) htmlMap.lang = effectiveLocale;
+    if (effectiveDir) htmlMap.dir = effectiveDir;
+    return {
+      headTags: typeof head === 'string' ? head : '',
+      htmlAttrs: renderAttrsMap(htmlMap),
+      bodyAttrs: '',
+    };
+  }
+
+  const tags: string[] = [];
+  if (head.title) {
+    tags.push(`<title data-zen-head="title">${escapeHtmlAttr(head.title)}</title>`);
+  }
+  if (Array.isArray(head.meta)) {
+    for (const m of head.meta) {
+      tags.push(`<meta data-zen-head="meta"${renderAttrsMap(m)}>`);
+    }
+  }
+  if (Array.isArray(head.link)) {
+    for (const l of head.link) {
+      tags.push(`<link data-zen-head="link"${renderAttrsMap(l)}>`);
+    }
+  }
+  if (head.jsonLd) {
+    const items = Array.isArray(head.jsonLd) ? head.jsonLd : [head.jsonLd];
+    for (const item of items) {
+      const safeJson = safeScriptValue(JSON.stringify(item));
+      tags.push(`<script type="application/ld+json" data-zen-head="ld">${safeJson}</script>`);
+    }
+  }
+
+  const htmlMap: Record<string, string> = { ...(head.htmlAttrs ?? {}) };
+  if (effectiveLocale && !htmlMap.lang) htmlMap.lang = effectiveLocale;
+  if (effectiveDir && !htmlMap.dir) htmlMap.dir = effectiveDir;
+
+  return {
+    headTags: tags.join(''),
+    htmlAttrs: renderAttrsMap(htmlMap),
+    bodyAttrs: renderAttrsMap(head.bodyAttrs),
+  };
+}
+
+interface PooledDOMEntry {
+  window: any;
+  templates: Map<string, any>;
+}
+
+const MAX_DOM_POOL_SIZE = 8;
+const MAX_TEMPLATE_CACHE_ENTRIES = 128;
+const _jsdomPool: PooledDOMEntry[] = [];
+const _templateParseCounts = new Map<string, number>();
+
+/**
+ * #91: پاک‌سازی کش قالب‌های SSR و استخر JSDOM.
+ */
+export function clearSSRTemplateCache(): void {
+  _templateParseCounts.clear();
+  while (_jsdomPool.length > 0) {
+    const entry = _jsdomPool.pop();
+    try {
+      entry?.window?.close?.();
+    } catch {
+      /* ignore close errors */
+    }
+  }
+}
+
+/**
+ * #91: آمار کش قالب‌های SSR برای تست و مانیتورینگ عملکرد.
+ */
+export function getSSRTemplateCacheStats(): {
+  cachedTemplates: number;
+  pooledDOMInstances: number;
+  parseCountFor: (html: string) => number;
+} {
+  return {
+    cachedTemplates: _templateParseCounts.size,
+    pooledDOMInstances: _jsdomPool.length,
+    parseCountFor: (html: string) => _templateParseCounts.get(html) ?? 0,
+  };
+}
+
+function createSSRTimeoutError(timeoutMs: number): ZenithError {
+  return new ZenithError({
+    code: 'ZEN-1801',
+    category: 'SSR',
+    message: `SSR render timed out after ${timeoutMs}ms.`,
+    suggestion:
+      'renderTimeoutMs / timeout را افزایش دهید یا داده‌های کندِ مسیر را به بافر/کش منتقل کنید.',
+    context: { timeoutMs },
+  });
+}
+
+async function raceWithTimeout<T>(promise: Promise<T>, timeoutMs?: number): Promise<T> {
+  if (timeoutMs === undefined || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return promise;
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(createSSRTimeoutError(timeoutMs)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 let _effectContextStoreInstalled = false;
 function setEffectContextStoreOnce(): void {
   if (_effectContextStoreInstalled) return;
@@ -179,6 +379,22 @@ function setEffectContextStoreOnce(): void {
       };
     }
     return store.effectContext ?? null;
+  });
+  setComponentRegistryStore(() => {
+    const store = domAls.getStore();
+    if (!store) return null;
+    if (!store.componentRegistry) {
+      store.componentRegistry = new Map();
+    }
+    return store.componentRegistry;
+  });
+  setActionRegistryStore(() => {
+    const store = domAls.getStore();
+    if (!store) return null;
+    if (!store.actionRegistry) {
+      store.actionRegistry = new ActionRegistry();
+    }
+    return store.actionRegistry;
   });
 }
 
@@ -198,38 +414,46 @@ function setEffectContextStoreOnce(): void {
 export async function renderToString(
   html: string,
   state: Record<string, any>,
-  options: { route?: string; serializeState?: boolean } = {},
+  options: RenderOptions = {},
 ): Promise<SSRResult> {
-  // BUG-22 FIX (v1.2.2): setEffectContextStore را با یک provider تنظیم کن که
-  // در هر call، EffectContext مخصوص async context فعلی (via domAls) را
-  // برمی‌گرداند. این کار از race condition در SSR concurrent جلوگیری می‌کند.
-  // Provider یک‌بار به‌صورت سراسری تنظیم می‌شود (بدون وابستگی به request خاص)
-  // اما چون domAls.getStore() در هر call بر اساس async context فعلی عمل می‌کند،
-  // هر درخواست EffectContext مستقل خود را دریافت می‌کند.
-  // نکته: این setEffectContextStore فقط یک‌بار global تنظیم می‌شود. برای
-  // جلوگیری از re-install در هر فراخوانی renderToString، فقط در اولین call
-  // (یا وقتی provider null است) آن را set می‌کنیم.
   setEffectContextStoreOnce();
 
-  // FEATURE (v0.4.0): pre-pass برای inline کردن Server Components.
-  // این کار قبل از JSDOM انجام می‌شود چون Server Components مستقل از
-  // walker هستند و فقط HTML تولید می‌کنند. state برای resolve کردن
-  // propهای $key.path پاس داده می‌شود.
-  //
-  // نکته: این pre-pass قبل از ساخت JSDOM و setup کردن AsyncLocalStorage
-  // است تا در صورت خطا، DOM سرور آلوده نشود.
-  html = await inlineServerComponents(html, state);
+  // #92: کپی سطحی state برای جلوگیری از نشت تغییرات به آبجکت ورودی مشترک
+  const renderState: Record<string, any> = { ...state };
+  if (options.locale !== undefined && !('locale' in renderState)) {
+    renderState.locale = options.locale;
+  }
 
-  let JSDOM: any;
-  try {
-    JSDOM = (await import('jsdom')).JSDOM;
-  } catch {
-    // FEATURE (v1.0.0): پیام خطای بهبودیافته با تشخیص محیط.
-    throw ssrEnvironmentError('jsdom-missing');
+  // ساخت نقشهٔ ServerComponentهای اختصاصی درخواست (#92)
+  const scopedServerComponents = new Map<string, ServerComponent>();
+  if (options.serverComponents) {
+    for (const [name, compOrFn] of Object.entries(options.serverComponents)) {
+      if (typeof compOrFn === 'function') {
+        scopedServerComponents.set(name, { name, render: compOrFn });
+      } else if (compOrFn && typeof compOrFn.render === 'function') {
+        scopedServerComponents.set(name, compOrFn);
+      }
+    }
+  }
+
+  // ساخت رجیستری اکشن اختصاصی درخواست (#92)
+  const scopedActionRegistry = new ActionRegistry();
+  if (options.actions) {
+    for (const [actName, actFn] of Object.entries(options.actions)) {
+      scopedActionRegistry.register(actName, actFn);
+    }
+  }
+
+  let JSDOM: any = null;
+  if (!options.createDOM) {
+    try {
+      JSDOM = (await import('jsdom')).JSDOM;
+    } catch {
+      throw ssrEnvironmentError('jsdom-missing');
+    }
   }
 
   // Pre-import all modules BEFORE entering synchronous section.
-  // This eliminates await gaps inside the critical section.
   const { Zen } = await import('@zenith/runtime');
   let runWithRoute: ((path: string, fn: () => Promise<any>) => Promise<any>) | null = null;
   if (options.route) {
@@ -239,33 +463,79 @@ export async function renderToString(
     } catch {}
   }
 
-  const dom = new JSDOM(`<!DOCTYPE html><html><body>${html}</body></html>`, {
-    pretendToBeVisual: true,
-    url: options.route ? `http://localhost${options.route}` : 'http://localhost/',
-  });
+  const url = options.route ? `http://localhost${options.route}` : 'http://localhost/';
+  const useTemplateCache = options.cacheTemplates !== false && !options.createDOM;
+  const effectiveTimeout = options.timeout ?? options.renderTimeoutMs;
+  let domInstance = null as { window: any; close?: () => void } | null;
+  let pooledEntry: PooledDOMEntry | null = null;
 
-  // FEATURE (v1.0.0): ساخت DOM globals از JSDOM برای این درخواست.
-  // این آبجکت در AsyncLocalStorage ذخیره می‌شود و globalThis getters
-  // (که در dom-context.ts نصب شده‌اند) از آن می‌خوانند. هر درخواست
-  // concurrent globals مستقل خود را دارد — globalThis دیگر mutate نمی‌شود.
-  const domGlobals: DOMGlobals = {
-    window: dom.window,
-    document: dom.window.document,
-    Node: dom.window.Node,
-    HTMLElement: dom.window.HTMLElement,
-    Element: dom.window.Element,
-    Event: dom.window.Event,
-    history: dom.window.history,
-    location: dom.window.location,
-    DOMParser: dom.window.DOMParser,
-    MouseEvent: dom.window.MouseEvent,
-    KeyboardEvent: dom.window.KeyboardEvent,
-  };
+  const executeIsolatedRender = async (): Promise<SSRResult> => {
+    // اجرای pre-pass کامپوننت‌های سرور در بستر ایزولهٔ درخواست (#92)
+    const processedHtml = await inlineServerComponents(html, renderState);
 
-  // ── Inner render function (synchronous) ──
-  // این تابع داخل runWithRoute (اگر route مشخص شده) اجرا می‌شود.
-  const doRender = (): SSRResult => {
-    const root = dom.window.document.body.firstElementChild as HTMLElement;
+    if (options.createDOM) {
+      domInstance = options.createDOM(
+        `<!DOCTYPE html><html><body>${processedHtml}</body></html>`,
+        url,
+      );
+    } else if (useTemplateCache) {
+      pooledEntry = _jsdomPool.pop() ?? null;
+      if (!pooledEntry) {
+        const freshDom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+          pretendToBeVisual: true,
+          url,
+        });
+        pooledEntry = {
+          window: freshDom.window,
+          templates: new Map(),
+        };
+      } else {
+        try {
+          pooledEntry.window.history.replaceState(null, '', options.route || '/');
+        } catch {
+          /* ignore history errors on custom schemes */
+        }
+      }
+      const win = pooledEntry.window;
+      let tpl = pooledEntry.templates.get(processedHtml);
+      if (!tpl) {
+        tpl = win.document.createElement('template');
+        tpl.innerHTML = processedHtml;
+        if (pooledEntry.templates.size >= MAX_TEMPLATE_CACHE_ENTRIES) {
+          const oldestKey = pooledEntry.templates.keys().next().value;
+          if (oldestKey !== undefined) pooledEntry.templates.delete(oldestKey);
+        }
+        pooledEntry.templates.set(processedHtml, tpl);
+        _templateParseCounts.set(processedHtml, (_templateParseCounts.get(processedHtml) ?? 0) + 1);
+      }
+      win.document.body.innerHTML = '';
+      win.document.body.appendChild(tpl.content.cloneNode(true));
+      domInstance = { window: win };
+    } else {
+      _templateParseCounts.set(processedHtml, (_templateParseCounts.get(processedHtml) ?? 0) + 1);
+      domInstance = new JSDOM(`<!DOCTYPE html><html><body>${processedHtml}</body></html>`, {
+        pretendToBeVisual: true,
+        url,
+      });
+    }
+
+    const win = domInstance!.window;
+    const activeStore = domAls.getStore();
+    if (activeStore) {
+      activeStore.window = win;
+      activeStore.document = win.document;
+      activeStore.Node = win.Node;
+      activeStore.HTMLElement = win.HTMLElement;
+      activeStore.Element = win.Element;
+      activeStore.Event = win.Event;
+      activeStore.history = win.history;
+      activeStore.location = win.location;
+      activeStore.DOMParser = win.DOMParser;
+      activeStore.MouseEvent = win.MouseEvent;
+      activeStore.KeyboardEvent = win.KeyboardEvent;
+    }
+
+    const root = win.document.body.firstElementChild as HTMLElement;
     if (!root)
       throw new ZenithError({
         code: ErrorCode.SSR_NO_ROOT_ELEMENT,
@@ -274,22 +544,34 @@ export async function renderToString(
         suggestion: 'root باید به یک element معتبر (مثلاً document.getElementById) اشاره کند.',
       });
 
-    Zen.start(root, state);
+    if (options.app) {
+      const appInstance = typeof options.app === 'function' ? options.app() : options.app;
+      const unmount = appInstance.mount(root, renderState);
+      flushSync();
+      const resultHtml = root.outerHTML;
+      unmount();
+      return finalizeResult(resultHtml);
+    }
+
+    Zen.start(root, renderState);
     flushSync(); // synchronous — no await gap
 
     const resultHtml = root.outerHTML;
+    Zen.stop(root);
+    return finalizeResult(resultHtml);
+  };
 
+  const finalizeResult = (resultHtml: string): SSRResult => {
     let stateJson = '';
     if (options.serializeState !== false) {
       const s: Record<string, any> = {};
-      for (const k in state) {
-        s[k] = state[k] && typeof state[k].get === 'function' ? state[k].get() : state[k];
+      for (const k in renderState) {
+        s[k] =
+          renderState[k] && typeof renderState[k].get === 'function'
+            ? renderState[k].get()
+            : renderState[k];
       }
-      // SEC FIX (v1.2.6): SEC-A1 — use safeScriptValue for BOTH state AND route
-      // (previously only `<` was escaped on state; route was passed raw via
-      // JSON.stringify which left `</script>`-style breaks possible).
       stateJson = safeScriptValue(JSON.stringify(s));
-      // SEC FIX (v1.2.6): SEC-A1 — also reject unsafe routes at the source.
       if (!isRouteSafe(options.route)) {
         throw new ZenithError({
           code: ErrorCode.SECURITY_XSS_BLOCKED,
@@ -300,34 +582,78 @@ export async function renderToString(
         });
       }
     }
+    const renderedHead = renderSSRHead(options.head, options.i18n, options.locale);
+    const i18nJson = options.i18n
+      ? safeScriptValue(
+          JSON.stringify({
+            locale: options.i18n.locale,
+            dir:
+              options.i18n.dir ??
+              (/^(fa|ar|he|ur|ps|ckb|sd|ug|yi)\b/i.test(options.i18n.locale) ? 'rtl' : 'ltr'),
+            messages: options.i18n.messages ?? {},
+          }),
+        )
+      : undefined;
 
-    Zen.stop(root);
-    return { html: resultHtml, state: stateJson, route: options.route };
+    return {
+      html: resultHtml,
+      state: stateJson,
+      route: options.route,
+      headTags: renderedHead.headTags,
+      htmlAttrs: renderedHead.htmlAttrs,
+      bodyAttrs: renderedHead.bodyAttrs,
+      i18n: i18nJson,
+    };
   };
 
-  // FEATURE (v1.0.0): اجرای doRender داخل AsyncLocalStorage.
-  // این کار DOM globals را برای این درخواست ایزوله می‌کند. globalThis
-  // دیگر mutate نمی‌شود — به‌جای آن، getters (که در dom-context نصب
-  // شده‌اند) از store فعلی می‌خوانند. concurrent درخواست‌ها کاملاً ایزوله‌اند.
+  const initialGlobals: DOMGlobals = {
+    window: undefined,
+    document: undefined,
+    Node: undefined,
+    HTMLElement: undefined,
+    Element: undefined,
+    Event: undefined,
+    history: undefined,
+    location: undefined,
+    DOMParser: undefined,
+    MouseEvent: undefined,
+    KeyboardEvent: undefined,
+    componentRegistry: new Map(),
+    actionRegistry: scopedActionRegistry,
+    serverComponents: scopedServerComponents,
+    locale: options.locale,
+  };
+
   try {
-    // اگر route مشخص شده، داخل runWithRoute اجرا کن تا routeSignal ایزوله باشد.
-    // در غیر این صورت، مستقیماً اجرا کن.
-    if (runWithRoute && options.route) {
-      // runWithRoute یک async function است، اما doRender sync است.
-      // domAls.run داخل callback آن فراخوانی می‌شود تا store برای duration
-      // doRender تنظیم شود. AsyncLocalStorage از طریق await های داخل
-      // runWithRoute propagate می‌شود.
-      return await runWithRoute(options.route, async () => {
-        return domAls.run(domGlobals, () => doRender());
-      });
-    }
-    return domAls.run(domGlobals, () => doRender());
+    const runTask = async () => {
+      if (runWithRoute && options.route) {
+        return await runWithRoute(options.route, async () => {
+          return await domAls.run(initialGlobals, () => executeIsolatedRender());
+        });
+      }
+      return await domAls.run(initialGlobals, () => executeIsolatedRender());
+    };
+    return await raceWithTimeout(runTask(), effectiveTimeout);
   } finally {
-    // FEATURE (v1.0.0): فقط JSDOM را ببند — globalThis را restore نکن.
-    // چون globalThis دیگر mutate نشده، نیازی به restore نیست. هر درخواست
-    // AsyncLocalStorage store مستقل خود را داشت که با خروج از domAls.run
-    // به‌صورت خودکار پاک می‌شود.
-    dom.window.close();
+    const activePool = pooledEntry as PooledDOMEntry | null;
+    if (activePool) {
+      try {
+        activePool.window.document.body.innerHTML = '';
+        if (_jsdomPool.length < MAX_DOM_POOL_SIZE) {
+          _jsdomPool.push(activePool);
+        } else {
+          activePool.window.close?.();
+        }
+      } catch {
+        activePool.window.close?.();
+      }
+    } else if (domInstance) {
+      if (typeof domInstance.close === 'function') {
+        domInstance.close();
+      } else if (typeof domInstance.window?.close === 'function') {
+        domInstance.window.close();
+      }
+    }
   }
 }
 
@@ -340,18 +666,22 @@ export function generateHydrationScript(result: SSRResult, nonce?: string): stri
   if (result.route) {
     if (!isRouteSafe(result.route)) {
       // Drop the route entirely instead of emitting something that could break out.
-      console.error(
+      logger.error(
         '[Zenith SSR] Refusing to embed unsafe route (contains `</`) in hydration script.',
       );
     } else {
       routePart = `window.__ZENITH_ROUTE__=${safeScriptValue(JSON.stringify(result.route))};`;
     }
   }
-  return `<script${nonceAttr}>window.__ZENITH_STATE__=${safeState};${routePart}</script>`;
+  const i18nPart = result.i18n ? `window.__ZENITH_I18N__=${result.i18n};` : '';
+  return `<script${nonceAttr}>window.__ZENITH_STATE__=${safeState};${routePart}${i18nPart}</script>`;
 }
 
 export function generateFullPage(result: SSRResult, head = '', nonce?: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}${generateHydrationScript(result, nonce)}</head><body>${result.html}</body></html>`;
+  const htmlAttrs = result.htmlAttrs ?? '';
+  const bodyAttrs = result.bodyAttrs ?? '';
+  const combinedHead = `${result.headTags ?? ''}${head}`;
+  return `<!DOCTYPE html><html${htmlAttrs}><head><meta charset="UTF-8">${combinedHead}${generateHydrationScript(result, nonce)}</head><body${bodyAttrs}>${result.html}</body></html>`;
 }
 
 // ── Streaming SSR ──
@@ -363,13 +693,39 @@ export interface StreamChunk {
 /**
  * BUG-SSR-06 FIX (v1.3.0): گزینه‌های streaming SSR با پشتیبانی AbortSignal.
  */
-export interface StreamOptions {
-  /** Route برای hydration. */
-  route?: string;
+export interface StreamOptions extends RenderOptions {
   /** محتوای head (meta, title, styles). */
   head?: string;
   /** AbortSignal برای لغو streaming در صورت نیاز. */
   signal?: AbortSignal;
+  /** #15: کالبک اختیاری برای flush تدریجی هر قطعه بلافاصله پس از تولید. */
+  onFlush?: (chunk: StreamChunk) => void | Promise<void>;
+  /** #91: اندازهٔ قطعه (کاراکتر) برای ارسال تدریجی بدنه با رعایت backpressure */
+  chunkSize?: number;
+}
+
+function createAbortError(): Error {
+  if (typeof DOMException !== 'undefined') {
+    return new DOMException('SSR streaming aborted.', 'AbortError');
+  }
+  const err = new Error('SSR streaming aborted.');
+  err.name = 'AbortError';
+  return err;
+}
+
+async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) throw createAbortError();
+  let onAbort: (() => void) | undefined;
+  const abortPromise = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(createAbortError());
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([promise, abortPromise]);
+  } finally {
+    if (onAbort) signal.removeEventListener('abort', onAbort);
+  }
 }
 
 /**
@@ -390,7 +746,7 @@ export interface StreamOptions {
 export async function* renderToStream(
   html: string,
   state: Record<string, any>,
-  options: { route?: string; head?: string; signal?: AbortSignal } = {},
+  options: StreamOptions = {},
 ): AsyncGenerator<StreamChunk> {
   const head = options.head || '';
 
@@ -415,45 +771,398 @@ export async function* renderToStream(
   let routeLiteral = 'null';
   if (options.route) {
     if (!isRouteSafe(options.route)) {
-      console.error('[Zenith SSR] renderToStream: refusing to embed unsafe route (contains `</`).');
+      logger.error('[Zenith SSR] renderToStream: refusing to embed unsafe route (contains `</`).');
     } else {
       routeLiteral = safeScriptValue(JSON.stringify(options.route));
     }
   }
 
   // BUG-SSR-06 FIX (v1.3.0): بررسی AbortSignal بین هر chunk.
-  // اگر caller سیگنال abort داده باشد، generator را متوقف کن.
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Phase 1: Head + opening — فوراً stream کن (با state واقعی، بدون placeholder).
-  yield {
+  const headChunk: StreamChunk = {
     html: `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}<script>window.__ZENITH_STATE__=${safeStateJson};window.__ZENITH_ROUTE__=${routeLiteral};</script></head><body><div id="app">`,
     done: false,
   };
+  await options.onFlush?.(headChunk);
+  yield headChunk;
 
   // BUG-SSR-06 FIX: بعد از yield اول
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
-  // Phase 2: Render content.
-  const result = await renderToString(html, state, { route: options.route, serializeState: false });
+  // Phase 2: Render content (با توقف فوری در صورت abort یا timeout حین رندر async).
+  const result = await raceWithAbort(
+    renderToString(html, state, {
+      ...options,
+      serializeState: false,
+    }),
+    options.signal,
+  );
 
   // BUG-SSR-06 FIX: بعد از await renderToString (که ممکن است طولانی باشد)
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Stream body content (state already injected via head chunk).
-  yield { html: result.html, done: false };
+  const chunkSize = options.chunkSize && options.chunkSize > 0 ? Math.floor(options.chunkSize) : 0;
+  if (chunkSize > 0 && result.html.length > chunkSize) {
+    for (let offset = 0; offset < result.html.length; offset += chunkSize) {
+      if (options.signal?.aborted) {
+        throw createAbortError();
+      }
+      const sliceChunk: StreamChunk = {
+        html: result.html.slice(offset, offset + chunkSize),
+        done: false,
+      };
+      await options.onFlush?.(sliceChunk);
+      yield sliceChunk;
+    }
+  } else {
+    const bodyChunk: StreamChunk = { html: result.html, done: false };
+    await options.onFlush?.(bodyChunk);
+    yield bodyChunk;
+  }
 
   // BUG-SSR-06 FIX: قبل از yield آخر
   if (options.signal?.aborted) {
-    throw new DOMException('SSR streaming aborted.', 'AbortError');
+    throw createAbortError();
   }
 
   // Phase 3: Closing tags.
-  yield { html: '</div></body></html>', done: true };
+  const closeChunk: StreamChunk = { html: '</div></body></html>', done: true };
+  await options.onFlush?.(closeChunk);
+  yield closeChunk;
 }
+
+/**
+ * #91: تبدیل جریان SSR به Web `ReadableStream<Uint8Array>` واقعی با پشتیبانی
+ * کامل از backpressure (`pull`) و لغو خودکار رندر در `cancel()`.
+ */
+export function renderToReadableStream(
+  html: string,
+  state: Record<string, any>,
+  options: StreamOptions = {},
+): ReadableStream<Uint8Array> {
+  const internalAbort = new AbortController();
+  const externalSignal = options.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      internalAbort.abort();
+    } else {
+      externalSignal.addEventListener('abort', () => internalAbort.abort(), { once: true });
+    }
+  }
+  const encoder = new TextEncoder();
+  const iterator = renderToStream(html, state, {
+    ...options,
+    signal: internalAbort.signal,
+  });
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { value, done } = await iterator.next();
+        if (done || !value) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(encoder.encode(value.html));
+        if (value.done) {
+          controller.close();
+        }
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+    async cancel() {
+      internalAbort.abort();
+      try {
+        await iterator.return?.(undefined as any);
+      } catch {
+        /* ignore generator return error on cancel */
+      }
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #152 — Head Management (createHead, useHead, renderHead, titleFromRoute)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface HeadManager {
+  push(input: SSRHeadInput): { patch(next: SSRHeadInput): void; dispose(): void };
+  resolve(): SSRHeadInput;
+  dispose(): void;
+}
+
+let _activeHead: HeadManager | null = null;
+
+/**
+ * #152: ساخت مدیر واکنشی `<head>` با حذف تگ‌های تکراری (dedupe) و اولویت آخرین ورودی.
+ */
+export function createHead(
+  options: { titleTemplate?: string; maxTags?: number } = {},
+): HeadManager {
+  const entries = new Set<{ current: SSRHeadInput }>();
+  const maxTags = options.maxTags ?? 100;
+
+  const manager: HeadManager = {
+    push(input: SSRHeadInput) {
+      const box = { current: { ...input } };
+      entries.add(box);
+      let disposed = false;
+      return {
+        patch(next: SSRHeadInput) {
+          if (disposed) return;
+          box.current = { ...box.current, ...next };
+        },
+        dispose() {
+          if (disposed) return;
+          disposed = true;
+          entries.delete(box);
+        },
+      };
+    },
+    resolve(): SSRHeadInput {
+      let title: string | undefined;
+      const metaMap = new Map<string, Record<string, string>>();
+      const linkMap = new Map<string, Record<string, string>>();
+      const jsonLdList: Array<Record<string, any>> = [];
+      const htmlAttrs: Record<string, string> = {};
+      const bodyAttrs: Record<string, string> = {};
+
+      for (const { current } of entries) {
+        if (current.title !== undefined) title = current.title;
+        if (current.meta) {
+          for (const m of current.meta) {
+            const key = m.key || m.name || m.property || JSON.stringify(m);
+            metaMap.set(key, m);
+          }
+        }
+        if (current.link) {
+          for (const l of current.link) {
+            const key = l.key || `${l.rel ?? ''}:${l.href ?? ''}`;
+            linkMap.set(key, l);
+          }
+        }
+        if (current.jsonLd) {
+          if (Array.isArray(current.jsonLd)) jsonLdList.push(...current.jsonLd);
+          else jsonLdList.push(current.jsonLd);
+        }
+        if (current.htmlAttrs) Object.assign(htmlAttrs, current.htmlAttrs);
+        if (current.bodyAttrs) Object.assign(bodyAttrs, current.bodyAttrs);
+      }
+
+      if (title && options.titleTemplate && options.titleTemplate.includes('%s')) {
+        title = options.titleTemplate.replace('%s', title);
+      }
+
+      const totalCount = metaMap.size + linkMap.size + jsonLdList.length;
+      if (totalCount > maxTags) {
+        throw new ZenithError({
+          code: 'ZEN-1503',
+          category: 'SSR',
+          message: `Head tag count (${totalCount}) exceeded maxTags (${maxTags}).`,
+          suggestion: 'تعداد تگ‌های meta/link را کاهش دهید یا گزینهٔ maxTags را افزایش دهید.',
+        });
+      }
+
+      return {
+        title,
+        meta: Array.from(metaMap.values()),
+        link: Array.from(linkMap.values()),
+        jsonLd: jsonLdList.length > 0 ? jsonLdList : undefined,
+        htmlAttrs,
+        bodyAttrs,
+      };
+    },
+    dispose() {
+      entries.clear();
+      if (_activeHead === manager) _activeHead = null;
+    },
+  };
+
+  _activeHead = manager;
+  return manager;
+}
+
+/**
+ * #152: ثبت ورودی `<head>` در مدیر فعال.
+ */
+export function useHead(input: SSRHeadInput): { patch(next: SSRHeadInput): void; dispose(): void } {
+  if (!_activeHead) {
+    _activeHead = createHead();
+  }
+  return _activeHead.push(input);
+}
+
+/**
+ * #152: رندر خروجی `HeadManager` یا `SSRHeadInput` به رشتهٔ HTML امن.
+ */
+export function renderHead(head: HeadManager | SSRHeadInput): {
+  headTags: string;
+  htmlAttrs: string;
+  bodyAttrs: string;
+} {
+  const resolved = 'resolve' in head && typeof head.resolve === 'function' ? head.resolve() : head;
+  return renderSSRHead(resolved as SSRHeadInput);
+}
+
+/**
+ * #152: استخراج عنوان صفحه از متادیتای مسیر.
+ */
+export function titleFromRoute(
+  route: { path: string; meta?: Record<string, any> },
+  template = '%s',
+): string {
+  const raw =
+    typeof route.meta?.title === 'string' && route.meta.title.length > 0
+      ? route.meta.title
+      : route.path === '/'
+        ? 'Home'
+        : route.path.replace(/^\//, '');
+  return template.includes('%s') ? template.replace('%s', raw) : raw;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #156 & #157 — Node & Edge SSR Adapters (createNodeHandler, createFetchHandler)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface SSRAdapterOptions {
+  template: string;
+  app?: () => App;
+  state?:
+    Record<string, any> | ((url: string) => Record<string, any> | Promise<Record<string, any>>);
+  timeout?: number;
+  health?: string | false;
+  cacheControl?: string;
+  csp?: { nonce?: boolean; policy?: string };
+  head?: SSRHeadInput | ((url: string) => SSRHeadInput);
+  i18n?: SSRI18nInput | ((url: string) => SSRI18nInput);
+}
+
+/**
+ * #156: ساخت handler سازگار با Node `http` / Express / Connect / Fastify.
+ */
+export function createNodeHandler(options: SSRAdapterOptions) {
+  const healthPath = options.health === undefined ? '/healthz' : options.health;
+  const cacheControl = options.cacheControl ?? 'no-store';
+
+  return async (
+    req: { url?: string; method?: string; on?: (ev: string, fn: () => void) => void },
+    res: {
+      statusCode?: number;
+      setHeader?: (name: string, value: string) => void;
+      end?: (body?: string) => void;
+    },
+  ): Promise<void> => {
+    const rawUrl = req.url || '/';
+    const cleanPath = rawUrl.split('?')[0] || '/';
+
+    if (healthPath && cleanPath === healthPath) {
+      res.statusCode = 200;
+      res.setHeader?.('Content-Type', 'application/json; charset=utf-8');
+      res.end?.(JSON.stringify({ status: 'ok' }));
+      return;
+    }
+
+    const abortController = new AbortController();
+    req.on?.('close', () => abortController.abort());
+
+    try {
+      const reqState =
+        typeof options.state === 'function' ? await options.state(rawUrl) : (options.state ?? {});
+      const headInput = typeof options.head === 'function' ? options.head(rawUrl) : options.head;
+      const i18nInput = typeof options.i18n === 'function' ? options.i18n(rawUrl) : options.i18n;
+
+      const ssrRes = await renderToString(options.template, reqState, {
+        route: cleanPath,
+        app: options.app,
+        timeout: options.timeout ?? 10_000,
+        head: headInput,
+        i18n: i18nInput,
+      });
+
+      const nonce = options.csp?.nonce ? 'zen-ssr-nonce' : undefined;
+      const fullHtml = generateFullPage(ssrRes, '', nonce);
+      res.statusCode = 200;
+      res.setHeader?.('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader?.('Cache-Control', cacheControl);
+      if (nonce) {
+        res.setHeader?.(
+          'Content-Security-Policy',
+          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`,
+        );
+      }
+      res.end?.(fullHtml);
+    } catch (err: any) {
+      res.statusCode = err?.code === 'ZEN-1801' ? 503 : 500;
+      res.setHeader?.('Content-Type', 'text/plain; charset=utf-8');
+      res.end?.(err?.message || 'Internal Server Error');
+    }
+  };
+}
+
+/**
+ * #157: ساخت handler استاندارد WinterCG / Edge (`Request => Promise<Response>`) برای Cloudflare/Deno/Bun/Vercel Edge.
+ */
+export function createFetchHandler(options: SSRAdapterOptions) {
+  const healthPath = options.health === undefined ? '/healthz' : options.health;
+  const cacheControl = options.cacheControl ?? 'no-store';
+
+  return async (request: Request): Promise<Response> => {
+    const parsedUrl = new URL(request.url, 'http://localhost');
+    const cleanPath = parsedUrl.pathname || '/';
+
+    if (healthPath && cleanPath === healthPath) {
+      return new Response(JSON.stringify({ status: 'ok' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    try {
+      const reqState =
+        typeof options.state === 'function'
+          ? await options.state(parsedUrl.pathname + parsedUrl.search)
+          : (options.state ?? {});
+      const headInput = typeof options.head === 'function' ? options.head(cleanPath) : options.head;
+      const i18nInput = typeof options.i18n === 'function' ? options.i18n(cleanPath) : options.i18n;
+
+      const ssrRes = await renderToString(options.template, reqState, {
+        route: cleanPath,
+        app: options.app,
+        timeout: options.timeout ?? 10_000,
+        head: headInput,
+        i18n: i18nInput,
+      });
+
+      const nonce = options.csp?.nonce ? 'zen-edge-nonce' : undefined;
+      const fullHtml = generateFullPage(ssrRes, '', nonce);
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': cacheControl,
+      };
+      if (nonce) {
+        headers['Content-Security-Policy'] =
+          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`;
+      }
+      return new Response(fullHtml, { status: 200, headers });
+    } catch (err: any) {
+      const status = err?.code === 'ZEN-1801' ? 503 : 500;
+      return new Response(err?.message || 'Internal Server Error', {
+        status,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+  };
+}
+
+export const createCloudflareHandler = createFetchHandler;
+export const createDenoHandler = createFetchHandler;

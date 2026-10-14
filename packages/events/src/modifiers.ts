@@ -1,5 +1,6 @@
 // packages/events/src/modifiers.ts
 import { developerError } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 //
 // تجزیه و اعمال Modifier های رویداد.
 //
@@ -149,6 +150,8 @@ export const BUILTIN_MODIFIERS = new Set<string>([
   'immediate',
   'self',
   'once',
+  'passive',
+  'capture',
   'debounce',
   'throttle',
   // Keyboard key-modifiers
@@ -252,6 +255,18 @@ export function getEventModifier(name: string): EventModifierHandler | undefined
 }
 
 /**
+ * #136: استخراج گزینه‌های استاندارد `AddEventListenerOptions` (`once`, `passive`, `capture`)
+ * از لیست modifierهای رویداد.
+ */
+export function extractListenerOptions(modifiers: string[]): AddEventListenerOptions {
+  return {
+    once: modifiers.includes('once'),
+    passive: modifiers.includes('passive'),
+    capture: modifiers.includes('capture'),
+  };
+}
+
+/**
  * اعمال modifier های رفتاری روی رویداد.
  *
  *   - `prevent`    → event.preventDefault()
@@ -303,7 +318,11 @@ export function applyBehaviorModifiers(
           const result = handler(event, modifiers, element ?? (event.currentTarget as HTMLElement));
           if (result === false) return false;
         } catch (err) {
-          console.error(`[Zenith] Custom event modifier "${modName}" threw:`, err);
+          logger.error(
+            `[Zenith] Custom event modifier "${modName}" threw: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
           // در صورت خطا، اجرای اکشن را متوقف نمی‌کنیم (fail-open).
         }
       }
