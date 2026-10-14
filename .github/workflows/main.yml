@@ -74,7 +74,16 @@ jobs:
           cache: npm
       - run: npm ci
       # #29: vitest with the >=80% statement coverage gate on core packages.
-      - run: npm run test:coverage
+      # اگر run شکست بخورد، ۸۰ خط آخر خروجی به‌صورت annotation غنی می‌شود تا بدون
+      # دسترسی به لاگ خام CI هم علت دقیق روشن شود (no-op در موفقیت).
+      - run: |
+          set +e
+          npm run test:coverage > "$RUNNER_TEMP/unit.out" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::error file=package.json::$(tail -80 "$RUNNER_TEMP/unit.out" | head -c 7000)"
+          fi
+          exit $code
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v6
@@ -322,7 +331,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Run e2e
-        run: npm run test:e2e
+        run: |
+          set +e
+          npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::error file=playwright.config.ts::$(tail -80 "$RUNNER_TEMP/e2e.out" | head -c 7000)"
+          fi
+          exit $code
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v6
