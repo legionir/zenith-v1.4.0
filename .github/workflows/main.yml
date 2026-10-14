@@ -341,9 +341,18 @@ jobs:
           npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
           code=$?
           if [ $code -ne 0 ]; then
-            # نمایش هر بخش مرتبط با شکست (همهٔ پروژه‌ها/اسپک‌ها + خطاهای pageerror/console)
+            # health-probe سرور استاتیک*زنده* اگر هنوز بالاست
             {
               echo "== playwright exit=$code =="
+              if curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:8089/e2e/fixture.html | grep -q 200; then
+                echo "== server ALIVE =="
+                for u in e2e/fixture.html e2e/xss-fixture.html e2e/transition-fixture.html e2e/storage-fixture.html packages/state/dist/index.js packages/scheduler/dist/index.js packages/errors/dist/index.js packages/security/dist/index.js packages/transition/dist/index.js packages/storage/dist/index.js packages/logger/dist/index.js packages/shared/dist/index.js packages/security/test/xss-corpus.mjs; do
+                  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://127.0.0.1:8089/$u")
+                  echo "== probe $code /$u =="
+                done
+              else
+                echo "== server NOT ALIVE at 127.0.0.1:8089 =="
+              fi
               grep -nE "✘|✗|[0-9]+ (failed|passed)|pageerror|browserError|Error:|Timed out|timeout" "$RUNNER_TEMP/e2e.out" | head -250
               echo "== آخر ۶۰ خط =="
               tail -60 "$RUNNER_TEMP/e2e.out"
