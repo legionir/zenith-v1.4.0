@@ -75,7 +75,7 @@ describe('no-console rule + ratchet (#143)', () => {
     // #94: packages/cli/src/telemetry.ts افزوده شد (خروجی کاربرپسند CLI؛ در دستورالعمل #39 مهاجرت می‌کند) (60 → 61).
     // #39 موج ۱ (2026-10-13): events/security/data/permission/error-boundary/ssr/router/components
     //   و store (بازنویسی جامنت) مهاجرت شدند — ۱۷ فایل از فهرست خارج شدند (61 → 44).
-    expect(NO_CONSOLE_RATCHET.length).toBe(32);
+    expect(NO_CONSOLE_RATCHET.length).toBe(23);
     // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
     expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
   });

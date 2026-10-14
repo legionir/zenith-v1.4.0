@@ -8,6 +8,7 @@
 //   * credentials: login با same-origin؛ secureLogout (بدون sendBeacon) با
 //     credentials: 'include' تا کوکی‌های HttpOnly سمت سرور هم invalidate شوند.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { logger, bufferSink, type BufferSink } from '@zenith/logger';
 import { Auth, createAuth } from '../src/auth';
 
 function jsonResponse(body: unknown, ok = true, status = 200): Response {
@@ -31,42 +32,51 @@ async function loginOk(auth: Auth): Promise<boolean> {
 }
 
 describe('dev-mode storage warning (#62)', () => {
-  let warn: ReturnType<typeof vi.spyOn>;
+  // #39: هشدار از طریق logger مرکزی (کانال debug در dev) صادر می‌شود — برای
+  // مشاهده‌پذیری پایدار در Node/jsdom، از bufferSink رسمی لاگر به‌جای spy روی
+  // console.warn استفاده می‌شود (consoleSink مرز رسمی console است).
+  let buf: BufferSink;
+  let detach: () => void;
 
   beforeEach(() => {
-    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    buf = bufferSink();
+    detach = logger.addSink(buf);
     delete (globalThis as any).__ZENITH_DEV__;
     localStorage.clear();
   });
 
   afterEach(() => {
-    warn.mockRestore();
+    detach();
     localStorage.clear();
   });
 
+  const allMessages = (): string =>
+    buf
+      .entries()
+      .map((e) => e.message)
+      .join('\n');
+
   it('warns with ZEN-404 when tokenStorage is localStorage in dev', () => {
     new Auth({ ...baseConfig, tokenStorage: 'localStorage' });
-    const calls = warn.mock.calls.map((c) => c.join(' ')).join('\n');
-    expect(calls).toContain('ZEN-404');
-    expect(calls.toLowerCase()).toContain('localstorage');
+    expect(allMessages()).toContain('ZEN-404');
+    expect(allMessages().toLowerCase()).toContain('localstorage');
   });
 
   it('warns with ZEN-404 when tokenStorage is cookie in dev', () => {
     new Auth({ ...baseConfig, tokenStorage: 'cookie' });
-    const calls = warn.mock.calls.map((c) => c.join(' ')).join('\n');
-    expect(calls).toContain('ZEN-404');
+    expect(allMessages()).toContain('ZEN-404');
   });
 
   it('does NOT warn for the secure default (memory)', () => {
     const auth = createAuth({ ...baseConfig });
-    expect(warn).not.toHaveBeenCalled();
+    expect(buf.entries()).toHaveLength(0);
     auth.dispose();
   });
 
   it('does NOT warn in production (__ZENITH_DEV__ = false)', () => {
     (globalThis as any).__ZENITH_DEV__ = false;
     const auth = new Auth({ ...baseConfig, tokenStorage: 'localStorage' });
-    expect(warn).not.toHaveBeenCalled();
+    expect(buf.entries()).toHaveLength(0);
     auth.dispose();
   });
 });

@@ -45,6 +45,8 @@
 
 import { signal, type Signal } from '@zenith/state';
 import { developerError, resourceHttpError, deprecate, ErrorCode } from '@zenith/errors';
+import { logger } from '@zenith/logger';
+import { s, defineOptions } from '@zenith/schema';
 import type { Disposable } from '@zenith/shared';
 
 /**
@@ -126,6 +128,37 @@ export interface AuthConfig {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `AuthConfig` در مرز ورودی.
+ */
+export const authConfigOptions = defineOptions<Required<AuthConfig>>(
+  'AuthConfig',
+  s.object({
+    loginUrl: s.string({ min: 1 }),
+    logoutUrl: s.default(s.string(), ''),
+    refreshUrl: s.default(s.string(), ''),
+    meUrl: s.default(s.string(), ''),
+    tokenStorage: s.default(
+      s.enum(['localStorage', 'sessionStorage', 'cookie', 'memory'] as const),
+      'memory',
+    ),
+    tokenKey: s.default(s.string({ min: 1 }), 'zenith_token'),
+    refreshTokenKey: s.default(s.string({ min: 1 }), 'zenith_refresh_token'),
+    autoRefresh: s.default(s.boolean(), true),
+    refreshThreshold: s.default(s.number({ min: 0 }), 300),
+    tokenField: s.default(s.string({ min: 1 }), 'token'),
+    refreshTokenField: s.default(s.string({ min: 1 }), 'refreshToken'),
+    userField: s.default(s.string({ min: 1 }), 'user'),
+    expiresInField: s.default(s.string({ min: 1 }), 'expiresIn'),
+    headers: s.default(s.record(s.string()), {}),
+  }),
+);
+
+export const AUTH_CONFIG_DEFAULTS = authConfigOptions.DEFAULTS;
+export const authConfigSchema = authConfigOptions.schema;
+export const resolveAuthConfig = (config: unknown): Required<AuthConfig> =>
+  authConfigOptions.resolve(config);
+
+/**
  * IMP-AUT-02 (v1.3.0): رویدادهای Auth.
  */
 export type AuthEvent = 'login' | 'logout' | 'token-refresh' | 'token-expired' | 'error';
@@ -156,6 +189,9 @@ export class Auth implements Disposable {
   private _listeners = new Map<AuthEvent, Set<AuthEventListener>>();
 
   constructor(config: AuthConfig) {
+    // #52 — اعتبارسنجی در مرز ورودی (ZEN-1001/1002/1004)
+    this._config = authConfigOptions.resolve(config);
+
     this._signal = signal<AuthState>({
       user: null,
       loading: false,
@@ -165,30 +201,6 @@ export class Auth implements Disposable {
       tokenExpiry: null,
       error: null,
     });
-
-    this._config = {
-      logoutUrl: '',
-      refreshUrl: '',
-      meUrl: '',
-      // SEC FIX (v1.2.6): SEC-A8 — default tokenStorage changed from
-      // 'localStorage' to 'memory'. localStorage is XSS-vulnerable: any script
-      // running in the page (including third-party dependencies) can read the
-      // user's token out of it. memory keeps the token in JS heap and dies
-      // with the tab, which is the safest default. Callers who explicitly
-      // opt into localStorage/sessionStorage/cookie should understand the
-      // trade-off.
-      tokenStorage: 'memory',
-      tokenKey: 'zenith_token',
-      refreshTokenKey: 'zenith_refresh_token',
-      autoRefresh: true,
-      refreshThreshold: 300,
-      tokenField: 'token',
-      refreshTokenField: 'refreshToken',
-      userField: 'user',
-      expiresInField: 'expiresIn',
-      headers: {},
-      ...config,
-    };
 
     // #62 (SEC): dev-mode warning for XSS-vulnerable token storage choices.
     // localStorage/sessionStorage/cookie (client-side cookies cannot be
@@ -200,13 +212,11 @@ export class Auth implements Disposable {
       this._config.tokenStorage === 'sessionStorage' ||
       this._config.tokenStorage === 'cookie'
     ) {
-      if (
-        typeof globalThis !== 'undefined' &&
-        (globalThis as any).__ZENITH_DEV__ !== false &&
-        typeof console !== 'undefined' &&
-        typeof console.warn === 'function'
-      ) {
-        console.warn(
+      // #39: کانال dev از طریق logger.debug (پیش‌فرض لاگر در dev چاپ می‌کند و
+      // در prod سرکوب می‌شود). گاید رفتار-زمان‌اجرا (__ZENITH_DEV__) همچنان
+      // بیرونی حفظ می‌شود تا فلیپ لحظه‌ای فلگ (تست‌ها/DEV switch) اثر داشته باشد.
+      if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false) {
+        logger.debug(
           `[Zenith] ZEN-404: tokenStorage: '${this._config.tokenStorage}' stores auth tokens ` +
             `where page JavaScript can read them (client-set cookies cannot be HttpOnly). ` +
             `Any XSS in your app or dependencies leaks the session. Recommended: server-side ` +
@@ -516,7 +526,11 @@ export class Auth implements Disposable {
       try {
         fn(event, data);
       } catch (err) {
-        console.warn(`[Zenith] Auth event listener error for "${event}":`, err);
+        logger.warn(
+          `[Zenith] Auth event listener error for "${event}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
     });
   }
@@ -934,6 +948,108 @@ export class Auth implements Disposable {
     const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
     return match ? (match[2] ?? null) : null;
   }
+
+  /**
+   * #139: فعال‌سازی همگام‌سازی خروج (logout) و تازه‌سازی توکن بین تب‌های مرورگر
+   * با استفاده از `BroadcastChannel` یا رویداد `storage`.
+   */
+  enableCrossTabSync(channelName = 'zenith:auth:sync'): () => void {
+    const cleanups: Array<() => void> = [];
+
+    if (typeof BroadcastChannel !== 'undefined') {
+      const bc = new BroadcastChannel(channelName);
+      const onMsg = (ev: MessageEvent) => {
+        if (this._destroyed) return;
+        if (ev.data?.type === 'logout') {
+          this._clearTokens();
+          this._signal.set({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            tokenExpiry: null,
+            error: null,
+          });
+        }
+      };
+      bc.addEventListener('message', onMsg);
+      const unsubLogout = this.on('logout', () => {
+        try {
+          bc.postMessage({ type: 'logout', ts: Date.now() });
+        } catch {
+          // ignore closed channel
+        }
+      });
+      cleanups.push(unsubLogout, () => {
+        bc.removeEventListener('message', onMsg);
+        bc.close();
+      });
+    }
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      const onStorage = (ev: StorageEvent) => {
+        if (this._destroyed) return;
+        if (ev.key === this._config.tokenKey && ev.newValue === null) {
+          this._signal.set({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+            token: null,
+            refreshToken: null,
+            tokenExpiry: null,
+            error: null,
+          });
+        }
+      };
+      window.addEventListener('storage', onStorage);
+      cleanups.push(() => window.removeEventListener('storage', onStorage));
+    }
+
+    let stopped = false;
+    return () => {
+      if (stopped) return;
+      stopped = true;
+      for (const fn of cleanups) fn();
+    };
+  }
+
+  /**
+   * #139: نقطهٔ گسترش تایید دو مرحله‌ای (MFA/OTP) روی نمونهٔ Auth.
+   */
+  async verifyMfa(
+    code: string,
+    verifyUrl = `${this._config.loginUrl.replace(/\/$/, '')}/mfa`,
+  ): Promise<boolean> {
+    if (this._destroyed || !code) return false;
+    try {
+      const res = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.authHeaders(),
+        },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      const token = data[this._config.tokenField] ?? this.token;
+      const user = data[this._config.userField] ?? this.user;
+      if (token) {
+        this._storeTokens(token, data[this._config.refreshTokenField]);
+        this._signal.set({
+          ...this._signal.get(),
+          token,
+          user,
+          isAuthenticated: true,
+          error: null,
+        });
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 /**
@@ -971,6 +1087,24 @@ export function registerAuth(name: string, auth: Auth): () => void {
  */
 export function getAuth(name: string = 'default'): Auth | undefined {
   return authRegistry.get(name);
+}
+
+/** #118 / #139: بررسی وجود Auth در رجیستری (`hasX`). */
+export function hasAuth(name: string = 'default'): boolean {
+  return authRegistry.has(name);
+}
+
+/** #118 / #139: فهرست نام تمام نمونه‌های Auth ثبت‌شده (`listXs`). */
+export function listAuths(): string[] {
+  return Array.from(authRegistry.keys());
+}
+
+/** #118 / #139: حذف یک نمونهٔ Auth با نام از رجیستری (`unregisterX`). */
+export function unregisterAuth(name: string): boolean {
+  const existing = authRegistry.get(name);
+  if (!existing) return false;
+  existing.dispose();
+  return authRegistry.delete(name);
 }
 
 /**
@@ -1044,19 +1178,44 @@ export interface FunctionalAuthConfig {
 
 const FUNCTIONAL_STORAGE_KEY = 'zenith_auth_tokens';
 
+/**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `FunctionalAuthConfig` در مرز ورودی.
+ */
+export const functionalAuthConfigOptions = defineOptions<Required<FunctionalAuthConfig>>(
+  'FunctionalAuthConfig',
+  s.object({
+    endpoints: s.default(
+      s.object({
+        login: s.default(s.string({ min: 1 }), '/api/auth/login'),
+        logout: s.default(s.string({ min: 1 }), '/api/auth/logout'),
+        register: s.default(s.string({ min: 1 }), '/api/auth/register'),
+        refresh: s.default(s.string({ min: 1 }), '/api/auth/refresh'),
+        me: s.default(s.string({ min: 1 }), '/api/auth/me'),
+      }),
+      {
+        login: '/api/auth/login',
+        logout: '/api/auth/logout',
+        register: '/api/auth/register',
+        refresh: '/api/auth/refresh',
+        me: '/api/auth/me',
+      },
+    ),
+    storageKey: s.default(s.string({ min: 1 }), FUNCTIONAL_STORAGE_KEY),
+    autoRefresh: s.default(s.boolean(), true),
+    loginRedirect: s.default(s.string({ min: 1 }), '/dashboard'),
+    logoutRedirect: s.default(s.string({ min: 1 }), '/'),
+    loginPath: s.default(s.string({ min: 1 }), '/login'),
+  }),
+);
+
+export const FUNCTIONAL_AUTH_CONFIG_DEFAULTS = functionalAuthConfigOptions.DEFAULTS;
+export const functionalAuthConfigSchema = functionalAuthConfigOptions.schema;
+export const resolveFunctionalAuthConfig = (cfg?: unknown): Required<FunctionalAuthConfig> =>
+  functionalAuthConfigOptions.resolve(cfg);
+
 let functionalConfig: FunctionalAuthConfig = {
-  endpoints: {
-    login: '/api/auth/login',
-    logout: '/api/auth/logout',
-    register: '/api/auth/register',
-    refresh: '/api/auth/refresh',
-    me: '/api/auth/me',
-  },
-  storageKey: FUNCTIONAL_STORAGE_KEY,
-  autoRefresh: true,
-  loginRedirect: '/dashboard',
-  logoutRedirect: '/',
-  loginPath: '/login',
+  ...FUNCTIONAL_AUTH_CONFIG_DEFAULTS,
+  endpoints: { ...FUNCTIONAL_AUTH_CONFIG_DEFAULTS.endpoints },
 };
 
 const functionalUser = signal<User | null>(null);
@@ -1074,11 +1233,23 @@ let functionalRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let functionalInitialized = false;
 
 export function configureAuth(cfg: Partial<FunctionalAuthConfig>): void {
-  functionalConfig = {
+  if (cfg === undefined || cfg === null || typeof cfg !== 'object' || Array.isArray(cfg)) {
+    functionalConfig = functionalAuthConfigOptions.resolve(cfg);
+    return;
+  }
+  const candidate: Record<string, unknown> = {
     ...functionalConfig,
     ...cfg,
-    endpoints: { ...functionalConfig.endpoints, ...cfg.endpoints },
   };
+  if (
+    cfg.endpoints !== undefined &&
+    cfg.endpoints !== null &&
+    typeof cfg.endpoints === 'object' &&
+    !Array.isArray(cfg.endpoints)
+  ) {
+    candidate.endpoints = { ...functionalConfig.endpoints, ...cfg.endpoints };
+  }
+  functionalConfig = functionalAuthConfigOptions.resolve(candidate);
 }
 
 export function getAuthConfig(): FunctionalAuthConfig {

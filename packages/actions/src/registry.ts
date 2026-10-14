@@ -1,5 +1,6 @@
 // packages/actions/src/registry.ts
 import { deprecate, developerError, ErrorCode } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 import type { Disposable } from '@zenith/shared';
 //
 // Action Registry — ثبت و بازیابی توابع Business Logic.
@@ -149,25 +150,50 @@ export class ActionRegistry implements Disposable {
    * @param ctx  Context اجرا.
    */
   async execute(name: string, ctx: ActionContext): Promise<void> {
-    const entry = this._actions.get(name);
-    if (!entry) {
+    if (this._disposed) {
+      throw developerError(
+        `Cannot execute action "${name}" on a disposed ActionRegistry.`,
+        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+      );
+    }
+    const initialEntry = this._actions.get(name);
+    if (!initialEntry) {
       throw developerError(`Action "${name}" not found.`, ErrorCode.RUNTIME_COMPONENT_NOT_FOUND);
     }
 
-    const handler = entry.fn;
+    // #15 FIX: اسنپ‌شات زنجیرهٔ middleware در لحظهٔ شروع برای جلوگیری از race
+    // هنگام تغییر لیست middlewareها در میانهٔ اجرای async، به‌همراه گارد
+    // فراخوانی چندبارهٔ next() و خواندن آخرین handler ثبت‌شده در انتهای زنجیره.
+    const middlewares = [...this._middlewares];
 
-    if (this._middlewares.length === 0) {
-      return handler(ctx);
+    const runTarget = (): void | Promise<void> => {
+      const currentEntry = this._actions.get(name) ?? initialEntry;
+      return currentEntry.fn(ctx);
+    };
+
+    if (middlewares.length === 0) {
+      return runTarget();
     }
 
-    // زنجیره middleware: از آخرین به اولین ساخته می‌شود
-    // تا اولین middleware ثبت‌شده اولین اجرا شود
-    const chain = this._middlewares.reduceRight(
-      (next: () => void | Promise<void>, mw: ActionMiddleware) => () => mw(name, ctx, next),
-      () => handler(ctx),
-    );
+    const dispatch = (index: number): void | Promise<void> => {
+      if (index >= middlewares.length) {
+        return runTarget();
+      }
+      const mw = middlewares[index]!;
+      let nextCalled = false;
+      return mw(name, ctx, () => {
+        if (nextCalled) {
+          throw developerError(
+            `Action middleware for "${name}" called next() multiple times.`,
+            ErrorCode.INTERNAL_DEVELOPER_ERROR,
+          );
+        }
+        nextCalled = true;
+        return dispatch(index + 1);
+      });
+    };
 
-    return chain();
+    return dispatch(0);
   }
 
   /**
@@ -186,7 +212,7 @@ export class ActionRegistry implements Disposable {
     this._validateName(name);
     this._validateFn(fn);
     if (this._actions.has(name)) {
-      console.warn(`[Zenith] Action "${name}" is being overridden.`);
+      logger.warn(`[Zenith] Action "${name}" is being overridden.`);
     }
     this._actions.set(name, { fn, metadata });
     return this;
@@ -332,6 +358,22 @@ export class ActionRegistry implements Disposable {
 const _defaultRegistry = new ActionRegistry();
 
 /**
+ * #92 — ایزولاسیون رجیستری اکشن‌ها در SSR هم‌زمان.
+ * اگر provider توسط `@zenith/ssr` تنظیم شده باشد و یک `ActionRegistry` مخصوص
+ * درخواست جاری برگرداند، عملیات ثبت/حذف/پاکسازی (`clearActions` در `Zen.stop`)
+ * روی رجیستری درخواست اعمال می‌شود و رجیستری سراسری `_defaultRegistry` دست‌نخورده می‌ماند.
+ */
+let _actionStoreProvider: (() => ActionRegistry | null) | null = null;
+
+export function setActionRegistryStore(provider: (() => ActionRegistry | null) | null): void {
+  _actionStoreProvider = provider;
+}
+
+function getActiveActionRegistry(): ActionRegistry {
+  return _actionStoreProvider?.() ?? _defaultRegistry;
+}
+
+/**
  * ثبت (یا بازنویسی) یک Action روی Registry پیش‌فرض.
  *
  * @param name     نام اکشن — همان رشته‌ای که در HTML نوشته می‌شود.
@@ -342,13 +384,14 @@ const _defaultRegistry = new ActionRegistry();
  *           بعدی محافظت می‌شود).
  */
 export function registerAction(name: string, fn: ActionFn, metadata?: ActionMetadata): () => void {
-  _defaultRegistry.register(name, fn, metadata);
+  const target = getActiveActionRegistry();
+  target.register(name, fn, metadata);
   let removed = false;
   return () => {
     if (removed) return;
     removed = true;
-    if (_defaultRegistry.get(name) === fn) {
-      _defaultRegistry.unregister(name);
+    if (target.get(name) === fn) {
+      target.unregister(name);
     }
   };
 }
@@ -361,7 +404,7 @@ export function registerAction(name: string, fn: ActionFn, metadata?: ActionMeta
  *   - تست‌ها: بین هر test، registry خالی شود.
  */
 export function unregisterAction(name: string): boolean {
-  return _defaultRegistry.unregister(name);
+  return getActiveActionRegistry().unregister(name);
 }
 
 /**
@@ -370,6 +413,10 @@ export function unregisterAction(name: string): boolean {
  * @returns تابع یا `undefined` اگر ثبت نشده باشد.
  */
 export function getAction(name: string): ActionFn | undefined {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return scoped.get(name);
+  }
   return _defaultRegistry.get(name);
 }
 
@@ -377,6 +424,10 @@ export function getAction(name: string): ActionFn | undefined {
  * FEATURE (v1.3.0): دریافت متادیتای یک Action از Registry پیش‌فرض.
  */
 export function getActionMeta(name: string): ActionMetadata | undefined {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return scoped.getMeta(name);
+  }
   return _defaultRegistry.getMeta(name);
 }
 
@@ -384,6 +435,10 @@ export function getActionMeta(name: string): ActionMetadata | undefined {
  * بررسی وجود Action در Registry پیش‌فرض.
  */
 export function hasAction(name: string): boolean {
+  const scoped = _actionStoreProvider?.();
+  if (scoped && scoped.has(name)) {
+    return true;
+  }
   return _defaultRegistry.has(name);
 }
 
@@ -393,7 +448,7 @@ export function hasAction(name: string): boolean {
  * ⚠️ در Production استفاده نکنید — این عملیات تمام اکشن‌های فعال را حذف می‌کند.
  */
 export function clearActions(): void {
-  _defaultRegistry.clear();
+  getActiveActionRegistry().clear();
 }
 
 /**
@@ -402,6 +457,13 @@ export function clearActions(): void {
  * برای DevTools و documentation generation استفاده می‌شود.
  */
 export function listActions(): Array<{ name: string; metadata?: ActionMetadata }> {
+  const scoped = _actionStoreProvider?.();
+  if (scoped) {
+    const merged = new Map<string, { name: string; metadata?: ActionMetadata }>();
+    for (const item of _defaultRegistry.list()) merged.set(item.name, item);
+    for (const item of scoped.list()) merged.set(item.name, item);
+    return Array.from(merged.values());
+  }
   return _defaultRegistry.list();
 }
 

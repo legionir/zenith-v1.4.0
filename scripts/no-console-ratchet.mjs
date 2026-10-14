@@ -13,8 +13,6 @@
 //
 // مسیرها نسبی به ریشه و با «/» (posix) — همان چیزی که eslint می‌پاید.
 export const NO_CONSOLE_RATCHET = [
-  'packages/actions/src/registry.ts',
-  'packages/auth/src/auth.ts',
   'packages/cli/src/check.ts',
   'packages/cli/src/index.ts',
   'packages/cli/src/lighthouse.ts',
@@ -22,15 +20,8 @@ export const NO_CONSOLE_RATCHET = [
   // #94: ماژول `zenith telemetry` — خروجی/خطای کاربرپسند CLI (مانند check/index)
   'packages/cli/src/telemetry.ts',
   'packages/compiler/src/compiler.ts',
-  'packages/crud/src/crud-engine.ts',
-  'packages/crud/src/crud.ts',
-  'packages/devtools/src/api.ts',
-  'packages/devtools/src/hook.ts',
   'packages/errors/src/core.ts',
   'packages/errors/src/hub.ts',
-  'packages/form/src/form.ts',
-  'packages/form/src/validator.ts',
-  'packages/i18n/src/index.ts',
   'packages/runtime/src/directives/for.ts',
   'packages/runtime/src/directives/html-trusted.ts',
   'packages/runtime/src/directives/if.ts',
