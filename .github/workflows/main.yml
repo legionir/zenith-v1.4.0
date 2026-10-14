@@ -350,24 +350,23 @@ jobs:
           ZENITH_E2E_NO_SERVER=1 npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
           code=$?
           if [ $code -ne 0 ]; then
-            # health-probe سرور استاتیک*زنده* اگر هنوز بالاست
+            # یک annotation چندخطی واحد (%0A) — خلاصهٔ کاملِ شکست + پروب سرور زنده
             {
-              echo "== playwright exit=$code =="
-              if curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:8089/e2e/fixture.html | grep -q 200; then
-                echo "== server ALIVE =="
-                for u in e2e/fixture.html e2e/xss-fixture.html e2e/transition-fixture.html e2e/storage-fixture.html packages/state/dist/index.js packages/scheduler/dist/index.js packages/errors/dist/index.js packages/security/dist/index.js packages/transition/dist/index.js packages/storage/dist/index.js packages/logger/dist/index.js packages/shared/dist/index.js packages/security/test/xss-corpus.mjs; do
-                  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://127.0.0.1:8089/$u")
-                  echo "== probe $code /$u =="
-                done
-              else
-                echo "== server NOT ALIVE at 127.0.0.1:8089 =="
-              fi
-              grep -nE "✘|✗|[0-9]+ (failed|passed)|pageerror|browserError|Error:|Timed out|timeout" "$RUNNER_TEMP/e2e.out" | head -250
-              echo "== آخر ۶۰ خط =="
+              echo "== playwright exit=$code | سرور: $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:8089/e2e/fixture.html) =="
+              for u in e2e/xss-fixture.html packages/state/dist/index.js packages/security/dist/index.js packages/security/test/xss-corpus.mjs; do
+                echo "== probe $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:8089/$u") /$u"
+              done
+              echo "── HEAD-40 ──"
+              head -40 "$RUNNER_TEMP/e2e.out"
+              echo "── TAIL-60 ──"
               tail -60 "$RUNNER_TEMP/e2e.out"
-            } | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | cut -c1-380 | while IFS= read -r ln; do
-              echo "::error file=playwright.config.ts::${ln//%/%25}"
-            done
+            } | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | head -115 > /tmp/e2e-diag.txt
+            python3 -c "
+import sys
+t=open('/tmp/e2e-diag.txt',encoding='utf-8',errors='replace').read()
+t=t.replace('%','%25').replace('\r','').replace('\n','%0A')
+print(f'::error file=playwright.config.ts::{t[:7900]}')
+"
           fi
           exit $code
       - name: Upload Playwright report
