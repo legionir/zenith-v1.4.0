@@ -1,4 +1,6 @@
 // packages/runtime/src/directives/ref.ts
+
+import { logger } from '@zenith/logger';
 //
 // FEATURE (v0.5.0): zen-ref — bind کردن یک عنصر DOM به یک Signal در State.
 //
@@ -93,9 +95,9 @@ export function processRef(
     try {
       signal.set(el);
     } catch (err) {
-      if (typeof console !== 'undefined' && console.error) {
-        console.error('[Zenith zen-ref] Failed to set ref:', err);
-      }
+      logger.error(
+        `[Zenith zen-ref] Failed to set ref: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     // ─ـ ۴. dispose: signal.set(null) ──
@@ -104,19 +106,18 @@ export function processRef(
       try {
         signal.set(null);
       } catch (err) {
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('[Zenith zen-ref] Failed to clear ref:', err);
-        }
+        logger.error(
+          `[Zenith zen-ref] Failed to clear ref: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     };
   }
 
   // اگر Signal پیدا نشد، no-op dispose.
-  if (typeof console !== 'undefined' && console.warn) {
-    console.warn(
-      `[Zenith zen-ref] No Signal found for ref "${refName}". ` +
-        `Make sure state has a Signal at key "${key}" (with a .set method).`,
-    );
-  }
+  // #39: گاید سراسری logger — console guard لازم نیست.
+  logger.warn(
+    `[Zenith zen-ref] No Signal found for ref "${refName}". ` +
+      `Make sure state has a Signal at key "${key}" (with a .set method).`,
+  );
   return () => {};
 }

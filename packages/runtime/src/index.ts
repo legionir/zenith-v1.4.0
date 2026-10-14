@@ -12,7 +12,7 @@
 
 import { processDOM } from './walker';
 import { setRouteSignalProvider } from './context';
-import { initEventDelegation } from '@zenith/events';
+import { initEventDelegation, setLinkNavigationHandler } from '@zenith/events';
 import {
   registerAction,
   unregisterAction,
@@ -20,13 +20,15 @@ import {
   clearActions,
   listActions,
   getActionMeta,
+  setActionRegistryStore,
 } from '@zenith/actions';
-import { loadComponents, clearComponents } from '@zenith/components';
+import { loadComponents, clearComponents, setComponentRegistryStore } from '@zenith/components';
 import { flushSync } from '@zenith/scheduler';
 import { navigate, routeSignal, cleanupRouter } from '@zenith/router';
 import { initDevTools, exposeDevToolsAPI } from '@zenith/devtools';
 import { setStrictParity } from './parity-check';
 import { notificationsAPI } from '@zenith/notifications';
+import { logger } from '@zenith/logger';
 import { auth, initAuth } from '@zenith/auth';
 // Bug Fix #1: resetResourceRegistry باید در Zen.stop فراخوانی شود تا
 // نشت حافظه‌ی resource در SPA (که در گزارش قبلی مطرح شد) برطرف شود.
@@ -35,6 +37,7 @@ import { onError, setDevMode, emitError, getErrorHistory } from '@zenith/state';
 // #115: مقدار class ZenithError + ErrorCode برای throw در مسیر framework.
 // state هم ZenithError را به‌عنوان type از errors re-export می‌کند؛ یک کلاس واحد است.
 import { ZenithError, ErrorCode } from '@zenith/errors';
+import { s, defineOptions, type Schema } from '@zenith/schema';
 import type { ErrorHandler } from '@zenith/state';
 
 /**
@@ -233,8 +236,8 @@ export interface ZenithPlugin {
  * IMP-RUNT-03: Added atomic installation with Promise-based locking
  * to prevent race conditions during concurrent plugin installation.
  */
-const pluginRegistry = new Map<string, ZenithPlugin>();
-const pluginInstallLocks = new Map<string, Promise<void>>();
+const pluginRegistry = /* @__PURE__ */ new Map<string, ZenithPlugin>();
+const pluginInstallLocks = /* @__PURE__ */ new Map<string, Promise<void>>();
 
 /**
  * شیء‌ی Zen: API اصلی فریم‌ورک.
@@ -300,6 +303,44 @@ export interface ZenStartOptions {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `ZenStartOptions`.
+ */
+export const zenStartOptions = /* @__PURE__ */ defineOptions<ZenStartOptions>(
+  'ZenStartOptions',
+  /* @__PURE__ */ s.object({
+    devtools: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), true),
+    delegationRoot: /* @__PURE__ */ s.optional(
+      /* @__PURE__ */ s.custom<Document | ShadowRoot | HTMLElement>(
+        (v) =>
+          typeof v === 'object' &&
+          v !== null &&
+          typeof (v as { nodeType?: unknown }).nodeType === 'number' &&
+          [1, 9, 11].includes((v as { nodeType: number }).nodeType),
+        'Document | ShadowRoot | HTMLElement (nodeType 1|9|11)',
+      ),
+    ),
+    ssr: /* @__PURE__ */ s.default(
+      /* @__PURE__ */ s.object({
+        preloadState: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), true),
+        validateHydration: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), false),
+      }),
+      { preloadState: true, validateHydration: false },
+    ),
+    onError: /* @__PURE__ */ s.optional(/* @__PURE__ */ s.fn() as unknown as Schema<ErrorHandler>),
+    strictParity: /* @__PURE__ */ s.default(/* @__PURE__ */ s.boolean(), false),
+  }),
+);
+
+export const ZEN_START_OPTIONS_DEFAULTS = /* @__PURE__ */ Object.freeze({
+  devtools: true,
+  ssr: /* @__PURE__ */ Object.freeze({ preloadState: true, validateHydration: false }),
+  strictParity: false,
+}) as ZenStartOptions;
+export const zenStartOptionsSchema = /* @__PURE__ */ (() => zenStartOptions.schema)();
+export const resolveZenStartOptions = (opts?: unknown): ZenStartOptions =>
+  zenStartOptions.resolve(opts);
+
+/**
  * Runtime API interface (prevents circular `typeof Zen` inference issues).
  */
 interface ZenApi {
@@ -339,7 +380,7 @@ interface ZenApi {
   perf: ZenPerf;
 }
 
-export const Zen: ZenApi = {
+export const Zen: ZenApi = /* @__PURE__ */ (() => ({
   /**
    * Register a global error handler.
    * @example
@@ -415,12 +456,17 @@ export const Zen: ZenApi = {
       });
     }
 
+    // #52 — اعتبارسنجی گزینه‌های Zen.start در مرز ورودی (ZEN-1001/1002/1004)
+    const resolvedOptions = zenStartOptions.resolve(options);
+    options = resolvedOptions;
+
     // BUG-RUNT-05 FIX: If start was already called on this root without stop,
     // clean up the previous instance first to prevent resource leaks.
     const existingTeardown = (root as any).__zenithDelegationTeardown as TeardownFn | undefined;
     if (existingTeardown) {
       if (isDevMode()) {
-        console.warn(
+        // #39: logger مرکزی — گاید isDevMode بیرونی نگه داشته شد (flip زمان‌اجرا در تست).
+        logger.warn(
           '[Zen.start] Root element already has an active Zen instance. Stopping previous instance first.',
         );
       }
@@ -429,7 +475,9 @@ export const Zen: ZenApi = {
         existingTeardown();
       } catch (e) {
         if (isDevMode()) {
-          console.warn('[Zen.start] Error during previous instance teardown:', e);
+          logger.warn(
+            `[Zen.start] Error during previous instance teardown: ${e instanceof Error ? e.message : String(e)}`,
+          );
         }
       }
       // Also dispose previous effects
@@ -463,7 +511,10 @@ export const Zen: ZenApi = {
           const serverState = JSON.parse(el.textContent || '{}');
           if (options?.ssr?.validateHydration) {
             const match = JSON.stringify(state) === JSON.stringify(serverState);
-            console.assert(match, '[Zenith] Hydration mismatch: client and server state differ');
+            // #39: assert → logger.warn (همان معنا: فقط وقتی match=false چاپ).
+            if (!match) {
+              logger.warn('[Zenith] Hydration mismatch: client and server state differ');
+            }
             if (!match) {
               emitError({
                 message: 'Hydration mismatch: client and server state differ',
@@ -492,7 +543,7 @@ export const Zen: ZenApi = {
     // ── پیام شروع فقط در حالت Development ──
     // در production، این log چاپ نمی‌شود تا log های تمیز بمانند.
     if (isDevMode()) {
-      console.log('🚀 Zenith Framework is starting...');
+      logger.info('🚀 Zenith Framework is starting...');
     }
 
     // ─ـ ۱. نصب DevTools Hook (فاز ۱۰) ──
@@ -504,7 +555,9 @@ export const Zen: ZenApi = {
         initDevTools();
       } catch (err) {
         if (isDevMode()) {
-          console.warn('[Zen.start] DevTools initialization failed (non-fatal):', err);
+          logger.warn(
+            `[Zen.start] DevTools initialization failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
         // Continue without DevTools - not a fatal error
       }
@@ -515,6 +568,7 @@ export const Zen: ZenApi = {
     // static به router وابسته نباشد. اگر @zenith/router در دسترس نباشد،
     // `$route` در Context تعریف نمی‌شود.
     setRouteSignalProvider(() => routeSignal.get());
+    setLinkNavigationHandler(navigate);
 
     // ── ۲.۵. راه‌اندازی Auth (v1.4.0) — fire-and-forget ──
     // اگر توکن قبلاً ذخیره شده باشد، session را restore می‌کند.
@@ -581,11 +635,11 @@ export const Zen: ZenApi = {
       // Store previous reload function for cleanup if needed
       const prevReload = (globalThis as any).__ZENITH_RELOAD__;
       if (prevReload && isDevMode()) {
-        console.warn('[Zen.start] Overwriting existing HMR reload function');
+        logger.warn('[Zen.start] Overwriting existing HMR reload function');
       }
     }
     (globalThis as any).__ZENITH_RELOAD__ = (_changedPath?: string) => {
-      console.log('[Zenith HMR] Re-processing DOM...', _changedPath ? `(${_changedPath})` : '');
+      logger.debug(`[Zenith HMR] Re-processing DOM...${_changedPath ? ` (${_changedPath})` : ''}`);
       // Cleanup کامل: stopEffect، Event Delegation، Components، Router.
       Zen.stop(root);
       // Restart: loadComponents، Event Delegation، processDOM.
@@ -647,9 +701,9 @@ export const Zen: ZenApi = {
     try {
       resetResourceRegistry();
     } catch (e) {
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[Zenith] resetResourceRegistry failed:', e);
-      }
+      logger.error(
+        `[Zenith] resetResourceRegistry failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
     }
 
     // ─ـ ۶. پاکسازی HMR Reload Function (فاز ۱۰) ──
@@ -664,9 +718,7 @@ export const Zen: ZenApi = {
     try {
       clearActions();
     } catch (e) {
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[Zenith] clearActions failed:', e);
-      }
+      logger.error(`[Zenith] clearActions failed: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // ─ـ ۸. پاکسازی Plugin Registry (IMP-RUNT-10) ──
@@ -728,7 +780,7 @@ export const Zen: ZenApi = {
     return () => {
       if (isFlushing) {
         if (isDevMode()) {
-          console.warn(
+          logger.warn(
             '[Zen.flushSync] Reentrant call detected, skipping to prevent infinite loop.',
           );
         }
@@ -778,7 +830,7 @@ export const Zen: ZenApi = {
   // to prevent race conditions during concurrent plugin installation.
   use(plugin: ZenithPlugin, options?: any): typeof Zen {
     if (!plugin || typeof plugin.install !== 'function') {
-      console.warn('[Zenith] Zen.use: plugin must have an install() method.');
+      logger.warn('[Zenith] Zen.use: plugin must have an install() method.');
       return Zen;
     }
     const pluginName = plugin.name;
@@ -786,7 +838,7 @@ export const Zen: ZenApi = {
     // Fast path: already installed
     if (pluginRegistry.has(pluginName)) {
       if (isDevMode()) {
-        console.warn(`[Zenith] Plugin "${pluginName}" is already installed. Skipping.`);
+        logger.warn(`[Zenith] Plugin "${pluginName}" is already installed. Skipping.`);
       }
       return Zen;
     }
@@ -795,10 +847,12 @@ export const Zen: ZenApi = {
       plugin.install(Zen, options);
       pluginRegistry.set(pluginName, plugin);
       if (isDevMode()) {
-        console.log(`🔌 Zenith plugin installed: ${pluginName}`);
+        logger.info(`🔌 Zenith plugin installed: ${pluginName}`);
       }
     } catch (err) {
-      console.error(`[Zenith] Plugin "${pluginName}" failed to install:`, err);
+      logger.error(
+        `[Zenith] Plugin "${pluginName}" failed to install: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     return Zen; // برای chaining: Zen.use(a).use(b)
@@ -917,7 +971,7 @@ export const Zen: ZenApi = {
   //   Zen.perf.mark('render-start');
   //   // ... انجام عملیات ...
   //   Zen.perf.measure('render');
-  //   console.log(Zen.perf.getReport());
+  //   logger.info(Zen.perf.getReport());
   //
   // برای فعال‌سازی دستی (حتی در production):
   //   Zen.perf.enabled = true;
@@ -993,7 +1047,7 @@ export const Zen: ZenApi = {
       },
     };
   })(),
-};
+}))();
 
 // ── Re-exports برای راحتی کاربران ──
 
@@ -1288,3 +1342,57 @@ export {
   type FunctionalAuthConfig,
   type RouteGuard,
 } from '@zenith/auth';
+
+/**
+ * #148 (SPEC §۲.۸): بازصادرات API مدل createApp از `@zenith/runtime-core`.
+ */
+export {
+  createApp,
+  defaultApp,
+  resetDefaultAppForTesting,
+  defineDirective,
+  definePlugin,
+  onMount,
+  onUnmount,
+  onUpdate,
+  provide,
+  inject,
+  createInjectionKey,
+  useApp,
+  assertCompatible,
+  hydrate,
+  startFromSSR,
+  createFocusTrap,
+  createRovingTabindex,
+  lockScroll,
+  useId,
+  computePosition,
+  appOptions,
+  APP_OPTIONS_DEFAULTS,
+  appOptionsSchema,
+  resolveAppOptions,
+  type App,
+  type AppOptions,
+  type ResolvedAppOptions,
+  type DirectiveDefinition,
+  type BindContext,
+  type SsrContext,
+  type Plugin as RuntimeCorePlugin,
+  type HydrationResult,
+  type HydrationMismatch,
+  type InjectionKey,
+} from '@zenith/runtime-core';
+
+export { setActionRegistryStore, setComponentRegistryStore };
+
+export {
+  createAnalytics,
+  consoleProvider,
+  beaconProvider,
+  gtagProvider,
+  plausibleProvider,
+  type AnalyticsEvent,
+  type AnalyticsProvider,
+  type AnalyticsOptions,
+  type AnalyticsInstance,
+} from './directives/track';

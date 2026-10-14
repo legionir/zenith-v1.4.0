@@ -28,6 +28,7 @@ import { effect, signal, type Signal } from '@zenith/state';
 // listExpr و keyExpr هر کدام فقط یک‌بار parse می‌شوند.
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
+import { logger } from '@zenith/logger';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import {
   zenForNoZenKeyError,
@@ -348,7 +349,9 @@ export function processFor(
   // اگر zen-key وجود نداشت، هشدار بده (اما ادامه بده با fallback به index).
   if (!keyExpr) {
     // FEATURE (v1.0.0): پیام هشدار بهبودیافته با مثال از کتابخانه‌ی خطاها.
-    console.warn(zenForNoZenKeyError(expr).toUserString());
+    // #39: لاگر مرکزی — ZenithError مستقیم به logger سپرده می‌شود تا
+    // code+message+suggestion با فرمت یکپارچه چاپ شود (به‌جای toUserString دستی).
+    logger.warn(zenForNoZenKeyError(expr));
   }
 
   // ── ۳. ساخت Template ──
@@ -400,7 +403,9 @@ export function processFor(
           try {
             d();
           } catch (e) {
-            console.error('[zen-for] static dispose failed:', e);
+            logger.error(
+              `[zen-for] static dispose failed: ${e instanceof Error ? e.message : String(e)}`,
+            );
           }
         }
         it.disposes.length = 0;
@@ -460,7 +465,7 @@ export function processFor(
       // کلیدهای تکراری معنادار هستند و نشان‌دهنده‌ی باگ در داده‌های کاربر
       // هستند — هشدار می‌دهیم تا DOM نادرست رندر نشود.
       if (keyExpr && usedKeys.has(key)) {
-        console.warn(
+        logger.warn(
           `[zen-for] Duplicate key "${key}" detected. Keys must be unique. DOM may render incorrectly.`,
         );
       }
@@ -536,7 +541,9 @@ export function processFor(
           try {
             dispose();
           } catch (err) {
-            console.error('[zen-for] Error during dispose of removed item:', err);
+            logger.error(
+              `[zen-for] Error during dispose of removed item: ${err instanceof Error ? err.message : String(err)}`,
+            );
           }
         }
         loopItem.disposes.length = 0;
@@ -561,7 +568,9 @@ export function processFor(
         try {
           dispose();
         } catch (err) {
-          console.error('[zen-for] Error during teardown dispose:', err);
+          logger.error(
+            `[zen-for] Error during teardown dispose: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
       loopItem.disposes.length = 0;
@@ -577,7 +586,9 @@ export function processFor(
         try {
           dispose();
         } catch (err) {
-          console.error('[zen-for] Error during teardown dispose:', err);
+          logger.error(
+            `[zen-for] Error during teardown dispose: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
       loopItem.disposes.length = 0;

@@ -75,7 +75,16 @@ describe('no-console rule + ratchet (#143)', () => {
     // #94: packages/cli/src/telemetry.ts افزوده شد (خروجی کاربرپسند CLI؛ در دستورالعمل #39 مهاجرت می‌کند) (60 → 61).
     // #39 موج ۱ (2026-10-13): events/security/data/permission/error-boundary/ssr/router/components
     //   و store (بازنویسی جامنت) مهاجرت شدند — ۱۷ فایل از فهرست خارج شدند (61 → 44).
-    expect(NO_CONSOLE_RATCHET.length).toBe(23);
+    // #39 موج ۴ (2026-10-13): runtime×11/transition/errors×2 (32 → 9).
+    //   errors خودش به logger وابسته نیست (چرخهٔ import)؛ مرز چاپ به
+    //   packages/errors/src/print.ts (بدون import) سپرده شد و deprecate از
+    //   همان مسیر می‌گذرد.
+    //   ثقل باقی‌ماندهٔ ۹ فایل (cli×5/vite-plugin×2/vscode-extension/compiler)
+    //   مصونِ تصمیم‌شده‌اند: خروجی آن‌ها UX اصلی ابزار CLI/IDE است (نه
+    //   observability framework) و چاپ JSON-Lines لاگر برای ترمینال نامناسب است؛
+    //   compiler هم پیام‌های user-code را از طریق hub→print می‌گذرانَد.
+    //   نکته: در موج ۳ شمارندهٔ لیست از 32 به 23 رسید؛ این بار به 9.
+    expect(NO_CONSOLE_RATCHET.length).toBe(9);
     // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
     expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
   });

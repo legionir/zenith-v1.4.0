@@ -16,6 +16,7 @@
 //   - processFor (فاز ۵) همین الگو را برای هر آیتم لیست به‌کار می‌برد.
 
 import { createContext } from './context';
+import { logger } from '@zenith/logger';
 import { processText } from './directives/text';
 import { processShow } from './directives/show';
 import { processHtml } from './directives/html';
@@ -137,11 +138,11 @@ export function registerCustomDirective(
   attributeName: string = 'config',
 ): void {
   if (typeof tagName !== 'string' || tagName.length === 0) {
-    console.warn('[Zenith] registerCustomDirective: tagName must be a non-empty string.');
+    logger.warn('[Zenith] registerCustomDirective: tagName must be a non-empty string.');
     return;
   }
   if (typeof handler !== 'function') {
-    console.warn(`[Zenith] registerCustomDirective: handler for "${tagName}" must be a function.`);
+    logger.warn(`[Zenith] registerCustomDirective: handler for "${tagName}" must be a function.`);
     return;
   }
   customDirectiveRegistry.set(tagName.toLowerCase(), { attributeName, handler });
@@ -267,7 +268,7 @@ export function processDOM(root: HTMLElement, state: Record<string, any>): () =>
         dispose();
       } catch (err) {
         // #116/DEC-031: خطای یک dispose نباید مانع بقیه شود؛ از hub لاگ می‌گیریم
-        // (نه console.error مستقیم).
+        // (نه logger.error مستقیم).
         reportError(err, 'processDOM', { phase: 'dispose' });
       }
     }
@@ -318,9 +319,9 @@ export function walkAndBind(root: HTMLElement, state: Record<string, any>): () =
         dispose();
       } catch (err) {
         // FEATURE (v0.4.0): خطای یک dispose نباید مانع dispose بقیه شود.
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('[Zenith walkAndBind] dispose failed:', err);
-        }
+        logger.error(
+          `[Zenith walkAndBind] dispose failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
     disposes.length = 0;

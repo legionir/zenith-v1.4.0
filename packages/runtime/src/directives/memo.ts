@@ -32,6 +32,7 @@
 
 import { effect } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
+import { logger } from '@zenith/logger';
 import { reportError } from '@zenith/error-boundary';
 
 /**
@@ -97,9 +98,9 @@ export function processMemo(
       try {
         d();
       } catch (e) {
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('[Zenith zen-memo] child dispose failed:', e);
-        }
+        logger.error(
+          `[Zenith zen-memo] child dispose failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
     }
     childDisposes = [];

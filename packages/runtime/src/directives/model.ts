@@ -22,6 +22,7 @@
 import { effect, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
+import { logger } from '@zenith/logger';
 import { isSignal } from '../context';
 
 /**
@@ -155,7 +156,7 @@ function setSignalFromPath(
   const signal = state[rootKey];
 
   if (!isSignal(signal)) {
-    console.warn(
+    logger.warn(
       `[zen-model] Cannot find signal for path: ${path}. ` +
         `If this is inside zen-for, use $item (with $ prefix) instead of item.`,
     );

@@ -1,4 +1,6 @@
 // packages/runtime/src/directives/island.ts
+
+import { logger } from '@zenith/logger';
 //
 // FEATURE (v1.2.0): zen-island — Islands Architecture hydration control.
 //
@@ -62,8 +64,9 @@ export function processIsland(
   const VALID_ISLAND_MODES = new Set(['visible', 'idle', 'load']);
   let effectiveMode: 'visible' | 'idle' | 'load';
   if (!VALID_ISLAND_MODES.has(mode)) {
-    if (mode && typeof console !== 'undefined' && console.warn) {
-      console.warn(
+    if (mode) {
+      // #39: logger مرکزی — guard سراسری typeof console لازم نیست (مرز رسمی sink).
+      logger.warn(
         `[Zenith zen-island] Invalid hydrate mode "${hydrateMode}". ` +
           `Must be one of: visible, idle, load. Defaulting to "load".`,
       );
@@ -146,9 +149,9 @@ export function processIsland(
     try {
       processChildren(el, context, childDisposes);
     } catch (err) {
-      if (typeof console !== 'undefined' && console.error) {
-        console.error('[Zenith zen-island] hydrate failed:', err);
-      }
+      logger.error(
+        `[Zenith zen-island] hydrate failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 

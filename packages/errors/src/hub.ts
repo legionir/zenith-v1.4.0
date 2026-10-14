@@ -5,7 +5,8 @@
 //   - `onError(handler)` → Cleanup (تک‌نام عمومی؛ state و error-boundary فقط
 //     re-export/wrapper دارند — قاعدهٔ گیت scripts/error-hygiene.mjs).
 //   - `emitError(err | partial)` → نرمال‌سازی به `ZenithError` (class همین
-//     پکیج)، history حلقوی، log از طریق sink تزریق‌پذیر (بدون `console.*`
+//     پکیج)، history حلقوی، log از طریق sink تزریق‌پذیر (بدون دسترسی
+//     مستقیم متنی به console در کد پکیج؛ مرز رسمی = ./print)
 //     مستقیم در مسیر خطا).
 //   - `getErrorHistory` / `clearErrorHistory` / `setDevMode` / `isDevMode`.
 //
@@ -24,11 +25,12 @@ import {
   type ErrorCategory,
   type ErrorSeverity,
 } from './core';
+import { printToHost } from './print';
 
 /** امضای listener سراسری — همان آبجکت `ZenithError` به همه می‌رسد. */
 export type ErrorHandler = (error: ZenithError) => void;
 
-/** sink لاگ تزریق‌پذیر (#115: جلوگیری از `console.*` مستقیم در error-path). */
+/** sink لاگ تزریق‌پذیر (#115: جلوگیری از چاپ مستقیم در error-path). */
 export interface ErrorLogSink {
   (severity: ErrorSeverity | 'devgroup', title: string, payload?: Record<string, unknown>): void;
 }
@@ -73,7 +75,8 @@ function defaultLog(
   payload?: Record<string, unknown>,
 ): void {
   // sink تزریق‌شده (setErrorLogger) اولویت دارد؛ وگرنه globalThis.__zenithLog؛
-  // وگرنه console. هیچ‌کدام در error-path throw نمی‌کند.
+  // پشتیبانی (globalThis.__zenithLog)؛ وگرنه مرز رسمی ./print.
+  // هیچ‌کدام در error-path throw نمی‌کند.
   if (sink) {
     try {
       sink(severity, title, payload);
@@ -94,14 +97,9 @@ function defaultLog(
     }
     return;
   }
-  if (!g.console) return;
-  if (severity === 'devgroup' || severity === 'info') {
-    g.console.log?.(title, ...(payload !== undefined ? [payload] : []));
-  } else if (severity === 'warning') {
-    g.console.warn?.(title, ...(payload !== undefined ? [payload] : []));
-  } else {
-    g.console.error?.(title, ...(payload !== undefined ? [payload] : []));
-  }
+  // #39: مرز چاپ به print.ts سپرده شد تا core.ts هم بتواند بدون ساخت
+  // چرخه‌ی core↔hub از همان choke-point استفاده کند.
+  printToHost(severity, title, payload);
 }
 
 function logError(err: ZenithError): void {
@@ -186,7 +184,7 @@ function normalize(input: EmitErrorInput): ZenithError {
       ? CATEGORY_MAP[rawCategory]
       : ((rawCategory as ErrorCategory | undefined) ?? 'Runtime');
   const err = new ZenithError({
-    code: input.code ?? ErrorCode.INTERNAL_RUNTIME_FAILURE,
+    code: input.code ?? 'ZEN-905',
     category: mappedCategory,
     message: input.message,
     suggestion: input.suggestion ?? input.hint,
