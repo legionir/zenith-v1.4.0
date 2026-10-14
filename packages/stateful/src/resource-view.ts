@@ -45,6 +45,7 @@
 //   پاکسازی می‌شوند تا memory leak نباشد.
 
 import { effect, signal, type Signal } from '@zenith/state';
+import { logger } from '@zenith/logger';
 import { walkAndBind } from '@zenith/runtime';
 import type { ResourceState } from '@zenith/resource';
 
@@ -125,7 +126,7 @@ export function processResourceView(
 
   // ── ۱. اعتبارسنجی config attribute ──
   if (!configAttr || configAttr.trim().length === 0) {
-    console.warn('[zen-resource-view] Missing or empty `config` attribute.');
+    logger.warn('[zen-resource-view] Missing or empty `config` attribute.');
     return () => {};
   }
 
@@ -140,7 +141,7 @@ export function processResourceView(
   // ResourceState خواهد بود که `list` ندارد — در این صورت هشدار می‌دهیم.
   const resource = (context as Record<string, any>)[refName];
   if (!isResourceLike(resource)) {
-    console.warn(
+    logger.warn(
       `[zen-resource-view] Resource "${configAttr}" not found in context or is not a Resource. ` +
         `Make sure you pass the Resource instance (from createResource) in your state, not its signal. ` +
         `Example: Zen.start(app, { usersResource: createResource('users', {...}) });`,
@@ -153,7 +154,7 @@ export function processResourceView(
   // این template در حالت success برای هر آیتم clone می‌شود.
   const userTemplate = el.querySelector(':scope > template') as HTMLTemplateElement | null;
   if (!userTemplate) {
-    console.warn(
+    logger.warn(
       '[zen-resource-view] No <template> child found. ' +
         'Provide a template for the success state:\n' +
         '  <zen-resource-view config="$usersResource">\n' +
@@ -195,7 +196,9 @@ export function processResourceView(
       try {
         slotDispose();
       } catch (err) {
-        console.error('[zen-resource-view] Error during slot dispose:', err);
+        logger.error(
+          `[zen-resource-view] Error during slot dispose:: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       slotDispose = null;
     }
@@ -209,7 +212,9 @@ export function processResourceView(
       try {
         item.dispose();
       } catch (err) {
-        console.error('[zen-resource-view] Error during item dispose:', err);
+        logger.error(
+          `[zen-resource-view] Error during item dispose:: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       if (item.node.parentNode === el) {
         el.removeChild(item.node);
@@ -254,7 +259,9 @@ export function processResourceView(
     const onRetry = () => {
       // force refresh — cache نادیده گرفته می‌شود.
       resource.list(true).catch((err: unknown) => {
-        console.error('[zen-resource-view] Retry failed:', err);
+        logger.error(
+          `[zen-resource-view] Retry failed:: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     };
     retryBtn.addEventListener('click', onRetry);
@@ -388,7 +395,9 @@ export function processResourceView(
         try {
           item.dispose();
         } catch (err) {
-          console.error('[zen-resource-view] Error during removed item dispose:', err);
+          logger.error(
+            `[zen-resource-view] Error during removed item dispose:: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
         if (item.node.parentNode === el) {
           el.removeChild(item.node);
@@ -443,7 +452,9 @@ export function processResourceView(
     try {
       disposeEffect();
     } catch (err) {
-      console.error('[zen-resource-view] Error during effect dispose:', err);
+      logger.error(
+        `[zen-resource-view] Error during effect dispose:: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
     clearSlot();
     clearItems();

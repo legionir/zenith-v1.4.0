@@ -28,10 +28,11 @@
 //     کنترل دقیق state دکمه دارد. یک click listener محلی attaches می‌کند.
 //   - اگر action در Registry ثبت نشده باشد، هشدار می‌دهد و nothing happens.
 //   - SSR-safe: بدون document، no-op می‌شود.
-//   - خطاهای action به‌صورت خودکار console.error می‌شوند (اما state دکمه
+//   - خطاهای action به‌صورت خودکار با logger.error گزارش می‌شوند (اما state دکمه
 //     به‌درستی restore می‌شود).
 
 import { getAction } from '@zenith/actions';
+import { logger } from '@zenith/logger';
 
 /**
  * کلاس‌های CSS که در طول loading state روی دکمه اعمال می‌شوند.
@@ -81,7 +82,7 @@ export function processActionButton(
 
   // ── ۱. اعتبارسنجی action attribute ──
   if (!configAttr || configAttr.trim().length === 0) {
-    console.warn('[zen-action-button] Missing or empty `action` attribute.');
+    logger.warn('[zen-action-button] Missing or empty `action` attribute.');
     return () => {};
   }
   const actionName = configAttr.trim();
@@ -158,7 +159,7 @@ export function processActionButton(
     // دریافت action از registry.
     const actionFn = getAction(actionName);
     if (!actionFn) {
-      console.warn(
+      logger.warn(
         `[zen-action-button] Action "${actionName}" is not registered. ` +
           `Register it with: Zen.action('${actionName}', (ctx) => { ... });`,
       );
@@ -178,7 +179,9 @@ export function processActionButton(
         await result;
       }
     } catch (err) {
-      console.error(`[zen-action-button] Action "${actionName}" threw an error:`, err);
+      logger.error(
+        `[zen-action-button] Action "${actionName}" threw an error: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       setLoading(false);
     }

@@ -22,7 +22,18 @@
 // رفتنِ mutationها پس از restartِ SW جلوگیری شود. همچنین retry با exponential
 // backoff و jitter انجام می‌شود تا سرور تحت فشار قرار نگیرد.
 
+import { s, defineOptions } from '@zenith/schema';
+import { logger } from '@zenith/logger';
 import { applyStrategy, type CacheStrategyName } from './strategies.js';
+
+const SW_CACHE_STRATEGIES = [
+  'cacheFirst',
+  'networkFirst',
+  'staleWhileRevalidate',
+  'networkOnly',
+  'cacheOnly',
+  'cacheThenNetwork',
+] as const satisfies readonly CacheStrategyName[];
 
 /**
  * FEATURE (v0.4.0): RouteMatcher — تطبیق‌دهنده‌ی مسیر.
@@ -70,6 +81,8 @@ export interface SWRuntimeConfig {
   defaultStrategy?: CacheStrategyName;
   /** نام cache برای queued mutations (background sync). */
   backgroundSyncQueueName?: string;
+  /** #96: نسخهٔ کش (پیش‌فرض: 1). با افزایش این عدد، کش‌های نسخه‌های قدیمی در activate پاک می‌شوند. */
+  cacheVersion?: number;
   /** آیا در install event skipWaiting کنیم؟ */
   skipWaiting?: boolean;
   /** آیا در activate event clients.claim کنیم؟ */
@@ -118,8 +131,12 @@ const CACHE_VERSION = 1;
  * نام نهایی: {cachePrefix}v{CACHE_VERSION}-{baseName}
  * مثال: 'zenith-v1-precache', 'zenith-v1-api-cache'
  */
-function versionedCacheName(cachePrefix: string, baseName: string): string {
-  return `${cachePrefix}v${CACHE_VERSION}-${baseName}`;
+function versionedCacheName(
+  cachePrefix: string,
+  baseName: string,
+  version: number = _config?.cacheVersion ?? CACHE_VERSION,
+): string {
+  return `${cachePrefix}v${version}-${baseName}`;
 }
 
 /**
@@ -148,16 +165,43 @@ let _queue: QueuedMutation[] = [];
  *
  * بعد از این، event listenerهای install/activate/fetch/sync ثبت می‌شوند.
  */
+export const routeMatcherOptions = defineOptions<RouteMatcher>(
+  'RouteMatcher',
+  s.object({
+    urlPattern: s.union([
+      s.string({ min: 1 }),
+      s.custom<RegExp>((v) => v instanceof RegExp, 'RegExp'),
+    ]),
+    method: s.optional(s.string({ min: 1 })),
+    strategy: s.enum(SW_CACHE_STRATEGIES),
+    cacheName: s.optional(s.string({ min: 1 })),
+    timeout: s.optional(s.duration({ min: 0 })),
+  }),
+);
+
+export const swRuntimeConfigOptions = defineOptions<SWRuntimeConfig>(
+  'SWRuntimeConfig',
+  s.object({
+    precache: s.default(s.array(s.string({ min: 1 })), []),
+    routes: s.default(s.array(routeMatcherOptions.schema), []),
+    defaultCacheName: s.default(s.string({ min: 1 }), 'zenith-cache'),
+    cachePrefix: s.default(s.string(), 'zenith-'),
+    defaultStrategy: s.default(s.enum(SW_CACHE_STRATEGIES), 'networkOnly'),
+    backgroundSyncQueueName: s.default(s.string({ min: 1 }), 'zenith-bg-sync'),
+    cacheVersion: s.default(s.number({ int: true, min: 1 }), CACHE_VERSION),
+    skipWaiting: s.default(s.boolean(), false),
+    clientsClaim: s.default(s.boolean(), false),
+  }),
+);
+
+export const SW_RUNTIME_CONFIG_DEFAULTS = swRuntimeConfigOptions.DEFAULTS;
+export const swRuntimeConfigSchema = swRuntimeConfigOptions.schema;
+export const resolveSWRuntimeConfig = (cfg?: unknown): SWRuntimeConfig =>
+  swRuntimeConfigOptions.resolve(cfg);
+
 export function setupSW(config: SWRuntimeConfig): void {
-  _config = {
-    defaultCacheName: 'zenith-cache',
-    cachePrefix: 'zenith-',
-    defaultStrategy: 'networkOnly',
-    backgroundSyncQueueName: 'zenith-bg-sync',
-    skipWaiting: false,
-    clientsClaim: false,
-    ...config,
-  };
+  // #52 — اعتبارسنجی در مرز ورودی پیش از guard محیط
+  _config = swRuntimeConfigOptions.resolve(config);
 
   // فقط در صورتی که واقعاً در SW context هستیم، listenerها را ثبت کن.
   // این guard باعث می‌شود کد در Node.js (تست) یا main thread بدون خطا import شود.
@@ -203,7 +247,9 @@ export function setupSW(config: SWRuntimeConfig): void {
           } catch (err) {
             // NOTE: اگر یک asset fail شود، کل install نباید fail شود.
             // فقط log کن و ادامه بده (best-effort precache).
-            console.warn(`[Zenith SW] precache failed for ${url}:`, err);
+            logger.warn(
+              `[Zenith SW] precache failed for ${url}: ${err instanceof Error ? err.message : String(err)}`,
+            );
           }
         }),
       );
@@ -277,7 +323,9 @@ export function setupSW(config: SWRuntimeConfig): void {
       event.respondWith(
         applyStrategy(matchedRoute.strategy, request, cacheName, matchedRoute.timeout).catch(
           (err) => {
-            console.error('[Zenith SW] strategy failed:', err);
+            logger.error(
+              `[Zenith SW] strategy failed: ${err instanceof Error ? err.message : String(err)}`,
+            );
             return new Response(JSON.stringify({ error: 'SW strategy failed' }), {
               status: 502,
               headers: { 'Content-Type': 'application/json' },
@@ -333,7 +381,7 @@ export function setupSW(config: SWRuntimeConfig): void {
         mutation.retryCount += 1;
         // FEATURE (v0.5.0): بعد از ۳ cycle sync ناموفق، mutation را drop می‌کنیم.
         if (mutation.retryCount >= 3) {
-          console.warn('[Zenith SW] dropping mutation after 3 failed sync cycles:', mutation.url);
+          logger.warn(`[Zenith SW] dropping mutation after 3 failed sync cycles: ${mutation.url}`);
           // FIX (v1.2.7): also remove dropped mutations from IndexedDB
           // immediately (same rationale as the success branch above).
           if (mutation.id != null) {
@@ -368,6 +416,60 @@ export function setupSW(config: SWRuntimeConfig): void {
         // FEATURE (v0.5.0): _queue یک cache best-effort است؛ مقدار دقیق در IndexedDB است.
         source.postMessage({ type: 'QUEUE_SIZE', size: _queue.length });
       }
+    }
+  });
+}
+
+/**
+ * #96: Emergency Service Worker Kill Switch (`setupKillSwitchSW`).
+ * When deployed as `/sw.js` or `/sw-kill.js`, immediately skips waiting on install,
+ * deletes all CacheStorage caches on activate, unregisters itself, and reloads open clients.
+ */
+export function setupKillSwitchSW(): void {
+  if (typeof self === 'undefined') return;
+  const swSelf = self as unknown as {
+    skipWaiting?: () => Promise<void>;
+    registration?: { unregister?: () => Promise<boolean> };
+    clients?: {
+      claim?: () => Promise<void>;
+      matchAll?: (opts?: {
+        type?: string;
+      }) => Promise<Array<{ url: string; navigate?: (url: string) => Promise<unknown> }>>;
+    };
+  };
+
+  addSWListener('install', (event: any) => {
+    const p = Promise.resolve(swSelf.skipWaiting?.());
+    if (event && typeof event.waitUntil === 'function') {
+      event.waitUntil(p);
+    }
+  });
+
+  addSWListener('activate', (event: any) => {
+    const killPromise = (async () => {
+      const cacheStore = typeof caches !== 'undefined' ? caches : null;
+      if (cacheStore) {
+        const names = await cacheStore.keys();
+        await Promise.all(names.map((name) => cacheStore.delete(name)));
+      }
+      if (swSelf.registration && typeof swSelf.registration.unregister === 'function') {
+        await swSelf.registration.unregister();
+      }
+      if (swSelf.clients && typeof swSelf.clients.claim === 'function') {
+        await swSelf.clients.claim();
+      }
+      if (swSelf.clients && typeof swSelf.clients.matchAll === 'function') {
+        const clientList = await swSelf.clients.matchAll({ type: 'window' });
+        for (const client of clientList) {
+          if (typeof client.navigate === 'function') {
+            await client.navigate(client.url);
+          }
+        }
+      }
+    })();
+
+    if (event && typeof event.waitUntil === 'function') {
+      event.waitUntil(killPromise);
     }
   });
 }
@@ -491,7 +593,9 @@ async function enqueueMutation(request: Request): Promise<void> {
         await swSelf.registration.sync.register(cfg.backgroundSyncQueueName!);
       } catch (err) {
         // اگر sync ثبت نشد، mutation هنوز در صف است و در sync بعدی تلاش می‌شود.
-        console.warn('[Zenith SW] sync.register failed:', err);
+        logger.warn(
+          `[Zenith SW] sync.register failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
   }

@@ -1,7 +1,7 @@
 {
   "name": "@zenith/service-worker",
   "version": "1.4.0",
-  "description": "Zenith framework — Offline-first Service Worker with cache strategies (Phase 13). Zero-dep workbox-style SW: cache-first, network-first, stale-while-revalidate, network-only, cache-only.",
+  "description": "Zenith framework \u2014 Offline-first Service Worker with cache strategies (Phase 13). Zero-dep workbox-style SW: cache-first, network-first, stale-while-revalidate, network-only, cache-only.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -49,10 +50,12 @@
     "access": "public",
     "provenance": true
   },
-  "devDependencies": {
-    "typescript": "^5.4.0"
-  },
   "dependencies": {
-    "@zenith/errors": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0"
+  },
+  "zenith": {
+    "target": "worker"
   }
 }

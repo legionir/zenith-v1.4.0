@@ -15,7 +15,18 @@
 //   - ZenithSWPlugin              — پلاگین Zenith برای نصب با Zen.use.
 
 import { deprecate } from '@zenith/errors';
+import { s, defineOptions, validate, type Schema } from '@zenith/schema';
+import { logger } from '@zenith/logger';
 import type { CacheStrategyName } from './strategies.js';
+
+export const CACHE_STRATEGIES = [
+  'cacheFirst',
+  'networkFirst',
+  'staleWhileRevalidate',
+  'networkOnly',
+  'cacheOnly',
+  'cacheThenNetwork',
+] as const satisfies readonly CacheStrategyName[];
 
 // NOTE: نوع ZenithPlugin را به‌صورت structural تعریف می‌کنیم تا از وابستگیِ
 // compile-time به @zenith/runtime جلوگیری شود. در صورت نیاز کاربر می‌تواند
@@ -118,6 +129,61 @@ export interface RegisterSWOptions {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `RouteConfig`, `SWConfig`, `RegisterSWOptions`.
+ */
+export const routeConfigOptions = defineOptions<RouteConfig>(
+  'RouteConfig',
+  s.object({
+    urlPattern: s.union([
+      s.string({ min: 1 }),
+      s.custom<RegExp>((v) => v instanceof RegExp, 'RegExp'),
+    ]),
+    method: s.optional(s.string({ min: 1 })),
+    strategy: s.enum(CACHE_STRATEGIES),
+    cacheName: s.optional(s.string({ min: 1 })),
+    timeout: s.optional(s.duration({ min: 0 })),
+  }),
+);
+
+export const ROUTE_CONFIG_DEFAULTS = routeConfigOptions.DEFAULTS;
+export const routeConfigSchema = routeConfigOptions.schema;
+export const resolveRouteConfig = (cfg: unknown): RouteConfig => routeConfigOptions.resolve(cfg);
+
+export const swConfigOptions = defineOptions<SWConfig>(
+  'SWConfig',
+  s.object({
+    swUrl: s.default(s.string({ min: 1 }), '/sw.js'),
+    scope: s.default(s.string({ min: 1 }), '/'),
+    routes: s.default(s.array(routeConfigOptions.schema), []),
+    precache: s.default(s.array(s.string({ min: 1 })), []),
+    defaultStrategy: s.default(s.enum(CACHE_STRATEGIES), 'networkOnly'),
+    skipWaiting: s.default(s.boolean(), false),
+    clientsClaim: s.default(s.boolean(), false),
+  }),
+);
+
+export const SW_CONFIG_DEFAULTS = swConfigOptions.DEFAULTS;
+export const swConfigSchema = swConfigOptions.schema;
+export const resolveSWConfig = (cfg?: unknown): SWConfig => swConfigOptions.resolve(cfg);
+
+export const registerSWOptions = defineOptions<RegisterSWOptions>(
+  'RegisterSWOptions',
+  s.object({
+    scope: s.default(s.string({ min: 1 }), '/'),
+    onUpdateFound: s.optional(
+      s.fn() as unknown as Schema<(registration: ServiceWorkerRegistration) => void>,
+    ),
+    onControllerChange: s.optional(s.fn() as unknown as Schema<() => void>),
+    onError: s.optional(s.fn() as unknown as Schema<(error: Error) => void>),
+  }),
+);
+
+export const REGISTER_SW_OPTIONS_DEFAULTS = registerSWOptions.DEFAULTS;
+export const registerSWOptionsSchema = registerSWOptions.schema;
+export const resolveRegisterSWOptions = (opts?: unknown): RegisterSWOptions =>
+  registerSWOptions.resolve(opts);
+
+/**
  * FEATURE (v0.4.0): ثبت Service Worker.
  *
  * این تابع `navigator.serviceWorker.register` را با guard می‌پوشاند.
@@ -136,12 +202,16 @@ export function registerSW(
   swUrl: string = '/sw.js',
   options: RegisterSWOptions = {},
 ): SWController | void {
+  // #52 — اعتبارسنجی در مرز ورودی پیش از SSR guard
+  validate(s.string({ min: 1 }), swUrl, { name: 'registerSW.swUrl' });
+  const resolvedOptions = registerSWOptions.resolve(options);
+
   // SECURITY (v0.5.0): SSR guard — در Node.js/SSR `window` تعریف نشده است.
   // تابع بدون خطا return می‌کند تا import در SSR safe باشد.
   if (typeof window === 'undefined') return; // SSR guard
   // SECURITY (v0.5.0): اگر مرورگر SW پشتیبانی نمی‌کند، هشدار بده و return کن.
   if (!('serviceWorker' in navigator)) {
-    console.warn('[Zenith SW] Service Workers not supported.');
+    logger.warn('[Zenith SW] Service Workers not supported.');
     return;
   }
 
@@ -181,32 +251,34 @@ export function registerSW(
 
   // FEATURE (v0.4.0): controllerchange — وقتی SW جدید کنترل را به‌دست می‌گیرد.
   const onControllerChange = () => {
-    if (options.onControllerChange) {
-      options.onControllerChange(sw.controller);
+    if (resolvedOptions.onControllerChange) {
+      resolvedOptions.onControllerChange(sw.controller);
     }
   };
   sw.addEventListener('controllerchange', onControllerChange);
   listeners.push({ type: 'controllerchange', fn: onControllerChange as EventListener });
 
   // ثبت واقعی SW.
-  sw.register(swUrl, { scope: options.scope || '/' })
+  sw.register(swUrl, { scope: resolvedOptions.scope || '/' })
     .then((reg) => {
       registration = reg;
 
       // FEATURE (v0.4.0): updatefound — وقتی SW جدیدی در حال نصب است.
       const onUpdateFound = () => {
-        if (options.onUpdateFound) {
-          options.onUpdateFound(reg);
+        if (resolvedOptions.onUpdateFound) {
+          resolvedOptions.onUpdateFound(reg);
         }
       };
       reg.addEventListener('updatefound', onUpdateFound);
       listeners.push({ type: 'updatefound', fn: onUpdateFound as EventListener });
     })
     .catch((err) => {
-      if (options.onError) {
-        options.onError(err instanceof Error ? err : new Error(String(err)));
+      if (resolvedOptions.onError) {
+        resolvedOptions.onError(err instanceof Error ? err : new Error(String(err)));
       } else {
-        console.error('[Zenith SW] registration failed:', err);
+        logger.error(
+          `[Zenith SW] registration failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     });
 
@@ -221,7 +293,9 @@ export function registerSW(
         await registration.update();
         return true;
       } catch (err) {
-        console.error('[Zenith SW] update failed:', err);
+        logger.error(
+          `[Zenith SW] update failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
         return false;
       }
     },
@@ -241,7 +315,9 @@ export function registerSW(
         listeners.length = 0;
         return result;
       } catch (err) {
-        console.error('[Zenith SW] unregister failed:', err);
+        logger.error(
+          `[Zenith SW] unregister failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
         return false;
       }
     },
@@ -281,17 +357,28 @@ export function registerSW(
   };
 }
 
+export interface UnregisterSWOptions {
+  /** #96: آیا تمام کش‌های CacheStorage همزمان با لغو ثبت پاک شوند؟ (پیش‌فرض: true) */
+  clearCaches?: boolean;
+}
+
 /**
- * FEATURE (v0.4.0): لغو ثبت SW — shortcut برای registerSW().unregister().
+ * FEATURE (v0.4.0) / #96: لغو ثبت SW و پاک‌سازی کش‌های قدیمی (kill switch سمت کلاینت).
  *
- * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند. در غیر این‌صورت false.
+ * اگر SW فعالی ثبت شده باشد، آن را لغو ثبت می‌کند و در صورت `clearCaches !== false`
+ * تمام کش‌های `caches` را نیز حذف می‌کند.
  */
-export async function unregisterSW(): Promise<boolean> {
+export async function unregisterSW(options: UnregisterSWOptions = {}): Promise<boolean> {
+  const clearCaches = options.clearCaches !== false;
   if (typeof navigator === 'undefined' || typeof navigator.serviceWorker === 'undefined') {
     return false;
   }
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
+    if (clearCaches && typeof caches !== 'undefined' && typeof caches.keys === 'function') {
+      const names = await caches.keys();
+      await Promise.all(names.map((name) => caches.delete(name)));
+    }
     if (regs.length === 0) return false;
     let allOk = true;
     for (const reg of regs) {
@@ -300,9 +387,36 @@ export async function unregisterSW(): Promise<boolean> {
     }
     return allOk;
   } catch (err) {
-    console.error('[Zenith SW] unregisterSW failed:', err);
+    logger.error(
+      `[Zenith SW] unregisterSW failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return false;
   }
+}
+
+/**
+ * #96: تولید اسکریپت خودحذف اضطراری (`sw-kill.js`) برای جایگزینی با `/sw.js` روی سرور.
+ */
+export function createKillSwitchScript(): string {
+  return [
+    '// Zenith Service Worker Emergency Kill Switch (#96)',
+    "self.addEventListener('install', () => { self.skipWaiting(); });",
+    "self.addEventListener('activate', (event) => {",
+    '  event.waitUntil((async () => {',
+    "    if (typeof caches !== 'undefined') {",
+    '      const keys = await caches.keys();',
+    '      await Promise.all(keys.map((k) => caches.delete(k)));',
+    '    }',
+    '    await self.registration.unregister();',
+    '    if (self.clients && self.clients.matchAll) {',
+    "      const clients = await self.clients.matchAll({ type: 'window' });",
+    '      for (const client of clients) {',
+    '        if (client.navigate) await client.navigate(client.url);',
+    '      }',
+    '    }',
+    '  })());',
+    '});',
+  ].join('\n');
 }
 
 /**
@@ -330,7 +444,9 @@ export async function updateSW(): Promise<boolean> {
     }
     return anyOk;
   } catch (err) {
-    console.error('[Zenith SW] updateSW failed:', err);
+    logger.error(
+      `[Zenith SW] updateSW failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return false;
   }
 }
@@ -353,12 +469,8 @@ export async function updateSW(): Promise<boolean> {
 export const zenithSWPlugin: ZenithPluginStructural = {
   name: 'zenith-service-worker',
   install: (zen: any, options?: any): void => {
-    const config: SWConfig = (options as SWConfig) || {
-      swUrl: '/sw.js',
-      routes: [],
-      precache: [],
-      defaultStrategy: 'networkOnly',
-    };
+    // #52 — اعتبارسنجی SWConfig در مرز ورودی پلاگین
+    const config: SWConfig = swConfigOptions.resolve(options);
 
     // ثبت SW و قرار دادن controller روی Zen.
     const controller = registerSW(config.swUrl || '/sw.js', {

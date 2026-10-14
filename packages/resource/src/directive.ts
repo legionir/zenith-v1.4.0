@@ -21,6 +21,7 @@
 
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
+import { logger } from '@zenith/logger';
 import { Resource } from './resource';
 
 /**
@@ -46,7 +47,9 @@ export function processResource(
   try {
     url = evalFn(context);
   } catch (err) {
-    console.error(`[Zenith Resource] Failed to evaluate URL:`, err);
+    logger.error(
+      `[Zenith Resource] Failed to evaluate URL: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return () => {}; // #116: Cleanup no-op در مسیر خطا
   }
 
@@ -77,7 +80,9 @@ export function processResource(
       try {
         d();
       } catch (err) {
-        console.error('[Zenith Resource] Error during dispose:', err);
+        logger.error(
+          `[Zenith Resource] Error during dispose: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
     childDisposes.length = 0;
