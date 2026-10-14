@@ -10,6 +10,8 @@ const rootLicense = readFileSync('LICENSE', 'utf8');
 
 const dirs = readdirSync('packages', { withFileTypes: true })
   .filter((d) => d.isDirectory())
+  // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+  .filter((d) => d.name !== 'tmp-scaffold-verify')
   .filter((d) => existsSync(join('packages', d.name, 'package.json')))
   .map((d) => d.name);
 
@@ -43,9 +45,14 @@ describe('LICENSE (#68)', () => {
     // inherited loglevel (a parent `npm test --silent` otherwise suppresses
     // npm's stderr notices). "packages/state" without ./ would be read as a
     // git spec, so the path form matters.
-    const r = spawnSync('npm', ['pack', '--dry-run', '--json', './packages/state'], {
-      encoding: 'utf8',
-    });
+    // Windows: npm یک shim نوع npm.cmd است و spawn مستقیم آن در Nodeهای جدید
+    // بدون shell رد میشود (status=null / ENOENT). مسیر مطمئن: env.npm_execpath
+    // (تحت vitest شل نصب‌شدهٔ npm موجود است) + اجرای مستقیم node روی آن؛
+    // fallback: shell:true.
+    const npmArgs = ['pack', '--dry-run', '--json', './packages/state'];
+    const r = process.env.npm_execpath
+      ? spawnSync(process.execPath, [process.env.npm_execpath, ...npmArgs], { encoding: 'utf8' })
+      : spawnSync('npm', npmArgs, { encoding: 'utf8', shell: true });
     expect(r.status).toBe(0);
     const packed = JSON.parse(r.stdout);
     expect(

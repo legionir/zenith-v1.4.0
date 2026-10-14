@@ -1,4 +1,11 @@
-# Zenith Framework — Benchmark Results (v1.0.0)
+# Zenith Framework — Benchmark Results (v1.4.0 — `#86`)
+
+> **دستور بازتولید خودکار (`#86`)**:
+> ```bash
+> npm run bench          # اجرای میکروبنچمارک‌های قابل‌بازتولید و مقایسه در کنسول
+> npm run bench -- --json # خروجی JSON ماشین‌خوان شامل مشخصات CPU/OS/Node
+> ```
+> اسکریپت‌های مرجع: [`scripts/bench.mjs`](../scripts/bench.mjs) و [`benchmarks/run-all.js`](../benchmarks/run-all.js).
 
 > ✅ نتایج Reactive Core و Resource و SSR روی Node.js اجرا شده‌اند (قابل اعتماد).
 > ✅ نتایج Runtime/DOM روی **Chrome Headless واقعی** اجرا شده‌اند (قابل اعتماد).

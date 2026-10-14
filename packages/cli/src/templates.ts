@@ -562,6 +562,7 @@ export default defineConfig({
  */
 export function pwaMainTsTemplate(): string {
   return `// main.ts — Zenith PWA Application Entry Point
+import { signal } from '@zenith/state';
 import { Zen } from '@zenith/runtime';
 
 // ── PWA: Register Service Worker ──
@@ -579,7 +580,6 @@ if ('serviceWorker' in navigator) {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // یک SW جدید در حال نصب است.
               console.log('[Zenith PWA] New version available. Reload to update.');
-              // می‌توانید یک notification به کاربر نشان دهید.
             }
           });
         });
@@ -591,16 +591,14 @@ if ('serviceWorker' in navigator) {
 }
 
 // ── PWA: Install Prompt ──
-let deferredPrompt: any = null;
+let deferredPrompt: unknown = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log('[Zenith PWA] Install prompt available.');
-  // می‌توانید دکمه‌ی "Install App" را نشان دهید.
+  void deferredPrompt;
 });
 
 window.addEventListener('appinstalled', () => {
-  console.log('[Zenith PWA] App installed.');
   deferredPrompt = null;
 });
 
@@ -608,36 +606,29 @@ window.addEventListener('appinstalled', () => {
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
   document.body.classList.toggle('offline', !isOnline);
-  console.log(\`[Zenith PWA] \${isOnline ? 'Online' : 'Offline'}\`);
 }
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
-// ── Zenith App Setup ──
-Zen.start({
-  root: document.body,
-  context: {
-    // اینجا متغیرهای global خود را تعریف کنید.
-    $appVersion: '0.1.0',
-    $isPWA: window.matchMedia('(display-mode: standalone)').matches,
-  },
+// ── Zenith App Setup (#33) ──
+const state = {
+  count: signal(0),
+  appVersion: '1.4.0',
+  isPWA: typeof window.matchMedia === 'function'
+    ? window.matchMedia('(display-mode: standalone)').matches
+    : false,
+};
+
+Zen.action('increment', ({ state: s }) => {
+  s.count.set(s.count.get() + 1);
 });
 
-// BUG-CLI-01 FIX: اعتبارسنجی runtime برای Action‌های تعریف‌نشده
-document.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement | null;
-  const actionName = target?.getAttribute?.('zen-action');
-  if (actionName && typeof actionName === 'string') {
-    const actions = (window as any).__ZENITH_ACTIONS__;
-    if (actions && !actions[actionName]) {
-      console.warn(\`[Zenith] Action "\${actionName}" is not registered. \` +
-        \`Define it with: Zen.action('\${actionName}', handler)\`);
-    }
-  }
-}, true);
+Zen.action('decrement', ({ state: s }) => {
+  s.count.set(Math.max(0, s.count.get() - 1));
+});
 
-console.log('[Zenith] App started. PWA mode:', window.matchMedia('(display-mode: standalone)').matches);
+Zen.start(document.getElementById('app')!, state);
 `;
 }
 
@@ -707,4 +698,30 @@ Replace the placeholder icons in \`public/icons/\`:
 
 Use https://realfavicongenerator.net/ to generate all sizes from a single source image.
 `;
+}
+
+export type ZenithTemplateKind = 'spa' | 'ssr' | 'pwa' | 'dashboard' | 'minimal';
+
+/**
+ * #158: مانیفست داده‌محور فایل‌های هر قالب (`spa`، `ssr`، `pwa`، `dashboard`، `minimal`).
+ */
+export function getTemplateManifest(
+  projectName: string,
+  template: ZenithTemplateKind = 'spa',
+): Record<string, string> {
+  const baseFiles: Record<string, string> = {
+    'package.json': packageJsonTemplate(projectName),
+    'tsconfig.json': tsConfigTemplate(),
+    '.gitignore': gitignoreTemplate(),
+    'index.html': indexHtmlTemplate(projectName),
+    'src/main.ts': template === 'pwa' ? pwaMainTsTemplate() : mainTsTemplate(),
+    'vite.config.ts': template === 'pwa' ? pwaViteConfigTemplate() : viteConfigTemplate(),
+    'README.md': template === 'pwa' ? pwaReadmeTemplate(projectName) : readmeTemplate(projectName),
+  };
+
+  if (template === 'pwa') {
+    baseFiles['public/manifest.json'] = pwaManifestTemplate(projectName);
+    baseFiles['public/sw.js'] = pwaServiceWorkerTemplate();
+  }
+  return baseFiles;
 }

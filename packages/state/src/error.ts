@@ -16,6 +16,24 @@ import {
   ErrorCode,
   type ErrorCategory,
 } from '@zenith/errors';
+import { registerStateContextToken } from './context';
+
+/**
+ * #34: Register a module instance of @zenith/state and emit a one-time ZEN-0301
+ * warning if more than one module copy is loaded in the same process.
+ */
+export function registerStateInstance(token?: object): number {
+  return registerStateContextToken(token, (count) => {
+    hubEmit({
+      code: 'ZEN-0301',
+      category: 'Runtime',
+      severity: 'warning',
+      message:
+        `[Zenith] ZEN-0301: Multiple instances of @zenith/state detected (${count} copies). ` +
+        'Run "npm ls @zenith/state" to deduplicate.',
+    });
+  });
+}
 
 // ── re-export API واحد (#115) ──
 export {

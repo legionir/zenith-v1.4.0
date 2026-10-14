@@ -32,6 +32,12 @@ export interface Notification {
   persistent?: boolean;
   /** Custom action buttons */
   actions?: Array<{ label: string; onClick: () => void }>;
+  /** #98 (WCAG 2.2 AA 4.1.3): نقش ARIA برای صفحه‌خوان‌ها */
+  role: 'alert' | 'status';
+  /** #98 (WCAG 2.2 AA 4.1.3): سطح aria-live */
+  ariaLive: 'assertive' | 'polite';
+  /** #98: خوانش یکپارچهٔ پیام */
+  ariaAtomic: boolean;
 }
 
 export interface NotifyOptions {
@@ -41,6 +47,10 @@ export interface NotifyOptions {
   position?: NotificationPosition;
   persistent?: boolean;
   actions?: Array<{ label: string; onClick: () => void }>;
+  /** #132: حداکثر تعداد اعلان‌های هم‌زمان قابل‌نمایش (بقیه در صف قرار می‌گیرند) */
+  maxVisible?: number;
+  /** #132: ادغام اعلان‌های تکراری هم‌متن و هم‌نوع */
+  deduplicate?: boolean;
 }
 
 export interface ConfirmOptions {
@@ -63,6 +73,7 @@ export interface AlertOptions {
 // ============================================================
 
 const notifications = signal<Notification[]>([]);
+const queuedNotifications = signal<Notification[]>([]);
 const activeAlerts = signal<Array<{ id: string; options: AlertOptions; resolve: () => void }>>([]);
 const activeConfirms = signal<
   Array<{ id: string; options: ConfirmOptions; resolve: (value: boolean) => void }>
@@ -76,6 +87,8 @@ let defaultOptions: NotifyOptions = {
   type: 'info',
   duration: 4000,
   position: 'top-right',
+  maxVisible: 5,
+  deduplicate: false,
 };
 
 // ============================================================
@@ -100,30 +113,56 @@ export function getNotificationDefaults(): NotifyOptions {
 // Toast Notifications
 // ============================================================
 
+function scheduleAutoDismiss(config: Notification): void {
+  if (!config.persistent && config.duration > 0) {
+    setTimeout(() => {
+      dismissNotification(config.id);
+    }, config.duration);
+  }
+}
+
 /**
  * Show a toast notification
  */
 export function notify(message: string, options: NotifyOptions = {}): string {
+  const resolvedType = options.type || defaultOptions.type || 'info';
+  const deduplicate = options.deduplicate ?? defaultOptions.deduplicate ?? false;
+  if (deduplicate) {
+    const existing = notifications
+      .get()
+      .find((n) => n.message === message && n.type === resolvedType);
+    if (existing) return existing.id;
+    const existingQueued = queuedNotifications
+      .get()
+      .find((n) => n.message === message && n.type === resolvedType);
+    if (existingQueued) return existingQueued.id;
+  }
+
+  const isUrgent = resolvedType === 'error' || resolvedType === 'warning';
   const config: Notification = {
     id: generateId(),
     message,
-    type: options.type || defaultOptions.type || 'info',
+    type: resolvedType,
     title: options.title,
     duration: options.duration ?? defaultOptions.duration ?? 4000,
     position: options.position || defaultOptions.position || 'top-right',
     persistent: options.persistent || false,
     actions: options.actions,
     createdAt: Date.now(),
+    role: isUrgent ? 'alert' : 'status',
+    ariaLive: resolvedType === 'error' ? 'assertive' : 'polite',
+    ariaAtomic: true,
   };
 
-  notifications.set([...notifications.get(), config]);
-
-  // Auto-dismiss
-  if (!config.persistent && config.duration > 0) {
-    setTimeout(() => {
-      dismissNotification(config.id);
-    }, config.duration);
+  const maxVisible = options.maxVisible ?? defaultOptions.maxVisible ?? 0;
+  const currentVisible = notifications.get();
+  if (maxVisible > 0 && currentVisible.length >= maxVisible) {
+    queuedNotifications.set([...queuedNotifications.get(), config]);
+    return config.id;
   }
+
+  notifications.set([...currentVisible, config]);
+  scheduleAutoDismiss(config);
 
   return config.id;
 }
@@ -132,14 +171,31 @@ export function notify(message: string, options: NotifyOptions = {}): string {
  * Dismiss a notification by ID
  */
 export function dismissNotification(id: string): void {
-  notifications.set(notifications.get().filter((n) => n.id !== id));
+  const nextVisible = notifications.get().filter((n) => n.id !== id);
+  const queue = queuedNotifications.get().filter((n) => n.id !== id);
+  const maxVisible = defaultOptions.maxVisible ?? 0;
+  while ((maxVisible <= 0 || nextVisible.length < maxVisible) && queue.length > 0) {
+    const nextItem = queue.shift()!;
+    nextVisible.push(nextItem);
+    scheduleAutoDismiss(nextItem);
+  }
+  queuedNotifications.set(queue);
+  notifications.set(nextVisible);
 }
 
 /**
  * Clear all notifications
  */
 export function clearAllNotifications(): void {
+  queuedNotifications.set([]);
   notifications.set([]);
+}
+
+/**
+ * #132: دریافت اعلان‌های منتظر در صف.
+ */
+export function getQueuedNotifications(): Notification[] {
+  return queuedNotifications.get();
 }
 
 // Convenience methods for each type
@@ -281,4 +337,63 @@ export function handleNotifyDirective(
   element.addEventListener('click', () => {
     notify(message, { ...options, type });
   });
+}
+
+/**
+ * #98 (WCAG 2.2 AA 4.1.3): ساخت عنصر DOM دسترس‌پذیر برای Toast با `role`، `aria-live` و `aria-atomic`.
+ */
+export function renderAccessibleToast(
+  notification: Notification,
+  doc: Document = document,
+): HTMLElement {
+  const el = doc.createElement('div');
+  el.id = notification.id;
+  el.className = `zen-toast zen-toast-${notification.type}`;
+  el.setAttribute('role', notification.role);
+  el.setAttribute('aria-live', notification.ariaLive);
+  el.setAttribute('aria-atomic', String(notification.ariaAtomic));
+  if (notification.title) {
+    const titleEl = doc.createElement('strong');
+    titleEl.className = 'zen-toast-title';
+    titleEl.textContent = notification.title;
+    el.appendChild(titleEl);
+  }
+  const msgEl = doc.createElement('span');
+  msgEl.className = 'zen-toast-message';
+  msgEl.textContent = notification.message;
+  el.appendChild(msgEl);
+  return el;
+}
+
+/**
+ * #98 (WCAG 2.2 AA): ساخت عنصر DOM دسترس‌پذیر برای دیالوگ Alert/Confirm با `role="alertdialog"`,
+ * `aria-modal="true"`, `aria-labelledby` و `aria-describedby`.
+ */
+export function renderAccessibleDialog(
+  options: AlertOptions | ConfirmOptions,
+  idPrefix = 'zen_dialog',
+  doc: Document = document,
+): HTMLElement {
+  const dialog = doc.createElement('div');
+  const titleId = `${idPrefix}_title`;
+  const descId = `${idPrefix}_desc`;
+  dialog.setAttribute('role', 'alertdialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-describedby', descId);
+
+  if (options.title) {
+    dialog.setAttribute('aria-labelledby', titleId);
+    const h2 = doc.createElement('h2');
+    h2.id = titleId;
+    h2.textContent = options.title;
+    dialog.appendChild(h2);
+  } else {
+    dialog.setAttribute('aria-label', options.message);
+  }
+
+  const p = doc.createElement('p');
+  p.id = descId;
+  p.textContent = options.message;
+  dialog.appendChild(p);
+  return dialog;
 }

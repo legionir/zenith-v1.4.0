@@ -22,6 +22,7 @@ export {
   clearActions,
   listActions,
   getDefaultRegistry,
+  setActionRegistryStore,
   ActionRegistry,
   action,
 } from './registry';

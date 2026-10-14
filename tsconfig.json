@@ -57,6 +57,9 @@
     { "path": "./packages/http" },
     { "path": "./packages/notifications" },
     { "path": "./packages/testing" },
-    { "path": "./packages/vscode-extension" }
+    { "path": "./packages/vscode-extension" },
+    { "path": "./packages/devtools-core" },
+    { "path": "./packages/runtime-core" },
+    { "path": "./packages/zenith" }
   ]
 }

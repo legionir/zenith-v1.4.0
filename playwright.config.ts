@@ -13,7 +13,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   // Local sandbox override: use the preinstalled Chromium when PLAYWRIGHT_BROWSER_PATH
-  // is set (CI leaves it unset and uses npx playwright install's browser).
+  // is set (CI leaves it unset and runs Chromium, Firefox, and WebKit per #32).
   projects: process.env.PLAYWRIGHT_BROWSER_PATH
     ? [
         {
@@ -24,7 +24,11 @@ export default defineConfig({
           },
         },
       ]
-    : [{ name: 'chromium', use: { browserName: 'chromium' } }],
+    : [
+        { name: 'chromium', use: { browserName: 'chromium' } },
+        { name: 'firefox', use: { browserName: 'firefox' } },
+        { name: 'webkit', use: { browserName: 'webkit' } },
+      ],
   webServer: {
     command: 'node scripts/e2e-server.mjs',
     url: 'http://127.0.0.1:8089/e2e/fixture.html',

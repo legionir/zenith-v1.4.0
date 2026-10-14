@@ -1,0 +1,71 @@
+{
+  "name": "@zenith/runtime-core",
+  "version": "1.5.0",
+  "description": "Zenith framework — L3 DOM runtime core (SPEC §2.8): createApp instance model, priority-ordered directive engine, core directives (zen-text/html/bind/model/show/if/for/cloak/ref/memo/action/state/static), lifecycle hooks (onMount/onUnmount/onUpdate), tree-scoped provide/inject, and SSR hydration.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs runtime-core",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "runtime-core",
+    "createApp",
+    "directives",
+    "hydration",
+    "l3"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/runtime-core"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.5.0"
+  },
+  "peerDependencies": {
+    "@zenith/scheduler": "^1.4.0",
+    "@zenith/state": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "jsdom": "^24.0.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

@@ -428,9 +428,83 @@ npx tsc --noEmit
 
 ---
 
-##seealso
+## Deprecation & Migration Matrix (v1.4.x → v1.5.0 / v2.0.0) (#58)
 
+تمامی APIهای منسوخ‌شده در نسخهٔ ۱.۵.۰ طبق سیاست رسمی [`docs/DEPRECATION-POLICY.md`](./DEPRECATION-POLICY.md) تا نسخهٔ `2.0.0` با حفظ سازگاری کامل کار می‌کنند و در حالت توسعه فقط یک‌بار هشدار `ZEN-DEPR-xxx` چاپ می‌کنند:
+
+| کد هشدار | API قدیمی (Deprecated) | جایگزین پیشنهادی در ۱.۵+ | نسخهٔ حذف |
+|---|---|---|---|
+| `ZEN-DEPR-001` | `processVirtualList(...)` | `createVirtualList({ items, itemSize, container, renderItem })` | `2.0.0` |
+| `ZEN-DEPR-002`..`004` | `enterTransition` / `leaveTransition` / `animateGroup` | `createTransition(name, options)` | `2.0.0` |
+| `ZEN-DEPR-005` | `clearCache` در `@zenith/http` | `clearHttpCache` | `2.0.0` |
+| `ZEN-DEPR-006`..`015` | توابع تاریخ جلالی در `@zenith/i18n` | پکیج مستقل `@zenith/jalali` | `2.0.0` |
+| `ZEN-DEPR-016`..`018` | `fromZod` / `validateWithZod` / `fromJsonSchema` در `@zenith/form` | `@zenith/schema/zod` و `@zenith/schema/json-schema` | `2.0.0` |
+| `ZEN-DEPR-019`..`024` | متدهای `destroy()` در `actions`, `auth`, `crud`, `form`, `resource`, `service-worker` | متد استاندارد `dispose()` (`Disposable`) | `2.0.0` |
+| `ZEN-DEPR-025` | `schedule()` در `@zenith/scheduler` | `scheduleEffect()` | `2.0.0` |
+| `ZEN-DEPR-026` | `installStatefulComponents()` | `Zen.use(ZenithStatefulPlugin)` | `2.0.0` |
+| `ZEN-DEPR-027`..`034` | توابع رجیستری DevTools در `@zenith/state` | `@zenith/devtools-core` | `2.0.0` |
+| `ZEN-DEPR-035`..`041` | فراخوانی‌های positional بیش از ۲ آرگومان (`createMutation`, `createInfiniteQuery`, `trackPromise`, `withTimeout`, `animate`, `animateEnter`, `animateLeave`) | فراخوانی مبتنی بر شیء تنظیمات (`options object`) | `2.0.0` |
+
+---
+
+## راهنمای مهاجرت نسخه به نسخه (`v1.0` تا `v1.4 / v1.5`) (`#105`)
+
+### ۱. مهاجرت از `v1.0.x / v1.1.x` به `v1.2.x`
+- **امنیت SSR (`SEC-A1`)**: تابع `renderToString` و `renderToStream` کاراکترهای خطرناک `<`, `>`, `U+2028`, `U+2029` را در اسکریپت Hydration خنثی می‌کنند و مسیرهای حاوی `</` را با خطای `ZEN-401` رد می‌کنند.
+- **ایزولاسیون `EffectContext` در SSR (`BUG-22`)**: دیگر نیازی به مدیریت دستی سیگنال‌ها بین درخواست‌های همزمان SSR نیست؛ `domAls` به‌طور خودکار `EffectContext` هر درخواست را ایزوله می‌کند.
+
+### ۲. مهاجرت از `v1.2.x` به `v1.3.x`
+- **پشتیبانی `AbortSignal` در `renderToStream`**: می‌توانید `signal: abortController.signal` را به `renderToStream` بدهید تا در صورت قطع اتصال کلاینت، رندر بلافاصله متوقف شود.
+- **پاک‌سازی خودکار Router (`cleanupRouter`)**: تمامی listenerهای `popstate` و prefetch با فراخوانی `cleanupRouter()` یا `dispose()` آزاد می‌شوند.
+
+### ۳. مهاجرت از `v1.3.x` به `v1.4.0 / v1.5.0`
+
+#### الف) پیش‌نیاز موتور Node.js (`>= 18.19.0`)
+تمامی پکیج‌ها به `"engines": { "node": ">=18.19" }` ارتقا یافته‌اند تا `process.getBuiltinModule('node:async_hooks')` بدون وابستگی باندلر در SSR و Edge کار کند.
+
+#### ب) مهاجرت از `Zen.start` سراسری به نمونهٔ ایزولهٔ `createApp()` (`#148`)
+```ts
+// قبل (همچنان پشتیبانی می‌شود):
+import { Zen } from '@zenith/runtime';
+Zen.start(document.getElementById('app')!, { count: 0 });
+
+// پیشنهادی در v1.4+ (ایزوله برای SSR و تست‌های موازی):
+import { createApp } from '@zenith/runtime';
+const app = createApp({ state: { count: 0 } });
+const unmount = app.mount('#app');
+```
+
+#### ج) یکپارچه‌سازی قرارداد پاک‌سازی به `dispose()` (`#116`)
+```ts
+// قبل (منسوخ با ZEN-DEPR-019..024):
+resource.destroy();
+form.destroy();
+
+// بعد (استاندارد v1.4+ با پشتیبانی از `using` در TypeScript 5.2+):
+resource.dispose();
+form.dispose();
+```
+
+#### د) مهاجرت توابع تاریخ شمسی به `@zenith/jalali` (`#146` / `#101`)
+```ts
+// قبل (منسوخ با ZEN-DEPR-006..015 در @zenith/i18n):
+import { toJalali, fromJalali } from '@zenith/i18n';
+
+// بعد (دقیق، منطبق با الگوریتم Borkowski و Intl در بازهٔ ۱۲۰۱..۱۵۰۰):
+import { toJalaliParts, fromJalaliParts, formatJalali } from '@zenith/jalali';
+const parts = toJalaliParts(new Date());
+const formatted = formatJalali(new Date(), 'YYYY/MM/DD');
+```
+
+---
+
+## seealso
+
+- [شروع سریع و آموزش گام‌به‌گام (`docs/GETTING-STARTED.md`)](./GETTING-STARTED.md)
+- [کتاب آشپزی (`docs/COOKBOOK.md`)](./COOKBOOK.md)
+- [سیاست پشتیبانی و چرخهٔ عمر نسخه‌ها (`SUPPORT.md`)](../SUPPORT.md)
 - [API Reference v1.0.0](./api-v1.0.md)
+- [Public API Stability & Deprecation Policy](./DEPRECATION-POLICY.md)
 - [Performance Tuning Guide](./performance-tuning.md)
 - [Changelog v1.0.0](../CHANGELOG.md)
 - [Security Audit Report](../../tests/v1.0/security-audit/README.md)

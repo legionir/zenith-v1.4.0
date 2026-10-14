@@ -438,13 +438,19 @@ export function defineOptions<T>(
   return {
     DEFAULTS,
     resolve(user?: unknown): T {
-      if (user === undefined || user === null) return DEFAULTS as T;
-      // ورودی undefined-مقدار در object کاربر ⇒ همان پیش‌فرض بماند (mergeOptions semantics)
-      const merged = {
+      if (user !== undefined && user !== null && !isPlainObject(user)) {
+        return validate<T>(schema, user, { name });
+      }
+      const merged: Record<string, unknown> = {
         ...(DEFAULTS as Record<string, unknown>),
-        ...(user as Record<string, unknown>),
       };
-      for (const k of Object.keys(merged)) if (merged[k] === undefined) delete merged[k];
+      if (isPlainObject(user)) {
+        for (const [k, v] of Object.entries(user)) {
+          if (v !== undefined) {
+            merged[k] = v;
+          }
+        }
+      }
       return validate<T>(schema, merged, { name });
     },
     schema,

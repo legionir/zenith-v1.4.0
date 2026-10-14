@@ -204,13 +204,13 @@ function checkHtmlFile(filePath: string): Finding[] {
         line: 0,
         column: 0,
         severity: 'error',
-        rule: 'Z001',
+        rule: 'ZEN-9001',
         message: `Cannot read file: ${(e as Error).message}`,
       },
     ];
   }
 
-  // ── Rule Z100: استفاده از compileAndRender حذف‌شده ──
+  // ── Rule ZEN-9010: استفاده از compileAndRender حذف‌شده ──
   // این rule روی کل content (شامل comments) اجرا می‌شود چون مهم است.
   if (content.includes('compileAndRender') || content.includes('zen-compile')) {
     const idx = content.indexOf('compileAndRender');
@@ -221,7 +221,7 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'error',
-        rule: 'Z100',
+        rule: 'ZEN-9010',
         message:
           'compileAndRender was removed for security (XSS). Use zen-text or zen-html with pre-compiled expressions.',
       });
@@ -240,7 +240,7 @@ function checkHtmlFile(filePath: string): Finding[] {
     return out;
   });
 
-  // ── Rule Z101: الگوی <script> با eval/Function در کد JavaScript ──
+  // ── Rule ZEN-9011: الگوی <script> با eval/Function در کد JavaScript ──
   // بررسی داخل <script>ها برای استفاده از eval یا new Function.
   // از stripped استفاده می‌کنیم تا comments درون script هم در نظر گرفته نشوند.
   const scriptRegex = /<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/gi;
@@ -257,14 +257,14 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'error',
-        rule: 'Z101',
+        rule: 'ZEN-9011',
         message:
           'Use of eval() or new Function() detected in <script>. This is forbidden in Zenith for security.',
       });
     }
   }
 
-  // ── Rule Z200: بررسی صحت directiveها ──
+  // ── Rule ZEN-9020: بررسی صحت directiveها ──
   // پیدا کردن تمام attributeهای zen-* (داخل stripped که comments حذف شده‌اند)
   const attrRegex = /\s(zen-[a-z][a-z0-9-]*)(?:=("[^"]*"|'[^']*'|[^\s>]+))?/gi;
   let attrMatch: RegExpExecArray | null;
@@ -283,7 +283,7 @@ function checkHtmlFile(filePath: string): Finding[] {
           line,
           column,
           severity: 'error',
-          rule: 'Z200',
+          rule: 'ZEN-9020',
           message: `Directive '${directive}' is deprecated. ${DEPRECATED_DIRECTIVES[directive]}`,
         });
       } else {
@@ -292,13 +292,13 @@ function checkHtmlFile(filePath: string): Finding[] {
           line,
           column,
           severity: 'warning',
-          rule: 'Z201',
+          rule: 'ZEN-9021',
           message: `Unknown directive '${directive}'. Valid: ${Array.from(VALID_DIRECTIVES).slice(0, 10).join(', ')}...`,
         });
       }
     }
 
-    // Rule Z300: zen-for بدون zen-key (warning)
+    // Rule ZEN-9030: zen-for بدون zen-key (warning)
     if (directive === 'zen-for' && !value.includes('zen-key')) {
       const tagEnd = stripped.indexOf('>', idx);
       const tagContent = stripped.substring(idx, tagEnd);
@@ -308,37 +308,37 @@ function checkHtmlFile(filePath: string): Finding[] {
           line,
           column,
           severity: 'warning',
-          rule: 'Z300',
+          rule: 'ZEN-9030',
           message: `zen-for without zen-key: list rendering without a stable key can cause DOM thrashing and state loss. Add zen-key="$item.id" or similar.`,
         });
       }
     }
 
-    // Rule Z301: expression خالی در zen-text
+    // Rule ZEN-9031: expression خالی در zen-text
     if (directive === 'zen-text' && (!value || value.trim() === '')) {
       findings.push({
         file: filePath,
         line,
         column,
         severity: 'error',
-        rule: 'Z301',
+        rule: 'ZEN-9031',
         message: `zen-text has empty expression. Remove the directive or provide an expression like zen-text="$count".`,
       });
     }
 
-    // Rule Z302: expression خالی در zen-if
+    // Rule ZEN-9032: expression خالی در zen-if
     if (directive === 'zen-if' && (!value || value.trim() === '')) {
       findings.push({
         file: filePath,
         line,
         column,
         severity: 'error',
-        rule: 'Z302',
+        rule: 'ZEN-9032',
         message: `zen-if has empty condition. Provide a boolean expression like zen-if="$count > 0".`,
       });
     }
 
-    // Rule Z400: بررسی سینتکس expression با lexer + parser (compile)
+    // Rule ZEN-9040: بررسی سینتکس expression با lexer + parser (compile)
     const expr = extractExpression(directive, value);
     if (
       expr &&
@@ -361,26 +361,26 @@ function checkHtmlFile(filePath: string): Finding[] {
           line,
           column,
           severity: 'error',
-          rule: 'Z400',
+          rule: 'ZEN-9040',
           message: `Expression syntax error in ${directive}: ${(e as Error).message}`,
         });
       }
     }
 
-    // Rule Z500: zen-bind با دسترسی به $parent بدون context مناسب (info)
+    // Rule ZEN-9050: zen-bind با دسترسی به $parent بدون context مناسب (info)
     if (directive === 'zen-bind' && value.includes('$parent') && !value.includes('$parent.')) {
       findings.push({
         file: filePath,
         line,
         column,
         severity: 'info',
-        rule: 'Z500',
+        rule: 'ZEN-9050',
         message: `zen-bind uses '$parent' but does not access a property. Did you mean '$parent.someProperty'?`,
       });
     }
   }
 
-  // ── Rule Z800: Compiler unsupported directives (warning) ──
+  // ── Rule ZEN-9080: Compiler unsupported directives (warning) ──
   //
   // Bug Fix #3: قبلاً هیچ rule‌ای برای محدودیت‌های compiler وجود نداشت.
   // این rule بررسی می‌کند که آیا فایل HTML از directiveهای استفاده کرده که
@@ -423,7 +423,7 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'warning',
-        rule: 'Z800',
+        rule: 'ZEN-9080',
         message:
           `Directive '${dirName}' is not compilable by @zenith/compiler. ` +
           `In compile-mode, it will be preserved and processed by runtime walker (slower).`,
@@ -431,7 +431,7 @@ function checkHtmlFile(filePath: string): Finding[] {
     }
   }
 
-  // ── Rule Z810: zen-virtual-list without zen-dynamic-heights (info) ──
+  // ── Rule ZEN-9081: zen-virtual-list without zen-dynamic-heights (info) ──
   //
   // Bug Fix #4: Virtual List dynamic heights یک قابلیت opt-in است.
   // اگر کاربر از zen-virtual-list استفاده کند ولی zen-dynamic-heights="true"
@@ -450,7 +450,7 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'info',
-        rule: 'Z810',
+        rule: 'ZEN-9081',
         message:
           `zen-virtual-list is using static heights (default). ` +
           `If items have varying content heights, add zen-dynamic-heights="true" ` +
@@ -459,7 +459,7 @@ function checkHtmlFile(filePath: string): Finding[] {
     }
   }
 
-  // ── Rule Z820: i18n helper functions awareness (info) ──
+  // ── Rule ZEN-9082: i18n helper functions awareness (info) ──
   //
   // Bug Fix #7: CLI check باید آگاه باشد که توابع i18n مثل $toJalali،
   // $toPersianNums، $formatNumber، $formatPrice ممکن است در context باشند
@@ -480,14 +480,14 @@ function checkHtmlFile(filePath: string): Finding[] {
       line,
       column,
       severity: 'info',
-      rule: 'Z820',
+      rule: 'ZEN-9082',
       message:
         `i18n function '$${funcName}' is used. Make sure it's registered in Zen.start() context: ` +
         `Zen.start(root, { ${funcName}: <function> }) — otherwise expression will throw "Variable not defined".`,
     });
   }
 
-  // ── Rule Z600: zen-route بدون src ──
+  // ── Rule ZEN-9060: zen-route بدون src ──
   const routeRegex = /<zen-route\b[^>]*>/gi;
   let routeMatch: RegExpExecArray | null;
   while ((routeMatch = routeRegex.exec(stripped)) !== null) {
@@ -500,7 +500,7 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'error',
-        rule: 'Z600',
+        rule: 'ZEN-9060',
         message: `<zen-route> without src attribute. Add src="/pages/your-page.html".`,
       });
     }
@@ -512,13 +512,13 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'error',
-        rule: 'Z601',
+        rule: 'ZEN-9061',
         message: `<zen-route> without path attribute. Add path="/your-route".`,
       });
     }
   }
 
-  // ── Rule Z700: zen-link بدون href (warning) ──
+  // ── Rule ZEN-9070: zen-link بدون href (warning) ──
   const linkRegex = /<[^>]+zen-link\b[^>]*>/gi;
   let linkMatch: RegExpExecArray | null;
   while ((linkMatch = linkRegex.exec(stripped)) !== null) {
@@ -531,7 +531,7 @@ function checkHtmlFile(filePath: string): Finding[] {
         line,
         column,
         severity: 'warning',
-        rule: 'Z700',
+        rule: 'ZEN-9070',
         message: `Element with zen-link but no href or zen-link target. Add href="/route/path".`,
       });
     }

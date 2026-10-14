@@ -16,25 +16,20 @@ export const DEFAULT_REDACT: readonly string[] = [
 ];
 
 function walk(value: unknown, keys: readonly string[], seen: Set<object>): unknown {
-  if (value === null || typeof value !== 'object') return value;
+  if (!value || typeof value !== 'object') return value;
   if (seen.has(value)) return '[Circular]';
   seen.add(value);
-  let out: unknown;
+  let out: unknown = value;
+  const proto = Object.getPrototypeOf(value);
   if (Array.isArray(value)) {
     out = value.map((item) => walk(item, keys, seen));
-  } else if (
-    Object.getPrototypeOf(value) === Object.prototype ||
-    Object.getPrototypeOf(value) === null
-  ) {
+  } else if (!proto || proto === Object.prototype) {
     const rec: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
-      // مطابقت نام حساس‌به‌case نیست (token/Token/TOKEN همه پوشیده می‌شوند).
-      rec[k] = keys.some((r) => r.toLowerCase() === k.toLowerCase()) ? '***' : walk(v, keys, seen);
+      const kl = k.toLowerCase();
+      rec[k] = keys.some((r) => r.toLowerCase() === kl) ? '***' : walk(v, keys, seen);
     }
     out = rec;
-  } else {
-    // کلاس/Map/Set/Date و…: عیناً می‌مانند (sink خودش serialize می‌کند).
-    out = value;
   }
   seen.delete(value);
   return out;

@@ -104,6 +104,38 @@ export interface DataTableOptions<T = any> {
     title: string;
     columns: string[];
   }>;
+  /** #131: مجازی‌سازی ردیف‌ها برای جداول بزرگ (۱۰۰k+ ردیف) */
+  virtual?:
+    | boolean
+    | {
+        rowHeight?: number;
+        overscan?: number;
+        viewportHeight?: number;
+      };
+}
+
+/** #131: پنجرهٔ مجازی‌سازی ردیف‌های جدول */
+export interface DataTableVirtualWindow<T = any> {
+  startIndex: number;
+  endIndex: number;
+  offsetTop: number;
+  totalHeight: number;
+  visibleRows: T[];
+}
+
+/** #131: گزینه‌های خروجی CSV جدول */
+export interface CsvExportOptions {
+  filename?: string;
+  includeHeaders?: boolean;
+  separator?: string;
+  /** افزودن UTF-8 BOM (`\uFEFF`) برای نمایش صحیح فارسی در Excel */
+  bom?: boolean;
+  /** انتخاب کلید ستون‌های خاص */
+  columns?: string[];
+  /** فقط ردیف‌های انتخاب‌شده خروجی گرفته شوند */
+  selectedOnly?: boolean;
+  /** آیا فایل در مرورگر دانلود شود؟ (پیش‌فرض: false در صورت فراخوانی برنامه‌نویسی) */
+  download?: boolean;
 }
 
 export interface DataTableApi<T = any> {
@@ -168,7 +200,14 @@ export interface DataTableApi<T = any> {
     filename?: string,
     options?: { includeHeaders?: boolean; separator?: string },
   ) => void;
+  /** #131: خروجی استاندارد CSV با پشتیبانی از BOM فارسی، انتخاب ستون/ردیف و escape کامل */
+  exportCsv: (options?: CsvExportOptions) => string;
   exportToJSON: (filename?: string) => void;
+
+  // === Virtualization & ARIA Grid (#131) ===
+  virtualWindow: ReadonlySignal<DataTableVirtualWindow<T>>;
+  setScrollTop: (scrollTop: number) => void;
+  renderAriaGrid: (container: HTMLElement) => () => void;
 
   // === State ===
   getState: () => DataTableState;
@@ -228,6 +267,23 @@ export function createDataTable<T extends Record<string, any>>(
 
   // === Editing ===
   const editingCell = signal<{ rowKey: any; columnKey: string } | null>(null);
+
+  // === Virtualization (#131) ===
+  const scrollTopSignal = signal(0);
+  const virtualCfg =
+    typeof options.virtual === 'object' && options.virtual !== null
+      ? {
+          enabled: true,
+          rowHeight: options.virtual.rowHeight ?? 40,
+          overscan: options.virtual.overscan ?? 5,
+          viewportHeight: options.virtual.viewportHeight ?? 400,
+        }
+      : {
+          enabled: Boolean(options.virtual),
+          rowHeight: 40,
+          overscan: 5,
+          viewportHeight: 400,
+        };
 
   // ============================================================
   // Computed: Visible Columns
@@ -522,6 +578,61 @@ export function createDataTable<T extends Record<string, any>>(
   // Export
   // ============================================================
 
+  function exportCsv(csvOptions: CsvExportOptions = {}): string {
+    const {
+      filename = 'data.csv',
+      includeHeaders = true,
+      separator = ',',
+      bom = false,
+      columns: selectedColKeys,
+      selectedOnly = false,
+      download = false,
+    } = csvOptions;
+
+    let cols = visibleColumns.get().filter((c) => !c.hidden);
+    if (Array.isArray(selectedColKeys) && selectedColKeys.length > 0) {
+      const colSet = new Set(selectedColKeys);
+      cols = cols.filter((c) => colSet.has(c.key));
+    }
+
+    const rows = selectedOnly ? selectedRowData.get() : filteredData.get();
+
+    const escapeCell = (raw: unknown): string => {
+      const str = String(raw ?? '');
+      if (
+        str.includes('"') ||
+        str.includes(separator) ||
+        str.includes('\n') ||
+        str.includes('\r')
+      ) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const lines: string[] = [];
+    if (includeHeaders) {
+      lines.push(cols.map((c) => escapeCell(c.title)).join(separator));
+    }
+    for (const row of rows) {
+      lines.push(
+        cols
+          .map((col) => {
+            const value = getNestedValue(row, col.dataIndex || col.key);
+            return escapeCell(value);
+          })
+          .join(separator),
+      );
+    }
+
+    const body = lines.join('\n');
+    const output = bom ? `\uFEFF${body}` : body;
+    if (download) {
+      downloadFile(output, filename, 'text/csv;charset=utf-8;');
+    }
+    return output;
+  }
+
   function exportToCSV(
     filename = 'data.csv',
     options: { includeHeaders?: boolean; separator?: string } = {},
@@ -547,6 +658,113 @@ export function createDataTable<T extends Record<string, any>>(
     }
 
     downloadFile(csv, filename, 'text/csv;charset=utf-8;');
+  }
+
+  const virtualWindow = computed<DataTableVirtualWindow<T>>(() => {
+    const rows = filteredData.get();
+    const total = rows.length;
+    const rh = Math.max(1, virtualCfg.rowHeight);
+    const totalHeight = total * rh;
+    if (!virtualCfg.enabled) {
+      const pageRows = pageData.get();
+      return {
+        startIndex: 0,
+        endIndex: pageRows.length,
+        offsetTop: 0,
+        totalHeight: pageRows.length * rh,
+        visibleRows: pageRows,
+      };
+    }
+    const st = Math.max(0, scrollTopSignal.get());
+    const visibleCount = Math.ceil(virtualCfg.viewportHeight / rh);
+    const startIndex = Math.max(0, Math.floor(st / rh) - virtualCfg.overscan);
+    const endIndex = Math.min(total, Math.floor(st / rh) + visibleCount + virtualCfg.overscan);
+    return {
+      startIndex,
+      endIndex,
+      offsetTop: startIndex * rh,
+      totalHeight,
+      visibleRows: rows.slice(startIndex, endIndex),
+    };
+  });
+
+  function setScrollTop(scrollTop: number): void {
+    scrollTopSignal.set(Math.max(0, scrollTop));
+  }
+
+  function renderAriaGrid(container: HTMLElement): () => void {
+    const cols = visibleColumns.get();
+    const win = virtualCfg.enabled ? virtualWindow.get() : null;
+    const rows = win ? win.visibleRows : pageData.get();
+    const sorts = sortState.get();
+
+    container.setAttribute('role', 'grid');
+    container.setAttribute('aria-rowcount', String(totalRows.get()));
+    container.setAttribute('aria-colcount', String(cols.length));
+    container.textContent = '';
+
+    const headerRow = container.ownerDocument.createElement('div');
+    headerRow.setAttribute('role', 'row');
+    cols.forEach((col, colIdx) => {
+      const cell = container.ownerDocument.createElement('div');
+      cell.setAttribute('role', 'columnheader');
+      cell.setAttribute('aria-colindex', String(colIdx + 1));
+      cell.setAttribute('tabindex', colIdx === 0 ? '0' : '-1');
+      if (col.sortable) {
+        const s = sorts.find((item) => item.key === col.key);
+        const ariaSort =
+          s?.direction === 'asc' ? 'ascending' : s?.direction === 'desc' ? 'descending' : 'none';
+        cell.setAttribute('aria-sort', ariaSort);
+      }
+      cell.textContent = col.title;
+      headerRow.appendChild(cell);
+    });
+    container.appendChild(headerRow);
+
+    rows.forEach((row, idx) => {
+      const rowEl = container.ownerDocument.createElement('div');
+      rowEl.setAttribute('role', 'row');
+      const rKey = (row as any)[rowKey];
+      const selected = isRowSelected(rKey);
+      rowEl.setAttribute('aria-selected', selected ? 'true' : 'false');
+      rowEl.setAttribute('aria-rowindex', String((win ? win.startIndex : 0) + idx + 1));
+      cols.forEach((col, colIdx) => {
+        const cellEl = container.ownerDocument.createElement('div');
+        cellEl.setAttribute('role', 'gridcell');
+        cellEl.setAttribute('aria-colindex', String(colIdx + 1));
+        cellEl.setAttribute('tabindex', '-1');
+        const val = getNestedValue(row, col.dataIndex || col.key);
+        cellEl.textContent = String(val ?? '');
+        rowEl.appendChild(cellEl);
+      });
+      container.appendChild(rowEl);
+    });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const cells = Array.from(
+        container.querySelectorAll('[role="columnheader"], [role="gridcell"]'),
+      ) as HTMLElement[];
+      const currentIdx = cells.indexOf(e.target as HTMLElement);
+      if (currentIdx === -1) return;
+      const colCount = Math.max(1, cols.length);
+      let nextIdx = currentIdx;
+      if (e.key === 'ArrowRight') nextIdx = Math.min(cells.length - 1, currentIdx + 1);
+      else if (e.key === 'ArrowLeft') nextIdx = Math.max(0, currentIdx - 1);
+      else if (e.key === 'ArrowDown') nextIdx = Math.min(cells.length - 1, currentIdx + colCount);
+      else if (e.key === 'ArrowUp') nextIdx = Math.max(0, currentIdx - colCount);
+      else return;
+      e.preventDefault();
+      cells[currentIdx]?.setAttribute('tabindex', '-1');
+      cells[nextIdx]?.setAttribute('tabindex', '0');
+      cells[nextIdx]?.focus();
+    };
+    container.addEventListener('keydown', onKeyDown);
+    let cleaned = false;
+    return () => {
+      if (cleaned) return;
+      cleaned = true;
+      container.removeEventListener('keydown', onKeyDown);
+    };
   }
 
   function exportToJSON(filename = 'data.json') {
@@ -688,7 +906,13 @@ export function createDataTable<T extends Record<string, any>>(
 
     // Export
     exportToCSV,
+    exportCsv,
     exportToJSON,
+
+    // Virtualization & ARIA Grid (#131)
+    virtualWindow,
+    setScrollTop,
+    renderAriaGrid,
 
     // State
     getState,

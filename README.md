@@ -71,7 +71,7 @@ npm ci && npm run build && npm run build:browser
 
 ---
 
-## 📦 پکیج‌ها (۴۲)
+## 📦 پکیج‌ها (۴۵)
 
 لایه‌ها طبق [ARCHITECTURE.md §۱](ARCHITECTURE.md). تا پیش از انتشار رسمی npm (#66) همهٔ پکیج‌ها از راه source ورک‌اسپیس و باندل‌های مرورگری در دسترس‌اند.
 
@@ -88,6 +88,7 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/security`](packages/security) | L0 | sanitizer، CSP، TrustedTypes | [📄](packages/security/README.md) |
 | [`@zenith/i18n`](packages/i18n) | L0 | ارقام فارسی/عربی، تقویم جلالی | [📄](packages/i18n/README.md) |
 | [`@zenith/state`](packages/state) | L1 | signal / computed / effect / batch | [📄](packages/state/README.md) |
+| [`@zenith/devtools-core`](packages/devtools-core) | L1 | پروتکل، RingBuffer و گراف واکنشی DevTools بدون وابستگی به DOM (#147) | [📄](packages/devtools-core/README.md) |
 | [`@zenith/expressions`](packages/expressions) | L1 | evaluator امن عبارت‌ها (بدون `eval`) | [📄](packages/expressions/README.md) |
 | [`@zenith/dependency-graph`](packages/dependency-graph) | L1 | استخراج وابستگی signal از عبارت‌ها | [📄](packages/dependency-graph/README.md) |
 | [`@zenith/router`](packages/router) | L2 | مسیریابی SPA با History API | [📄](packages/router/README.md) |
@@ -107,6 +108,7 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/transition`](packages/transition) | L2 | انیمیشن enter/leave | [📄](docs/packages/transition.md) + [📄](packages/transition/README.md) |
 | [`@zenith/virtual-list`](packages/virtual-list) | L2 | رندر ۱۰٬۰۰۰+ آیتم با windowing | [📄](docs/packages/virtual-list.md) + [📄](packages/virtual-list/README.md) |
 | [`@zenith/data-table`](packages/data-table) | L2 | جدول reactive با sort/filter | [📄](packages/data-table/README.md) |
+| [`@zenith/runtime-core`](packages/runtime-core) | L3 | هستهٔ `createApp`، چرخهٔ عمر، provide/inject و موتور دایرکتیو (#148) | [📄](packages/runtime-core/README.md) |
 | [`@zenith/runtime`](packages/runtime) | L3 | walker، directiveها، hydrate، شیء `Zen` | [📄](packages/runtime/README.md) |
 | [`@zenith/ssr`](packages/ssr) | L3 | رندر سرور و استریم | [📄](packages/ssr/README.md) |
 | [`@zenith/crud`](packages/crud) | L4 | موتور و اکشن‌های CRUD | [📄](packages/crud/README.md) |
@@ -114,9 +116,16 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/devtools`](packages/devtools) | L4 | hook برای افزونهٔ مرورگر | [📄](packages/devtools/README.md) |
 | [`@zenith/service-worker`](packages/service-worker) | L4 | استراتژی‌های cache و sync آفلاین | [📄](packages/service-worker/README.md) |
 | [`@zenith/testing`](packages/testing) | L4 | ابزار تست signal/effect/directive | [📄](packages/testing/README.md) |
+| [`zenith`](packages/zenith) | L5 | پکیج چتر یکپارچه (`minimal`/`spa`/`full` + باندل مرورگر و SRI — #149) | [📄](packages/zenith/README.md) |
 | [`@zenith/compiler`](packages/compiler) | Tooling | پیش‌کامپایل قالب‌ها | [📄](packages/compiler/README.md) |
 | [`@zenith/vite-plugin`](packages/vite-plugin) | Tooling | HMR و تزریق devtools | [📄](packages/vite-plugin/README.md) |
 | [`@zenith/cli`](packages/cli) | Tooling | scaffold، `check`، lighthouse | [📄](packages/cli/README.md) |
+| [`@zenith/language-server`](packages/language-server) | Tooling | هستهٔ LSP مشترک (تحلیل دایرکتیو/سیگنال — #160) | [📄](packages/language-server/README.md) |
+| [`@zenith/theme`](packages/theme) | L2 | حالت روشن/تاریک، tokenها، dir و اسکریپت no-flash (#161) | [📄](packages/theme/README.md) |
+| [`@zenith/auth-oauth`](packages/auth-oauth) | L2 | OAuth2/OIDC با PKCE، discovery، JWKS (#162) | [📄](packages/auth-oauth/README.md) |
+| [`@zenith/feature-flags`](packages/feature-flags) | L2 | پرچم‌های ویژگی واکنشی با rollout پایدار (#168) | [📄](packages/feature-flags/README.md) |
+| [`@zenith/charts`](packages/charts) | L2 | نمودار SVG (line/area/bar/pie/scatter) با جدول a11y (#169) | [📄](packages/charts/README.md) |
+| [`@zenith/icons`](packages/icons) | L2 | رجیستری آیکن SVG با sanitize و zen-icon (#170) | [📄](packages/icons/README.md) |
 | [`zenith-vscode`](packages/vscode-extension) | Tooling | پشتیبانی زبان VS Code | [📄](packages/vscode-extension/README.md) |
 | [`devtools-extension`](packages/devtools-extension) | Tooling | افزونهٔ مرورگر (Chrome/Firefox) | [📄](packages/devtools-extension/README.md) |
 
@@ -152,6 +161,15 @@ npm run deps          # dependency-cruiser gate
 
 CI کامل (۱۱ job موازی: lint/format/typecheck/unit+coverage/audit/deps/build×Node18/22/publint/size/e2e) در [.github/CI.md](.github/CI.md) مستند است؛ تصمیم‌ها در [docs/decisions/](docs/decisions/).
 
+## 🌐 سازگاری مرورگرها و Node.js (`browserslist` — `#32`)
+
+- **Node.js**: نسخه‌های `>= 18.19`، `20` (LTS) و `22` (Active LTS) در ماتریس CI بیلد و تست می‌شوند.
+- **مرورگرهای پشتیبانی‌شده (`browserslist`)**:
+  - `Chrome >= 109` · `Edge >= 109`
+  - `Firefox >= 115`
+  - `Safari >= 16.4` · `iOS >= 16.4`
+- تست‌های E2E با Playwright برای موتورهای `chromium`، `firefox` و `webkit` پیکربندی شده‌اند. جزئیات بیشتر در [docs/BROWSER-SUPPORT.md](docs/BROWSER-SUPPORT.md).
+
 ## 🤝 مشارکت و امنیت
 
 - مشارکت: [docs/README.md](docs/README.md) · گزارش باگ/ویژگی: [Issues](https://github.com/legionir/zenith-v1.4.0/issues) (CONTRIBUTING.md کامل → [#107](https://github.com/legionir/zenith-v1.4.0/issues/107))
@@ -160,6 +178,8 @@ CI کامل (۱۱ job موازی: lint/format/typecheck/unit+coverage/audit/deps
 
 ## 📜 مستندات بیشتر
 
+- [شروع سریع و آموزش گام‌به‌گام](docs/GETTING-STARTED.md) · [کتاب آشپزی (Cookbook)](docs/COOKBOOK.md)
+- [سیاست پشتیبانی و چرخهٔ عمر نسخه‌ها](SUPPORT.md) · [مشارکت در پروژه](CONTRIBUTING.md)
 - [راهنمای مهاجرت](docs/migration-guide.md) · [CHANGELOG](docs/CHANGELOG.md)
 - [راهنمای LLM/دستیار کدنویسی](docs/LLM-GUIDE.md) · [بنچمارک‌ها](docs/BENCHMARKS.md)
 - [معیارهای آماده‌به‌تولید](PRODUCTION-READINESS.md) · [طرح استانداردسازی](STANDARDIZATION-PLAN.md)

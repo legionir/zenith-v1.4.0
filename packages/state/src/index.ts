@@ -21,6 +21,7 @@ export {
   getOwner,
   setOwner,
   onCleanup,
+  resetStateInstanceTrackingForTesting,
   type Owner,
 } from './context';
 // IMP-07 (v1.3.0): export onEffectError برای Error Boundary.
@@ -34,6 +35,20 @@ export {
   type EffectOptions,
 } from './effect';
 export { computed, Computed } from './computed';
+export {
+  watch,
+  type WatchSource,
+  type WatchCallback,
+  type WatchOptions,
+  type WatchCleanupRegistrar,
+} from './watch';
+export {
+  createAsync,
+  asyncComputed,
+  type AsyncComputeContext,
+  type AsyncOptions,
+  type AsyncSignal,
+} from './async';
 // #187 FIX: brand و type-guard برای مقادیر واکنش‌گرای قابل‌خواندن (Signal/Computed).
 export { isReadable, isWritable, ZENITH_READABLE, type Readable } from './readable';
 // #141 / DEC-021 — «مقدار یا ظرف خواندنی» با نام قراردادی SPEC:
@@ -56,6 +71,7 @@ export {
   resetErrorHubForTesting,
   setDevMode,
   isDevMode,
+  registerStateInstance,
 } from './error';
 export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './error';
 
@@ -65,7 +81,10 @@ export type { ZenithError, ErrorHandler, ErrorSeverity, ErrorCategory } from './
 //   effect(() => updateDOM(), Priority.urgent);
 export { Priority } from '@zenith/scheduler';
 
-// ── فاز ۱۰: State Registry (برای DevTools) ──
+// ── #147: SignalObserver hook برای @zenith/devtools-core (SPEC §۲.۷) ──
+export { setSignalObserver, getSignalObserver, type SignalObserver } from './observer';
+
+// ── فاز ۱۰: State Registry (منسوخ‌شده در #147؛ حذف در ۲.۰ — DEC-026) ──
 export {
   registerSignal,
   recordStateChange,
@@ -78,3 +97,13 @@ export {
   type SignalInfo,
   type StateChange,
 } from './registry';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/state` (`AsyncOptions` / `WatchOptions`).
+ * @default { immediate: true, flush: 'sync' }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  immediate: true,
+  flush: 'sync' as const,
+});

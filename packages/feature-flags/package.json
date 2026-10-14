@@ -1,0 +1,61 @@
+{
+  "name": "@zenith/feature-flags",
+  "version": "1.4.0",
+  "description": "Zenith framework — Reactive feature flags with stable hash rollout, overrides, persistence and zen-flag directives.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "feature-flags",
+    "rollout",
+    "toggles"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/feature-flags"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/storage": "1.5.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

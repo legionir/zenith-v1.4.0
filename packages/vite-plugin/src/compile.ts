@@ -26,6 +26,7 @@
 
 import { compileTemplate, type CompiledTemplate } from '@zenith/compiler';
 import { compile as compileExpression } from '@zenith/expressions';
+import { s, defineOptions } from '@zenith/schema';
 
 /**
  * لیست مشترک directiveهای دارای expression که باید در compile-time اعتبارسنجی شوند.
@@ -66,9 +67,9 @@ function replaceAll(input: string, search: string, replacement: string): string 
 }
 
 /**
- * گزینه‌های compile.
+ * گزینه‌های compile در پلاگین Vite (#50: نام یکتای `VitePluginCompileOptions`).
  */
-export interface CompileOptions {
+export interface VitePluginCompileOptions {
   /**
    * آیا compile در build time فعال باشد؟
    * پیش‌فرض: true در build، false در dev (در dev از runtime walker استفاده می‌شود).
@@ -91,6 +92,29 @@ export interface CompileOptions {
    */
   strict?: boolean;
 }
+
+/**
+ * @deprecated از `VitePluginCompileOptions` استفاده کنید (#50: رفع ابهام با `CompilerOptions`).
+ */
+export type CompileOptions = VitePluginCompileOptions;
+
+/**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `CompileOptions`.
+ */
+export const compileOptions = defineOptions<Required<CompileOptions>>(
+  'CompileOptions',
+  s.object({
+    enabled: s.default(s.boolean(), true),
+    include: s.default(s.array(s.string({ min: 1 })), ['**/*.html']),
+    exclude: s.default(s.array(s.string({ min: 1 })), ['node_modules/**']),
+    strict: s.default(s.boolean(), false),
+  }),
+);
+
+export const COMPILE_OPTIONS_DEFAULTS = compileOptions.DEFAULTS;
+export const compileOptionsSchema = compileOptions.schema;
+export const resolveCompileOptions = (opts?: unknown): Required<CompileOptions> =>
+  compileOptions.resolve(opts);
 
 /**
  * نتیجه‌ی transform یک فایل HTML.
@@ -122,7 +146,49 @@ export interface TransformResult {
  * IMPROVEMENT (I-2): این cache از محاسبه مجدد regex برای فایل‌های بزرگ
  * بدون directive جلوگیری می‌کند.
  */
+const MAX_COMPILE_CACHE_SIZE = 128;
 const directiveCache = new Map<string, boolean>();
+const transformCache = new Map<string, TransformResult>();
+let transformCacheHits = 0;
+let transformCacheMisses = 0;
+
+function setLruEntry<K, V>(
+  map: Map<K, V>,
+  key: K,
+  value: V,
+  maxSize = MAX_COMPILE_CACHE_SIZE,
+): void {
+  if (map.has(key)) {
+    map.delete(key);
+  } else if (map.size >= maxSize) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) {
+      map.delete(oldestKey);
+    }
+  }
+  map.set(key, value);
+}
+
+export function clearCompileCache(): void {
+  directiveCache.clear();
+  transformCache.clear();
+  transformCacheHits = 0;
+  transformCacheMisses = 0;
+}
+
+export function getCompileCacheStats(): {
+  directiveEntries: number;
+  transformEntries: number;
+  hits: number;
+  misses: number;
+} {
+  return {
+    directiveEntries: directiveCache.size,
+    transformEntries: transformCache.size,
+    hits: transformCacheHits,
+    misses: transformCacheMisses,
+  };
+}
 
 /**
  * بررسی اینکه آیا یک فایل HTML directiveهای Zenith دارد.
@@ -134,18 +200,23 @@ const directiveCache = new Map<string, boolean>();
 export function hasZenithDirectives(html: string): boolean {
   // بررسی از cache
   const cached = directiveCache.get(html);
-  if (cached !== undefined) return cached;
+  if (cached !== undefined) {
+    // ارتقا در LRU
+    directiveCache.delete(html);
+    directiveCache.set(html, cached);
+    return cached;
+  }
 
   // Early exit: اگر "zen-" در متن نباشد، قطعاً directiveای وجود ندارد.
   // این از اجرای regex روی فایل‌های بدون directive جلوگیری می‌کند.
   if (!html.includes('zen-')) {
-    directiveCache.set(html, false);
+    setLruEntry(directiveCache, html, false);
     return false;
   }
 
   // بررسی دقیق‌تر با regex
   const result = /\szen-[a-z]/i.test(html);
-  directiveCache.set(html, result);
+  setLruEntry(directiveCache, html, result);
   return result;
 }
 
@@ -172,17 +243,35 @@ export async function transformHtml(
   htmlPath: string,
   options: CompileOptions = {},
 ): Promise<TransformResult> {
+  // #52 — اعتبارسنجی CompileOptions در مرز ورودی
+  const resolvedOptions = compileOptions.resolve(options);
   const warnings: string[] = [];
+
+  // #15 FIX: کش کامل نتیجهٔ transformHtml با LRU سقف‌دار
+  const cacheKey = `${htmlPath}::${resolvedOptions.strict ? 1 : 0}::${html}`;
+  const cachedResult = transformCache.get(cacheKey);
+  if (cachedResult !== undefined) {
+    transformCacheHits += 1;
+    transformCache.delete(cacheKey);
+    transformCache.set(cacheKey, cachedResult);
+    return {
+      ...cachedResult,
+      warnings: [...cachedResult.warnings],
+    };
+  }
+  transformCacheMisses += 1;
 
   // اگر directive ندارد، چیزی برای compile نیست.
   if (!hasZenithDirectives(html)) {
-    return {
+    const emptyResult: TransformResult = {
       html,
       js: null,
       moduleName: getModuleName(htmlPath),
       directiveCount: 0,
       warnings,
     };
+    setLruEntry(transformCache, cacheKey, { ...emptyResult, warnings: [] });
+    return emptyResult;
   }
 
   // ── استخراج directiveها ──
@@ -210,7 +299,7 @@ export async function transformHtml(
       } catch (e) {
         const errMsg = `Expression error in ${name}="${value}" at offset ${match.index}: ${(e as Error).message}`;
         warnings.push(errMsg);
-        if (options.strict) {
+        if (resolvedOptions.strict) {
           console.error(`[Zenith Compile] ❌ ${errMsg}`);
           console.error(e);
           throw e;
@@ -230,11 +319,11 @@ export async function transformHtml(
   // استفاده از compiler برای تولید کد.
   let compiled: CompiledTemplate;
   try {
-    compiled = await compileTemplate(html, { strict: options.strict });
+    compiled = await compileTemplate(html, { strict: resolvedOptions.strict });
   } catch (e) {
     const errMsg = `Compiler error: ${(e as Error).message}`;
     warnings.push(errMsg);
-    if (options.strict) {
+    if (resolvedOptions.strict) {
       console.error(`[Zenith Compile] ❌ ${errMsg}`);
       console.error(e);
       throw e;
@@ -299,13 +388,18 @@ export async function transformHtml(
     strippedHtml += `\n${scriptTag}`;
   }
 
-  return {
+  const finalResult: TransformResult = {
     html: strippedHtml,
     js: jsCode,
     moduleName,
     directiveCount: directives.length,
     warnings,
   };
+  setLruEntry(transformCache, cacheKey, {
+    ...finalResult,
+    warnings: [...warnings],
+  });
+  return finalResult;
 }
 
 /**

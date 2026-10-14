@@ -1,0 +1,11 @@
+# #65 — Gitleaks configuration for Zenith monorepo
+title = "Zenith Gitleaks Configuration"
+
+[allowlist]
+description = "Allowlist test fixtures and documentation placeholders"
+paths = [
+  '''packages/.*/test/.*''',
+  '''tests/.*''',
+  '''scripts/test/.*''',
+  '''docs/.*\.md''',
+]

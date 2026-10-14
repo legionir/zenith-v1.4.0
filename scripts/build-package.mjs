@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
-import { existsSync, rmSync, mkdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
 
 /**
@@ -42,9 +43,8 @@ export async function buildPackage(pkgName) {
   // Without this, e.g. @zenith/ssr inlines the whole of jsdom (~3 MB) and
   // defeats its own "is jsdom installed?" runtime check.
   const pkgJsonPath = join(pkgPath, 'package.json');
-  const peerDeps = existsSync(pkgJsonPath)
-    ? Object.keys(JSON.parse(readFileSync(pkgJsonPath, 'utf8')).peerDependencies ?? {})
-    : [];
+  const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : {};
+  const peerDeps = Object.keys(pkgJson.peerDependencies ?? {});
 
   const sharedOptions = {
     entryPoints: [srcPath],
@@ -54,6 +54,10 @@ export async function buildPackage(pkgName) {
     minify: true,
     target: 'es2022',
     external: ['@zenith/*', ...peerDeps],
+    define: {
+      __ZENITH_PKG_VERSION__: JSON.stringify(pkgJson.version ?? '1.4.0'),
+      ...(process.env.NODE_ENV === 'production' ? { __ZENITH_DEV__: 'false' } : {}),
+    },
   };
 
   // ESM Build
@@ -89,7 +93,6 @@ export async function buildPackage(pkgName) {
   // `index.cjs` into `dist` would contradict their exports map and ship dead
   // bytes. Skip the CJS build for such packages; existing dual packages keep
   // emitting `.cjs` unchanged.
-  const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : null;
   const rootExport = pkgJson?.exports?.['.'];
   const declaresCjs =
     (rootExport && typeof rootExport === 'object' && rootExport.require) ||
@@ -99,7 +102,10 @@ export async function buildPackage(pkgName) {
       ...sharedOptions,
       outfile: join(outDir, 'index.cjs'),
       format: 'cjs',
-      define: { 'import.meta': 'undefined' },
+      define: {
+        ...sharedOptions.define,
+        'import.meta': 'undefined',
+      },
     });
   }
 
@@ -122,6 +128,42 @@ export async function buildPackage(pkgName) {
       outfile: join(outDir, `${name}.js`),
       format: 'esm',
     });
+
+    // #149: Browser IIFE bundle (window.Zenith) + external sourcemap + SRI
+    if (name === 'browser') {
+      const iifeOut = join(outDir, 'browser.global.js');
+      const workspaceSourcePlugin = {
+        name: 'zenith-workspace-src',
+        setup(b) {
+          b.onResolve({ filter: /^@zenith\// }, (args) => {
+            const sub = args.path.slice('@zenith/'.length);
+            const parts = sub.split('/');
+            const slug = parts[0];
+            const rest = parts.slice(1).join('/') || 'index';
+            const candidate = resolve('./packages', slug, 'src', `${rest}.ts`);
+            if (existsSync(candidate)) {
+              return { path: candidate };
+            }
+            return null;
+          });
+        },
+      };
+      await build({
+        entryPoints: [subEntry],
+        bundle: true,
+        outfile: iifeOut,
+        format: 'iife',
+        globalName: 'Zenith',
+        platform: 'browser',
+        target: 'es2022',
+        minify: true,
+        sourcemap: 'external',
+        plugins: [workspaceSourcePlugin],
+      });
+      const bytes = readFileSync(iifeOut);
+      const sri = 'sha384-' + createHash('sha384').update(bytes).digest('base64');
+      writeFileSync(`${iifeOut}.sri`, `${sri}\n`, 'utf8');
+    }
   }
 
   // Type declarations via tsc
@@ -150,4 +192,11 @@ export async function buildPackage(pkgName) {
 
   console.log(`✅ @zenith/${pkgName} built successfully`);
   return true;
+}
+
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
+  const pkg = process.argv[2];
+  if (pkg) {
+    await buildPackage(pkg);
+  }
 }

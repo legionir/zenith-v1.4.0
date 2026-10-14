@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -51,12 +52,11 @@
     "access": "public",
     "provenance": true
   },
-  "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.11.0"
-  },
   "dependencies": {
     "@zenith/cache": "1.5.0",
     "@zenith/errors": "1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
   }
 }

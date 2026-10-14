@@ -2,10 +2,10 @@
  * @zenith/http - Advanced HTTP integration
  */
 
-export * from './http';
 export {
   http,
   request,
+  request as httpRequest,
   setHttpConfig,
   getHttpConfig,
   addRequestInterceptor,
@@ -15,5 +15,33 @@ export {
   clearCache,
   cancelRequest,
   cancelAllRequests,
+  mockHttp,
+  createRealtime,
+  createWebSocket,
+  createSSE,
+  httpRequestOptions,
+  HTTP_REQUEST_OPTIONS_DEFAULTS,
+  httpRequestOptionsSchema,
+  resolveHttpRequestOptions,
+  retryConfigOptions,
+  RETRY_CONFIG_DEFAULTS,
+  retryConfigSchema,
+  resolveRetryConfig,
+  cacheConfigOptions,
+  CACHE_CONFIG_DEFAULTS,
+  cacheConfigSchema,
+  resolveCacheConfig,
+  zenithHttpOptionsSchema,
 } from './http';
-export type { HttpRequestOptions, HttpResponse, HttpError, RetryConfig, CacheConfig } from './http';
+export type {
+  HttpRequestOptions,
+  ZenithHttpOptions,
+  HttpProgressEvent,
+  HttpResponse,
+  HttpError,
+  RetryConfig,
+  CacheConfig,
+  RealtimeStatus,
+  RealtimeOptions,
+  RealtimeClient,
+} from './http';

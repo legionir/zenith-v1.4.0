@@ -232,7 +232,7 @@ export const DEFAULTS = defineDefaults({ ttl: 0, maxSize: 100 });
 |---|---|---|---|
 | `initAuth` / `initEventDelegation` / `initDevTools` | `init*` | `configureAuth`+`start` / `install` | #118 |
 | `configureX` (auth/scheduler/cache/analytics/componentCache) | `configure*` | نگه‌داشته (تنظیم گزینه، نه راه‌اندازی) — رفتار مجاز | — |
-| `setupSW` | `setup*` | `install`/`start` | #118 |
+| `setupSW` / `setupKillSwitchSW` | `setup*` | `install`/`start` | #118 |
 | `loadComponent` / `loadComponents` / `loadPreloadedState` / `startFromSSR` | `load*/start*` | `install`/`hydrate` | #118 |
 | `installPrefetch` / `installPopstateListener` / `installDOMGlobalGetters` | `install*` | سازگار با `install` — نگه‌داشته | — |
 

@@ -18,7 +18,36 @@
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { validateProjectName } from './validate-project-name';
+
+declare const __ZENITH_PKG_VERSION__: string | undefined;
+
+export function getCliVersion(): string {
+  if (typeof __ZENITH_PKG_VERSION__ === 'string' && __ZENITH_PKG_VERSION__.length > 0) {
+    return __ZENITH_PKG_VERSION__;
+  }
+  const candidates: string[] = [];
+  try {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    candidates.push(path.join(here, '..', 'package.json'));
+  } catch {}
+  candidates.push(path.join(process.cwd(), 'packages', 'cli', 'package.json'));
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const parsed = JSON.parse(fs.readFileSync(candidate, 'utf8')) as {
+          name?: string;
+          version?: string;
+        };
+        if (parsed.version && (!parsed.name || parsed.name === '@zenith/cli')) {
+          return parsed.version;
+        }
+      }
+    } catch {}
+  }
+  return '1.4.0';
+}
 import {
   indexHtmlTemplate,
   mainTsTemplate,
@@ -35,6 +64,7 @@ import {
   pwaViteConfigTemplate,
   pwaMainTsTemplate,
   pwaReadmeTemplate,
+  getTemplateManifest,
 } from './templates';
 import { runCheck } from './check';
 import { runLighthouseAudit, printLighthouseResult } from './lighthouse';
@@ -66,7 +96,7 @@ function normalizeFilePath(name: string): string {
 
 const program = new Command();
 
-program.name('zenith').description('CLI for Zenith HTML-First Framework').version('0.1.0');
+program.name('zenith').description('CLI for Zenith HTML-First Framework').version(getCliVersion());
 
 // ─────────────────────────────────────────────
 // دستور: create <project-name>
@@ -324,21 +354,21 @@ program
     console.log('  action     → src/actions/<name>.ts');
     console.log('');
     console.log('Check rules:');
-    console.log('  Z100  compileAndRender usage (removed for security)');
-    console.log('  Z101  eval() or new Function() in <script>');
-    console.log('  Z200  Deprecated directive');
-    console.log('  Z201  Unknown directive');
-    console.log('  Z300  zen-for without zen-key');
-    console.log('  Z301  zen-text with empty expression');
-    console.log('  Z302  zen-if with empty condition');
-    console.log('  Z400  Expression syntax error');
-    console.log('  Z500  $parent used without property access');
-    console.log('  Z600  zen-route without src');
-    console.log('  Z601  zen-route without path');
-    console.log('  Z700  zen-link without href');
-    console.log('  Z800  Compiler unsupported directive (runtime fallback warning)');
-    console.log('  Z810  zen-virtual-list without zen-dynamic-heights (info)');
-    console.log('  Z820  i18n function used without context registration (info)');
+    console.log('  ZEN-9010  compileAndRender usage (removed for security)');
+    console.log('  ZEN-9011  eval() or new Function() in <script>');
+    console.log('  ZEN-9020  Deprecated directive');
+    console.log('  ZEN-9021  Unknown directive');
+    console.log('  ZEN-9030  zen-for without zen-key');
+    console.log('  ZEN-9031  zen-text with empty expression');
+    console.log('  ZEN-9032  zen-if with empty condition');
+    console.log('  ZEN-9040  Expression syntax error');
+    console.log('  ZEN-9050  $parent used without property access');
+    console.log('  ZEN-9060  zen-route without src');
+    console.log('  ZEN-9061  zen-route without path');
+    console.log('  ZEN-9070  zen-link without href');
+    console.log('  ZEN-9080  Compiler unsupported directive (runtime fallback warning)');
+    console.log('  ZEN-9081  zen-virtual-list without zen-dynamic-heights (info)');
+    console.log('  ZEN-9082  i18n function used without context registration (info)');
   });
 
 // ─────────────────────────────────────────────
@@ -391,6 +421,112 @@ program
         process.exit(result.passed ? 0 : 1);
       } catch (e) {
         console.error(`[Zenith Lighthouse] Error: ${(e as Error).message}`);
+        process.exit(2);
+      }
+    },
+  );
+
+// ─────────────────────────────────────────────
+// #158: create-zenith scaffold preview (data-driven templates)
+// ─────────────────────────────────────────────
+program
+  .command('create-zenith-preview [name]')
+  .description('#158: پیش‌نمایش جادوگر npm create zenith بدون نوشتن روی دیسک')
+  .option('-t, --template <kind>', 'نوع قالب (spa|ssr|pwa|dashboard|minimal)', 'spa')
+  .action((name: string | undefined, opts: { template: string }) => {
+    try {
+      const projectName = name || 'my-zenith-app';
+      validateProjectName(projectName);
+      const manifest = getTemplateManifest(
+        projectName,
+        opts.template as 'spa' | 'ssr' | 'pwa' | 'dashboard' | 'minimal',
+      );
+      console.log(`\n📦  create-zenith — ${projectName} [template: ${opts.template}]\n`);
+      for (const relPath of Object.keys(manifest)) {
+        console.log(`   ✔  ${relPath}`);
+      }
+      console.log('\n✅ جادوگر ساخت پروژه آماده است.\n');
+    } catch (e) {
+      console.error(`[create-zenith] خطا: ${(e as Error).message}`);
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────
+// #94: zenith telemetry — opt-in، پیش‌فرض خاموش
+// ─────────────────────────────────────────────
+program
+  .command('telemetry [action]')
+  .description('#94: مدیریت telemetry اختیاری (on | off | status) — پیش‌فرض کاملاً خاموش')
+  .action((action?: string) => {
+    import('./telemetry')
+      .then((m) => (process.exitCode = m.runTelemetry(action)))
+      .catch(() => {
+        console.error('zenith telemetry: خطای داخلی');
+        process.exitCode = 1;
+      });
+  });
+
+// ─────────────────────────────────────────────
+// #163: zenith ssg — prerender ایستای مسیرها
+// ─────────────────────────────────────────────
+program
+  .command('ssg')
+  .description('#163: prerender ایستای مسیرها + sitemap/robots')
+  .requiredOption('-r, --routes <paths...>', 'مسیرهای prerender (فاصله‌جدا)')
+  .option('--routes-file <file>', 'فایل متنی مسیرها (هر خط یک مسیر)')
+  .requiredOption('-t, --template <file>', 'فایل template پروژه (index.html)')
+  .option('-o, --out-dir <dir>', 'پوشهٔ خروجی', 'dist')
+  .option('-c, --concurrency <n>', 'همروندی رندر', '4')
+  .option('--trailing-slash', 'خروجی به‌صورت <route>/index.html', false)
+  .option('--sitemap-host <host>', 'تولید sitemap.xml با hostname')
+  .option('--robots', 'تولید robots.txt', false)
+  .option('--no-fail-on-error', 'ادامه در صورت شکست رندر یک مسیر')
+  .action(
+    async (opts: {
+      routes: string[];
+      routesFile?: string;
+      template: string;
+      outDir: string;
+      concurrency: string;
+      trailingSlash: boolean;
+      sitemapHost?: string;
+      robots: boolean;
+      failOnError: boolean;
+    }) => {
+      try {
+        const { runSsg } = await import('./ssg');
+        let routes = [...opts.routes];
+        if (opts.routesFile && fs.existsSync(opts.routesFile)) {
+          routes = routes.concat(
+            fs
+              .readFileSync(opts.routesFile, 'utf8')
+              .split(/\r?\n/)
+              .map((l: string) => l.trim())
+              .filter((l: string) => l.length > 0),
+          );
+        }
+        const result = await runSsg({
+          routes,
+          templatePath: opts.template,
+          outDir: opts.outDir,
+          concurrency: parseInt(opts.concurrency, 10),
+          trailingSlash: opts.trailingSlash,
+          sitemapHost: opts.sitemapHost,
+          robots: opts.robots,
+          failOnError: opts.failOnError,
+        });
+        console.log(
+          `\n✅ zenith ssg: ${result.rendered} صفحه در ${result.durationMs}ms رندر شد → ${opts.outDir}`,
+        );
+        for (const f of result.written) console.log(`   • ${f}`);
+        if (result.failed.length > 0) {
+          console.warn(`⚠️  ${result.failed.length} مسیر شکست خورد:`);
+          for (const f of result.failed) console.warn(`   ✗ ${f.route}: ${f.error}`);
+        }
+        process.exit(result.failed.length > 0 && opts.failOnError ? 1 : 0);
+      } catch (e) {
+        console.error(`[zenith ssg] خطا: ${(e as Error).message}`);
         process.exit(2);
       }
     },

@@ -120,7 +120,7 @@ const STRUCTURAL_CONFLICT_MATRIX: Array<[string, string]> = [
   ['zen-show', 'zen-else'],
 ];
 
-const COMPILABLE_DIRECTIVES = new Set([
+export const COMPILABLE_DIRECTIVES = new Set([
   'zen-text',
   'zen-if',
   'zen-show',
@@ -141,7 +141,7 @@ const COMPILABLE_DIRECTIVES = new Set([
  * این directiveها روی عنصر حفظ می‌شوند (setAttribute) و runtime walker
  * پس از render() آن‌ها را پردازش می‌کند.
  */
-const RUNTIME_DIRECTIVES = new Set([
+export const RUNTIME_DIRECTIVES = new Set([
   'zen-action',
   'zen-fetch',
   'zen-resource',
@@ -202,18 +202,30 @@ const RUNTIME_DIRECTIVES = new Set([
   'zen-island',
   'zen-memo',
   'zen-virtual',
+  // #138: ۶ دایرکتیو فقط-runtime در walker.ts که اکنون صراحتاً در RUNTIME_DIRECTIVES ثبت شده‌اند
+  'zen-resource-view',
+  'zen-action-button',
+  'zen-auth-view',
+  'zen-router',
+  'zen-button',
+  'zen-if-chain',
 ]);
 
 /**
- * گزینه‌های compile.
+ * گزینه‌های compile (#50: نام یکتای `CompilerOptions`).
  */
-export interface CompileOptions {
+export interface CompilerOptions {
   /**
    * اگر true، در صورت وجود directive پشتیبانی‌نشده خطا پرتاب کند.
    * اگر false (پیش‌فرض)، warning چاپ کند و directive را به runtime بسپارد.
    */
   strict?: boolean;
 }
+
+/**
+ * @deprecated از `CompilerOptions` استفاده کنید (#50: رفع ابهام با `VitePluginCompileOptions`).
+ */
+export type CompileOptions = CompilerOptions;
 
 /**
  * Compile یک رشته‌ی HTML به کد JavaScript.
@@ -224,7 +236,7 @@ export interface CompileOptions {
  */
 export async function compileTemplate(
   html: string,
-  options: CompileOptions = {},
+  options: CompilerOptions = {},
 ): Promise<CompiledTemplate> {
   // Parse HTML با DOMParser (در محیط Node با JSDOM).
   const parser = createParser();
@@ -258,6 +270,10 @@ export async function compileTemplate(
   codeLines.push(
     'function render(root, ctx, effect, signal, sanitizeHTML, state, processChildren, sanitizeHTMLTrusted, evalExpr) {',
   );
+  // #11 (A7): آرایهٔ dispose برای تمام listenerهای تولیدشده — پس از render،
+  // روی root.__zenDispose تابعی قرار می‌گیرد که همهٔ آن‌ها را remove می‌کند
+  // (parity با مسیر runtime zen-model که Cleanup برمی‌گرداند).
+  codeLines.push('  const __disposers = [];');
 
   let varCounter = 0;
 
@@ -464,7 +480,9 @@ export async function compileTemplate(
       );
       codeLines.push(`  });`);
       // event listener for two-way binding — از state (Signal) برای set استفاده کن.
-      codeLines.push(`  ${varName}.addEventListener('input', (e) => {`);
+      // #11 (A7): handler نام‌دار + ثبت در __disposers تا root.__zenDispose بتواند
+      // آن را removeEventListener کند (رفع نشت listenerهای input با mount/unmount مکرر).
+      codeLines.push(`  const __${varName}InputHandler = (e) => {`);
       codeLines.push(
         `    if (state && state.${fieldName} && typeof state.${fieldName}.set === 'function') {`,
       );
@@ -476,7 +494,11 @@ export async function compileTemplate(
         `      console.warn('[Zenith Compiler] zen-model "${dir.value}": state not provided to render(). Two-way binding disabled.');`,
       );
       codeLines.push(`    }`);
-      codeLines.push(`  });`);
+      codeLines.push(`  };`);
+      codeLines.push(`  ${varName}.addEventListener('input', __${varName}InputHandler);`);
+      codeLines.push(
+        `  __disposers.push(() => ${varName}.removeEventListener('input', __${varName}InputHandler));`,
+      );
       return true;
     }
 
@@ -877,6 +899,18 @@ export async function compileTemplate(
     compileNode(child, 'root', 'root');
   }
 
+  // #11 (A7): اتصال dispose سراسری صفحهٔ compile — تمام listenerها/handlerهای
+  // ثبت‌شده در __disposers را آزاد می‌کند (idempotent). سازگاری: render همچنان
+  // root را برمی‌گرداند؛ dispose به‌صورت non-enumerable روی root قرار می‌گیرد.
+  codeLines.push('  try {');
+  codeLines.push(
+    '    Object.defineProperty(root, "__zenDispose", { configurable: true, value: function () {',
+  );
+  codeLines.push('      for (const d of __disposers.splice(0)) {');
+  codeLines.push('        try { d(); } catch (e) { /* teardown best-effort */ }');
+  codeLines.push('      }');
+  codeLines.push('    } });');
+  codeLines.push('  } catch (e) { /* root sealed — dispose unavailable */ }');
   codeLines.push('  return root;');
   codeLines.push('}');
 

@@ -36,17 +36,87 @@ export interface Owner {
   disposed: boolean;
 }
 
+export interface EffectContext {
+  owner: Owner | null;
+  activeEffect: Function | null;
+  // #116: register ممکن است یک Cleanup (`() => void`) برای حذف cleanup از
+  // صف برگرداند. نوع inline است چون state نمی‌تواند shared را import کند
+  // (چرخهٔ DEC-021).
+  activeCleanupRegistration: ((cleanup: () => void) => void | (() => void)) | null;
+}
+
 /**
- * Global state برای Owner فعلی.
+ * #75: Global singleton state keyed via Symbol.for so dual ESM/CJS loads
+ * of @zenith/state share a single reactive tracking context and owner tree.
  */
-let currentOwner: Owner | null = null;
+const STATE_CONTEXT_SYMBOL = Symbol.for('zenith.state.context.v1');
+const STATE_MODULE_TOKEN = {};
+
+interface GlobalStateContextSingleton {
+  currentOwner: Owner | null;
+  effectContextProvider: (() => EffectContext | null) | null;
+  moduleLevelContext: EffectContext;
+  moduleTokens?: Set<object>;
+  warnedDuplicate?: boolean;
+  onDuplicateHandler?: (count: number) => void;
+}
+
+function getStateContextSingleton(): GlobalStateContextSingleton {
+  const g = globalThis as unknown as Record<symbol, GlobalStateContextSingleton | undefined>;
+  let instance = g[STATE_CONTEXT_SYMBOL];
+  if (!instance) {
+    instance = {
+      currentOwner: null,
+      effectContextProvider: null,
+      moduleLevelContext: {
+        owner: null,
+        activeEffect: null,
+        activeCleanupRegistration: null,
+      },
+    };
+    g[STATE_CONTEXT_SYMBOL] = instance;
+  }
+  return instance;
+}
+
+/**
+ * #34: Register a module instance of @zenith/state and emit a one-time ZEN-0301
+ * warning if more than one module copy is loaded in the same process.
+ */
+export function registerStateContextToken(
+  token: object = STATE_MODULE_TOKEN,
+  onDuplicate?: (count: number) => void,
+): number {
+  const instance = getStateContextSingleton();
+  instance.moduleTokens ??= new Set([STATE_MODULE_TOKEN]);
+  if (onDuplicate) {
+    instance.onDuplicateHandler = onDuplicate;
+  }
+  instance.moduleTokens.add(token);
+  const count = instance.moduleTokens.size;
+  if (count > 1 && !instance.warnedDuplicate) {
+    instance.warnedDuplicate = true;
+    (onDuplicate ?? instance.onDuplicateHandler)?.(count);
+  }
+  return count;
+}
+
+/**
+ * #34: Reset duplicate-instance tracking (testing utility).
+ */
+export function resetStateInstanceTrackingForTesting(): void {
+  const instance = getStateContextSingleton();
+  instance.moduleTokens = new Set([STATE_MODULE_TOKEN]);
+  instance.warnedDuplicate = false;
+}
 
 /**
  * Create a new owner.
  */
 export function createOwner(parent?: Owner | null): Owner {
+  const singleton = getStateContextSingleton();
   const owner: Owner = {
-    parent: parent ?? currentOwner,
+    parent: parent ?? singleton.currentOwner,
     children: new Set(),
     cleanup: new Set(),
     disposed: false,
@@ -99,8 +169,9 @@ export function disposeOwner(owner: Owner): void {
  * fn بعداً اجرا شده باشد، حذف no-op است.
  */
 export function onCleanup(fn: () => void): () => void {
-  if (currentOwner) {
-    const owner = currentOwner;
+  const singleton = getStateContextSingleton();
+  if (singleton.currentOwner) {
+    const owner = singleton.currentOwner;
     owner.cleanup.add(fn);
     let removed = false;
     return () => {
@@ -116,62 +187,22 @@ export function onCleanup(fn: () => void): () => void {
  * Get current active owner.
  */
 export function getOwner(): Owner | null {
-  return currentOwner;
+  return getStateContextSingleton().currentOwner;
 }
 
 /**
  * Set current active owner.
  */
 export function setOwner(owner: Owner | null): void {
-  currentOwner = owner;
+  getStateContextSingleton().currentOwner = owner;
 }
-
-/**
- * EffectContext شامل activeEffect و activeCleanupRegistration.
- *
- * BUG-22 FIX (v1.2.2): قبلاً این دو به‌صورت متغیرهای ماژول-level ذخیره می‌شدند
- * که در SSR concurrent بین درخواست‌ها share می‌شدند (race condition). حالا یک
- * provider mechanism وجود دارد: SSR می‌تواند setEffectContextStore() را با یک
- * تابع فراخوانی کند که در هر call، EffectContext مخصوص همان async context
- * (via AsyncLocalStorage) را برمی‌گرداند.
- */
-export interface EffectContext {
-  owner: Owner | null;
-  activeEffect: Function | null;
-  // #116: register ممکن است یک Cleanup (`() => void`) برای حذف cleanup از
-  // صف برگرداند. نوع inline است چون state نمی‌تواند shared را import کند
-  // (چرخهٔ DEC-021).
-  activeCleanupRegistration: ((cleanup: () => void) => void | (() => void)) | null;
-}
-
-/**
- * Provider function که EffectContext فعلی (مربوط به async context جاری) را
- * برمی‌گرداند. در SSR توسط renderToString به یک تابع تنظیم می‌شود که از
- * domAls.getStore() می‌خواند. در client-side، null باقی می‌ماند.
- */
-let effectContextProvider: (() => EffectContext | null) | null = null;
 
 /**
  * تنظیم provider تابع برای EffectContext.
- *
- * SSR باید این تابع را با یک callback فراخوانی کند که در هر call،
- * EffectContext مربوط به async context فعلی (via AsyncLocalStorage) را
- * برمی‌گرداند. این کار از race condition در SSR concurrent جلوگیری می‌کند.
- *
- * @param provider تابعی که EffectContext برمی‌گرداند یا null برای غیرفعال‌سازی.
  */
 export function setEffectContextStore(provider: (() => EffectContext | null) | null): void {
-  effectContextProvider = provider;
+  getStateContextSingleton().effectContextProvider = provider;
 }
-
-/**
- * Fallback ماژول-level برای محیط‌های بدون provider (مثل client-side).
- */
-const moduleLevelContext: EffectContext = {
-  owner: null,
-  activeEffect: null,
-  activeCleanupRegistration: null,
-};
 
 /**
  * دریافت EffectContext فعلی. اگر provider تنظیم شده باشد و مقدار غیر-null
@@ -179,11 +210,12 @@ const moduleLevelContext: EffectContext = {
  * برمی‌گردیم.
  */
 function _getMutableContext(): EffectContext {
-  if (effectContextProvider) {
-    const ctx = effectContextProvider();
+  const singleton = getStateContextSingleton();
+  if (singleton.effectContextProvider) {
+    const ctx = singleton.effectContextProvider();
     if (ctx) return ctx;
   }
-  return moduleLevelContext;
+  return singleton.moduleLevelContext;
 }
 
 export { _getMutableContext };

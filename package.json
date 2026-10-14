@@ -28,7 +28,16 @@
     "error-hygiene": "node scripts/error-hygiene.mjs",
     "cleanup-hygiene": "node scripts/cleanup-hygiene.mjs",
     "attribute-grammar": "node scripts/attribute-grammar.mjs",
-    "peer:single-instance": "node scripts/peer-single-instance.mjs"
+    "traceability": "node scripts/check-traceability.mjs",
+    "peer:single-instance": "node scripts/peer-single-instance.mjs",
+    "new:package": "node scripts/new-package.mjs",
+    "test:leak": "vitest run packages/runtime/test/memory-leak-harness.test.ts",
+    "pack:audit": "node scripts/pack-audit.mjs",
+    "bench": "node scripts/bench.mjs",
+    "bench:ci": "node scripts/benchmark-ci.mjs",
+    "make:sbom": "node scripts/generate-sbom.mjs",
+    "license:check": "node scripts/check-licenses.mjs",
+    "docs:api": "node scripts/generate-api-docs.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -50,5 +59,13 @@
   },
   "engines": {
     "node": ">=18.19"
-  }
+  },
+  "browserslist": [
+    "Chrome >= 109",
+    "Edge >= 109",
+    "Firefox >= 115",
+    "Safari >= 16.4",
+    "iOS >= 16.4",
+    "not dead"
+  ]
 }

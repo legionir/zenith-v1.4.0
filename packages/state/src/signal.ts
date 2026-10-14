@@ -18,7 +18,7 @@
 //   - Performance به‌طور چشمگیری بهبود می‌یابد.
 
 import { scheduleEffect } from '@zenith/scheduler';
-import { registerSignal, recordStateChange } from './registry';
+import { notifySignalCreate, notifySignalChange, notifySignalDispose } from './observer';
 // Bug Fix #2: برای خواندن priority ذخیره‌شده روی هر Effect.
 import { getEffectPriority } from './effect';
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
@@ -27,7 +27,7 @@ import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup }
 // #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
 // بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
 import { ZENITH_READABLE } from './readable';
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError } from '@zenith/errors';
 
 /**
  * کلاس Signal: قلب تپنده‌ی سیستم Reactivity.
@@ -45,10 +45,8 @@ export class Signal<T> {
   constructor(initialValue: T, options?: { readonly?: boolean }) {
     this._value = initialValue;
     this._readonly = options?.readonly ?? false;
-    // ── فاز ۱۰: ثبت در State Registry (برای DevTools) ──
-    // این کار به DevTools اجازه می‌دهد این Signal را بازرسی کند.
-    // اگر DevTools فعال نباشد، no-op است.
-    registerSignal(this);
+    // ── #147 / #87: اطلاع به SignalObserver (@zenith/devtools-core) + رجیستری میراث ──
+    notifySignalCreate(this);
   }
 
   /**
@@ -103,7 +101,7 @@ export class Signal<T> {
       // #115: خطای programmer با کد ZEN-907 (misuse عمومی API).
       throw developerError(
         'Cannot set a readonly signal. Use writable signals for mutable state.',
-        ErrorCode.INTERNAL_DEVELOPER_ERROR,
+        'ZEN-907',
         {
           suggestion:
             'برای مقدار قابل‌تغییر signal writable بسازید؛ برای مقدار مشتق از computed استفاده کنید.',
@@ -119,8 +117,8 @@ export class Signal<T> {
 
     this._value = newValue;
 
-    // ثبت تغییر در Registry (اگر DevTools فعال باشد).
-    recordStateChange(this, oldValue, newValue);
+    // #147 / #87: اطلاع به SignalObserver + ثبت تغییر در رجیستری میراث
+    notifySignalChange(this, oldValue, newValue);
 
     // ── فاز ۷: Scheduler ──
     // به‌جای اجرای مستقیم (triggerEffects)، Effectها را به Scheduler می‌سپاریم.
@@ -177,14 +175,21 @@ export class Signal<T> {
     // BUG-07 FIX: skip notification if no real change occurred (Object.is).
     if (Object.is(oldValue, next)) return;
     this._value = next;
-    // ── فاز ۱۰: ثبت تغییر در Registry (برای DevTools Timeline) ──
-    // BUG-01 FIX: pass oldValue (captured before assignment) instead of this._value.
-    recordStateChange(this, oldValue, next);
+    // ── فاز ۱۰ / #147: اطلاع به SignalObserver + رجیستری میراث ──
+    notifySignalChange(this, oldValue, next);
     // ── فاز ۷: Scheduler ──
     this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
       scheduleEffect(effectFn as () => void, priority);
     });
+  }
+
+  /**
+   * #147: آزادسازی صریح سیگنال و اطلاع به SignalObserver.
+   */
+  dispose(): void {
+    this._subscribers.clear();
+    notifySignalDispose(this);
   }
 
   // FEATURE (v1.3.0): signal.peek() — read value without registering a dependency.
