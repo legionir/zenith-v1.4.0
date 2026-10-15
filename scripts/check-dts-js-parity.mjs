@@ -9,7 +9,8 @@
  *
  *   1. the exports of the `types` entry, via the TypeScript compiler API (checker),
  *   2. the keys of the ESM entry (`exports["."].import`), loaded with `import()`,
- *   3. the keys of the CJS entry (`exports["."].require`), loaded with `require()` (if declared).
+ *   3. the keys of the CJS entry (`exports["."].require`), evaluated with stubbed externals (if declared).
+ * Flat and nested (`import: { types, default }`) condition shapes are both understood.
  *
  * Any missing or extra name exits 1 and is listed. Run after `npm run build`.
  * Packages that touch the DOM at import time get a minimal jsdom window installed first.
@@ -19,6 +20,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { conditionTarget } from './lib/exports-shape.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(HERE, '..');
@@ -98,21 +100,24 @@ function diff(expected, actual) {
 export async function checkPackageParity(pkgDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8'));
   const entry = manifest.exports?.['.'];
-  if (!entry || typeof entry !== 'object' || !entry.types) return null; // not a library entry
+  const typesTarget = conditionTarget(entry, 'types');
+  const esmTarget = conditionTarget(entry, 'import');
+  const cjsTarget = conditionTarget(entry, 'require');
+  if (!typesTarget) return null; // not a library entry
   const abs = (rel) => path.resolve(pkgDir, rel);
   // A package whose `bin` IS its entry is an executable (e.g. @zenith/cli): importing it runs
   // the program instead of exposing an API, so there is nothing to compare at runtime.
   const bins =
     typeof manifest.bin === 'string' ? [manifest.bin] : Object.values(manifest.bin ?? {});
-  if (bins.some((b) => entry.import && abs(b) === abs(entry.import))) return null;
+  if (bins.some((b) => esmTarget && abs(b) === abs(esmTarget))) return null;
   const problems = [];
-  const dts = abs(entry.types);
+  const dts = abs(typesTarget);
   if (!fs.existsSync(dts)) return null; // not built
   const expected = dtsValueExports(dts);
 
   const targets = [];
-  if (entry.import) targets.push(['ESM', abs(entry.import)]);
-  if (entry.require) targets.push(['CJS', abs(entry.require)]);
+  if (esmTarget) targets.push(['ESM', abs(esmTarget)]);
+  if (cjsTarget) targets.push(['CJS', abs(cjsTarget)]);
   for (const [format, file] of targets) {
     if (!fs.existsSync(file)) {
       problems.push({

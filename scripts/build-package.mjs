@@ -1,8 +1,12 @@
 import { build } from 'esbuild';
-import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { rollup } from 'rollup';
+import { dts } from 'rollup-plugin-dts';
+import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
+import { conditionTarget, distName, isDualEntry } from './lib/exports-shape.mjs';
+import { collectTypeOnlyReexports, restoreTypeOnlyReexports } from './lib/dts-bundle.mjs';
 
 /**
  * Packages that run on a Node.js host rather than in the browser.
@@ -94,9 +98,7 @@ export async function buildPackage(pkgName) {
   // bytes. Skip the CJS build for such packages; existing dual packages keep
   // emitting `.cjs` unchanged.
   const rootExport = pkgJson?.exports?.['.'];
-  const declaresCjs =
-    (rootExport && typeof rootExport === 'object' && rootExport.require) ||
-    String(pkgJson?.main ?? '').endsWith('.cjs');
+  const declaresCjs = isDualEntry(rootExport) || String(pkgJson?.main ?? '').endsWith('.cjs');
   if (declaresCjs) {
     await build({
       ...sharedOptions,
@@ -117,7 +119,7 @@ export async function buildPackage(pkgName) {
     ([key]) => key.startsWith('./') && key !== './package.json',
   );
   for (const [key, val] of subpaths) {
-    const importTarget = val && typeof val === 'object' ? val.import : val;
+    const importTarget = conditionTarget(val, 'import');
     if (typeof importTarget !== 'string' || !importTarget.startsWith('./dist/')) continue;
     const name = key.slice(2); // './zod' → 'zod'
     const subEntry = join(pkgPath, 'src', `${name}.ts`);
@@ -168,12 +170,27 @@ export async function buildPackage(pkgName) {
     }
   }
 
-  // Type declarations via tsc
+  // Type declarations (#74): tsc emits per-module declarations into a scratch dir, then every
+  // public entry is bundled into ONE self-contained file with rollup-plugin-dts. Per-module
+  // `.d.ts` files import each other without extensions (`./async`), which Node16/NodeNext
+  // consumers cannot resolve (arethetypeswrong "InternalResolutionError"). Dual packages also
+  // get a byte-identical `.d.cts` so `require` consumers resolve CJS-flavoured types.
   const tsconfigPath = join(pkgPath, 'tsconfig.json');
   if (existsSync(tsconfigPath)) {
+    const scratch = join(outDir, '.dts');
     const result = spawnSync(
       'npx',
-      ['tsc', '-p', tsconfigPath, '--declaration', '--emitDeclarationOnly', '--outDir', outDir],
+      [
+        'tsc',
+        '-p',
+        tsconfigPath,
+        '--declaration',
+        '--declarationMap',
+        'false',
+        '--emitDeclarationOnly',
+        '--outDir',
+        scratch,
+      ],
       {
         stdio: 'pipe',
         shell: true,
@@ -190,6 +207,39 @@ export async function buildPackage(pkgName) {
         `tsc failed to emit declarations for @zenith/${pkgName}` + (details ? `:\n${details}` : ''),
       );
     }
+
+    const entries = new Map(); // dist-relative name → needs .d.cts?
+    for (const [key, val] of Object.entries(pkgJson?.exports ?? {})) {
+      if (key === './package.json') continue;
+      const name = distName(conditionTarget(val, 'types'));
+      if (name) entries.set(name, isDualEntry(val));
+    }
+    if (!entries.has('index')) entries.set('index', declaresCjs);
+    const typeOnly = collectTypeOnlyReexports(scratch);
+    for (const [name, dual] of entries) {
+      const input = join(scratch, `${name}.d.ts`);
+      if (!existsSync(input)) {
+        throw new Error(
+          `@zenith/${pkgName}: tsc did not emit ${input} for exports entry "${name}"`,
+        );
+      }
+      const bundle = await rollup({
+        input,
+        // workspace + third-party + node: imports stay imports; only the package's own files merge
+        external: (id) => !id.startsWith('.') && !id.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(id),
+        plugins: [dts()],
+        onwarn(warning, defaultHandler) {
+          if (warning.code === 'UNRESOLVED_IMPORT') return;
+          defaultHandler(warning);
+        },
+      });
+      const target = join(outDir, `${name}.d.ts`);
+      const { output } = await bundle.generate({ format: 'es' });
+      await bundle.close();
+      writeFileSync(target, restoreTypeOnlyReexports(output[0].code, typeOnly));
+      if (dual) copyFileSync(target, join(outDir, `${name}.d.cts`));
+    }
+    rmSync(scratch, { recursive: true, force: true });
   }
 
   console.log(`✅ @zenith/${pkgName} built successfully`);

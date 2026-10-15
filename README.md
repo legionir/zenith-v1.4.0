@@ -164,6 +164,7 @@ CI کامل (۱۱ job موازی: lint/format/typecheck/unit+coverage/audit/deps
 ## 🌐 سازگاری مرورگرها و Node.js (`browserslist` — `#32`)
 
 - **Node.js**: نسخه‌های `>= 18.19`، `20` (LTS) و `22` (Active LTS) در ماتریس CI بیلد و تست می‌شوند.
+  - مصرف **ESM** (`import`) از `18.19` پشتیبانی می‌شود. مصرف **CommonJS** (`require`) به `require(esm)` نیاز دارد (Node `>= 20.19` یا `>= 22.12`)، چون پکیج‌های ESM-only لایهٔ پایه (logger، cache، schema …) را بارگذاری می‌کند؛ روی Node قدیمی‌تر خطای `ERR_REQUIRE_ESM` می‌گیرید ([DEC-034](docs/decisions/DEC-034-exports-shape-dts-bundle-require-esm.md)).
 - **مرورگرهای پشتیبانی‌شده (`browserslist`)**:
   - `Chrome >= 109` · `Edge >= 109`
   - `Firefox >= 115`

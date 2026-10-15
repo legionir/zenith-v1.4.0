@@ -262,6 +262,12 @@ jobs:
       # #74: verify files allowlist, ATTW types ordering, and npm pack --dry-run tarball contents
       - name: Audit package tarballs & types resolution
         run: node scripts/pack-audit.mjs --pack
+      # #74: arethetypeswrong on the packed tarballs of ALL packages (every resolution mode).
+      - name: attw (are the types wrong?)
+        run: node scripts/attw-all.mjs
+      # #74: install every tarball into a clean project and import each entry as ESM and CJS.
+      - name: Install tarballs & import (ESM + CJS)
+        run: node scripts/install-import-check.mjs
       # #140: the .d.ts (tsc) and the JS bundles (esbuild) are built independently — every
       # package's value exports must be identical across .d.ts, ESM and CJS.
       - name: .d.ts ↔ ESM ↔ CJS export parity

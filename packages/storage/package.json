@@ -9,11 +9,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./signal": {
       "types": "./dist/signal.d.ts",
-      "import": "./dist/signal.js"
+      "import": "./dist/signal.js",
+      "default": "./dist/signal.js"
     },
     "./package.json": "./package.json"
   },
