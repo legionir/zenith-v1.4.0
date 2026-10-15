@@ -266,6 +266,22 @@ export function extractListenerOptions(modifiers: string[]): AddEventListenerOpt
   };
 }
 
+const _passivePreventWarned = new Set<string>();
+
+function warnPassivePreventOnce(eventType: string): void {
+  if (_passivePreventWarned.has(eventType)) return;
+  _passivePreventWarned.add(eventType);
+  logger.warn(
+    `[Zenith] ".prevent" is ignored for "${eventType}": the listener is passive ` +
+      `(scroll-blocking events and ".passive" bindings can never call preventDefault()).`,
+  );
+}
+
+/** For tests/HMR: forget which passive+prevent warnings were already printed. */
+export function resetPassiveWarnings(): void {
+  _passivePreventWarned.clear();
+}
+
 /**
  * اعمال modifier های رفتاری روی رویداد.
  *
@@ -289,6 +305,7 @@ export function applyBehaviorModifiers(
   event: Event,
   modifiers: string[],
   element?: HTMLElement,
+  listenerIsPassive = false,
 ): boolean {
   // ── ۱. `.self` — فقط اگر event.target خود element باشد ──
   // مفید برای جلوگیری از اجرای اکشن وقتی رویداد از یک فرزند bubble می‌شود.
@@ -299,7 +316,15 @@ export function applyBehaviorModifiers(
   }
 
   // ── ۲. modifier های رفتاری اصلی ──
-  if (modifiers.includes('prevent')) event.preventDefault();
+  if (modifiers.includes('prevent')) {
+    // #136: a passive listener promises never to call preventDefault() — the platform ignores
+    // the call and logs a console error, so skip it and tell the author once per event type.
+    if (listenerIsPassive || modifiers.includes('passive')) {
+      warnPassivePreventOnce(event.type);
+    } else {
+      event.preventDefault();
+    }
+  }
   if (modifiers.includes('stop')) event.stopPropagation();
   if (modifiers.includes('immediate')) event.stopImmediatePropagation();
 
@@ -369,6 +394,26 @@ export const DELEGATED_EVENTS = [
   'wheel',
   'pointerdown',
   'pointerup',
+  // #136: scroll-blocking events — registered passive at the delegation root.
+  'touchstart',
+  'touchmove',
+  'touchend',
+  'scroll',
 ] as const;
+
+/**
+ * #136: events the delegation root listens to as `passive: true` (the platform's own default
+ * for document-level wheel/touch listeners, and what keeps scrolling smooth). `preventDefault()`
+ * is a no-op there, so `.prevent` on these events is ignored with a one-time warning.
+ */
+export const PASSIVE_BY_DEFAULT_EVENTS: ReadonlySet<string> = new Set([
+  'wheel',
+  'touchstart',
+  'touchmove',
+  'scroll',
+]);
+
+/** #136: events that do not bubble — observed through a capture-phase root listener only. */
+export const NON_BUBBLING_EVENTS: ReadonlySet<string> = new Set(['scroll']);
 
 export type DelegatedEventName = (typeof DELEGATED_EVENTS)[number];

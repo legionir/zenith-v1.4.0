@@ -29,6 +29,16 @@ npm run traceability     # بررسی نگاشت شناسه‌های BUG-*/IMP-*
 npm run build            # بیلد کامل تمام پکیج‌ها به ترتیب توپولوژیک
 ```
 
+### Hook پیش از commit (`#37`)
+
+با `npm install` (اسکریپت `prepare` ⇒ `husky`) یک hook پیش از commit فعال می‌شود که با
+`lint-staged` فقط روی **فایل‌های staged**، ESLint (`--fix --quiet`) و Prettier را اجرا می‌کند؛
+commit حاوی خطای lint رد می‌شود و زمان معمول hook کمتر از ۱۰ ثانیه است.
+typecheck و تست‌ها عمداً در hook نیستند (سنگین‌اند) و در CI اجرا می‌شوند.
+
+- دور زدن موقت: `git commit --no-verify` یا `HUSKY=0 git commit …`.
+- **CI همچنان گیت اصلی است**: دور زدن hook از اجرای lint/format در CI جلوگیری نمی‌کند.
+
 ---
 
 ## ۲. قراردادهای معماری و کدنویسی

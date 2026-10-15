@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# #37 — pre-commit: ESLint + Prettier on staged files only (via lint-staged).
+# Bypass locally with `git commit --no-verify` (or HUSKY=0); CI remains the real gate.
+npx --no-install lint-staged

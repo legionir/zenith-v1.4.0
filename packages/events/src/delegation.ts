@@ -49,6 +49,8 @@ import {
   checkKeyboardModifiers,
   applyBehaviorModifiers,
   DELEGATED_EVENTS,
+  PASSIVE_BY_DEFAULT_EVENTS,
+  NON_BUBBLING_EVENTS,
   type DelegatedEventName,
 } from './modifiers';
 // FIX (v1.2.7): applyTimingModifiers — wraps the action invocation with
@@ -256,6 +258,13 @@ function computeBindingSignature(el: HTMLElement): string {
  * `signature` برای invalidation استفاده می‌شود. `byEvent` نتیجه‌ی parse
  * را برای هر eventName cache می‌کند (می‌تواند `null` باشد = no binding).
  */
+/**
+ * #136: which root listener is dispatching. `.capture` bindings are handled by the capture-phase
+ * listener (before descendants' own listeners), every other binding by the bubble-phase one;
+ * non-bubbling events (scroll) use a single capture listener for both (`any`).
+ */
+type DelegationPhase = 'capture' | 'bubble' | 'any';
+
 interface CachedBinding {
   signature: string;
   byEvent: Map<string, BindingMatch | null>;
@@ -304,7 +313,11 @@ export function clearBindingCache(): void {
  * @param el        عنصری که target.closest('[zen-action…]') روی آن applica شده.
  * @param eventName نام رویداد فعلی (مثلاً 'click', 'keydown').
  */
-function findBinding(el: HTMLElement, eventName: string): BindingMatch | null {
+function findBinding(
+  el: HTMLElement,
+  eventName: string,
+  phase: DelegationPhase = 'any',
+): BindingMatch | null {
   // ── FEATURE (v1.3.0): Binding Cache lookup ──
   const sig = computeBindingSignature(el);
   let cached = _bindingCache.get(el);
@@ -312,8 +325,9 @@ function findBinding(el: HTMLElement, eventName: string): BindingMatch | null {
     cached = { signature: sig, byEvent: new Map() };
     _bindingCache.set(el, cached);
   }
-  if (cached.byEvent.has(eventName)) {
-    return cached.byEvent.get(eventName) ?? null;
+  const cacheKey = phase === 'any' ? eventName : `${eventName}|${phase}`;
+  if (cached.byEvent.has(cacheKey)) {
+    return cached.byEvent.get(cacheKey) ?? null;
   }
 
   // ── محاسبه‌ی binding ──
@@ -326,6 +340,8 @@ function findBinding(el: HTMLElement, eventName: string): BindingMatch | null {
       const bindingPart = name.slice(ZEN_ACTION_PREFIX.length);
       const { eventName: boundEvent, modifiers } = parseBinding(bindingPart);
       if (boundEvent === eventName) {
+        // #136: `.capture` bindings run in the root's capture listener, all others in the bubble one.
+        if (phase !== 'any' && modifiers.includes('capture') !== (phase === 'capture')) continue;
         const actionName = attr.value;
         if (!actionName) continue;
         result = {
@@ -340,7 +356,7 @@ function findBinding(el: HTMLElement, eventName: string): BindingMatch | null {
   }
 
   // ۲. شکل پیش‌فرض: zen-action="..." (فقط برای click)
-  if (!result && eventName === 'click') {
+  if (!result && eventName === 'click' && phase !== 'capture') {
     const actionName = el.getAttribute('zen-action');
     if (actionName) {
       result = {
@@ -352,7 +368,7 @@ function findBinding(el: HTMLElement, eventName: string): BindingMatch | null {
     }
   }
 
-  cached.byEvent.set(eventName, result);
+  cached.byEvent.set(cacheKey, result);
   return result;
 }
 
@@ -380,23 +396,12 @@ function findClosestActionElement(
   target: Element,
   eventName: string,
   root: Document | ShadowRoot | HTMLElement = document,
+  phase: DelegationPhase = 'any',
 ): HTMLElement | null {
   let current: Element | null = target;
   while (current && current instanceof HTMLElement) {
-    // ── ۱. شکل پیش‌فرض: zen-action="..." (فقط برای click) ──
-    if (eventName === 'click' && current.hasAttribute('zen-action')) {
-      return current;
-    }
-
-    // ── ۲. شکل صریح: zen-action:<eventName> ──
-    for (const attr of Array.from(current.attributes)) {
-      if (!attr.name.startsWith(ZEN_ACTION_PREFIX)) continue;
-      const bindingPart = attr.name.slice(ZEN_ACTION_PREFIX.length);
-      const boundEvent = bindingPart.split('.', 1)[0];
-      if (boundEvent === eventName) {
-        return current;
-      }
-    }
+    // zen-action="..." (click only) or zen-action:<event>[.modifiers]="..." for this phase
+    if (findBinding(current, eventName, phase)) return current;
 
     // FEATURE (v1.3.0): stop در مرز root.
     // اگر current خود root HTMLElement است، نباید بالاتر برویم.
@@ -462,12 +467,13 @@ function delegateEvent(
   eventName: DelegatedEventName,
   timedHandlerCache: TimedHandlerCache,
   root: Document | ShadowRoot | HTMLElement,
+  phase: DelegationPhase = 'any',
 ): void {
   const target = event.target;
   if (!(target instanceof Element)) return;
 
   // ── فاز ۸: zen-link (تقدم بر zen-action برای click) ──
-  if (eventName === 'click') {
+  if (eventName === 'click' && phase !== 'capture') {
     const linkEl = target.closest<HTMLElement>('[zen-link]');
     if (linkEl) {
       event.preventDefault();
@@ -484,10 +490,10 @@ function delegateEvent(
     }
   }
 
-  const matched = findClosestActionElement(target, eventName, root);
+  const matched = findClosestActionElement(target, eventName, root, phase);
   if (!matched) return;
 
-  const binding = findBinding(matched, eventName);
+  const binding = findBinding(matched, eventName, phase);
   if (!binding) return;
 
   const { parsed, modifiers, element } = binding;
@@ -503,7 +509,14 @@ function delegateEvent(
   // ── ۲. اعمال modifier های رفتاری ──
   // FIX (v1.2.7 sync drift): applyBehaviorModifiers حالا boolean برمی‌گرداند
   // و `element` می‌گیرد (برای `.self`). اگر `false` برگرداند، event را نادیده می‌گیریم.
-  const shouldProceed = applyBehaviorModifiers(event, modifiers, element);
+  // #136: scroll-blocking events (wheel/touch*/scroll) are registered passive at the root, so
+  // `.prevent` cannot work there — applyBehaviorModifiers skips it (with a one-time warning).
+  const shouldProceed = applyBehaviorModifiers(
+    event,
+    modifiers,
+    element,
+    PASSIVE_BY_DEFAULT_EVENTS.has(eventName),
+  );
   if (!shouldProceed) {
     return;
   }
@@ -671,27 +684,46 @@ export function initEventDelegation(
   // FEATURE (v1.3.0): Custom root.
   const root: DelegationRoot = options?.root ?? document;
 
-  const listeners: Array<{ name: DelegatedEventName; handler: (e: Event) => void }> = [];
+  const listeners: Array<{
+    name: DelegatedEventName;
+    handler: (e: Event) => void;
+    options: AddEventListenerOptions;
+  }> = [];
   const timedHandlerCache: TimedHandlerCache = new Map();
 
-  for (const eventName of DELEGATED_EVENTS) {
+  const register = (eventName: DelegatedEventName, phase: DelegationPhase) => {
     const handler = (event: Event) => {
       const oldPriority = setCurrentPriority('urgent');
       try {
-        delegateEvent(event, state, eventName, timedHandlerCache, root);
+        delegateEvent(event, state, eventName, timedHandlerCache, root, phase);
       } finally {
         setCurrentPriority(oldPriority);
       }
     };
-
+    // #136: scroll-blocking events are passive at the root (no browser "non-passive listener"
+    // violation, smooth scrolling); `capture` is a listener option, so `.capture` bindings get
+    // their own capture-phase listener. Non-bubbling events (scroll) need capture to be seen.
+    const options: AddEventListenerOptions = {
+      capture: phase !== 'bubble',
+      passive: PASSIVE_BY_DEFAULT_EVENTS.has(eventName),
+    };
     // ثبت روی root. برای HTMLElement هم `addEventListener` وجود دارد.
-    root.addEventListener(eventName, handler as EventListener, false);
-    listeners.push({ name: eventName, handler });
+    root.addEventListener(eventName, handler as EventListener, options);
+    listeners.push({ name: eventName, handler, options });
+  };
+
+  for (const eventName of DELEGATED_EVENTS) {
+    if (NON_BUBBLING_EVENTS.has(eventName)) {
+      register(eventName, 'any');
+    } else {
+      register(eventName, 'bubble');
+      register(eventName, 'capture');
+    }
   }
 
   return function teardown() {
-    for (const { name, handler } of listeners) {
-      root.removeEventListener(name, handler as EventListener, false);
+    for (const { name, handler, options } of listeners) {
+      root.removeEventListener(name, handler as EventListener, options);
     }
     listeners.length = 0;
     // FIX (v1.2.7): cancel pending debounce/throttle timers.

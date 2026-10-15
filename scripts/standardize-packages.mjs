@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { entryFor, isDualEntry } from './lib/exports-shape.mjs';
 
 // #172 — Standardize workspace package.json manifests while respecting:
 // - DEC-026: lockstep 1.5.0 on born-1.5.0 packages (1.4.0 on legacy packages until release bump)
@@ -33,22 +34,21 @@ export function standardizePackages(packagesDir = './packages', rootVersion = '1
 
     if (pkg.name !== 'zenith-vscode') {
       const rootExp = pkg.exports?.['.'];
-      const isDual =
-        (rootExp && typeof rootExp === 'object' && Boolean(rootExp.require)) ||
-        String(pkg.main ?? '').endsWith('.cjs');
+      const isDual = isDualEntry(rootExp) || String(pkg.main ?? '').endsWith('.cjs');
 
       pkg.main = isDual ? './dist/index.cjs' : './dist/index.js';
       pkg.module = './dist/index.js';
       pkg.types = './dist/index.d.ts';
 
-      const nextDot = {
-        types: './dist/index.d.ts',
-        ...(rootExp && typeof rootExp === 'object' && rootExp.development
+      // #74: shape defined once in scripts/lib/exports-shape.mjs
+      const base = entryFor('index', { dual: isDual });
+      const development =
+        rootExp && typeof rootExp === 'object' && rootExp.development
           ? { development: rootExp.development }
-          : {}),
-        import: './dist/index.js',
-        ...(isDual ? { require: './dist/index.cjs' } : {}),
-      };
+          : {};
+      const nextDot = isDual
+        ? { ...development, ...base }
+        : { types: base.types, ...development, import: base.import, default: base.default };
 
       pkg.exports = {
         ...(pkg.exports ?? {}),

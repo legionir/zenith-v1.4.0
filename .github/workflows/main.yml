@@ -195,6 +195,15 @@ jobs:
       # #79 baseline: no static import cycles / src→devDep leakage. Full
       # layering rules land in #49.
       - run: npm run deps
+      # #49: package-level dependency graph (SVG, coloured by layer) on every run.
+      - name: Generate dependency graph (SVG)
+        run: npm run deps:graph
+      - name: Upload dependency graph
+        uses: actions/upload-artifact@v6
+        with:
+          name: dependency-graph
+          path: artifacts/dependency-graph.svg
+          retention-days: 14
       # #45: every declared @zenith/* dependency must actually be imported
       # in that package's src/test (static, type, dynamic or re-export).
       - run: npm run deps:unused
@@ -253,6 +262,16 @@ jobs:
       # #74: verify files allowlist, ATTW types ordering, and npm pack --dry-run tarball contents
       - name: Audit package tarballs & types resolution
         run: node scripts/pack-audit.mjs --pack
+      # #74: arethetypeswrong on the packed tarballs of ALL packages (every resolution mode).
+      - name: attw (are the types wrong?)
+        run: node scripts/attw-all.mjs
+      # #74: install every tarball into a clean project and import each entry as ESM and CJS.
+      - name: Install tarballs & import (ESM + CJS)
+        run: node scripts/install-import-check.mjs
+      # #140: the .d.ts (tsc) and the JS bundles (esbuild) are built independently — every
+      # package's value exports must be identical across .d.ts, ESM and CJS.
+      - name: .d.ts ↔ ESM ↔ CJS export parity
+        run: npm run dts-parity
 
   peer-single-instance:
     name: Peer single instance (#46)
@@ -335,6 +354,9 @@ jobs:
         run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
+      # #76: the SRI e2e loads the versioned browser bundle with <script integrity>
+      - name: Build browser bundles
+        run: npm run build:browser
       - name: Start e2e static server (manual, kept alive for post-mortem probes)
         run: |
           nohup node scripts/e2e-server.mjs > "$RUNNER_TEMP/e2e-server.out" 2>&1 &
@@ -356,6 +378,8 @@ jobs:
               for u in e2e/xss-fixture.html packages/state/dist/index.js packages/security/dist/index.js packages/security/test/xss-corpus.mjs; do
                 echo "== probe $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:8089/$u") /$u"
               done
+              echo "── FAILED/FLAKY TESTS ──"
+              grep -E "✘|flaky|^  [0-9]+ (failed|flaky)|Error:" "$RUNNER_TEMP/e2e.out" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | head -25
               echo "── HEAD-40 ──"
               head -40 "$RUNNER_TEMP/e2e.out"
               echo "── TAIL-60 ──"

@@ -22,38 +22,96 @@ Zenith: 1 listener per event type on document (O(1) memory)
 5. رفتارهای پیش‌فرض (`prevent`, `stop`) را اعمال می‌کنیم.
 6. اکشن را از `@zenith/actions` می‌گیریم و اجرا می‌کنیم.
 
-## Modifier ها
+## Modifier ها (مرجع کامل — `#136`)
 
-پشتیبانی از پسوندها در HTML:
+شکل کلی: `zen-action:<event>.<modifier>[.<modifier>…]="actionName"`. modifierها ترتیب‌پذیر
+نیستند (مجموعه‌اند)، به‌جز عدد زمان‌بندی که بعد از `debounce`/`throttle` می‌آید. مجموعهٔ رسمی در
+`BUILTIN_MODIFIERS` است و **قابل override نیست**؛ modifierهای سفارشی با `registerEventModifier`.
+هر modifier زیر دست‌کم یک تست واحد (jsdom) و یک تست مرورگری (Chromium/Firefox/WebKit) دارد:
+`packages/events/test/modifiers-matrix.test.ts` و `e2e/events.spec.ts`.
+
+### رفتار
+
+| modifier     | اثر                                                                     | مثال                                            |
+| ------------ | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| `.prevent`   | `event.preventDefault()` (روی listenerهای passive اثری ندارد، پایین‌تر) | `<a href="/x" zen-action:click.prevent="open">` |
+| `.stop`      | `event.stopPropagation()` (جلوی رسیدن به عناصر بالاتر از root)          | `<button zen-action:click.stop="save">`         |
+| `.immediate` | `event.stopImmediatePropagation()` (listenerهای بعدیِ همان root هم)     | `<button zen-action:click.immediate="save">`    |
+| `.self`      | فقط اگر `event.target` خود عنصر باشد (نه فرزندش)                        | `<div zen-action:click.self="closeModal">`      |
+| `.once`      | فقط یک‌بار؛ سپس attribute حذف و timerهای معلق پاک می‌شوند               | `<button zen-action:click.once="track">`        |
+
+ترتیب اعمال: `self` → `prevent` → `stop` → `immediate` → modifierهای سفارشی.
+
+### گزینه‌های listener: `.passive` و `.capture`
+
+- **`.capture`**: اکشن در فاز capture اجرا می‌شود، یعنی **پیش از** listenerهای بومیِ فرزندان؛
+  `.capture.stop` مانع رسیدن رویداد به فرزندان می‌شود. هر binding دقیقاً یک‌بار اجرا می‌شود
+  (`.capture` فقط در فاز capture، بقیه فقط در bubble). نزدیک‌ترین binding هر فاز برنده است.
+
+  ```html
+  <div zen-action:click.capture.stop="audit"><button>…</button></div>
+  ```
+
+- **`.passive`**: قول می‌دهد `preventDefault()` هرگز صدا زده نشود؛ ترکیب `.passive.prevent`
+  `preventDefault` را اجرا **نمی‌کند** (و یک‌بار هشدار می‌دهد) تا مرورگر خطای
+  «Unable to preventDefault inside passive event listener» ندهد.
+- **رویدادهای scroll-blocking** (`wheel`, `touchstart`, `touchmove`, `scroll`) روی root همیشه
+  `passive: true` ثبت می‌شوند (همان پیش‌فرض پلتفرم برای document؛ اسکرول نرم و بدون
+  هشدار «non-passive listener»). `.prevent` روی آن‌ها نادیده گرفته می‌شود — برای مهار اسکرول از CSS
+  (`overscroll-behavior` / `touch-action`) استفاده کنید. `scroll` bubble نمی‌کند و از طریق
+  listener فاز capture دیده می‌شود.
+
+  ```html
+  <div zen-action:touchmove="track"></div>
+  <div zen-action:wheel.passive="onWheel"></div>
+  ```
+
+### زمان‌بندی
+
+| modifier              | رفتار                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `.debounce.NNN`       | پس از `NNN` میلی‌ثانیه سکوت، **یک** فراخوانی (trailing)                                       |
+| `.throttle.NNN`       | فراخوانی اول فوری، میانهٔ burst حذف، **آخرین** رویداد پس از پایان بازهٔ `NNN` (leading+trailing) |
+
+`teardown` (خروجی `initEventDelegation`) و `.once` تمام timerهای معلق را لغو (cancel) می‌کنند؛
+بعد از teardown هیچ اکشن معلقی اجرا نمی‌شود.
 
 ```html
-<!-- رفتار -->
-<button zen-action:click.prevent="save">
-  <!-- preventDefault -->
-  <button zen-action:click.stop="save">
-    <!-- stopPropagation -->
-    <button zen-action:click.immediate="save">
-      <!-- stopImmediatePropagation -->
-
-      <!-- کلیدها (فقط رویدادهای keydown / keyup) -->
-      <input zen-action:keydown.enter="submit" />
-      <input zen-action:keydown.escape="cancel" />
-      <input zen-action:keydown.tab="next" />
-      <input zen-action:keydown.space="play" />
-      <input zen-action:keydown.backspace="delete" />
-      <input zen-action:keydown.del="delete" />
-      <input zen-action:keydown.up="selectPrev" />
-      <input zen-action:keydown.down="selectNext" />
-      <input zen-action:keydown.left="prev" />
-      <input zen-action:keydown.right="next" />
-
-      <!-- ترکیبی -->
-      <input zen-action:keydown.enter.shift="submitAll" />
-      <input zen-action:keydown.ctrl.s="save" />
-    </button>
-  </button>
-</button>
+<input zen-action:input.debounce.300="search" />
+<div zen-action:pointerdown.throttle.100="draw"></div>
 ```
+
+### کلیدها (روی `keydown` / `keyup`)
+
+| modifier     | مقدار `event.key`                  |
+| ------------ | ---------------------------------- |
+| `.enter`     | `Enter`                            |
+| `.escape`    | `Escape`, `Esc`                    |
+| `.tab`       | `Tab`                              |
+| `.space`     | `' '`, `Space`, `Spacebar`         |
+| `.backspace` | `Backspace`                        |
+| `.del`       | `Delete`, `Del`                    |
+| `.up`        | `ArrowUp`, `Up`                    |
+| `.down`      | `ArrowDown`, `Down`                |
+| `.left`      | `ArrowLeft`, `Left`                |
+| `.right`     | `ArrowRight`, `Right`              |
+
+چند کلید در یک binding **OR** هستند (`.enter.escape`). کلیدهای تغییردهنده `.shift`, `.ctrl`,
+`.alt`, `.meta` باید **همه** فعال باشند (AND) و با یک کلید ترکیب می‌شوند:
+
+```html
+<input zen-action:keydown.enter="submit" />
+<input zen-action:keydown.ctrl.enter="submitAll" />
+<input zen-action:keydown.shift.tab="focusPrev" />
+```
+
+> `s` و حروف دیگر modifier کلید نیستند؛ `keydown.ctrl.s` ⇒ `s` نادیده گرفته می‌شود و روی هر
+> `Ctrl+کلید` اجرا می‌شود. برای حروف از یک modifier سفارشی (`registerEventModifier`) استفاده کنید.
+
+### رویدادهای delegate‌شده
+
+`click`, `dblclick`, `contextmenu`, `input`, `change`, `submit`, `keydown`, `keyup`, `focusin`,
+`focusout`, `wheel`, `pointerdown`, `pointerup`, `touchstart`, `touchmove`, `touchend`, `scroll`.
 
 ## API
 

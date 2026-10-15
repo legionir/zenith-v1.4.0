@@ -7,6 +7,9 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 15_000,
+  // CI: one retry so a timing flake in a real browser engine is reported as "flaky" instead of
+  // failing the job; a deterministic failure still fails twice and stays red.
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:8089',

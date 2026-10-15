@@ -4,6 +4,7 @@
 //   npm run new:package -- <name> --layer <L0|L1|L2|L3|L4|L5|tooling> [--budget "4 kb"] [--no-peers] [--dual]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { entryFor } from './lib/exports-shape.mjs';
 
 export const VALID_LAYERS = new Set(['L0', 'L1', 'L2', 'L3', 'L4', 'L5', 'tooling']);
 const UNSCOPED_NAMES = new Set(['zenith', 'create-zenith', 'unplugin-zenith']);
@@ -125,12 +126,17 @@ export function scaffoldPackage(rawOptions) {
 
   const description = rawDesc || `Zenith framework — ${layer} package (${pkgName}).`;
 
-  const dotExport = {
-    types: './dist/index.d.ts',
-    development: './dist/index.js',
-    import: './dist/index.js',
-    ...(isDual ? { require: './dist/index.cjs' } : {}),
-  };
+  // #74: shape comes from scripts/lib/exports-shape.mjs (dual ⇒ separate .d.cts types for
+  // `require`; ESM-only ⇒ `default` so require(esm) works). `development` stays first.
+  const base = entryFor('index', { dual: isDual });
+  const dotExport = isDual
+    ? { development: './dist/index.js', ...base }
+    : {
+        types: base.types,
+        development: './dist/index.js',
+        import: base.import,
+        default: base.default,
+      };
 
   const pkgJson = {
     name: pkgName,

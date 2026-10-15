@@ -23,3 +23,13 @@
 - **کنتراست متن عادی (SC 1.4.3)**: نسبت کنتراست تمامی توکن‌های متنی اصلی در برابر پس‌زمینه حداقل **۴.۵:۱** است.
 - **کنتراست اجزای رابط کاربری و فوکوس (SC 1.4.11 و SC 2.4.11)**: حلقهٔ فوکوس (`:focus-visible`) دارای ضخامت حداقل `2px` و نسبت کنتراست ≥ **۳:۱** است و در حالت ویندوز High Contrast (`@media (forced-colors: active)`) از `outline: 2px solid Highlight` استفاده می‌کند.
 - **کاهش حرکت (SC 2.3.3)**: تابع `prefersReducedMotion()` در `@zenith/transition` به صورت خودکار `window.matchMedia('(prefers-reduced-motion: reduce)')` را بررسی کرده و در صورت فعال بودن، انیمیشن‌های `zenAnimate` را بدون حرکت (`duration: 0`) به وضعیت نهایی می‌برد.
+
+## تست خودکار axe-core در e2e (#99)
+
+- `e2e/axe.spec.ts` با `@axe-core/playwright` (تگ‌های `wcag2a/2aa/21a/21aa/22aa`) روی دموها
+  (`demos/*`، `ecommerce-demo`، `dashboard`) و fixture کامپوننت‌ها اجرا می‌شود و در CI روی
+  Chromium/Firefox/WebKit است؛ گزارش HTML به‌صورت artifact `playwright-report` منتشر می‌شود.
+- آستانه: هر نقض با impact برابر `serious` یا `critical` تست را می‌شکند.
+- استثنا فقط در `e2e/a11y-allowlist.ts` و با دلیل مکتوب؛ فهرست عمداً خالی است.
+- یک تست خودآزمون نقض عمدی (`button-name`، `image-alt`) را تزریق می‌کند تا ثابت شود گیت پوچ عبور نمی‌کند.
+- هر صفحه حداقل تعداد المان رندرشده دارد تا «صفحهٔ خالی» به‌عنوان موفقیت حساب نشود.

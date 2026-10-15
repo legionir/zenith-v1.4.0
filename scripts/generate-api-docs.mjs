@@ -126,6 +126,8 @@ export function buildApiSurfaceSnapshot(rootDir = process.cwd()) {
     .filter(
       (d) =>
         d.isDirectory() &&
+        // tmp-* = scratch packages created (and removed) by the scaffold test while suites run in parallel
+        !d.name.startsWith('tmp-') &&
         existsSync(join(packagesDir, d.name, 'package.json')) &&
         existsSync(join(packagesDir, d.name, 'src', 'index.ts')),
     )

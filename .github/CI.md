@@ -98,9 +98,32 @@ read-only.
   static server (`scripts/e2e-server.mjs`) so the fixture loads the real
   built ESM bundles.
 
-## `bundle.yml` — standalone browser bundle
+## `bundle.yml` — versioned browser bundles (#76)
 
-Separate workflow, runs only on pushes to `v104` (and manually). Builds
-`scripts/build-browser-bundle.mjs` (the minified `zenith-runtime.js`) and
-publishes it to the orphan `bundles` branch via gh-pages-style deploy. The
-size budget in `main.yml` is measured against this same bundle output.
+Runs on pushes of a `v*` tag (and manually). `scripts/build-browser-bundle.mjs --require-lockstep`
+builds, per release, into `browser-bundles/`:
+
+| file                                       | what                                                                  |
+| ------------------------------------------ | --------------------------------------------------------------------- |
+| `<version>/zenith.min.js`                  | minified IIFE exposing `window.Zenith` (`Zenith.version === <version>`) |
+| `<version>/zenith.min.js.map`              | separate sourcemap, referenced by a trailing `sourceMappingURL` comment |
+| `<version>/zenith-runtime.js` (+ `.map`)   | minified ESM runtime bundle                                           |
+| `<version>/integrity.json`                 | `sha384` SRI hash + byte size of every file                           |
+| `latest/…`                                 | same bytes as the newest version, `"pinned": false` — never pin SRI here |
+
+`<version>` is the `zenith` umbrella version. The build **fails** if it differs from the version
+the bundle reports at runtime or (with `--require-lockstep`) from any workspace package
+(DEC-026); the workflow also refuses to overwrite an already published `<version>/` (immutable).
+Both directories are deployed to the orphan `bundles` branch with `keep_files` (older versions stay).
+CI checks: `scripts/test/browser-bundle-release.test.mjs` (layout, hashes, minification, sourcemap,
+version coherence) and `e2e/browser-bundle.spec.ts` (loads the bundle through
+`<script integrity>` in Chromium/Firefox/WebKit; a wrong hash is blocked). The size budget in
+`main.yml` is measured against the flat `browser-bundles/zenith-runtime.js` copy.
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/gh/legionir/zenith-v1.4.0@bundles/1.5.0/zenith.min.js"
+  integrity="sha384-…copy from 1.5.0/integrity.json…"
+  crossorigin="anonymous"
+></script>
+```

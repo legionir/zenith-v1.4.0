@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith events modifiers e2e fixture</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@zenith/events": "/packages/events/dist/index.js",
+          "@zenith/actions": "/packages/actions/dist/index.js",
+          "@zenith/errors": "/packages/errors/dist/index.js",
+          "@zenith/logger": "/packages/logger/dist/index.js",
+          "@zenith/shared": "/packages/shared/dist/index.js",
+          "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+          "@zenith/state": "/packages/state/dist/index.js",
+          "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+          "@zenith/expressions": "/packages/expressions/dist/index.js",
+          "@zenith/cache": "/packages/cache/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="app">
+      <a id="prevent" href="#should-not-navigate" zen-action:click.prevent="hit">prevent</a>
+      <a id="plain" href="#plain-navigates" zen-action:click="hit">plain</a>
+      <div id="self" zen-action:click.self="hit"><span id="self-kid">kid</span></div>
+      <button id="once" zen-action:click.once="hit">once</button>
+      <button id="stop" zen-action:click.stop="hit">stop</button>
+      <div id="cap" zen-action:click.capture="hitCapture">
+        <button id="cap-kid">capture child</button>
+      </div>
+      <input id="key-enter" aria-label="enter key" zen-action:keydown.enter="hit" />
+      <input id="key-combo" aria-label="ctrl enter" zen-action:keydown.ctrl.enter="hit" />
+      <input id="debounce" aria-label="debounce" zen-action:input.debounce.80="hit" />
+      <button id="throttle" zen-action:pointerdown.throttle.150="hit">throttle</button>
+      <div id="touch" style="height: 40px; width: 40px; background: #ddd" zen-action:touchmove.prevent="hit"></div>
+      <div id="wheel" style="height: 40px; width: 40px; background: #ccc" zen-action:wheel="hit"></div>
+    </main>
+    <script type="module">
+      import { initEventDelegation } from '@zenith/events';
+      import { registerAction } from '@zenith/actions';
+
+      const log = [];
+      window.__EVENTS_LOG__ = log;
+      document.addEventListener('click', () => log.push('document-bubble'));
+      registerAction('hit', ({ element, event }) => log.push(`${event.type}:${element.id}`));
+      registerAction('hitCapture', ({ element }) => log.push(`capture-action:${element.id}`));
+      document.getElementById('cap-kid').addEventListener('click', () => log.push('child-native'));
+      initEventDelegation({}, { root: document.getElementById('app') });
+      window.__ZENITH_EVENTS_READY__ = true;
+    </script>
+  </body>
+</html>

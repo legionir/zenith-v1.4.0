@@ -8,15 +8,40 @@
  *  3) Conditional `exports` place `"types"` first (ATTW / `arethetypeswrong` node16/bundler invariant)
  *     and declare both `"import"` (ESM) and `"require"` (CJS) entrypoints
  *  4) When `--pack` is passed (after `npm run build`), runs `npm pack --dry-run --json`
- *     and verifies that no forbidden files leak into the tarball.
+ *     and verifies that no forbidden files leak into the tarball AND that every file is on the
+ *     positive allowlist (`dist/**`, README.md, LICENSE, package.json, CHANGELOG.md).
+ *  5) Dual packages declare `.d.cts` for their `require` condition (#74, scripts/lib/exports-shape).
+ *
+ * Real type-resolution analysis (arethetypeswrong) is `scripts/attw-all.mjs`; the install + import
+ * check from real tarballs is `scripts/install-import-check.mjs`.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { conditionTarget, isDualEntry } from './lib/exports-shape.mjs';
+import { spawnNpm } from './lib/proc.mjs';
 
 const SKIP_DIRS = new Set(['devtools-extension', 'vscode-extension']);
 const FORBIDDEN_FILE_PATTERNS = [/^src(\/|$)/, /^test(\/|$)/, /\.tsbuildinfo$/, /^tsconfig/];
+/** #74: a tarball may contain ONLY these (npm adds package.json/LICENSE/README automatically). */
+export const ALLOWED_TARBALL_FILES = [
+  /^dist\/(?!\.dts\/)/,
+  /^README(\.md)?$/i,
+  /^LICENSE(\.md)?$/i,
+  /^CHANGELOG\.md$/,
+  /^package\.json$/,
+];
+
+/** `types` must be the first condition at every level where it appears (TypeScript requirement). */
+function typesFirstViolations(node, where, out = []) {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return out;
+  const keys = Object.keys(node);
+  if (keys.includes('types') && keys[0] !== 'types') {
+    out.push(`${where} must list "types" first (found: ${keys.join(', ')})`);
+  }
+  for (const key of keys) typesFirstViolations(node[key], `${where}.${key}`, out);
+  return out;
+}
 
 export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = {}) {
   const packagesDir = join(rootDir, 'packages');
@@ -63,16 +88,26 @@ export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = 
       for (const [subpath, target] of Object.entries(exportsMap)) {
         if (subpath === './package.json') continue;
         if (target && typeof target === 'object' && !Array.isArray(target)) {
-          const keys = Object.keys(target);
-          if (keys.includes('types') && keys[0] !== 'types') {
-            errors.push(
-              `${pkg.name}: exports["${subpath}"] must list "types" first (found: ${keys.join(', ')})`,
-            );
+          for (const v of typesFirstViolations(target, `${pkg.name}: exports["${subpath}"]`)) {
+            errors.push(v);
           }
-          if (subpath === '.' && !keys.includes('import') && !keys.includes('default')) {
+          if (
+            subpath === '.' &&
+            !conditionTarget(target, 'import') &&
+            !conditionTarget(target, 'default')
+          ) {
             errors.push(
               `${pkg.name}: exports["."] must provide an "import" or "default" condition`,
             );
+          }
+          // dual entries ship a separate CJS declaration file
+          if (isDualEntry(target)) {
+            const cjsTypes = target.require?.types;
+            if (typeof cjsTypes !== 'string' || !cjsTypes.endsWith('.d.cts')) {
+              errors.push(
+                `${pkg.name}: exports["${subpath}"].require must have a ".d.cts" "types" (found: ${cjsTypes})`,
+              );
+            }
           }
         }
       }
@@ -80,7 +115,7 @@ export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = 
 
     // 4. Optional `npm pack --dry-run --json` tarball contents inspection
     if (runNpmPack && existsSync(join(pkgDir, 'dist'))) {
-      const res = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+      const res = spawnNpm(['pack', '--dry-run', '--json'], {
         cwd: pkgDir,
         encoding: 'utf8',
       });
@@ -95,6 +130,26 @@ export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = 
         for (const fp of filePaths) {
           if (FORBIDDEN_FILE_PATTERNS.some((re) => re.test(fp))) {
             errors.push(`${pkg.name}: tarball contains forbidden file "${fp}"`);
+          } else if (!ALLOWED_TARBALL_FILES.some((re) => re.test(fp))) {
+            errors.push(`${pkg.name}: tarball contains "${fp}" which is not on the allowlist`);
+          }
+        }
+        for (const required of ['package.json', 'LICENSE', 'README.md']) {
+          if (!filePaths.includes(required)) {
+            errors.push(`${pkg.name}: tarball is missing ${required}`);
+          }
+        }
+        // every file an exports condition points to must really be inside the tarball
+        const shipped = new Set(filePaths.map((f) => `./${f}`));
+        const targets = [];
+        const collect = (n) => {
+          if (typeof n === 'string') targets.push(n);
+          else if (n && typeof n === 'object') Object.values(n).forEach(collect);
+        };
+        collect(pkg.exports);
+        for (const t of targets) {
+          if (t.startsWith('./dist/') && !shipped.has(t)) {
+            errors.push(`${pkg.name}: exports target "${t}" is not in the tarball`);
           }
         }
       } catch (e) {

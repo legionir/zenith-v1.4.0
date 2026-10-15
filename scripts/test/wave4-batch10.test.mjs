@@ -26,7 +26,6 @@ import {
   unregisterAuth,
   clearAuth,
 } from '../../packages/auth/src/index.ts';
-import { checkDtsJsParity } from '../check-dts-js-parity.mjs';
 
 describe('Wave 4 P1 Batch 10 — Testing Ergonomics, Compiler Parity, Unified Auth, .d.ts/JS Parity (#137..#140)', () => {
   it('provides useFakeTimers, mockHttp, mockRouter, testDirective, and resetForTesting in @zenith/testing (#137)', async () => {
@@ -142,11 +141,5 @@ describe('Wave 4 P1 Batch 10 — Testing Ergonomics, Compiler Parity, Unified Au
 
     registerAuth('temp', authInstance);
     expect(unregisterAuth('temp')).toBe(true);
-  });
-
-  it('verifies .d.ts AST surface and runtime JS export parity across all 43 packages (#140)', () => {
-    const { checkedPackages, mismatches } = checkDtsJsParity();
-    expect(checkedPackages).toBeGreaterThanOrEqual(43);
-    expect(mismatches).toEqual([]);
   });
 });

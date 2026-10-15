@@ -77,6 +77,7 @@ describe('new-package scaffold (#172, SPEC §6)', () => {
       types: './dist/index.d.ts',
       development: './dist/index.js',
       import: './dist/index.js',
+      default: './dist/index.js', // require(esm) for CJS consumers (DEC-034)
     });
     expect(res.pkgJson.exports['./package.json']).toBe('./package.json');
     expect(res.pkgJson.files).toEqual(['dist', 'README.md', 'LICENSE']);
@@ -112,7 +113,14 @@ describe('new-package scaffold (#172, SPEC §6)', () => {
     expect(res.pkgName).toBe('create-zenith');
     expect(res.isDual).toBe(true);
     expect(res.pkgJson.peerDependencies).toBeUndefined();
-    expect(res.pkgJson.exports['.'].require).toBe('./dist/index.cjs');
+    expect(res.pkgJson.exports['.'].require).toEqual({
+      types: './dist/index.d.cts',
+      default: './dist/index.cjs',
+    });
+    expect(res.pkgJson.exports['.'].import).toEqual({
+      types: './dist/index.d.ts',
+      default: './dist/index.js',
+    });
   });
 
   it('includes all 12 SPEC §6.2 acceptance checklist items in README and .github/ISSUE_TEMPLATE/new-package.md', () => {

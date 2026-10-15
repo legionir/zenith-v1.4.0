@@ -38,6 +38,31 @@ const ALLOWED = new Set([
   'MPL-2.0',
 ]);
 
+// #74 / DEC-034: استثنای محدود و مستند برای ابزار «فقط-زمان-build».
+// rollup-plugin-dts (LGPL-3.0-only) تنها ابزاری است که `.d.ts`ها را برای هر ورودی به یک فایل
+// تجمیع می‌کند و `declare global` را حفظ می‌کند (جایگزین‌های MIT — dts-bundle-generator — روی
+// vite-plugin crash می‌کنند و نوع‌های workspace را inline و تکثیر می‌کنند). LGPL فقط برای
+// پیوند/توزیع خودِ کتابخانه الزام می‌آورد؛ این ابزار هرگز منتشر یا لینک نمی‌شود و خروجی‌اش
+// (فایل‌های `.d.ts` تولیدشده از کد خودمان) اثر مشتق نیست. شرط: فقط devDependency ریشه باشد و
+// هیچ پکیج قابل‌انتشاری آن را در dependencies/peerDependencies نداشته باشد.
+export const BUILD_ONLY_EXCEPTIONS = new Map([['rollup-plugin-dts', 'LGPL-3.0-only']]);
+
+function isBuildOnlyException(name, lic) {
+  if (BUILD_ONLY_EXCEPTIONS.get(name) !== lic) return false;
+  const rootPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  if (!rootPkg.devDependencies?.[name]) return false;
+  const pkgsDir = join(root, 'packages');
+  for (const d of existsSync(pkgsDir) ? readdirSync(pkgsDir) : []) {
+    const f = join(pkgsDir, d, 'package.json');
+    if (!existsSync(f)) continue;
+    const m = JSON.parse(readFileSync(f, 'utf8'));
+    if (m.dependencies?.[name] || m.peerDependencies?.[name] || m.optionalDependencies?.[name]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const top = join(root, 'node_modules');
 if (!existsSync(top)) {
   const msg =
@@ -78,7 +103,7 @@ for (const dir of pkgDirs) {
   if (!lic && Array.isArray(j.licenses)) lic = j.licenses.map((l) => l.type).join(' OR ');
   if (!lic) continue; // برخی وابستگی‌های بدون فیلد license (مثل @types قدیمی) — هشدار نمی‌دهیم مگر strict
   lic = String(lic).trim().replace(/^"|"$/g, '');
-  if (!ALLOWED.has(lic)) {
+  if (!ALLOWED.has(lic) && !isBuildOnlyException(j.name, lic)) {
     violations.push(`${j.name ?? dir}@${j.version ?? '?'} → ${lic}`);
   }
 }
