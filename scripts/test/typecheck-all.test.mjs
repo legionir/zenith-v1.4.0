@@ -8,7 +8,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   typecheckConfigFor,
   typeTestConfigFor,
@@ -178,7 +178,16 @@ describe('typecheck-all (#26)', () => {
         '',
       ].join('\n'),
     );
-    const result = runTypecheckAll(root);
+    // runTypecheckAll خروجی tsc را برای دیباگ روی stdout می‌نویسد؛ در تست آن را
+    // می‌گیریم تا لاگ CI با annotationهای گمراه‌کننده (خطای عمدی داخل fixture)
+    // پر نشود — خودِ assertion روی result.output می‌سنجد که متن موجود است.
+    const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    let result;
+    try {
+      result = runTypecheckAll(root);
+    } finally {
+      stdoutWrite.mockRestore();
+    }
     expect(result.typeTests).toBe(1);
     expect(result.failed).toBe(1);
     // خطا باید از خودِ فایل type-test باشد، نه از حل‌نشدن import (fixture بدون node_modules است).

@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { attwAll } from '../attw-all.mjs';
 import { isFullyBuilt } from '../lib/workspace.mjs';
 import { auditPackages, ALLOWED_TARBALL_FILES } from '../pack-audit.mjs';
+import { spawnNpmAsync } from '../lib/proc.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -140,14 +141,16 @@ describe('#74 CI wiring and the real gates', () => {
     'attw sees @zenith/schema/attr as its own entrypoint and resolves it in node16-esm',
     async () => {
       const { checkPackage, createPackageFromTarballData } = await import('@arethetypeswrong/core');
-      const { execFileSync } = await import('node:child_process');
       const packDir = mkdtempSync(join(tmpdir(), 'attw-subpath-'));
       try {
-        const pack = execFileSync('npm', ['pack', '--json', '--pack-destination', packDir], {
+        // `npm` روی Windows یک shim (`.cmd`) است: spawn مستقیم ENOENT می‌دهد، پس
+        // مثل سایر اسکریپت‌ها از scripts/lib/proc.mjs استفاده می‌کنیم.
+        const pack = await spawnNpmAsync(['pack', '--json', '--pack-destination', packDir], {
           cwd: join(root, 'packages', 'schema'),
           encoding: 'utf8',
         });
-        const tarball = join(packDir, JSON.parse(pack)[0].filename);
+        expect(pack.status, pack.stderr).toBe(0);
+        const tarball = join(packDir, JSON.parse(pack.stdout)[0].filename);
         const analysis = await checkPackage(createPackageFromTarballData(readFileSync(tarball)));
 
         const attr = analysis.entrypoints?.['./attr'];
