@@ -233,6 +233,9 @@ jobs:
       - run: npm run check:adr
       # #108: docs/ARCHITECTURE-GRAPH.md is regenerated from the real import graph.
       - run: npm run check:architecture-graph
+      # #108/#118: docs/decisions/README.md (the DEC index) is regenerated from
+      # the decision files — a stale/missing row means a decision nobody indexed.
+      - run: npm run check:dec-index
       # #119: a public export name may not mean two different things in two
       # packages (allowlist: scripts/unique-export-names.allowlist.json).
       - run: npm run check:unique-exports
