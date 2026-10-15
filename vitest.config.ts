@@ -28,6 +28,19 @@ const alias: AliasEntry[] = [
     find: /^@zenith\/storage\/signal$/,
     replacement: join(packagesDir, 'storage/src/signal.ts'),
   },
+  // #149 — پکیج چتر `zenith` و زیرمسیرهای SPEC §۲.۹
+  {
+    find: /^zenith\/presets\/(minimal|spa|full)$/,
+    replacement: join(packagesDir, 'zenith/src/presets/$1.ts'),
+  },
+  {
+    find: /^zenith\/(core|ssr|testing|browser)$/,
+    replacement: join(packagesDir, 'zenith/src/$1.ts'),
+  },
+  {
+    find: /^zenith$/,
+    replacement: join(packagesDir, 'zenith/src/index.ts'),
+  },
 ];
 for (const dir of readdirSync(packagesDir)) {
   const src = join(packagesDir, dir, 'src', 'index.ts');
@@ -50,18 +63,20 @@ export default defineConfig({
     globals: false,
     coverage: {
       provider: 'v8',
-      // #27: the four core packages must each reach >= 70% statement coverage.
-      // (service-worker / other packages are covered by their own targeted tests
-      // but are not part of the "core" coverage gate yet.)
+      // #29: the four core packages must each reach >= 80% statement coverage.
       include: [
         'packages/state/src/**',
         'packages/scheduler/src/**',
         'packages/expressions/src/**',
         'packages/compiler/src/**',
       ],
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'json-summary', 'html'],
       thresholds: {
-        statements: 70,
+        statements: 80,
+        'packages/state/src/**': { statements: 80 },
+        'packages/scheduler/src/**': { statements: 80 },
+        'packages/expressions/src/**': { statements: 80 },
+        'packages/compiler/src/**': { statements: 80 },
       },
     },
   },

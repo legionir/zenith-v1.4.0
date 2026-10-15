@@ -1,7 +1,7 @@
 {
   "name": "@zenith/auth",
   "version": "1.4.0",
-  "description": "Zenith framework — Authentication runtime (Phase 4). Login/logout/token management/session persistence/auto-refresh.",
+  "description": "Zenith framework \u2014 Authentication runtime (Phase 4). Login/logout/token management/session persistence/auto-refresh.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -49,16 +50,17 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/http": "1.4.0",
-    "@zenith/storage": "1.5.0",
     "@zenith/errors": "1.4.0",
-    "@zenith/shared": "1.5.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.11.0"
+    "@zenith/http": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/storage": "1.5.0"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
   }
 }

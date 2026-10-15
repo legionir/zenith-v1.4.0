@@ -1,77 +1,104 @@
-import { readdirSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const packagesDir = './packages';
-const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name);
+// #172 — Standardize workspace package.json manifests while respecting:
+// - DEC-026: lockstep 1.5.0 on born-1.5.0 packages (1.4.0 on legacy packages until release bump)
+// - DEC-027: ESM-only exports on born-ESM packages; dual ESM+CJS on legacy/tooling packages
+// - #68: LICENSE included in files[]
+// - #70: repository, homepage, bugs, publishConfig, sideEffects, engines >=18.19
+export function standardizePackages(packagesDir = './packages', rootVersion = '1.4.0') {
+  const pkgDirs = readdirSync(packagesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
 
-const zenithPackages = new Set(pkgDirs.map((d) => `@zenith/${d}`));
-zenithPackages.add('zenith-vscode');
-
-for (const dir of pkgDirs) {
-  const pkgPath = join(packagesDir, dir, 'package.json');
-  let pkg;
-  try {
-    pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-  } catch {
-    console.log(`Skipping ${dir} (no package.json)`);
-    continue;
+  const versionByPkg = new Map();
+  for (const dir of pkgDirs) {
+    const pkgPath = join(packagesDir, dir, 'package.json');
+    if (!existsSync(pkgPath)) continue;
+    const p = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    if (p.name) versionByPkg.set(p.name, p.version || rootVersion);
   }
 
-  // Standardize fields
-  pkg.version = '1.4.0';
-  pkg.type = 'module';
-  pkg.license = pkg.license || 'MIT';
-  pkg.engines = pkg.engines || { node: '>=18' };
+  const updated = [];
 
-  // Standardize exports for all except vscode extension
-  if (pkg.name !== 'zenith-vscode') {
-    pkg.main = './dist/index.cjs';
-    pkg.module = './dist/index.js';
-    pkg.types = './dist/index.d.ts';
-    pkg.exports = {
-      '.': {
+  for (const dir of pkgDirs) {
+    const pkgPath = join(packagesDir, dir, 'package.json');
+    if (!existsSync(pkgPath)) continue;
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+
+    pkg.version = pkg.version === '1.5.0' ? '1.5.0' : rootVersion;
+    pkg.type = 'module';
+    pkg.license = pkg.license || 'MIT';
+    pkg.engines = { node: '>=18.19' };
+
+    if (pkg.name !== 'zenith-vscode') {
+      const rootExp = pkg.exports?.['.'];
+      const isDual =
+        (rootExp && typeof rootExp === 'object' && Boolean(rootExp.require)) ||
+        String(pkg.main ?? '').endsWith('.cjs');
+
+      pkg.main = isDual ? './dist/index.cjs' : './dist/index.js';
+      pkg.module = './dist/index.js';
+      pkg.types = './dist/index.d.ts';
+
+      const nextDot = {
         types: './dist/index.d.ts',
+        ...(rootExp && typeof rootExp === 'object' && rootExp.development
+          ? { development: rootExp.development }
+          : {}),
         import: './dist/index.js',
-        require: './dist/index.cjs',
-      },
+        ...(isDual ? { require: './dist/index.cjs' } : {}),
+      };
+
+      pkg.exports = {
+        ...(pkg.exports ?? {}),
+        '.': nextDot,
+        './package.json': './package.json',
+      };
+
+      const files = new Set(Array.isArray(pkg.files) ? pkg.files : ['dist', 'README.md']);
+      files.add('dist');
+      files.add('README.md');
+      files.add('LICENSE');
+      pkg.files = [...files];
+
+      pkg.scripts = {
+        ...pkg.scripts,
+        build: 'tsc -p tsconfig.json',
+        typecheck: 'tsc --noEmit',
+      };
+    }
+
+    const fixDeps = (deps) => {
+      if (!deps) return;
+      for (const key of Object.keys(deps)) {
+        if (versionByPkg.has(key)) {
+          deps[key] = versionByPkg.get(key);
+        }
+      }
     };
-    pkg.files = ['dist', 'README.md'];
-    pkg.scripts = {
-      ...pkg.scripts,
-      build: 'tsc -p tsconfig.json',
-      typecheck: 'tsc --noEmit',
+
+    const fixPeers = (peers) => {
+      if (!peers) return;
+      for (const key of Object.keys(peers)) {
+        if (versionByPkg.has(key)) {
+          peers[key] = `^${rootVersion}`;
+        }
+      }
     };
+
+    fixDeps(pkg.dependencies);
+    fixDeps(pkg.devDependencies);
+    fixPeers(pkg.peerDependencies);
+
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+    updated.push(pkg.name);
   }
 
-  // Fix internal dependency versions to 1.4.0
-  const fixDeps = (deps) => {
-    if (!deps) return;
-    for (const key of Object.keys(deps)) {
-      if (zenithPackages.has(key)) {
-        deps[key] = '1.4.0';
-      }
-    }
-  };
-
-  // #46: peerDependencies of @zenith/* use caret ranges (^1.4.0) so a single
-  // instance can satisfy every consumer; fixDeps must not flatten them back.
-  const fixPeers = (peers) => {
-    if (!peers) return;
-    for (const key of Object.keys(peers)) {
-      if (zenithPackages.has(key)) {
-        peers[key] = '^1.4.0';
-      }
-    }
-  };
-
-  fixDeps(pkg.dependencies);
-  fixDeps(pkg.devDependencies);
-  fixPeers(pkg.peerDependencies);
-
-  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-  console.log(`Standardized ${pkg.name}`);
+  return updated;
 }
 
-console.log('\nDone standardizing all packages.');
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const updated = standardizePackages('./packages');
+  console.log(`Standardized ${updated.length} packages.`);
+}

@@ -28,7 +28,32 @@
 
 import fs from 'node:fs';
 import type { Plugin, ViteDevServer, ResolvedConfig } from 'vite';
-import { transformHtml, hasZenithDirectives, type CompileOptions } from './compile';
+import { s, defineOptions } from '@zenith/schema';
+import {
+  transformHtml,
+  hasZenithDirectives,
+  clearCompileCache,
+  getCompileCacheStats,
+  compileOptions,
+  COMPILE_OPTIONS_DEFAULTS,
+  compileOptionsSchema,
+  resolveCompileOptions,
+  type VitePluginCompileOptions,
+  type CompileOptions,
+} from './compile';
+
+export {
+  transformHtml,
+  hasZenithDirectives,
+  clearCompileCache,
+  getCompileCacheStats,
+  compileOptions,
+  COMPILE_OPTIONS_DEFAULTS,
+  compileOptionsSchema,
+  resolveCompileOptions,
+  type VitePluginCompileOptions,
+  type CompileOptions,
+};
 
 /**
  * تبدیل یک glob pattern ساده به RegExp.
@@ -94,6 +119,29 @@ export interface ZenithPluginOptions {
 }
 
 /**
+ * #52 — Schema و پیش‌فرض‌های فریزشده برای `ZenithPluginOptions`.
+ */
+export const zenithPluginOptions = defineOptions<ZenithPluginOptions>(
+  'ZenithPluginOptions',
+  s.object({
+    watchPatterns: s.default(s.array(s.string({ min: 1 })), []),
+    autoInjectDevtools: s.default(s.boolean(), true),
+    enableHtmlHMR: s.default(s.boolean(), true),
+    compile: s.default(compileOptions.schema, {
+      enabled: true,
+      include: ['**/*.html'],
+      exclude: ['node_modules/**'],
+      strict: false,
+    }),
+  }),
+);
+
+export const ZENITH_PLUGIN_OPTIONS_DEFAULTS = zenithPluginOptions.DEFAULTS;
+export const zenithPluginOptionsSchema = zenithPluginOptions.schema;
+export const resolveZenithPluginOptions = (opts?: unknown): ZenithPluginOptions =>
+  zenithPluginOptions.resolve(opts);
+
+/**
  * ساخت پلاگین Vite برای Zenith.
  *
  * استفاده:
@@ -109,7 +157,9 @@ export interface ZenithPluginOptions {
  * @returns Plugin object برای Vite.
  */
 export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
-  const { autoInjectDevtools = true, enableHtmlHMR = true, watchPatterns, compile = {} } = options;
+  // #52 — اعتبارسنجی ZenithPluginOptions در مرز ورودی
+  const resolved = zenithPluginOptions.resolve(options);
+  const { autoInjectDevtools = true, enableHtmlHMR = true, watchPatterns, compile = {} } = resolved;
 
   // متغیرهای state که در hooks تنظیم می‌شوند
   let isBuild = false;

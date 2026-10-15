@@ -15,39 +15,24 @@ import { DEPRECATION_CODES } from '@zenith/errors';
 import { logger } from './default';
 import type { Logger } from './types';
 
-const FALLBACK_CODE = 'ZEN-DEPR-999';
-
 const warnedCodes = new Set<string>();
 const warnedKeys = new Set<string>();
 
-function deprecationCodeFor(api: string): string | undefined {
-  for (const [code, meta] of Object.entries(DEPRECATION_CODES)) {
-    if (meta.api === api) return code;
-  }
-  return undefined;
-}
-
 export interface OnceOptions {
-  /** لاگر مقصد؛ پیش‌فرض لاگر پیش‌فرض پکیج (`logger`). */
   logger?: Logger;
 }
 
-/**
- * هشدار deprecation یک‌باره: `deprecate(oldName, newName, since)`.
- * پیام شامل کد ZEN-DEPR-xxx است و فقط یک‌بار برای هر کد صادر می‌شود.
- */
 export function deprecate(
   oldName: string,
   newName: string,
   since: string,
   opts?: OnceOptions,
 ): void {
-  if (globalThis.__ZENITH_DEV__ === false) return; // همان منطق levels.ts
-  const code = deprecationCodeFor(oldName) ?? FALLBACK_CODE;
+  if (globalThis.__ZENITH_DEV__ === false) return;
+  const code =
+    Object.entries(DEPRECATION_CODES).find(([, m]) => m.api === oldName)?.[0] ?? 'ZEN-DEPR-999';
   if (warnedCodes.has(code)) return;
   warnedCodes.add(code);
-  // پیام انگلیسی، هم‌سبکِ errors.deprecate قدیمی (#47)؛ #39 همان i18n را
-  // یکدست می‌کند. کد ZEN-DEPR-999 خودش «ثبت‌نشده در رجیستری» را می‌گوید.
   (opts?.logger ?? logger)
     .child('deprecate')
     .warn(

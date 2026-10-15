@@ -7,8 +7,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const readmePath = join(ROOT, 'README.md');
 const readme = existsSync(readmePath) ? readFileSync(readmePath, 'utf8') : '';
 
-const pkgDirs = readdirSync(join(ROOT, 'packages')).filter((d) =>
-  statSync(join(ROOT, 'packages', d)).isDirectory(),
+const pkgDirs = readdirSync(join(ROOT, 'packages')).filter(
+  (d) =>
+    // ردّ دریکتوری گذرای scaffold موازی تست new-package (#172)
+    d !== 'tmp-scaffold-verify' && statSync(join(ROOT, 'packages', d)).isDirectory(),
 );
 
 describe('root README.md (issue #69)', () => {
@@ -25,9 +27,9 @@ describe('root README.md (issue #69)', () => {
     expect(readme).toMatch(/Zen\.action\('inc'/);
   });
 
-  it('lists all 42 package directories in the table', () => {
-    // #142: schema (40 → 41 dirs)؛ #145: storage (41 → 42 dirs incl. devtools-extension)
-    expect(pkgDirs).toHaveLength(42);
+  it('lists all 46 package directories in the table', () => {
+    // #142: schema (40 → 41)؛ #145: storage (41 → 42)؛ #147..#149: devtools-core, runtime-core, zenith (42 → 45)؛ #160: language-server (45 → 46)
+    expect(pkgDirs).toHaveLength(51); // #160 + پنج پکیج L2 جدید (#161,#162,#168,#169,#170)
     for (const d of pkgDirs) {
       expect(readme, `table row for packages/${d}`).toContain(`(packages/${d})`);
     }

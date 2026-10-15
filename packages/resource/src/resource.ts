@@ -30,6 +30,7 @@
 import { signal, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { deprecate, resourceDestroyedError, resourceHttpError } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 import type { Disposable } from '@zenith/shared';
 // #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
 import { createCache, type Cache } from '@zenith/cache';
@@ -247,7 +248,7 @@ export class Resource<T = any> implements Disposable {
         'list()',
         this._destroyStack || undefined,
       );
-      console.error(err.toUserString());
+      logger.error(err);
       return { success: false, error: err.toUserString() };
     }
     return this._request<T>('GET', null, undefined, force);
@@ -261,7 +262,7 @@ export class Resource<T = any> implements Disposable {
         `read(${id})`,
         this._destroyStack || undefined,
       );
-      console.error(err.toUserString());
+      logger.error(err);
       return { success: false, error: err.toUserString() };
     }
     return this._request<T>('GET', id, undefined, force);
@@ -278,7 +279,7 @@ export class Resource<T = any> implements Disposable {
         'create()',
         this._destroyStack || undefined,
       );
-      console.error(err.toUserString());
+      logger.error(err);
       return { success: false, error: err.toUserString() };
     }
     return this._request<T>('POST', null, body);
@@ -295,7 +296,7 @@ export class Resource<T = any> implements Disposable {
         `update(${id})`,
         this._destroyStack || undefined,
       );
-      console.error(err.toUserString());
+      logger.error(err);
       return { success: false, error: err.toUserString() };
     }
     return this._request<T>('PUT', id, body);
@@ -312,7 +313,7 @@ export class Resource<T = any> implements Disposable {
         `delete(${id})`,
         this._destroyStack || undefined,
       );
-      console.error(err.toUserString());
+      logger.error(err);
       return { success: false, error: err.toUserString() };
     }
     return this._request<T>('DELETE', id);
@@ -645,11 +646,15 @@ export class Resource<T = any> implements Disposable {
         // rollback می‌کنیم تا optimistic changes به‌درستی revert شوند.
         if (result && (result as CrudResult<any>).success === false && item.rollback) {
           item.rollback();
-          console.error('[Zenith Resource] Mutation failed:', (result as CrudResult<any>).error);
+          logger.error(
+            `[Zenith Resource] Mutation failed: ${String((result as CrudResult<any>).error)}`,
+          );
         }
       } catch (err) {
         if (item.rollback) item.rollback();
-        console.error('[Zenith Resource] Mutation failed:', err);
+        logger.error(
+          `[Zenith Resource] Mutation failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
     this._processing = false;
@@ -883,6 +888,37 @@ export function getResource(name: string): Resource<any> | undefined {
   return resourceRegistry.get(name);
 }
 
+/** #118: ثبت مستقیم Resource در رجیستری با بازگشت Cleanup idempotent. */
+export function registerResource<T = any>(name: string, resource: Resource<T>): () => void {
+  resourceRegistry.set(name, resource);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (resourceRegistry.get(name) === resource) {
+      resourceRegistry.delete(name);
+    }
+  };
+}
+
+/** #118: بررسی وجود Resource در رجیستری (`hasX`). */
+export function hasResource(name: string): boolean {
+  return resourceRegistry.has(name);
+}
+
+/** #118: فهرست نام تمام Resourceهای ثبت‌شده (`listXs`). */
+export function listResources(): string[] {
+  return Array.from(resourceRegistry.keys());
+}
+
+/** #118: حذف یک Resource با نام از رجیستری (`unregisterX`). */
+export function unregisterResource(name: string): boolean {
+  const existing = resourceRegistry.get(name);
+  if (!existing) return false;
+  existing.reset();
+  return resourceRegistry.delete(name);
+}
+
 /**
  * پاکسازی همه‌ی Resource ها (برای تست‌ها).
  */
@@ -906,5 +942,25 @@ export function clearResources(): void {
 export function invalidateAllResources(): void {
   for (const resource of resourceRegistry.values()) {
     resource.invalidate();
+  }
+}
+
+/**
+ * #130: باطل‌سازی Resourceها بر اساس نام/تگ (`invalidate(tags)`).
+ */
+export function invalidate(tags?: string | string[]): void {
+  if (!tags) {
+    invalidateAllResources();
+    return;
+  }
+  const tagList = Array.isArray(tags) ? tags : [tags];
+  if (tagList.length === 0) {
+    invalidateAllResources();
+    return;
+  }
+  for (const [name, resource] of resourceRegistry.entries()) {
+    if (tagList.includes(name) || tagList.some((t) => name.includes(t))) {
+      resource.invalidate();
+    }
   }
 }

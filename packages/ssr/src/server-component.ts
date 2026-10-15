@@ -1,5 +1,7 @@
 // packages/ssr/src/server-component.ts
 import { developerError, ErrorCode } from '@zenith/errors';
+import { logger } from '@zenith/logger';
+import { getDOMGlobals } from './dom-context';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
 // رندر می‌شوند و در کلاینت hydrate نمی‌شوند. این مزیت بزرگ Zenith نسبت
@@ -85,7 +87,7 @@ export function registerServerComponent(comp: ServerComponent): () => void {
   // در حالت توسعه یک هشدار چاپ کن. این برای HMR مفید است اما overwrite
   // تصادفی (مثلاً import دوتایی از یک فایل) را هم هشدار می‌دهد.
   if (serverComponentRegistry.has(comp.name)) {
-    console.warn(
+    logger.warn(
       `[Zenith SSR] ServerComponent "${comp.name}" is being overwritten. ` +
         `This is expected during HMR, but if it happens at startup, ` +
         `check for duplicate registrations or conflicting component names.`,
@@ -104,9 +106,14 @@ export function registerServerComponent(comp: ServerComponent): () => void {
 
 /**
  * گرفتن یک Server Component از registry.
- * اگر وجود نداشت، undefined برمی‌گرداند.
+ * ابتدا رجیستری اختصاصی درخواست جاری (در صورت وجود در AsyncLocalStorage)
+ * و سپس رجیستری سراسری بررسی می‌شود (#92).
  */
 export function getServerComponent(name: string): ServerComponent | undefined {
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped && scoped.has(name)) {
+    return scoped.get(name);
+  }
   return serverComponentRegistry.get(name);
 }
 
@@ -118,6 +125,23 @@ export function getServerComponent(name: string): ServerComponent | undefined {
  */
 export function unregisterServerComponent(name: string): boolean {
   return serverComponentRegistry.delete(name);
+}
+
+/** #118: بررسی وجود ServerComponent در رجیستری (`hasX`). */
+export function hasServerComponent(name: string): boolean {
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped && scoped.has(name)) return true;
+  return serverComponentRegistry.has(name);
+}
+
+/** #118: فهرست نام تمام ServerComponentهای ثبت‌شده (`listXs`). */
+export function listServerComponents(): string[] {
+  const keys = new Set<string>(serverComponentRegistry.keys());
+  const scoped = getDOMGlobals()?.serverComponents;
+  if (scoped) {
+    for (const k of scoped.keys()) keys.add(k);
+  }
+  return Array.from(keys);
 }
 
 /**

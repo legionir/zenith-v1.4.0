@@ -25,8 +25,23 @@ export { sanitizeCSS } from './sanitizer';
 // IMP-SEC-02: CSP Helper
 export { generateCSP, type CSPOptions } from './sanitizer';
 
-// IMP-SEC-03: Trusted Types Integration
-export { createTrustedTypesPolicy } from './sanitizer';
+// IMP-SEC-03 / #63: Trusted Types Integration
+export {
+  createTrustedTypesPolicy,
+  resetTrustedTypesPolicyCache,
+  setSafeInnerHTML,
+} from './sanitizer';
 
 // #64: شناسه‌ی امن با CSPRNG (crypto.getRandomValues)
 export { secureId } from './secure-id';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/security` (`SanitizeOptions` / `CSPOptions`).
+ * @default { allowDataAttributes: true, strictDynamic: false, requireTrustedTypes: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  allowDataAttributes: true,
+  strictDynamic: false,
+  requireTrustedTypes: false,
+});

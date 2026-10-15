@@ -1,5 +1,6 @@
 // packages/transition/src/animate.ts
 import { developerError, ErrorCode } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 //
 // FEATURE (v0.5.0): zen-animate — انیمیشن مبتنی بر Web Animations API.
 //
@@ -110,11 +111,71 @@ const DEFAULT_ANIMATE_OPTIONS: KeyframeAnimationOptions = {
  * @param options  گزینه‌های KeyframeAnimationOptions (duration, easing, …).
  * @returns Promise‌ای که بعد از پایان (یا لغو) انیمیشن resolve می‌شود.
  */
+export interface ZenAnimateConfig extends KeyframeAnimationOptions {
+  keyframes: Keyframe[];
+  /** #98: رعایت تنظیم سیستم‌عامل prefers-reduced-motion (پیش‌فرض: true) */
+  respectReducedMotion?: boolean;
+}
+
+/**
+ * #98 (WCAG 2.2 AA 2.3.3): بررسی فعال بودن `prefers-reduced-motion: reduce`.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
+
+export function zenAnimate(el: HTMLElement, config: ZenAnimateConfig): Promise<void>;
 export function zenAnimate(
   el: HTMLElement,
   keyframes: Keyframe[],
-  options: KeyframeAnimationOptions,
+  options?: KeyframeAnimationOptions & { respectReducedMotion?: boolean },
+): Promise<void>;
+export function zenAnimate(
+  el: HTMLElement,
+  keyframesOrConfig: Keyframe[] | ZenAnimateConfig,
+  legacyOptions: KeyframeAnimationOptions & {
+    respectReducedMotion?: boolean;
+  } = DEFAULT_ANIMATE_OPTIONS,
 ): Promise<void> {
+  const keyframes = Array.isArray(keyframesOrConfig)
+    ? keyframesOrConfig
+    : keyframesOrConfig.keyframes;
+  const options: KeyframeAnimationOptions & { respectReducedMotion?: boolean } = Array.isArray(
+    keyframesOrConfig,
+  )
+    ? legacyOptions
+    : keyframesOrConfig;
+
+  const reduced = options.respectReducedMotion !== false && prefersReducedMotion();
+  if (reduced && keyframes.length > 0) {
+    const finalFrame = keyframes[keyframes.length - 1]!;
+    if (finalFrame.opacity !== undefined) {
+      el.style.opacity = String(finalFrame.opacity);
+    }
+    if (typeof el.animate !== 'function') {
+      return Promise.resolve();
+    }
+    const effectiveOptions = { ...options, duration: 0, delay: 0, fill: 'forwards' as FillMode };
+    return new Promise((resolve) => {
+      const anim = el.animate(keyframes, effectiveOptions);
+      anim.onfinish = () => {
+        try {
+          anim.commitStyles();
+        } catch {}
+        anim.cancel();
+        resolve();
+      };
+      anim.oncancel = () => resolve();
+    });
+  }
+
   // SSR / older browser guard: اگر Web Animations API در دسترس نیست، no-op.
   if (typeof el.animate !== 'function') {
     return Promise.resolve();
@@ -206,9 +267,7 @@ export function parseAnimateAttr(value: string): ParsedAnimateAttr {
     const colonIdx = part.indexOf(':');
     if (colonIdx === -1) {
       // اگر کلید: مقدار نبود، نادیده بگیر (با warning در Dev).
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn(`[zen-animate] Ignoring malformed option '${part}'. Expected 'key:value'.`);
-      }
+      logger.warn(`[zen-animate] Ignoring malformed option '${part}'. Expected 'key:value'.`);
       continue;
     }
     const key = part.slice(0, colonIdx).trim();
@@ -235,9 +294,8 @@ export function parseAnimateAttr(value: string): ParsedAnimateAttr {
         break;
       default:
         // کلید ناشناخته — در Dev هشدار بده و نادیده بگیر.
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn(`[zen-animate] Unknown option '${key}'. Ignoring.`);
-        }
+        // #39: logger.centeral — console guard لازم نیست.
+        logger.warn(`[zen-animate] Unknown option '${key}'. Ignoring.`);
         break;
     }
   }
@@ -288,9 +346,9 @@ export function processAnimate(
     parsed = parseAnimateAttr(attrValue);
   } catch (err) {
     // preset نامعتبر — هشدار و no-op dispose.
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn(`[zen-animate] Failed to parse '${attrValue}':`, (err as Error).message);
-    }
+    logger.warn(
+      `[zen-animate] Failed to parse '${attrValue}': ${err instanceof Error ? err.message : String(err)}`,
+    );
     return () => {};
   }
 

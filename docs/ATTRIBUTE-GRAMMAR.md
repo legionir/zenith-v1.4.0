@@ -278,6 +278,11 @@ scripts/gen-zenith-meta.mjs [--check]  ← گیت تازگی در CI (متناظ
 | `zen-transition` | attribute | transition | string (نام preset) | — | ✅ |
 | `zen-action` | attribute | events | action name | `:param` (`zen-action:<event>.<modifier>`) | ⚠️ |
 | `zen-bind` | attribute | runtime | expression | `:param` (`zen-bind:<attr>`) | ⚠️ |
+| `zen-t` | attribute | i18n | string (کلید پیام) | `zen-t-params`, `zen-t-count`, `zen-t-default` | ✅ |
+| `zen-t-html` | attribute | i18n | string (کلید پیام؛ sanitize پیش‌فرض escape) | `zen-t-params`, `zen-t-count`, `zen-t-default` | ✅ |
+| `zen-t-attr` | attribute | i18n | نگاشت `"attr:key; attr2:key2"` | `zen-t-params` | ✅ |
+| `zen-locale` | attribute | i18n | none (marker ⇒ `lang`) | — | ✅ |
+| `zen-dir` | attribute | i18n | مقدارثابت `ltr\|rtl\|auto` | — | ✅ |
 
 ### ۴.۱ موارد ناسازگار (بایستی اصلاح شوند؛ هر کدام issue خودش را دارد)
 

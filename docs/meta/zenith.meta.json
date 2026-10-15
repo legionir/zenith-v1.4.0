@@ -22,6 +22,15 @@
       "docs": "https://zenith.dev/docs/runtime#zen-cloak"
     },
     {
+      "name": "zen-dir",
+      "description": "attribute dirِ المان — ltr|rtl|auto (auto ⇒ جهت جاری i18n؛ واکنشی).",
+      "syntax": "<section zen-dir=\"auto\"></section>",
+      "values": [
+        "ltr|rtl|auto"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-dir"
+    },
+    {
       "name": "zen-fetch",
       "description": "درخواست HTTP از URL و نوشتن نتیجه در state (نام کلید با zen-state، پیش‌فرض data).",
       "syntax": "<div zen-fetch=\"/api/users\" zen-fetch-method=\"GET\" zen-fetch-cache=\"30000\" zen-state=\"users\">…</div>",
@@ -72,6 +81,12 @@
       "docs": "https://zenith.dev/docs/runtime#zen-key"
     },
     {
+      "name": "zen-locale",
+      "description": "marker فقط؛ attribute langِ المان = locale جاری i18n (واکنشی).",
+      "syntax": "<section zen-locale></section>",
+      "docs": "https://zenith.dev/docs/i18n#zen-locale"
+    },
+    {
       "name": "zen-model",
       "description": "دوطرفه binding بین مقدار ورودی فرم و signal.",
       "syntax": "<input zen-model=\"form.name\" />",
@@ -118,6 +133,46 @@
       "description": "fast-path برای zen-for: per-item Signal ساخته نمی‌شود و تغییر لیست full re-render می‌کند؛ boolean (§۱.۳).",
       "syntax": "<li zen-for=\"row in rows\" zen-static>…</li>",
       "docs": "https://zenith.dev/docs/runtime#zen-static"
+    },
+    {
+      "name": "zen-t",
+      "description": "ترجمهٔ پیام با کلید از @zenith/i18n؛ واکنشی به تغییر locale (تنها textContent به‌روزرسانی می‌شود). همراه: zen-t-params (JSON)، zen-t-count (عدد برای plural)، zen-t-default (متن جایگزین).",
+      "syntax": "<span zen-t=\"greeting\" zen-t-params='{\"name\":\"علی\"}'></span>",
+      "attributes": [
+        "zen-t-params",
+        "zen-t-count",
+        "zen-t-default"
+      ],
+      "values": [
+        "کلید پیام (string غیرخالی)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t"
+    },
+    {
+      "name": "zen-t-attr",
+      "description": "ترجمهٔ چند attribute با نگاشت \"attr:key; attr2:key2\"؛ همرها: zen-t-params.",
+      "syntax": "<input zen-t-attr=\"title:form.title; aria-label:form.aria\" />",
+      "attributes": [
+        "zen-t-params"
+      ],
+      "values": [
+        "نگاشت attribute:کلید (جدا با ;)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t-attr"
+    },
+    {
+      "name": "zen-t-html",
+      "description": "ترجمهٔ پیام HTML‌شده با sanitize (پیش‌فرض: escape کامل — با I18nOptions.sanitizeHtml سانتیزر واقعی وصل کنید).",
+      "syntax": "<div zen-t-html=\"welcome.rich\" zen-t-params='{\"name\":\"علی\"}'></div>",
+      "attributes": [
+        "zen-t-params",
+        "zen-t-count",
+        "zen-t-default"
+      ],
+      "values": [
+        "کلید پیام (string غیرخالی)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t-html"
     },
     {
       "name": "zen-text",

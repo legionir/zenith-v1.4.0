@@ -47,6 +47,7 @@ import { compileExpression } from '@zenith/expressions';
 // #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
 import { createCache } from '@zenith/cache';
 import { resourceHttpError } from '@zenith/errors';
+import { logger } from '@zenith/logger';
 
 /**
  * شکل وضعیت fetch.
@@ -109,8 +110,9 @@ export function getCachedData(url: string, ttl: number): any | null {
  * @param url  کلید کش.
  * @param data داده‌ای که کش می‌شود.
  */
-export function setCachedData(url: string, data: any): void {
-  _fetchCache.set(url, { data, timestamp: Date.now() });
+export function setCachedData(url: string, data: any, tags?: string[]): void {
+  const autoTags = tags ?? url.split('/').filter(Boolean);
+  _fetchCache.set(url, { data, timestamp: Date.now() }, { tags: autoTags });
 }
 
 /**
@@ -118,6 +120,40 @@ export function setCachedData(url: string, data: any): void {
  */
 export function clearFetchCache(): void {
   _fetchCache.clear();
+}
+
+const _invalidateHooks = new Set<(tags: string[]) => void>();
+
+/**
+ * #130: ثبت یک قلاب باطل‌سازی سراسری برای هماهنگ‌سازی کش‌های `data`، `resource` و `http`.
+ */
+export function registerInvalidateHook(fn: (tags: string[]) => void): () => void {
+  _invalidateHooks.add(fn);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    _invalidateHooks.delete(fn);
+  };
+}
+
+/**
+ * #130: باطل‌سازی سراسری کش بر اساس تگ‌ها (`invalidate(tags)`).
+ */
+export function invalidate(tags?: string | string[]): void {
+  if (!tags) {
+    _fetchCache.clear();
+    for (const hook of _invalidateHooks) hook([]);
+    return;
+  }
+  const tagList = Array.isArray(tags) ? tags : [tags];
+  _fetchCache.invalidate(tagList);
+  for (const key of _fetchCache.keys()) {
+    if (tagList.some((t) => key.includes(t))) {
+      _fetchCache.delete(key);
+    }
+  }
+  for (const hook of _invalidateHooks) hook(tagList);
 }
 
 /**
@@ -259,7 +295,7 @@ async function performFetch(
     if (res.status === 429 && retryCount < MAX_RETRIES) {
       const retryAfter = res.headers.get('Retry-After');
       const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : 5000;
-      console.warn(
+      logger.warn(
         `[Zenith] Rate limited. Retrying after ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`,
       );
       abortController.abort(); // BUG-DAT-01: پاکسازی controller قدیمی
@@ -400,7 +436,11 @@ export function processFetch(
     try {
       url = evalFn(context);
     } catch (err) {
-      console.error(`[Zenith Fetch] Failed to evaluate URL expression "${expr}":`, err);
+      logger.error(
+        `[Zenith Fetch] Failed to evaluate URL expression "${expr}": ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
       fetchStateSignal.set({
         loading: false,
         error: `Invalid URL expression: ${(err as Error).message}`,
@@ -411,7 +451,7 @@ export function processFetch(
 
     // BUG-DAT-04: اعتبارسنجی نوع — باید string باشد
     if (typeof url !== 'string') {
-      console.error(`[Zenith Fetch] URL expression must evaluate to string. Got: ${typeof url}`);
+      logger.error(`[Zenith Fetch] URL expression must evaluate to string. Got: ${typeof url}`);
       fetchStateSignal.set({
         loading: false,
         error: `URL must be a string, got ${typeof url}`,
@@ -422,7 +462,7 @@ export function processFetch(
 
     // BUG-DAT-04: اعتبارسنجی فرمت — باید URL معتبر باشد
     if (!isValidUrl(url)) {
-      console.error(`[Zenith Fetch] Malformed URL:`, url);
+      logger.error(`[Zenith Fetch] Malformed URL: ${String(url)}`);
       fetchStateSignal.set({
         loading: false,
         error: `Malformed URL: ${url}`,
@@ -448,7 +488,11 @@ export function processFetch(
         }
       } catch (err) {
         // پارامترهای نامعتبر — با warn ادامه بده بدون پارامتر
-        console.warn(`[Zenith Fetch] Failed to evaluate params expression:`, err);
+        logger.warn(
+          `[Zenith Fetch] Failed to evaluate params expression: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
     }
 
@@ -503,7 +547,11 @@ export function processFetch(
       try {
         d();
       } catch (err) {
-        console.error('[Zenith Fetch] Error during child dispose:', err);
+        logger.error(
+          `[Zenith Fetch] Error during child dispose: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
       }
     }
     childDisposes.length = 0;

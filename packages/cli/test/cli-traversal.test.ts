@@ -5,7 +5,7 @@
 //     موقت — باید با کد خروج غیرصفر رد شود و هیچ فایل بیرون cwd نوشته نشود.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { build } from 'esbuild';
-import { mkdtempSync, mkdirSync, rmSync, existsSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -140,5 +140,16 @@ describe('zenith create CLI integration (#7)', () => {
     const { code, out } = runCreate(projectRoot, 'my-app');
     expect(code, out).toBe(0);
     expect(existsSync(join(projectRoot, 'my-app', 'package.json'))).toBe(true);
+  });
+
+  it('prints the exact version from packages/cli/package.json on --version (#71)', () => {
+    const pkgJson = JSON.parse(readFileSync(join(ROOT, 'packages/cli/package.json'), 'utf8')) as {
+      version: string;
+    };
+    const out = execFileSync(process.execPath, [cliPath, '--version'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).trim();
+    expect(out).toBe(pkgJson.version);
   });
 });

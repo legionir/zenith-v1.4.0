@@ -14,7 +14,7 @@
 //                       کرده که محتوا Trusted است.
 //
 // ── هشدار Dev ──
-//   sanitizeHTMLTrusted در حالت Development یک `console.warn` پرسر و صدا چاپ
+//   sanitizeHTMLTrusted در حالت Development یک `logger.warn` پرسر و صدا چاپ
 //   می‌کند. این عمدی است — visibility بالا برای audit ارزشمند است. در
 //   Production، `globalThis.__ZENITH_DEV__ = false` قرار دهید تا هشدار خاموش
 //   شود.

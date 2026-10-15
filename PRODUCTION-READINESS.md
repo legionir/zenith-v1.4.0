@@ -39,7 +39,7 @@
 - [ ] `tsconfig.base.json` مشترک (همهٔ پکیج‌ها `noUncheckedIndexedAccess` و `noUnusedLocals` یکسان)
 - [ ] یکسان‌سازی و انتقال devDependencyهای مشترک (`typescript`، `@types/node`، `tsx`) به ریشه
 - [ ] حذف کد مرده و کامنت‌های ردیابی («Real cleanup:»، «Listener cleanup added»)
-- [ ] انتقال `ai-office-backup/` و `ecommerce-preview.png` از ریشه
+- [x] ~~انتقال `ai-office-backup/` و `ecommerce-preview.png` از ریشه~~ (انجام شد در #44: تصویر → docs/assets/)
 
 ## ۳. معماری و ساختار پکیج‌ها (P0/P1)
 جزئیات در `ARCHITECTURE.md`.

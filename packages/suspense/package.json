@@ -9,7 +9,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -46,13 +47,14 @@
   },
   "dependencies": {
     "@zenith/error-boundary": "1.4.0",
+    "@zenith/errors": "1.4.0",
     "@zenith/security": "1.4.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.0"
   },
   "module": "./dist/index.js",
   "peerDependencies": {
     "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
   }
 }

@@ -1,5 +1,6 @@
 // #27 tests for @zenith/state support modules: error system, devtools registry.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { logger } from '@zenith/logger';
 import {
   onError,
   emitError,
@@ -42,7 +43,9 @@ describe('error system (#115 model)', () => {
   });
 
   it('a throwing handler does not break emitError', () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // #39: emitError handler-failure از طریق logger.error گزارش می‌شود (نه
+    // console.error) — همان هدف نظارتی: تابع باید بدون throw بیرون بیاید.
+    const spy = vi.spyOn(logger, 'error').mockImplementation(() => {});
     const off = onError(() => {
       throw new Error('handler broke');
     });

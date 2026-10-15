@@ -38,8 +38,9 @@
 // 6. اگر error رخ دهد، fallback error نمایش داده می‌شود.
 // 7. Error boundary integration: خطاهای فرزندان به error-boundary گزارش می‌شوند.
 
-import { signal, effect, type ReadonlySignal, type Signal } from '@zenith/state';
+import { signal, effect, untrack, type ReadonlySignal, type Signal } from '@zenith/state';
 import { reportError } from '@zenith/error-boundary';
+import { deprecate } from '@zenith/errors';
 // FIX (#64): شناسه‌های داخلی با CSPRNG (crypto.getRandomValues) به‌جای Math.random.
 import { secureId } from '@zenith/security';
 
@@ -91,10 +92,31 @@ export interface SuspenseContext {
  *                   تا parent context به‌صورت هم‌زمان (بدون gap میکروتسک)
  *                   از وضعیت فرزند مطلع شود.
  */
+export interface SuspenseContextOptions {
+  timeoutMs?: number;
+  onSettle?: (settled: boolean) => void;
+}
+
+/**
+ * ساخت یک SuspenseContext جدید (#55: پشتیبانی از options object).
+ */
+export function createSuspenseContext(options?: SuspenseContextOptions): SuspenseContext;
 export function createSuspenseContext(
-  timeoutMs: number = 0,
+  timeoutMs?: number,
   onSettle?: (settled: boolean) => void,
+): SuspenseContext;
+export function createSuspenseContext(
+  timeoutOrOptions: number | SuspenseContextOptions = 0,
+  legacyOnSettle?: (settled: boolean) => void,
 ): SuspenseContext {
+  const timeoutMs =
+    typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
+      ? (timeoutOrOptions.timeoutMs ?? 0)
+      : timeoutOrOptions;
+  const onSettle =
+    typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
+      ? timeoutOrOptions.onSettle
+      : legacyOnSettle;
   const loadingSet = new Set<string>();
   const sig = signal<SuspenseState>({
     loading: false,
@@ -184,13 +206,13 @@ export function createSuspenseContext(
   return {
     signal: sig,
     startLoading(id: string) {
+      const wasEmpty = loadingSet.size === 0;
       loadingSet.add(id);
-      // FIX (v1.2.7): Re-arm timeout when new loading starts after a
-      // timeout. Previously the `!current.timedOut` guard in updateState
-      // prevented re-arming, so once timed out, the boundary was stuck.
+      // FIX (v1.2.7 + #22): Re-arm timeout and clear stale error when a new
+      // loading cycle starts.
       const current = sig.get();
-      if (current.timedOut) {
-        sig.set({ ...current, timedOut: false, loading: true });
+      if (current.timedOut || (wasEmpty && current.error !== null)) {
+        sig.set({ ...current, timedOut: false, error: null, loading: true });
         clearTimeoutHandle();
         armTimeout();
       }
@@ -202,9 +224,12 @@ export function createSuspenseContext(
     },
     reportError(err: string) {
       clearTimeoutHandle();
+      // FIX (#22): حفظ وضعیت loading و pendingCount واقعی اگر پرامیس‌های هم‌پوشان
+      // دیگری هنوز در loadingSet در حال بارگذاری هستند.
+      const pendingCount = loadingSet.size;
       sig.set({
-        loading: false,
-        pendingCount: 0,
+        loading: pendingCount > 0,
+        pendingCount,
         timedOut: false,
         error: err,
       });
@@ -269,10 +294,21 @@ function normalizeError(error: unknown): Error {
 }
 
 /**
+ * ماشین وضعیت صریح نمایش loading با minDelay (#22):
+ *   idle → pending → delayed-show → shown
+ */
+export type SuspenseLoadingPhase = 'idle' | 'pending' | 'delayed-show' | 'shown';
+
+/**
  * یک کنترلر Suspense برای استفادهٔ برنامه‌نویسی‌شده می‌سازد.
  *
  * API قدیمی `createSuspenseContext` برای runtime directiveها حفظ شده است؛
  * این wrapper برای ردیابی Promiseها، callbackها و state ساده‌تر طراحی شده.
+ *
+ * ترتیب تضمین‌شدهٔ گزارش خطا (#21):
+ *   1. `context.reportError(err.message)` (به‌روزرسانی `controller.signal`)
+ *   2. `error.set(err)` (به‌روزرسانی `controller.error` با نمونهٔ `Error`)
+ *   3. `notifyError(err)` (فراخوانی شنوندگان `onError`)
  */
 export function createSuspense(options: SuspenseOptions = {}): SuspenseController {
   const context = createSuspenseContext(options.timeout ?? 0);
@@ -282,12 +318,17 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
   const errorCallbacks = new Set<(error: Error) => void>();
   const minDelay = Math.max(0, options.minDelay ?? 0);
   let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+  let loadingPhase: SuspenseLoadingPhase = 'idle';
   let timedOut = false;
   let disposed = false;
   let id = 0;
   // FIX (#20): شمارندهٔ نسل/چرخه — هر reset() یک چرخهٔ جدید شروع می‌کند و
   // تسویهٔ پرامیس‌های نسل قبلی نباید onReady/onError را فعال کند.
   let generation = 0;
+  // FIX (#21): ردیابی هویت شیء خطای گزارش‌شده تا دو خطای متمایز با message یکسان
+  // هر دو گزارش شوند و تنها یک کانال واحد گزارش وجود داشته باشد.
+  let lastReportedError: Error | null = null;
+  let lastExternalErrorMsg: string | null = null;
 
   const notifyReady = () => {
     for (const callback of [...readyCallbacks]) callback();
@@ -296,25 +337,94 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
     for (const callback of [...errorCallbacks]) callback(nextError);
   };
 
+  /**
+   * مسیر واحد گزارش خطا (#21):
+   * ابتدا `context.reportError`، سپس `error.set(nextError)`، و در نهایت `notifyError(nextError)`.
+   */
+  const emitControllerError = (nextError: Error, updateContext: boolean) => {
+    if (lastReportedError === nextError) return;
+    lastReportedError = nextError;
+    lastExternalErrorMsg = nextError.message;
+    if (updateContext) {
+      context.reportError(nextError.message);
+    }
+    error.set(nextError);
+    notifyError(nextError);
+  };
+
+  const cancelDelayTimer = () => {
+    if (loadingTimer !== null) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
+  };
+
+  const transitionLoadingPhase = (isLoading: boolean) => {
+    if (!isLoading) {
+      cancelDelayTimer();
+      loadingPhase = 'idle';
+      if (untrack(() => loading.get()) !== false) {
+        loading.set(false);
+      }
+      return;
+    }
+
+    // isLoading === true:
+    // idle → pending → (minDelay === 0 ? shown : delayed-show)
+    if (loadingPhase === 'idle') {
+      loadingPhase = 'pending';
+      if (minDelay === 0) {
+        loadingPhase = 'shown';
+        if (untrack(() => loading.get()) !== true) {
+          loading.set(true);
+        }
+      } else {
+        loadingPhase = 'delayed-show';
+        cancelDelayTimer();
+        loadingTimer = setTimeout(() => {
+          loadingTimer = null;
+          if (!disposed && loadingPhase === 'delayed-show' && context.signal.get().loading) {
+            loadingPhase = 'shown';
+            loading.set(true);
+          }
+        }, minDelay);
+      }
+      return;
+    }
+
+    if (loadingPhase === 'delayed-show' && loadingTimer === null) {
+      loadingTimer = setTimeout(() => {
+        loadingTimer = null;
+        if (!disposed && loadingPhase === 'delayed-show' && context.signal.get().loading) {
+          loadingPhase = 'shown';
+          loading.set(true);
+        }
+      }, minDelay);
+    } else if (loadingPhase === 'shown' && untrack(() => loading.get()) !== true) {
+      loading.set(true);
+    }
+  };
+
   const disposeStateEffect = effect(() => {
     const state = context.signal.get();
 
-    if (state.error) {
-      if (!error.get() || error.get()!.message !== state.error) {
-        const nextError = new Error(state.error);
-        error.set(nextError);
-        notifyError(nextError);
+    // FIX (#22): خواندن سیگنال‌های خروجی داخل effect فقط با untrack انجام می‌شود
+    // تا effect به خروجی‌های خودش (loading و error) وابسته نشود.
+    const currentError = untrack(() => error.get());
+
+    if (state.error !== null) {
+      // اگر خطا مستقیماً روی context.signal تنظیم شده باشد (خارج از track)
+      if (currentError === null || state.error !== lastExternalErrorMsg) {
+        emitControllerError(new Error(state.error), false);
       }
-    } else if (error.get() !== null) {
+    } else if (currentError !== null) {
+      lastReportedError = null;
+      lastExternalErrorMsg = null;
       error.set(null);
     }
 
     if (state.timedOut) {
-      if (loadingTimer) {
-        clearTimeout(loadingTimer);
-        loadingTimer = null;
-      }
-      loading.set(false);
+      transitionLoadingPhase(false);
       if (!timedOut) {
         timedOut = true;
         options.onTimeout?.();
@@ -323,22 +433,11 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
     }
 
     if (state.loading) {
-      if (minDelay === 0) {
-        loading.set(true);
-      } else if (!loadingTimer && !loading.get()) {
-        loadingTimer = setTimeout(() => {
-          loadingTimer = null;
-          if (!disposed && context.signal.get().loading) loading.set(true);
-        }, minDelay);
-      }
+      transitionLoadingPhase(true);
       return;
     }
 
-    if (loadingTimer) {
-      clearTimeout(loadingTimer);
-      loadingTimer = null;
-    }
-    loading.set(false);
+    transitionLoadingPhase(false);
     timedOut = false;
   });
 
@@ -351,6 +450,8 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
       const loadingId = `promise-${++id}`;
       const gen = generation; // FIX (#20): snapshot نسل این پرامیس
       context.startLoading(loadingId);
+      // اگر در همان تیک پیش از اجرای effect بارگذاری جدیدی آغاز شده، فاز را همگام کن
+      transitionLoadingPhase(true);
 
       Promise.resolve(promise).then(
         () => {
@@ -360,6 +461,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
           if (disposed || gen !== generation) return;
           context.stopLoading(loadingId);
           const state = context.signal.get();
+          if (!state.loading) {
+            transitionLoadingPhase(false);
+          }
           if (!state.loading && !state.error && !state.timedOut) notifyReady();
         },
         (reason: unknown) => {
@@ -369,9 +473,10 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
           // پرامیس‌ها تسویه شدند ناسازگار (boundary گیرکرده) می‌شد.
           context.stopLoading(loadingId);
           const nextError = normalizeError(reason);
-          error.set(nextError);
-          context.reportError(nextError.message);
-          notifyError(nextError);
+          emitControllerError(nextError, true);
+          if (!context.signal.get().loading) {
+            transitionLoadingPhase(false);
+          }
         },
       );
     },
@@ -387,6 +492,9 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
       // FIX (#20): شروع چرخهٔ جدید؛ همهٔ پرامیس‌های در حال انتظار نسل قبل
       // بی‌اعتبار می‌شوند.
       generation++;
+      lastReportedError = null;
+      lastExternalErrorMsg = null;
+      transitionLoadingPhase(false);
       context.reset();
       error.set(null);
       timedOut = false;
@@ -394,9 +502,7 @@ export function createSuspense(options: SuspenseOptions = {}): SuspenseControlle
     dispose() {
       if (disposed) return;
       disposed = true;
-      if (loadingTimer) clearTimeout(loadingTimer);
-      loadingTimer = null;
-      loading.set(false);
+      transitionLoadingPhase(false);
       readyCallbacks.clear();
       errorCallbacks.clear();
       disposeStateEffect();
@@ -605,4 +711,129 @@ export function processSuspense(
   };
   disposes.push(idempotentCleanup);
   return idempotentCleanup;
+}
+
+// ── #55: Options-object helpers for promise tracking and timeout ──
+
+export interface TrackPromiseOptions {
+  suspense?: SuspenseContext | SuspenseController;
+  key?: string;
+  timeout?: number;
+}
+
+export interface WithTimeoutOptions {
+  ms: number;
+  message?: string;
+}
+
+function isTrackPromiseOptions(val: unknown): val is TrackPromiseOptions {
+  if (typeof val !== 'object' || val === null) return false;
+  return !('startLoading' in val) && !('track' in val);
+}
+
+/**
+ * Track a promise inside a Suspense boundary (#55: options-object signature).
+ */
+export function trackPromise<T>(promise: Promise<T>, options?: TrackPromiseOptions): Promise<T>;
+/** @deprecated Use `trackPromise(promise, { suspense, key, timeout })` (#55, ZEN-DEPR-037). */
+export function trackPromise<T>(
+  promise: Promise<T>,
+  suspense?: SuspenseContext | SuspenseController,
+  key?: string,
+  timeout?: number,
+): Promise<T>;
+export function trackPromise<T>(
+  promise: Promise<T>,
+  optionsOrSuspense?: TrackPromiseOptions | SuspenseContext | SuspenseController,
+  legacyKey?: string,
+  legacyTimeout?: number,
+): Promise<T> {
+  let opts: TrackPromiseOptions;
+  if (
+    legacyKey !== undefined ||
+    legacyTimeout !== undefined ||
+    (optionsOrSuspense !== undefined && !isTrackPromiseOptions(optionsOrSuspense))
+  ) {
+    deprecate(
+      'ZEN-DEPR-037',
+      'trackPromise(promise, suspense, key, timeout)',
+      'trackPromise(promise, { suspense, key, timeout })',
+    );
+    opts = {
+      suspense: optionsOrSuspense as SuspenseContext | SuspenseController | undefined,
+      key: legacyKey,
+      timeout: legacyTimeout,
+    };
+  } else {
+    opts = (optionsOrSuspense as TrackPromiseOptions | undefined) ?? {};
+  }
+
+  const trackKey = opts.key ?? `zen-promise-${secureId(4)}`;
+  const tracked =
+    opts.timeout && opts.timeout > 0 ? withTimeout(promise, { ms: opts.timeout }) : promise;
+
+  if (!opts.suspense) return tracked;
+
+  if ('track' in opts.suspense) {
+    opts.suspense.track(tracked);
+    return tracked;
+  }
+
+  const targetCtx: SuspenseContext = opts.suspense;
+  targetCtx.startLoading(trackKey);
+  return tracked.then(
+    (value) => {
+      targetCtx.stopLoading(trackKey);
+      return value;
+    },
+    (err) => {
+      targetCtx.reportError(err instanceof Error ? err.message : String(err));
+      throw err;
+    },
+  );
+}
+
+/**
+ * Wrap a promise with a timeout (#55: options-object signature).
+ */
+export function withTimeout<T>(promise: Promise<T>, options: WithTimeoutOptions): Promise<T>;
+/** @deprecated Use `withTimeout(promise, { ms, message })` (#55, ZEN-DEPR-038). */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
+export function withTimeout<T>(
+  promise: Promise<T>,
+  msOrOptions: number | WithTimeoutOptions,
+  legacyMessage?: string,
+): Promise<T> {
+  let ms: number;
+  let message: string;
+  if (typeof msOrOptions === 'number') {
+    deprecate(
+      'ZEN-DEPR-038',
+      'withTimeout(promise, ms, message)',
+      'withTimeout(promise, { ms, message })',
+    );
+    ms = msOrOptions;
+    message = legacyMessage ?? `Operation timed out after ${ms}ms`;
+  } else {
+    ms = msOrOptions.ms;
+    message = msOrOptions.message ?? `Operation timed out after ${ms}ms`;
+  }
+
+  if (ms <= 0) return promise;
+
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message));
+    }, ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }

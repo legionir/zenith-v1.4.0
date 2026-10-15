@@ -114,12 +114,12 @@ describe('error-code pattern (#171, DEC-020)', () => {
 });
 
 describe('4-digit ranges table (#171)', () => {
-  it('declares all 16 SPEC ranges with distinct domains', () => {
+  it('declares all SPEC ranges (+ بازهٔ cli #102) with distinct domains', () => {
     const starts = ERROR_CODE_RANGES.map((r) => r.from);
-    expect(new Set(starts).size).toBe(16);
+    expect(new Set(starts).size).toBe(17);
     for (const expected of [
       1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400,
-      2500,
+      9000, 2500,
     ]) {
       expect(starts).toContain(expected);
     }
@@ -152,7 +152,8 @@ describe('reserved 4-digit catalog (#171)', () => {
     const codes = Object.keys(RESERVED_ERROR_CODES);
     expect(new Set(codes).size).toBe(codes.length);
     for (const code of codes) {
-      expect(code).toMatch(/^ZEN-1\d{3}|^ZEN-2[0-5]\d{2}$/);
+      // بازهٔ ۹xxx برای قوانین async zenith check در #102 به جدول تصمیم افزوده شد.
+      expect(code).toMatch(/^ZEN-1\d{3}|^ZEN-2[0-5]\d{2}$|^ZEN-9\d{3}$/);
       const num = parseInt(code.slice(4), 10);
       const range = ERROR_CODE_RANGES.find((r) => num >= r.from && num <= r.to);
       expect(range, `range for ${code}`).toBeDefined();
@@ -181,7 +182,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (26 after #117 naming unification)', () => {
+  it('contains exactly the issued codes with api/replacement (41 after #55 positional-options)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -213,6 +214,23 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       // #117 — یکدست‌سازی نام/مسیر (schedule→scheduleEffect، stateful تک‌مسیر نصب)
       'ZEN-DEPR-025',
       'ZEN-DEPR-026',
+      // #147 — هشت بازصادرات رجیستری devtools از @zenith/state به @zenith/devtools-core
+      'ZEN-DEPR-027',
+      'ZEN-DEPR-028',
+      'ZEN-DEPR-029',
+      'ZEN-DEPR-030',
+      'ZEN-DEPR-031',
+      'ZEN-DEPR-032',
+      'ZEN-DEPR-033',
+      'ZEN-DEPR-034',
+      // #55 — هفت امضای positional که به options object مهاجرت کردند
+      'ZEN-DEPR-035',
+      'ZEN-DEPR-036',
+      'ZEN-DEPR-037',
+      'ZEN-DEPR-038',
+      'ZEN-DEPR-039',
+      'ZEN-DEPR-040',
+      'ZEN-DEPR-041',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');

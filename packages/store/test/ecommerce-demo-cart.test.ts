@@ -79,4 +79,25 @@ describe('ecommerce-demo cart on @zenith/storage (#145)', () => {
     const rec = JSON.parse(localStorage.getItem(KEY) as string);
     expect(rec.d.cart).toEqual([{ id: 2, title: 'ماوس', price: 300000 }]);
   });
+
+  it('enforces product inventory on addToCart and deducts stock on checkoutOrder (#9)', async () => {
+    const { store } = await loadDemo();
+
+    // Product 3 has initial stock 0 in demo inventory -> blocked
+    expect(store.getStock(3)).toBe(0);
+    expect(store.isInStock(3)).toBe(false);
+    expect(store.addToCart(3, 'کالای ناموجود', 100000)).toBe(false);
+    expect(store.state.cart).toHaveLength(0);
+
+    // Product 1 has initial stock 5 -> allowed
+    expect(store.getStock(1)).toBe(5);
+    expect(store.addToCart(1, 'هدفون', 500000)).toBe(true);
+    expect(store.state.cart).toHaveLength(1);
+
+    // Checkout deducts stock from 5 to 4 and clears the cart
+    expect(store.checkoutOrder()).toBe(true);
+    expect(store.getStock(1)).toBe(4);
+    expect(store.state.cart).toHaveLength(0);
+    expect(store.state.lastOrderStatus).toBe('success');
+  });
 });

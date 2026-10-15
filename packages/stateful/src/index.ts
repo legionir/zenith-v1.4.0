@@ -30,6 +30,7 @@
 // پیمایش، اگر به این تگ‌ها برسد، handler مربوطه را فراخوانی می‌کند.
 
 import type { ZenithPlugin } from '@zenith/runtime';
+import { logger } from '@zenith/logger';
 import { deprecate } from '@zenith/errors';
 import {
   registerCustomDirective,
@@ -92,7 +93,7 @@ function registerStatefulDirectives(): {
   for (const directive of statefulDirectives) {
     if (hasCustomDirective(directive.name)) {
       // #117: تنها مسیر نصب ⇒ تنها یک نقطهٔ هشدار (قبلاً دو کپی یکسان داشت).
-      console.warn(`[Zenith] Directive "${directive.name}" already registered. Skipping.`);
+      logger.warn(`[Zenith] Directive "${directive.name}" already registered. Skipping.`);
       continue;
     }
     registerCustomDirective(directive.name, directive.handler, directive.attr);

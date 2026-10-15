@@ -38,6 +38,18 @@
         }
       ]
     },
+    "zen-dir": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-dir`\n\n```html\n<section zen-dir=\"auto\"></section>\n```\n\nattribute dirِ المان — ltr|rtl|auto (auto ⇒ جهت جاری i18n؛ واکنشی).\n\nمقدارها: `ltr|rtl|auto`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/i18n#zen-dir"
+        }
+      ]
+    },
     "zen-fetch": {
       "description": {
         "kind": "markdown",
@@ -110,6 +122,18 @@
         }
       ]
     },
+    "zen-locale": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-locale`\n\n```html\n<section zen-locale></section>\n```\n\nmarker فقط؛ attribute langِ المان = locale جاری i18n (واکنشی)."
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/i18n#zen-locale"
+        }
+      ]
+    },
     "zen-model": {
       "description": {
         "kind": "markdown",
@@ -179,6 +203,42 @@
         {
           "name": "Zenith docs",
           "url": "https://zenith.dev/docs/runtime#zen-static"
+        }
+      ]
+    },
+    "zen-t": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-t`\n\n```html\n<span zen-t=\"greeting\" zen-t-params='{\"name\":\"علی\"}'></span>\n```\n\nترجمهٔ پیام با کلید از @zenith/i18n؛ واکنشی به تغییر locale (تنها textContent به‌روزرسانی می‌شود). همراه: zen-t-params (JSON)، zen-t-count (عدد برای plural)، zen-t-default (متن جایگزین).\n\nمقدارها: `کلید پیام (string غیرخالی)`\n\nsub-attributes: `zen-t-params`, `zen-t-count`, `zen-t-default`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/i18n#zen-t"
+        }
+      ]
+    },
+    "zen-t-attr": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-t-attr`\n\n```html\n<input zen-t-attr=\"title:form.title; aria-label:form.aria\" />\n```\n\nترجمهٔ چند attribute با نگاشت \"attr:key; attr2:key2\"؛ همرها: zen-t-params.\n\nمقدارها: `نگاشت attribute:کلید (جدا با ;)`\n\nsub-attributes: `zen-t-params`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/i18n#zen-t-attr"
+        }
+      ]
+    },
+    "zen-t-html": {
+      "description": {
+        "kind": "markdown",
+        "value": "`zen-t-html`\n\n```html\n<div zen-t-html=\"welcome.rich\" zen-t-params='{\"name\":\"علی\"}'></div>\n```\n\nترجمهٔ پیام HTML‌شده با sanitize (پیش‌فرض: escape کامل — با I18nOptions.sanitizeHtml سانتیزر واقعی وصل کنید).\n\nمقدارها: `کلید پیام (string غیرخالی)`\n\nsub-attributes: `zen-t-params`, `zen-t-count`, `zen-t-default`"
+      },
+      "references": [
+        {
+          "name": "Zenith docs",
+          "url": "https://zenith.dev/docs/i18n#zen-t-html"
         }
       ]
     },

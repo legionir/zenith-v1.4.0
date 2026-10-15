@@ -10,6 +10,7 @@
 
 // Import برای استفاده داخلی در loadComponents.
 import { registerComponent } from './registry';
+import { logger } from '@zenith/logger';
 
 // Re-export برای استفاده‌ی کاربران خارجی.
 export {
@@ -17,8 +18,11 @@ export {
   unregisterComponent,
   getComponent,
   isComponent,
+  hasComponent,
+  listComponents,
   clearComponents,
   componentRegistry,
+  setComponentRegistryStore,
   type ComponentDefinition,
 } from './registry';
 
@@ -81,7 +85,7 @@ export function loadComponents(root: HTMLElement): number {
     const name = def.getAttribute('name');
 
     if (!name) {
-      console.warn('[Zenith] <zen-component> without name attribute. Skipping.');
+      logger.warn('[Zenith] <zen-component> without name attribute. Skipping.');
       def.remove();
       return;
     }
@@ -101,11 +105,15 @@ export function loadComponents(root: HTMLElement): number {
           if (tpl) {
             registerComponent(name, tpl as HTMLTemplateElement);
           } else {
-            console.error(`[Zenith] Lazy component "${name}" from "${lazySrc}" has no <template>.`);
+            logger.error(`[Zenith] Lazy component "${name}" from "${lazySrc}" has no <template>.`);
           }
         })
         .catch((err) =>
-          console.error(`[Zenith] Failed to load lazy component "${name}" from "${lazySrc}":`, err),
+          logger.error(
+            `[Zenith] Failed to load lazy component "${name}" from "${lazySrc}": ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          ),
         );
       def.remove();
       count++;
@@ -114,7 +122,7 @@ export function loadComponents(root: HTMLElement): number {
 
     const template = def.querySelector(':scope > template');
     if (!template) {
-      console.warn(`[Zenith] <zen-component name="${name}"> has no <template> child. Skipping.`);
+      logger.warn(`[Zenith] <zen-component name="${name}"> has no <template> child. Skipping.`);
       def.remove();
       return;
     }
@@ -125,7 +133,8 @@ export function loadComponents(root: HTMLElement): number {
   });
 
   if (count > 0) {
-    console.log(`🧩 Loaded ${count} component(s).`);
+    // #39: لاگر مرکزی — کانال info (در dev چاپ می‌شود، در prod خاموش).
+    logger.info(`🧩 Loaded ${count} component(s).`);
   }
   return count;
 }
@@ -193,3 +202,16 @@ export function preloadVisibleComponents(): void {
     if (el) observer.observe(el);
   }
 }
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/components` (`LoadComponentOptions`).
+ * @default { timeout: 10000, retries: 2, retryDelay: 1000, rootMargin: '200px' }
+ * @unit ms (timeout, retryDelay)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  timeout: 10_000,
+  retries: 2,
+  retryDelay: 1_000,
+  rootMargin: '200px',
+});

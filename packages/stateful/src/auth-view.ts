@@ -42,6 +42,7 @@
 //   - SSR-safe: بدون document، no-op می‌شود.
 
 import { effect, type Signal } from '@zenith/state';
+import { logger } from '@zenith/logger';
 import { walkAndBind } from '@zenith/runtime';
 import type { AuthState } from '@zenith/auth';
 
@@ -101,7 +102,7 @@ export function processAuthView(
 
   // ── ۱. اعتبارسنجی config attribute ──
   if (!configAttr || configAttr.trim().length === 0) {
-    console.warn('[zen-auth-view] Missing or empty `config` attribute.');
+    logger.warn('[zen-auth-view] Missing or empty `config` attribute.');
     return () => {};
   }
   const refName = configAttr.startsWith('$') ? configAttr : `$${configAttr}`;
@@ -120,7 +121,7 @@ export function processAuthView(
     // مستقیماً Signal<AuthState>.
     authSignal = ref;
   } else {
-    console.warn(
+    logger.warn(
       `[zen-auth-view] Auth "${configAttr}" not found in context or is neither an Auth instance nor a Signal<AuthState>. ` +
         `Example: Zen.start(app, { auth: createAuth({...}) });`,
     );
@@ -146,7 +147,7 @@ export function processAuthView(
   if (guestTemplate) guestTemplate.remove();
 
   if (!authenticatedTemplate && !guestTemplate) {
-    console.warn(
+    logger.warn(
       '[zen-auth-view] No <template slot="authenticated"> or <template slot="guest"> found. ' +
         'Provide at least one:\n' +
         '  <zen-auth-view config="$auth">\n' +
@@ -180,7 +181,9 @@ export function processAuthView(
       try {
         currentDispose();
       } catch (err) {
-        console.error('[zen-auth-view] Error during previous slot dispose:', err);
+        logger.error(
+          `[zen-auth-view] Error during previous slot dispose: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       currentDispose = null;
     }
@@ -225,13 +228,17 @@ export function processAuthView(
     try {
       disposeEffect();
     } catch (err) {
-      console.error('[zen-auth-view] Error during effect dispose:', err);
+      logger.error(
+        `[zen-auth-view] Error during effect dispose: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
     if (currentDispose) {
       try {
         currentDispose();
       } catch (err) {
-        console.error('[zen-auth-view] Error during slot dispose:', err);
+        logger.error(
+          `[zen-auth-view] Error during slot dispose: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       currentDispose = null;
     }

@@ -14,6 +14,7 @@ export {
   clearEventModifiers,
   hasEventModifier,
   getEventModifier,
+  extractListenerOptions,
   BUILTIN_MODIFIERS,
   DELEGATED_EVENTS,
   type ParsedEventBinding,
@@ -24,6 +25,9 @@ export {
 export {
   initEventDelegation,
   clearBindingCache,
+  setLinkNavigationHandler,
+  getLinkNavigationHandler,
+  type LinkNavigationHandler,
   type DelegationRoot,
   type InitEventDelegationOptions,
 } from './delegation';
@@ -32,3 +36,14 @@ export {
  * FEATURE (v1.2.0): Timing Modifiers — restored in v1.2.2.
  */
 export { applyTimingModifiers, type TimedHandler } from './timing-modifiers';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/events` (`InitEventDelegationOptions`).
+ * @default { debounceMs: 250, throttleMs: 250 }
+ * @unit ms
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  debounceMs: 250,
+  throttleMs: 250,
+});

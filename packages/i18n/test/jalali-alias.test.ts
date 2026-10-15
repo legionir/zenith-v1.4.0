@@ -20,6 +20,7 @@ import {
   jalaliMonthName,
 } from '../src/index';
 import { resetDeprecationWarnings } from '@zenith/errors';
+import { logger, bufferSink } from '@zenith/logger';
 
 // مسیرهای delegated در بازهٔ مدرن، Date را با منطقهٔ زمانی «محلی» می‌خوانند؛
 // برای deterministic بودن تست در هر CI، محلی را روی UTC قفل می‌کنیم.
@@ -41,14 +42,20 @@ describe('toJalali alias — legacy edge behavior preserved', () => {
   });
 
   it('pre-1600 Gregorian warns about accuracy (legacy BUG-07)', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // #39: هشدار از طریق logger مرکزی صادر می‌شود — به‌جای spy(console,'warn')
+    // از bufferSink رسمی لاگر استفاده می‌شود (consoleSink مرز تنها console است).
+    const buf = bufferSink();
+    const detach = logger.addSink(buf);
     try {
       toJalali(new Date(Date.UTC(1500, 5, 15)));
-      expect(warn.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(
-        /dates before 1600 CE may be inaccurate/,
-      );
+      expect(
+        buf
+          .entries()
+          .map((e) => e.message)
+          .join('\n'),
+      ).toMatch(/dates before 1600 CE may be inaccurate/);
     } finally {
-      warn.mockRestore();
+      detach();
     }
   });
 
@@ -128,13 +135,15 @@ describe('scalar calendar aliases delegate to jalali', () => {
     const out = addDaysJalali(d, 366);
     expect(out!.toISOString().startsWith('2025-03-21')).toBe(true); // 1404/01/01
     expect(out).not.toBe(d); // ورودی mutate نمی‌شود (BUG-04 legacy)
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // #39: bufferSink به‌جای spy(console,'error') (همان الگوی بالا).
+    const buf = bufferSink();
+    const detach = logger.addSink(buf);
     try {
       expect(addDaysJalali(null, 1)).toBeNull();
       expect(addDaysJalali('2024-03-20', 1)).toBeNull(); // رشته مجاز نبود (legacy)
-      expect(err.mock.calls.length).toBeGreaterThan(0);
+      expect(buf.entries().length).toBeGreaterThan(0);
     } finally {
-      err.mockRestore();
+      detach();
     }
   });
 });

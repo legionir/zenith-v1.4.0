@@ -7,14 +7,19 @@ export {
   notify,
   dismissNotification,
   clearAllNotifications,
+  getQueuedNotifications,
   toasts,
   alert,
+  alert as showAlert,
   confirm,
+  confirm as showConfirm,
   setNotificationDefaults,
   getNotificationDefaults,
   getNotificationsByPosition,
   notificationsAPI,
   handleNotifyDirective,
+  renderAccessibleToast,
+  renderAccessibleDialog,
 } from './notifications';
 export type {
   Notification,
@@ -24,3 +29,16 @@ export type {
   AlertOptions,
   ConfirmOptions,
 } from './notifications';
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `@zenith/notifications` (`NotifyOptions`).
+ * @default { type: 'info', duration: 3000, position: 'top-left', dismissible: true }
+ * @unit ms (duration)
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  type: 'info' as const,
+  duration: 3_000,
+  position: 'top-left' as const,
+  dismissible: true,
+});

@@ -18,6 +18,7 @@
 //   </div>
 
 import { effect } from '@zenith/state';
+import { logger } from '@zenith/logger';
 import { getPermissionManager } from './permission';
 // SEC FIX (v1.2.6): SEC-A12 — sanitize the fallback template's innerHTML before
 // injecting it. The fallback content comes from the same DOM tree the
@@ -77,7 +78,7 @@ export function processPermission(el: HTMLElement, expr: string): () => void {
     // createGuard() default.
     const hasAccess = manager ? manager.checkPermission(expr) : false;
     if (!manager) {
-      console.error(
+      logger.error(
         '[Zenith Permission] zen-permission directive: no PermissionManager registered — failing closed (showing fallback).',
       );
     }
@@ -142,7 +143,7 @@ export function processRole(el: HTMLElement, expr: string): () => void {
     // SEC FIX (v1.2.6): SEC-A5 — fail-closed when no manager is registered.
     const hasAccess = manager ? manager.checkRole(expr) : false;
     if (!manager) {
-      console.error(
+      logger.error(
         '[Zenith Permission] zen-role directive: no PermissionManager registered — failing closed (showing fallback).',
       );
     }

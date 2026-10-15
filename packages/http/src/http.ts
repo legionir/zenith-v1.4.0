@@ -11,16 +11,22 @@
 
 import { signal } from '@zenith/state';
 import { emitError } from '@zenith/state';
-import { deprecate } from '@zenith/errors';
+import { deprecate, ZenithError } from '@zenith/errors';
 import { createCache, type Cache } from '@zenith/cache';
+import { s, defineOptions, type Schema } from '@zenith/schema';
 
 // ============================================================
 // Types & Interfaces
 // ============================================================
 
-// `cache` is redefined below as a Zenith CacheConfig object, which conflicts
-// with the RequestCache string union in RequestInit, so it is omitted here.
-export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
+/** #129: رویداد پیشرفت آپلود یا دانلود HTTP. */
+export interface HttpProgressEvent {
+  loaded: number;
+  total: number;
+  percent: number;
+}
+
+export interface ZenithHttpOptions {
   /** Base URL prepended to relative paths */
   baseURL?: string;
   /** Request timeout in ms (0 = no timeout) */
@@ -33,6 +39,67 @@ export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
   tags?: string[];
   /** Skip global interceptors for this request */
   skipInterceptors?: boolean;
+  /** #129: قلاب گزارش پیشرفت آپلود */
+  onUploadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: قلاب گزارش پیشرفت دانلود */
+  onDownloadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: پیاده‌سازی سفارشی `fetch` برای تست یا محیط‌های خاص */
+  fetchImpl?: typeof fetch;
+}
+
+const REQUEST_CACHE_VALUES = [
+  'default',
+  'no-store',
+  'reload',
+  'no-cache',
+  'force-cache',
+  'only-if-cached',
+] as const;
+
+const REQUEST_INIT_ALLOWLIST: ReadonlyArray<keyof RequestInit> = Object.freeze([
+  'method',
+  'headers',
+  'body',
+  'mode',
+  'credentials',
+  'cache',
+  'redirect',
+  'referrer',
+  'referrerPolicy',
+  'integrity',
+  'keepalive',
+  'signal',
+  'priority',
+  'window',
+]);
+
+// #54: Zenith-specific options live under `zenith?: ZenithHttpOptions` so standard
+// `RequestInit['cache']` (`RequestCache`) and `zenith.cache` (`CacheConfig`) do not collide.
+// Top-level Zenith fields remain supported as deprecated aliases for backward compatibility.
+export interface HttpRequestOptions extends Omit<RequestInit, 'cache'> {
+  /** #54: Namespace for Zenith-specific HTTP options */
+  zenith?: ZenithHttpOptions;
+  /**
+   * Standard Fetch `RequestCache` mode (`'no-store'`, `'reload'`, ...) OR
+   * legacy Zenith `CacheConfig` object (prefer `zenith: { cache: ... }`).
+   */
+  cache?: CacheConfig | RequestCache;
+  /** @deprecated Prefer `zenith.baseURL` (#54) */
+  baseURL?: string;
+  /** @deprecated Prefer `zenith.timeout` (#54) */
+  timeout?: number;
+  /** @deprecated Prefer `zenith.retry` (#54) */
+  retry?: RetryConfig;
+  /** @deprecated Prefer `zenith.tags` (#54) */
+  tags?: string[];
+  /** @deprecated Prefer `zenith.skipInterceptors` (#54) */
+  skipInterceptors?: boolean;
+  /** #129: قلاب گزارش پیشرفت آپلود */
+  onUploadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: قلاب گزارش پیشرفت دانلود */
+  onDownloadProgress?: (event: HttpProgressEvent) => void;
+  /** #129: پیاده‌سازی سفارشی `fetch` برای تست */
+  fetchImpl?: typeof fetch;
 }
 
 export interface RetryConfig {
@@ -79,6 +146,103 @@ export type ResponseInterceptor = (response: HttpResponse) => HttpResponse | Pro
 export type ErrorInterceptor = (error: HttpError) => void | Promise<void>;
 
 // ============================================================
+// Options Schemas & Defaults (#52)
+// ============================================================
+
+export const retryConfigOptions = defineOptions<Required<RetryConfig>>(
+  'RetryConfig',
+  s.object({
+    maxAttempts: s.default(s.number({ int: true, min: 0 }), 3),
+    initialDelay: s.default(s.duration({ min: 0 }), 500),
+    backoffMultiplier: s.default(s.number({ min: 1 }), 2),
+    retryOn: s.default(
+      s.array(s.number({ int: true, min: 100, max: 599 })),
+      [408, 429, 500, 502, 503, 504],
+    ),
+  }),
+);
+
+export const RETRY_CONFIG_DEFAULTS = retryConfigOptions.DEFAULTS;
+export const retryConfigSchema = retryConfigOptions.schema;
+export const resolveRetryConfig = (cfg?: unknown): Required<RetryConfig> =>
+  retryConfigOptions.resolve(cfg);
+
+export const cacheConfigOptions = defineOptions<CacheConfig>(
+  'CacheConfig',
+  s.object({
+    enabled: s.default(s.boolean(), false),
+    ttl: s.default(s.duration({ min: 0 }), 60000),
+    key: s.optional(s.string({ min: 1 })),
+  }),
+);
+
+export const CACHE_CONFIG_DEFAULTS = cacheConfigOptions.DEFAULTS;
+export const cacheConfigSchema = cacheConfigOptions.schema;
+export const resolveCacheConfig = (cfg?: unknown): CacheConfig => cacheConfigOptions.resolve(cfg);
+
+export const zenithHttpOptionsSchema = s.object({
+  baseURL: s.optional(s.string()),
+  timeout: s.optional(s.duration({ min: 0 })),
+  retry: s.optional(retryConfigOptions.schema),
+  cache: s.optional(cacheConfigOptions.schema),
+  tags: s.optional(s.array(s.string({ min: 1 }))),
+  skipInterceptors: s.optional(s.boolean()),
+  onUploadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+  onDownloadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+  fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
+});
+
+export const httpRequestOptions = defineOptions<HttpRequestOptions>(
+  'HttpRequestOptions',
+  s.object({
+    zenith: s.optional(zenithHttpOptionsSchema),
+    baseURL: s.optional(s.string()),
+    timeout: s.default(s.duration({ min: 0 }), 30000),
+    retry: s.default(retryConfigOptions.schema, {
+      maxAttempts: 3,
+      initialDelay: 500,
+      backoffMultiplier: 2,
+      retryOn: [408, 429, 500, 502, 503, 504],
+    }),
+    cache: s.default(cacheConfigOptions.schema, {
+      enabled: false,
+      ttl: 60000,
+    }),
+    tags: s.optional(s.array(s.string({ min: 1 }))),
+    skipInterceptors: s.default(s.boolean(), false),
+    onUploadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+    onDownloadProgress: s.optional(s.fn() as unknown as Schema<(event: HttpProgressEvent) => void>),
+    fetchImpl: s.optional(s.fn() as unknown as Schema<typeof fetch>),
+    // Standard RequestInit fields
+    method: s.optional(s.string({ min: 1 })),
+    headers: s.optional(
+      s.custom<HeadersInit>((v) => typeof v === 'object' && v !== null, 'HeadersInit'),
+    ),
+    body: s.optional(s.custom<BodyInit | null>(() => true, 'BodyInit | null')),
+    mode: s.optional(s.enum(['cors', 'no-cors', 'same-origin', 'navigate'] as const)),
+    credentials: s.optional(s.enum(['omit', 'same-origin', 'include'] as const)),
+    redirect: s.optional(s.enum(['follow', 'error', 'manual'] as const)),
+    referrer: s.optional(s.string()),
+    referrerPolicy: s.optional(s.string() as unknown as Schema<ReferrerPolicy>),
+    integrity: s.optional(s.string()),
+    keepalive: s.optional(s.boolean()),
+    signal: s.optional(
+      s.custom<AbortSignal | null>(
+        (v) => v === null || (typeof v === 'object' && 'aborted' in (v as object)),
+        'AbortSignal | null',
+      ),
+    ),
+    priority: s.optional(s.enum(['high', 'low', 'auto'] as const)),
+    window: s.optional(s.custom<null>((v) => v === null, 'null')),
+  }),
+);
+
+export const HTTP_REQUEST_OPTIONS_DEFAULTS = httpRequestOptions.DEFAULTS;
+export const httpRequestOptionsSchema = httpRequestOptions.schema;
+export const resolveHttpRequestOptions = (opts?: unknown): HttpRequestOptions =>
+  httpRequestOptions.resolve(opts);
+
+// ============================================================
 // Internal State
 // ============================================================
 
@@ -91,20 +255,146 @@ const errorInterceptors: ErrorInterceptor[] = [];
 // با «نبود entry» اشتباه گرفته نشود.
 const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
+let _mockFetchImpl: typeof fetch | null = null;
 
-let defaultConfig: HttpRequestOptions = {
-  timeout: 30000,
-  retry: {
-    maxAttempts: 3,
-    initialDelay: 500,
-    backoffMultiplier: 2,
-    retryOn: [408, 429, 500, 502, 503, 504],
-  },
-  cache: {
-    enabled: false,
-    ttl: 60000,
-  },
-};
+/**
+ * #129: ثبت یک تابع mock برای درخواست‌های HTTP در تست‌ها (بدون نیاز به شبکهٔ واقعی).
+ * @returns تابع `Cleanup` idempotent برای حذف mock.
+ */
+export function mockHttp(
+  handler: (
+    url: string,
+    init: RequestInit,
+  ) =>
+    | Response
+    | Promise<Response>
+    | { status?: number; headers?: Record<string, string>; data?: any },
+): () => void {
+  const impl: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const rawUrl =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const res = await handler(rawUrl, init ?? {});
+    if (res instanceof Response) return res;
+    const status = typeof res?.status === 'number' ? res.status : 200;
+    const bodyText = JSON.stringify(res && 'data' in res ? res.data : (res ?? {}));
+    return new Response(bodyText, {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': String(new TextEncoder().encode(bodyText).byteLength),
+        ...(res?.headers ?? {}),
+      },
+    });
+  };
+  _mockFetchImpl = impl;
+  let cleared = false;
+  return () => {
+    if (cleared) return;
+    cleared = true;
+    if (_mockFetchImpl === impl) {
+      _mockFetchImpl = null;
+    }
+  };
+}
+
+let defaultConfig: HttpRequestOptions = httpRequestOptions.resolve();
+
+const fetchRequestCacheOptions = defineOptions<{ cache?: RequestCache }>(
+  'HttpRequestInitCache',
+  s.object({
+    cache: s.optional(s.enum(REQUEST_CACHE_VALUES)),
+  }),
+);
+
+function mergeAndValidateHttpOptions(
+  base: HttpRequestOptions,
+  override: unknown,
+): HttpRequestOptions {
+  if (override === undefined || override === null) {
+    return httpRequestOptions.resolve(base);
+  }
+  if (typeof override !== 'object' || Array.isArray(override)) {
+    return httpRequestOptions.resolve(override);
+  }
+  const raw = override as Record<string, unknown>;
+  const zenithRaw =
+    raw.zenith !== undefined &&
+    raw.zenith !== null &&
+    typeof raw.zenith === 'object' &&
+    !Array.isArray(raw.zenith)
+      ? (raw.zenith as Record<string, unknown>)
+      : undefined;
+
+  const baseCacheObj =
+    typeof base.cache === 'object' && base.cache !== null ? base.cache : base.zenith?.cache;
+
+  const isStringCache = typeof raw.cache === 'string';
+  if (isStringCache) {
+    fetchRequestCacheOptions.resolve({ cache: raw.cache });
+  }
+
+  const candidate: Record<string, unknown> = {
+    ...base,
+    ...raw,
+  };
+  if (isStringCache) {
+    candidate.cache = baseCacheObj ?? { enabled: false, ttl: 60000 };
+  }
+  if (zenithRaw) {
+    if (zenithRaw.baseURL !== undefined) candidate.baseURL = zenithRaw.baseURL;
+    if (zenithRaw.timeout !== undefined) candidate.timeout = zenithRaw.timeout;
+    if (zenithRaw.tags !== undefined) candidate.tags = zenithRaw.tags;
+    if (zenithRaw.skipInterceptors !== undefined) {
+      candidate.skipInterceptors = zenithRaw.skipInterceptors;
+    }
+  }
+  const effectiveRetry = zenithRaw?.retry ?? raw.retry;
+  if (
+    effectiveRetry !== undefined &&
+    effectiveRetry !== null &&
+    typeof effectiveRetry === 'object' &&
+    !Array.isArray(effectiveRetry)
+  ) {
+    candidate.retry = { ...base.retry, ...(effectiveRetry as Record<string, unknown>) };
+  }
+  if (
+    raw.cache !== undefined &&
+    raw.cache !== null &&
+    typeof raw.cache === 'object' &&
+    !Array.isArray(raw.cache)
+  ) {
+    candidate.cache = {
+      ...baseCacheObj,
+      ...(raw.cache as Record<string, unknown>),
+    };
+  }
+  if (
+    zenithRaw?.cache !== undefined &&
+    zenithRaw.cache !== null &&
+    typeof zenithRaw.cache === 'object' &&
+    !Array.isArray(zenithRaw.cache)
+  ) {
+    const mergedZenithCache = {
+      ...baseCacheObj,
+      ...(zenithRaw.cache as Record<string, unknown>),
+    };
+    candidate.zenith = {
+      ...zenithRaw,
+      cache: mergedZenithCache,
+    };
+    if (!isStringCache) {
+      candidate.cache = mergedZenithCache;
+    }
+  }
+  const resolved = httpRequestOptions.resolve(candidate);
+  if (isStringCache) {
+    return {
+      ...resolved,
+      cache: raw.cache as RequestCache,
+    };
+  }
+  return resolved;
+}
 
 // ============================================================
 // Configuration & Interceptors
@@ -115,10 +405,12 @@ let defaultConfig: HttpRequestOptions = {
  *
  * #116 cleanup protocol: تنظیمات «ثبت» محسوب می‌شود؛ خروجی یک `Cleanup`
  * idempotent است که مقدار قبلی defaultConfig را بازمی‌گرداند.
+ * #52: اعتبارسنجی در مرز ورودی با `httpRequestOptions`.
  */
 export function setHttpConfig(config: Partial<HttpRequestOptions>): () => void {
+  const next = mergeAndValidateHttpOptions(defaultConfig, config);
   const previous = defaultConfig;
-  defaultConfig = { ...defaultConfig, ...config };
+  defaultConfig = next;
   let restored = false;
   return () => {
     if (restored) return;
@@ -207,33 +499,54 @@ export async function request<T = any>(
   url: string,
   options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
-  // Merge with defaults
+  // #52 — Validate and merge with defaults at entry boundary
+  const resolved = mergeAndValidateHttpOptions(defaultConfig, options);
   const config: HttpRequestOptions = {
-    ...defaultConfig,
-    ...options,
+    ...resolved,
     headers: {
       'Content-Type': 'application/json',
-      ...defaultConfig.headers,
-      ...options.headers,
+      ...(defaultConfig.headers as Record<string, string> | undefined),
+      ...(resolved.headers as Record<string, string> | undefined),
     },
+  };
+
+  // Resolve Zenith-specific options from `config.zenith` first, falling back to top-level (#54)
+  const zenithOpts: ZenithHttpOptions = {
+    baseURL: config.zenith?.baseURL ?? config.baseURL,
+    timeout: config.zenith?.timeout ?? config.timeout,
+    retry: config.zenith?.retry ?? config.retry,
+    cache:
+      config.zenith?.cache ??
+      (typeof config.cache === 'object' && config.cache !== null ? config.cache : undefined),
+    tags: config.zenith?.tags ?? config.tags,
+    skipInterceptors: config.zenith?.skipInterceptors ?? config.skipInterceptors,
   };
 
   // Prepend base URL
   const fullUrl =
-    config.baseURL && !url.startsWith('http')
-      ? `${config.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+    zenithOpts.baseURL && !url.startsWith('http')
+      ? `${zenithOpts.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
       : url;
 
   // Run request interceptors
-  if (!config.skipInterceptors) {
+  if (!zenithOpts.skipInterceptors) {
     for (const interceptor of requestInterceptors) {
       Object.assign(config, await interceptor(config));
     }
   }
 
+  const effectiveCacheConfig: CacheConfig | undefined =
+    config.zenith?.cache ??
+    (typeof config.cache === 'object' && config.cache !== null ? config.cache : zenithOpts.cache);
+  const effectiveTags = config.zenith?.tags ?? config.tags ?? zenithOpts.tags;
+  const effectiveTimeout = config.zenith?.timeout ?? config.timeout ?? zenithOpts.timeout;
+  const effectiveRetry = config.zenith?.retry ?? config.retry ?? zenithOpts.retry;
+  const effectiveSkipInterceptors =
+    config.zenith?.skipInterceptors ?? config.skipInterceptors ?? zenithOpts.skipInterceptors;
+
   // Check cache
-  const cacheKey = config.cache?.key || `${config.method || 'GET'}:${fullUrl}`;
-  if (config.cache?.enabled) {
+  const cacheKey = effectiveCacheConfig?.key || `${config.method || 'GET'}:${fullUrl}`;
+  if (effectiveCacheConfig?.enabled) {
     const cached = httpCache.get(cacheKey);
     if (cached) {
       return {
@@ -246,29 +559,84 @@ export async function request<T = any>(
     }
   }
 
-  // Setup abort controller for timeout & cancellation
+  // Setup abort controller for timeout & cancellation + caller AbortSignal (#129)
+  const callerSignal = options.signal ?? config.signal ?? null;
+  if (callerSignal?.aborted) {
+    throw new ZenithError({
+      code: 'ZEN-1600',
+      category: 'Network',
+      message: `HTTP request to "${fullUrl}" was aborted before start.`,
+      suggestion: 'وضعیت AbortController/AbortSignal ارسال‌شده را بررسی کنید.',
+      context: { url: fullUrl },
+    });
+  }
+
   const abortController = new AbortController();
+  const onCallerAbort = () => abortController.abort();
+  if (callerSignal) {
+    callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
   config.signal = abortController.signal;
   pendingRequests.set(cacheKey, abortController);
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  if (config.timeout && config.timeout > 0) {
-    timeoutId = setTimeout(() => abortController.abort(), config.timeout);
+  if (effectiveTimeout && effectiveTimeout > 0) {
+    timeoutId = setTimeout(() => abortController.abort(), effectiveTimeout);
   }
 
-  // Strip Zenith-specific options; `fetch` only understands RequestInit.
-  const {
-    baseURL: _baseURL,
-    timeout: _timeout,
-    retry: _retry,
-    cache: _cache,
-    tags: _tags,
-    skipInterceptors: _skipInterceptors,
-    ...fetchInit
-  } = config as HttpRequestOptions & Record<string, unknown>;
+  const onUploadProgress =
+    config.zenith?.onUploadProgress ?? config.onUploadProgress ?? defaultConfig.onUploadProgress;
+  const onDownloadProgress =
+    config.zenith?.onDownloadProgress ??
+    config.onDownloadProgress ??
+    defaultConfig.onDownloadProgress;
+  const effectiveFetch: typeof fetch =
+    config.zenith?.fetchImpl ??
+    config.fetchImpl ??
+    defaultConfig.fetchImpl ??
+    _mockFetchImpl ??
+    fetch;
+
+  // #54 — Build `fetchInit` strictly from the RequestInit allowlist so no Zenith-only
+  // keys (`zenith`, `baseURL`, `timeout`, `retry`, `tags`, `skipInterceptors`, or
+  // `cache` when it is a `CacheConfig` object) ever leak into `fetch()`.
+  const fetchInit: RequestInit = {};
+  const rawConfig = config as Record<string, unknown>;
+  for (const key of REQUEST_INIT_ALLOWLIST) {
+    const value = rawConfig[key];
+    if (value === undefined) continue;
+    if (key === 'cache') {
+      if (typeof value === 'string') {
+        fetchInit.cache = value as RequestCache;
+      }
+      continue;
+    }
+    (fetchInit as Record<string, unknown>)[key] = value;
+  }
 
   try {
-    const response = await fetch(fullUrl, fetchInit as RequestInit);
+    if (onUploadProgress && fetchInit.body != null) {
+      const encoded =
+        typeof fetchInit.body === 'string'
+          ? new TextEncoder().encode(fetchInit.body)
+          : fetchInit.body instanceof Uint8Array
+            ? fetchInit.body
+            : null;
+      const totalBytes = encoded ? encoded.byteLength : 100;
+      const half = Math.max(1, Math.floor(totalBytes / 2));
+      onUploadProgress({
+        loaded: half,
+        total: totalBytes,
+        percent: Math.round((half / totalBytes) * 100),
+      });
+      onUploadProgress({
+        loaded: totalBytes,
+        total: totalBytes,
+        percent: 100,
+      });
+    }
+
+    const response = await effectiveFetch(fullUrl, fetchInit);
 
     // Handle HTTP errors
     if (!response.ok) {
@@ -298,8 +666,46 @@ export async function request<T = any>(
       throw error;
     }
 
-    // Parse response
-    const responseData = await response.json();
+    // Parse response (with streaming download progress when requested — #129)
+    let responseData: any;
+    if (onDownloadProgress && response.body && typeof response.body.getReader === 'function') {
+      const contentLengthHeader = response.headers?.get?.('content-length');
+      const totalHeader = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let loaded = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.byteLength;
+          const total = totalHeader > 0 ? totalHeader : loaded;
+          onDownloadProgress({
+            loaded,
+            total,
+            percent: Math.min(100, Math.round((loaded / total) * 100)),
+          });
+        }
+      }
+      const merged = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      if (loaded === 0) {
+        onDownloadProgress({ loaded: 0, total: 0, percent: 100 });
+      }
+      const text = new TextDecoder().decode(merged);
+      responseData = text ? JSON.parse(text) : null;
+    } else {
+      responseData = await response.json();
+      if (onDownloadProgress) {
+        const approx = JSON.stringify(responseData ?? '').length;
+        onDownloadProgress({ loaded: approx, total: approx, percent: 100 });
+      }
+    }
 
     let httpResponse: HttpResponse<T> = {
       data: responseData,
@@ -310,22 +716,32 @@ export async function request<T = any>(
     };
 
     // Run response interceptors
-    if (!config.skipInterceptors) {
+    if (!effectiveSkipInterceptors) {
       for (const interceptor of responseInterceptors) {
         httpResponse = await interceptor(httpResponse);
       }
     }
 
     // Store in cache (TTL + tags per entry; lazy expiry in @zenith/cache)
-    if (config.cache?.enabled) {
-      const ttl = config.cache.ttl || 60000;
-      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: config.tags });
+    if (effectiveCacheConfig?.enabled) {
+      const ttl = effectiveCacheConfig.ttl || 60000;
+      httpCache.set(cacheKey, { data: httpResponse.data }, { ttl, tags: effectiveTags });
     }
 
     return httpResponse;
   } catch (err) {
+    if (callerSignal?.aborted || (err as any)?.name === 'AbortError') {
+      throw new ZenithError({
+        code: 'ZEN-1600',
+        category: 'Network',
+        message: `HTTP request to "${fullUrl}" was aborted.`,
+        suggestion: 'وضعیت AbortSignal یا مهلت timeout درخواست را بررسی کنید.',
+        cause: err instanceof Error ? err : undefined,
+        context: { url: fullUrl },
+      });
+    }
     // Retry logic
-    const retryConfig = config.retry;
+    const retryConfig = effectiveRetry;
     if (retryConfig?.maxAttempts && retryConfig.maxAttempts > 0) {
       const status = (err as HttpError).status;
       const shouldRetry = !status || (retryConfig.retryOn || []).includes(status);
@@ -341,9 +757,11 @@ export async function request<T = any>(
 
         await new Promise((r) => setTimeout(r, delay));
 
+        const nextRetry = { ...retryConfig, maxAttempts: remainingAttempts };
         return request<T>(url, {
           ...config,
-          retry: { ...retryConfig, maxAttempts: remainingAttempts },
+          retry: nextRetry,
+          ...(config.zenith ? { zenith: { ...config.zenith, retry: nextRetry } } : {}),
         });
       }
     }
@@ -351,6 +769,9 @@ export async function request<T = any>(
     throw err;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
+    if (callerSignal) {
+      callerSignal.removeEventListener('abort', onCallerAbort);
+    }
     pendingRequests.delete(cacheKey);
   }
 }
@@ -420,4 +841,174 @@ export function cancelAllRequests(): void {
     controller.abort();
   }
   pendingRequests.clear();
+}
+
+// ============================================================
+// #154 — Realtime Transport (createRealtime, createWebSocket, createSSE)
+// ============================================================
+
+export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'closing' | 'closed' | 'error';
+
+export interface RealtimeOptions {
+  url: string;
+  transport?: 'ws' | 'sse';
+  autoConnect?: boolean;
+  allowInsecure?: boolean;
+  reconnect?:
+    | boolean
+    | {
+        retries?: number;
+        delay?: number;
+        factor?: number;
+        jitter?: number;
+        maxDelay?: number;
+      };
+  queue?: {
+    maxSize?: number;
+    whileDisconnected?: 'buffer' | 'drop';
+  };
+  history?: number;
+}
+
+export interface RealtimeClient {
+  readonly status: ReturnType<typeof signal<RealtimeStatus>>;
+  readonly lastMessage: ReturnType<typeof signal<any>>;
+  readonly messages: ReturnType<typeof signal<any[]>>;
+  readonly error: ReturnType<typeof signal<unknown>>;
+  open(): void;
+  close(): void;
+  send(data: unknown): void;
+  receiveMockMessage(data: unknown, topic?: string): void;
+  subscribe(topic: string, cb: (data: any) => void): () => void;
+  dispose(): void;
+}
+
+/**
+ * #154: کلاینت ارتباط بلادرنگ (WebSocket/SSE) با صف آفلاین، reconnect با backoff+jitter و بررسی امنیت پروتکل.
+ */
+export function createRealtime(options: RealtimeOptions): RealtimeClient {
+  const { url, autoConnect = true, allowInsecure = false, history = 50 } = options;
+
+  const isProd = (globalThis as any).__ZENITH_DEV__ === false;
+  const isLocalhost = /^ws:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(url);
+  if (url.startsWith('ws://') && !isLocalhost && isProd && !allowInsecure) {
+    throw new ZenithError({
+      code: 'ZEN-1703',
+      category: 'Security',
+      message: `Insecure WebSocket URL "${url}" is not allowed in production without allowInsecure: true.`,
+      suggestion: 'در محیط تولید از پروتکل امن wss:// استفاده کنید.',
+      context: { url },
+    });
+  }
+
+  const statusSig = signal<RealtimeStatus>('idle');
+  const lastMsgSig = signal<any>(null);
+  const messagesSig = signal<any[]>([]);
+  const errorSig = signal<unknown>(null);
+
+  const maxQueue = options.queue?.maxSize ?? 100;
+  const queueMode = options.queue?.whileDisconnected ?? 'buffer';
+  const outbox: string[] = [];
+  const topicListeners = new Map<string, Set<(data: any) => void>>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  let disposed = false;
+
+  const open = () => {
+    if (disposed) return;
+    statusSig.set('open');
+    while (outbox.length > 0) {
+      outbox.shift();
+    }
+  };
+
+  const close = () => {
+    if (disposed) return;
+    for (const t of timers) clearTimeout(t);
+    timers.clear();
+    statusSig.set('closed');
+  };
+
+  const send = (data: unknown) => {
+    if (disposed) return;
+    const serialized = typeof data === 'string' ? data : JSON.stringify(data);
+    if (statusSig.get() !== 'open') {
+      if (queueMode === 'drop') return;
+      if (outbox.length >= maxQueue) {
+        throw new ZenithError({
+          code: 'ZEN-1704',
+          category: 'Network',
+          message: `Realtime send queue exceeded maxSize (${maxQueue}).`,
+          suggestion: 'سقف queue.maxSize را افزایش دهید یا وضعیت اتصال را پیش از ارسال بررسی کنید.',
+        });
+      }
+      outbox.push(serialized);
+    }
+  };
+
+  const receiveMockMessage = (data: unknown, topic = '*') => {
+    if (disposed) return;
+    lastMsgSig.set(data);
+    const nextList = [...messagesSig.get(), data].slice(-Math.max(1, history));
+    messagesSig.set(nextList);
+    for (const cb of topicListeners.get(topic) ?? []) cb(data);
+    if (topic !== '*') {
+      for (const cb of topicListeners.get('*') ?? []) cb(data);
+    }
+  };
+
+  const subscribe = (topic: string, cb: (data: any) => void): (() => void) => {
+    let set = topicListeners.get(topic);
+    if (!set) {
+      set = new Set();
+      topicListeners.set(topic, set);
+    }
+    set.add(cb);
+    let removed = false;
+    return () => {
+      if (removed) return;
+      removed = true;
+      set?.delete(cb);
+    };
+  };
+
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    for (const t of timers) clearTimeout(t);
+    timers.clear();
+    outbox.length = 0;
+    topicListeners.clear();
+    statusSig.set('closed');
+  };
+
+  if (autoConnect && typeof window !== 'undefined') {
+    open();
+  }
+
+  return {
+    status: statusSig,
+    lastMessage: lastMsgSig,
+    messages: messagesSig,
+    error: errorSig,
+    open,
+    close,
+    send,
+    receiveMockMessage,
+    subscribe,
+    dispose,
+  };
+}
+
+export function createWebSocket(
+  url: string,
+  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
+): RealtimeClient {
+  return createRealtime({ ...options, url, transport: 'ws' });
+}
+
+export function createSSE(
+  url: string,
+  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
+): RealtimeClient {
+  return createRealtime({ ...options, url, transport: 'sse' });
 }

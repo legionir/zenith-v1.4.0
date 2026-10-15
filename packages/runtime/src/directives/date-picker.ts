@@ -42,13 +42,16 @@ import {
 
 const PICKER_TAG = 'zen-date-picker';
 
+const BaseHTMLElement: typeof HTMLElement =
+  typeof HTMLElement !== 'undefined' ? HTMLElement : (class {} as unknown as typeof HTMLElement);
+
 /**
  * The class registered as the `<zen-date-picker>` custom element.
  *
  * It is intentionally a standalone class so that consumers who want to
  * extend it can do so without re-registering the tag.
  */
-export class ZenDatePicker extends HTMLElement {
+export class ZenDatePicker extends BaseHTMLElement {
   private viewYear: number;
   private viewMonth: number; // 1..12
   private selected: { y: number; m: number; d: number } | null = null;

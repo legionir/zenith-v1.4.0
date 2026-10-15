@@ -1,7 +1,21 @@
 // #27 core tests for @zenith/state — signal / computed / effect / batch / cleanup.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { signal, computed, effect, batch, untrack, createRoot, onCleanup } from '@zenith/state';
-import { flushSync, clearScheduler, hasPendingEffects } from '@zenith/scheduler';
+import {
+  signal,
+  computed,
+  effect,
+  batch,
+  untrack,
+  createRoot,
+  onCleanup,
+  onEffectError,
+  setCurrentPriority,
+  getCurrentPriority,
+  setSignalObserver,
+  getSignalObserver,
+} from '@zenith/state';
+import { notifySignalName, notifySignalDispose } from '../src/observer';
+import { flushSync, clearScheduler, hasPendingEffects, Priority } from '@zenith/scheduler';
 
 beforeEach(() => clearScheduler());
 
@@ -159,5 +173,81 @@ describe('createRoot', () => {
     n.set(1);
     flushSync();
     expect(runs).toBe(1);
+  });
+});
+
+describe('effect priority, error handling, and SignalObserver (#29)', () => {
+  it('supports setCurrentPriority, string/enum priority options, and onEffectError', () => {
+    const prev = setCurrentPriority('urgent');
+    expect(getCurrentPriority()).toBe(Priority.urgent);
+    setCurrentPriority(prev);
+    expect(getCurrentPriority()).toBe(Priority.normal);
+
+    const s = signal(0);
+    let urgentRuns = 0;
+    const disposeUrgent = effect(
+      () => {
+        s.get();
+        urgentRuns++;
+      },
+      'high' as unknown as Priority,
+    );
+    expect(urgentRuns).toBe(1);
+    disposeUrgent();
+
+    const caught: string[] = [];
+    const localCaught: string[] = [];
+    const clearHandler = onEffectError((err) => {
+      caught.push(err instanceof Error ? err.message : String(err));
+    });
+
+    effect(
+      () => {
+        onCleanup(() => {});
+        throw new Error('effect-boom');
+      },
+      {
+        priority: 'normal',
+        onError: (e) => localCaught.push(e.message),
+      },
+    );
+
+    expect(caught).toEqual(['effect-boom']);
+    expect(localCaught).toEqual(['effect-boom']);
+    clearHandler();
+    clearHandler(); // idempotent
+  });
+
+  it('notifies registered SignalObserver on signal creation and updates and disposes computed', () => {
+    const events: string[] = [];
+    const unsub = setSignalObserver({
+      onCreate(_sig, name) {
+        events.push(`create:${name ?? 'anon'}`);
+      },
+      onChange(_sig, oldValue, newValue) {
+        events.push(`change:${String(oldValue)}->${String(newValue)}`);
+      },
+      onDispose() {
+        events.push('dispose');
+      },
+      onName(_sig, name) {
+        events.push(`name:${name}`);
+      },
+    });
+    expect(getSignalObserver()).not.toBeNull();
+
+    const count = signal(10);
+    notifySignalName(count, 'counter');
+    count.set(20);
+    notifySignalDispose(count);
+    expect(events).toEqual(['create:anon', 'name:counter', 'change:10->20', 'dispose']);
+
+    const doubled = computed(() => count.get() * 2);
+    expect(doubled.get()).toBe(40);
+    (doubled as unknown as { dispose: () => void }).dispose();
+
+    unsub();
+    unsub(); // idempotent
+    expect(getSignalObserver()).toBeNull();
   });
 });

@@ -28,6 +28,8 @@ const THROW_ALLOWLIST = {
   'packages/compiler/src/compiler.ts': 'strict-mode compile warnings (documented; #138 parity)',
   // tooling: cli/lighthouse — زیرسهام tooling، خارج از مسیر runtime.
   'packages/cli/src/lighthouse.ts': 'tooling (CLI) — not a runtime library path',
+  // tooling (#163): cli/ssg — پیام‌های سطح CLI برای کاربر، خارج از مسیر runtime.
+  'packages/cli/src/ssg.ts': 'tooling (CLI) — not a runtime library path',
   // internal invariant fallbacks (هرگز نباید رخ دهند؛ گیت #171 catalog را قفل کرده).
   'packages/shared/src/assert.ts': 'fail-fast catalog invariant',
   'packages/errors/src/core.ts': 'fail-fast catalog invariant (createReservedError)',
@@ -40,7 +42,9 @@ const THROW_ALLOWLIST = {
 // پایین‌آوردن ceiling آزاد، بالا بردن آن باید در DEC ثبت شود.
 // توجه: باقی‌مانده‌ها عمدتاً لاگ‌های غیرerror-path (debug/diagnostic) یا فایل‌های
 // allowlist-شده (cli/compiler/vite-plugin tooling) هستند که در #137 هدف‌گیری می‌شوند.
-const CONSOLE_CEILING = 201;
+// DEC-033 (#94): دو console.error UX در دستور CLI «zenith telemetry» (201 → 203)؛
+// با مهاجرت CLI در #39 به 201 بازمی‌گردد.
+const CONSOLE_CEILING = 203;
 
 function listSources(dir) {
   const out = [];

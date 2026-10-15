@@ -12,5 +12,27 @@ export {
   createMockResource,
   render,
   zenithMatchers,
+  auditAccessibility,
+  expectAccessible,
+  registerTestingReset,
+  resetForTesting,
+  useFakeTimers,
+  mockHttp,
+  mockRouter,
+  testDirective,
 } from './testing';
-export type { TestHarness, TrackedEffect, MockResource, RenderResult } from './testing';
+export type {
+  TestHarness,
+  TrackedEffect,
+  MockResource,
+  RenderResult,
+  A11yImpact,
+  A11yViolation,
+  A11yAuditOptions,
+  A11yAuditResult,
+  FakeTimersController,
+  MockHttpCall,
+  MockHttpController,
+  MockRouterController,
+  DirectiveTestResult,
+} from './testing';

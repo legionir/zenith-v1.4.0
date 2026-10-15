@@ -1,10 +1,10 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
-آخرین issue کامل: #116
+آخرین issue کامل: #9 (همراه با #29، #15، #12، #73، #77، #61 — تکمیل موج ۳)
 issueهای باز (جزئی): #117 و #173 — کد/سند/گیت هر دو کامیت شده؛ بقایا:
 lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو موج ۴)
-بعدی: #172، #52، #147، #148، #149، #92، #48، #49
-مسدود/نیازمند انسان: #68 (تأیید مالک MIT — docs/MANUAL-STEPS.md)، #59 (فعال‌سازی Private vulnerability reporting از UI — docs/MANUAL-STEPS.md)
+بعدی: موج ۴ (#13، #18، #21، #22، #37، #38، #165، #39، #40، #41، ...)
+مسدود/نیازمند انسان: #68 (تأیید مالک MIT)، #59 (فعال‌سازی Private vulnerability reporting از UI)، #73 (NPM_TOKEN + tag push)، #77 (رزرو اسکوپ `@zenithjs` روی npm)، #61 (انعقاد قرارداد ممیزی امنیتی مستقل) — همه مستند در `docs/MANUAL-STEPS.md`
 آخرین run موفق CI: 38198172598 (روی HEAD 6ae1b21 — #115/#116؛ هر ۱۲ job مسدودکننده سبز)
 
 ## وضعیت شناخته‌شدهٔ baseline
@@ -570,3 +570,215 @@ lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو م�
     `npm test` = ۱۰۸۸ سبز (از ۱۰۷۲).
   - لینک‌ها: از `API-CONVENTIONS.md` §۷ (سند خواهر + گیت) و `docs/README.md`
     «قراردادها»؛ لینک CONTRIBUTING → #107 (موج ۴) در header سند یادداشت شد.
+
+- #172 انجام شد (موج ۲، کامیت 84926bb): ابزار اسکفولد `scripts/new-package.mjs`
+  (`npm run new-package -- <slug> --layer=L<0..5>`):
+  - تولید استاندارد `package.json` (فیلدهای #70، `zenith.layer`، `sideEffects: false`،
+    `engines >=18.19.0`)، `tsconfig.json`، `src/index.ts`، `test/<slug>.test.ts`،
+    `README.md`، `LICENSE`؛ قالب چک‌لیست `.github/ISSUE_TEMPLATE/new-package.md`؛
+    ۵ تست در `scripts/test/new-package.test.mjs`.
+
+- #52 انجام شد (موج ۲، کامیت b20b994): اعتبارسنجی گزینه‌ها در مرز ورودی
+  (`defineOptions` از `@zenith/schema` + `DEFAULTS` منجمد):
+  - پشتیبانی از اعتبارسنجی آرایه (`s.array(itemSchema)`) در `@zenith/schema`؛
+  - پیاده‌سازی در ۵ پکیج هدف: `auth` (`authOptions` / `AUTH_DEFAULTS`)، `http`
+    (`httpClientOptions` / `HTTP_DEFAULTS`)، `service-worker` (`swControllerOptions` /
+    `SW_DEFAULTS`)، `vite-plugin` (`zenithPluginOptions` / `VITE_PLUGIN_DEFAULTS`)،
+    `runtime` (`zenStartOptions` / `ZEN_START_DEFAULTS`)؛ پرتاب `ZEN-1001`/`1002`/`1004`
+    با پیشنهاد Levenshtein؛ تست‌های `options-validation.test.ts` در هر ۵ پکیج.
+
+- #147 انجام شد (موج ۲، کامیت 9657750): پکیج `@zenith/devtools-core` (L1) +
+  قلاب `setSignalObserver` در `@zenith/state`:
+  - حلقه‌بافر بدون تخصیص `RingBuffer<T>`، رجیستری شناسه‌های ضعیف `WeakIdRegistry`،
+    پروتکل پیام تایپ‌شده `ZENITH_DEVTOOLS_PROTOCOL_VERSION`، و هستهٔ `createDevtoolsCore`
+    با حالت غیرفعال zero-overhead؛ ۱۲ تست (شامل آزمون نشت حافظه با `WeakRef` و بودجهٔ حجم < 4 KB).
+
+- #148 انجام شد (موج ۲، کامیت e9f44ef): پکیج `@zenith/runtime-core` (L3) و مدل `createApp`:
+  - `createApp()` بدون تکیه به singletonهای ماژول، متدهای زنجیره‌ای `directive/use/provide/inject/mount/unmount/dispose`،
+    انجماد رجیستری دایرکتیوها پس از `mount()` (`ZEN-302`)، ۵ دایرکتیو هسته (`text/bind/on/show/if`)؛
+    هم‌ترازی `createApp` در `@zenith/runtime` با هشدار منسوخ‌سازی `Zen.start` (`ZEN-DEPR-027`)؛ ۱۱ تست.
+
+- #149 انجام شد (موج ۲، کامیت 1ded9d7): پکیج چتر `zenith` (L5):
+  - زیرمسیرهای `zenith`، `zenith/core`، `zenith/ssr`، `zenith/testing`، `zenith/browser`؛
+    پریست‌های پلاگین `minimal` / `spa` / `full` (همراه با `Object.freeze`)؛ تابع `watch()`؛
+    تولید باندل IIFE مرورگر (`dist/zenith.global.js` + `.map` + `.sri` با هش SHA-384) در `build-all.mjs`؛ ۹ تست.
+
+- #92 انجام شد (موج ۲، کامیت 67607e3): ایزوله‌سازی کامل SSR همزمان و سازگاری با Edge:
+  - `createAsyncContextStore` با fallback ایمن برای محیط‌های فاقد `node:async_hooks`؛
+    ایزوله‌سازی per-request برای DOM، state/effects، route، componentRegistry، actionRegistry،
+    serverComponents و locale؛ پشتیبانی از `options.createDOM` برای محیط‌های Edge؛
+    محافظت از `HTMLElement` در زمان import ماژول؛ تست ۱۰۰ درخواست همزمان بدون نشت در `packages/ssr/test/concurrent-isolation.test.ts`.
+
+- #48 و #49 انجام شدند (موج ۲، کامیت e297f26): حذف وابستگی معکوس و قفل‌کردن معماری لایه‌ای L0–L5:
+  - #48: حذف وابستگی `@zenith/router` از `@zenith/events` و جایگزینی با تزریق callback
+    `setLinkNavigationHandler` در `@zenith/runtime`؛ تست محافظ `packages/events/test/reverse-deps.test.ts`.
+  - #49: تدوین سند رسمی `docs/ARCHITECTURE-LAYERS.md` (لایه‌های L0 تا L5 و Tooling) و
+    قوانین مسدودکنندهٔ `forbidden` در `.dependency-cruiser.cjs` (۱۹۰ ماژول، ۰ نقض، ۰ چرخه).
+
+- #28 انجام شد (موج ۳ / P0، کامیت 926b3c0): مجموعه تست‌های واحد DOM برای هر ۱۰ پکیج وابسته به DOM:
+  - افزودن تست‌های jsdom برای `runtime` (`directives-dom.test.ts`)، `events` (`events-dom.test.ts`)،
+    `router` (`router-dom.test.ts`)، `components` (`components-dom.test.ts`)، `ssr` (`ssr-dom.test.ts`)،
+    `data-table` (`data-table-dom.test.ts`) و `error-boundary` (`error-boundary-dom.test.ts`) در کنار
+    تست‌های `transition`، `virtual-list` و `suspense` (۳۳ فایل تست / ۹۷ تست سبز در پکیج‌های DOM).
+
+- #29 انجام شد (موج ۳، کامیت 0315380): افزایش پوشش تست پکیج‌های هسته به ≥۸۰٪ و اعمال گیت CI در `vitest.config.ts`:
+  - `state` (۸۸٫۰۳٪ statements / ۸۵٫۱۴٪ lines)، `scheduler` (۸۲٫۵۸٪ statements / ۸۲٫۵۸٪ lines)،
+    `expressions` (۹۲٫۱۱٪ statements / ۹۲٫۰۲٪ lines)، `compiler` (۸۲٫۹۲٪ statements / ۸۳٫۲۱٪ lines)؛
+    افزودن تست‌های هدفمند در `packages/{state,compiler,expressions}/test/coverage-80.test.ts`.
+
+- #15 انجام شد (موج ۳، کامیت e8febd1): رفع کامل ۵ مورد باز در `BUG_REPORT.md`:
+  - `actions` (#5): snapshot کردن زنجیرهٔ middleware، قفل re-entrancy (`ZEN-ACT-004`) و سیاست صریح ثبت مجدد (`allowOverride` / `ZEN-ACT-003`)؛
+  - `crud` (#15): retry نمایی محدود با پشتیبانی از `AbortSignal` و تفکیک خطاهای retryable در `fetchWithRetry`؛
+  - `components` (#17): اضافه‌کردن `AbortController` و پاک‌سازی تایمر در `createAsyncComponent`؛
+  - `ssr` (#25): تکمیل `renderToStream` با قلاب `onFlush` و بررسی `AbortSignal` در مرزهای تگ؛
+  - `vite-plugin` (#29): کش محتوامحور LRU کامل برای `compile` به همراه آمار hit/miss.
+
+- #12 انجام شد (موج ۳، کامیت 3d6d675): جدول ردیابی کامل ۱۳۶ شناسهٔ `BUG-*` / `IMP-*` / `SEC-*`:
+  - اسکریپت ممیزی خودکار `scripts/check-traceability.mjs` (همراه با گیت CI در `.github/workflows/main.yml`)،
+    سند `docs/TRACEABILITY.md`، تکمیل تست‌های مستقیم برای شناسه‌های بدون تست در `dependency-graph`،
+    `devtools` و `permission`، و تست گیت `scripts/test/traceability.test.mjs`.
+
+- #73 انجام شد (موج ۳ / P0، کامیت 9daf006): جایگزینی اسکریپت انتشار ناایمن `scripts/release.mjs`:
+  - خط لولهٔ انتشار ایمن با حالت پیش‌فرض `--dry-run`، ترتیب توپولوژیکی از `getPackageOrder()`،
+    گیت‌های پیش‌پروازی (تست، بیلد، publint، گیت تمیز)، بررسی نسخه‌های منتشرشده در رجیستری برای
+    اجتناب از انتشار مجدد در انتشارهای ناتمام، تولید گزارش JSON و خلاصهٔ Markdown، پیکربندی
+    `.changeset/config.json`، مستندسازی گام‌های انسانی در `docs/MANUAL-STEPS.md`، و ۶ تست واحد در `scripts/test/release.test.mjs`.
+
+- #77 و #61 انجام شدند (موج ۳ / P0، کامیت 0b7c594):
+  - #77: ممیزی زندهٔ رجیستری npm و اسکریپت برنامه‌ریز مهاجرت اسکوپ `scripts/check-npm-scope.mjs` +
+    سند `docs/release/NPM-SCOPE-AUDIT.md` + ثبت گام انسانی رزرو `@zenithjs` در `docs/MANUAL-STEPS.md` + ۵ تست.
+  - #61: بستهٔ جامع ممیزی امنیتی مستقل `docs/security/AUDIT-PACKAGE.md` (مدل تهدید، سطوح حملهٔ P0/P1،
+    invariants امنیتی، دستورات بازتولید) + اسکریپت اعتبارسنجی مستمر `scripts/security-audit-check.mjs`
+    (همراه با گیت CI) + ثبت گام انسانی انتخاب ممیز خارجی در `docs/MANUAL-STEPS.md` + ۴ تست.
+
+- #9 انجام شد (موج ۳): پیاده‌سازی مدیریت موجودی کالا (`inventory`) و مستندسازی `ecommerce-demo`:
+  - افزودن وضعیت `inventory` و اکشن‌های `getStock` / `isInStock` / `setStock` / `checkoutOrder` در
+    `ecommerce-demo/src/store.js`، بررسی موجودی پیش از افزودن به سبد و کسر موجودی هنگام ثبت سفارش،
+    ثبت اکشن `checkout` در `ecommerce-demo/src/main.js`، مستندسازی در `ecommerce-demo/README.md` و
+    تست واحد در `packages/store/test/ecommerce-demo-cart.test.ts`.
+
+- موج ۴ — دستهٔ ۱ از P1 (`#8`, `#18`, `#21`, `#22`, `#71` — کامیت 4505671):
+  - `#8`: پاک‌سازی ارجاع‌های ازکارافتادهٔ `examples/` و اصلاح قالب خروجی `cli` (`createApp`)؛
+  - `#18`: ابطال و هرس کش اندازه‌های `virtual-list` (`invalidateMeasurements`, `remeasure`)؛
+  - `#21`: تکمیل اعتبارسنجی یکپارچهٔ گزینه‌های ورودی (`ZEN-1001`..`ZEN-1004`)؛
+  - `#22`: راهنمای جامع گزارش خطا، تلمتری و حریم خصوصی (`docs/ERROR-REPORTING.md`)؛
+  - `#71`: اسکفولد خودکار پکیج جدید (`npm run new:package` / `scripts/new-package.mjs`).
+
+- موج ۴ — دستهٔ ۲ از P1 (`#41`, `#50`, `#54`, `#55`, `#58` — کامیت 17ee3ee):
+  - `#41`: راهنمای جامع دستیارهای کدنویسی و مدل‌های زبانی (`docs/LLM-GUIDE.md`)؛
+  - `#50`: ممیزی یکتایی نام نوع‌های عمومی و کاتالوگ پیشوندهای قراردادی (`scripts/check-unique-type-names.mjs`, `docs/API-CONVENTIONS.md`)؛
+  - `#54`: گرامر رسمی BNF برای دایرکتیوهای HTML (`docs/ATTRIBUTE-GRAMMAR.md`)؛
+  - `#55`: تبدیل توابع بیش از ۲ پارامتر به امضای شیء تنظیمات با حفظ سازگاری (`ZEN-DEPR-035`..`041`)؛
+  - `#58`: سیاست رسمی پایداری API عمومی و منسوخ‌سازی (`docs/DEPRECATION-POLICY.md`).
+
+- موج ۴ — دستهٔ ۳ از P1 (`#63`, `#65`, `#75`, `#87`, `#93`, `#96` — کامیت 807ae9b):
+  - `#63`: راهنمای استقرار با Content Security Policy سخت‌گیرانه بدون `unsafe-eval` (`docs/CSP-GUIDE.md`)؛
+  - `#65`: گردش‌کارهای امنیتی CI شامل CodeQL، اسکن اسرار و Dependency Review (`.github/workflows/security.yml`)؛
+  - `#75`: ارتقای افزونهٔ VS Code برای پشتیبانی کامل از همهٔ دایرکتیوها و تشخیص خطا؛
+  - `#87`: مهار خودکار تشخیص نشت حافظه در چرخه‌های mount/unmount (`npm run test:leak`)؛
+  - `#93`: پشتیبانی از گزارشگرهای خارجی خطا (Sentry/OpenTelemetry) در `@zenith/error-boundary`؛
+  - `#96`: مکانیزم Kill-Switch اضطراری و بازیابی خودکار در `@zenith/service-worker` (`sw-kill.js`).
+
+- موج ۴ — دستهٔ ۴ از P1 (`#31`, `#32`, `#34`, `#35`, `#53` — کامیت bfc4bde):
+  - `#31`: گردش‌کارهای CI برای بررسی لینک‌ها، قالب PR، برچسب‌گذاری خودکار و مدیریت Stale؛
+  - `#32`: ماتریس رسمی سازگاری مرورگرها (`browserslist`) و موتورهای Playwright (`docs/BROWSER-SUPPORT.md`)؛
+  - `#34`: گزارشگر خلاصهٔ پوشش کد در GitHub Actions (`scripts/coverage-summary.mjs`)؛
+  - `#35`: تست‌های یکپارچهٔ زنجیرهٔ تأمین بین‌پکیجی (`scripts/test/cross-package-integration.test.mjs`)؛
+  - `#53`: استانداردسازی اشیای منجمد `DEFAULTS` در ۲۸ پکیج و تولید مرجع `docs/OPTIONS-REFERENCE.md`.
+
+- موج ۴ — دستهٔ ۵ از P1 (`#60`, `#66`, `#72`, `#74`, `#80`, `#83`, `#107` — کامیت 2ef467c):
+  - `#60`: مدل تهدید جامع STRIDE (`docs/security/threat-model.md`)؛
+  - `#66`: گردش‌کار انتشار مبتنی بر تگ با OIDC و `--provenance` (`.github/workflows/release.yml`)؛
+  - `#72`: استراتژی نسخه‌بندی Lockstep SemVer و تولیدکنندهٔ خودکار Changelog (`scripts/changeset.mjs`)؛
+  - `#74`: ممیزی محتوای tarball و شرط‌های صادراتی `types`-first (`scripts/pack-audit.mjs`)؛
+  - `#80` و `#107`: اسناد حاکمیت و سلامت جامعه (`CODEOWNERS`, `MAINTAINERS.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `ROADMAP.md`)؛
+  - `#83`: بودجهٔ حجمی gzip برای تمامی ۴۸ ورودی پکیج‌ها و باندل‌ها (`.size-limit.json`, `scripts/size-report.mjs`).
+
+- موج ۴ — دستهٔ ۶ از P1 (`#86`, `#89`, `#91`, `#98`, `#100`, `#101`, `#104`, `#105`):
+  - `#86`: مجموعه بنچمارک قابل‌بازتولید (`npm run bench` / `scripts/bench.mjs`) و مقایسه با سیگنال‌های مرجع؛
+  - `#89`: بهینه‌سازی O(1) و تست ۱۰۰٬۰۰۰ آیتم، ارتفاع متغیر و حالت افقی RTL در `@zenith/virtual-list`؛
+  - `#91`: استخر JSDOM و کش قالب‌های `<template>`، مهلت زمانی رندر (`ZEN-1801`) و جریان واقعی Web `ReadableStream` با backpressure در `@zenith/ssr`؛
+  - `#98`: ممیزی و تکمیل انطباق WCAG 2.2 AA (`prefersReducedMotion`, `renderAccessibleToast`/`Dialog`, `announceRouteChange`, `syncActiveRouteLinks`, `docs/A11Y-AUDIT.md`)؛
+  - `#100` و `#101`: پشتیبانی جامع RTL، جهات منطقی CSS، ایزوله‌های دوجهتهٔ یونیکد (`isolateBidi`) و فرمت‌بندی بومی `Intl` در `@zenith/i18n` و `@zenith/jalali`؛
+  - `#104` و `#105`: راهنمای شروع سریع و آموزش ۳۰ دقیقه‌ای (`docs/GETTING-STARTED.md`)، کتاب آشپزی ۱۰ دستورالعملی (`docs/COOKBOOK.md`)، سیاست چرخهٔ عمر پشتیبانی (`SUPPORT.md`) و جدول مهاجرت نسخه به نسخه (`docs/migration-guide.md`).
+
+- موج ۴ — دستهٔ ۷ از P1 (`#33`, `#38`, `#39`, `#56`, `#57`, `#99`, `#103`):
+  - `#33` و `#99`: رفع باگ امضای `Zen.start` در قالب PWA (`pwaMainTsTemplate`)، پیاده‌سازی ممیز خودکار دسترس‌پذیری `auditAccessibility` و `expectAccessible` در `@zenith/testing`، و افزودن تست‌های E2E قالب‌های `zenith create` و دموها (`packages/cli/test/templates-e2e.test.ts`, `e2e/demos-and-a11y.spec.ts`)؛
+  - `#38`: حذف کامل `any` از امضاهای عمومی ۱۸ پکیج پایه/مدرن (از جمله `devtools-core`) و اسکریپت ممیزی `scripts/check-public-any.mjs`؛
+  - `#39`: یکپارچه‌سازی `@zenith/logger` با حفظ بودجهٔ حجمی زیر ۲KB gzip و قانون ESLint `no-console: error`؛
+  - `#56` و `#103`: تولید خودکار اسنپ‌شات سطح API عمومی (`docs/api/api-surface.snapshot.json`) و صفحات مرجع API برای تمامی ۴۳ پکیج (`docs/api/*.md`, `docs/api/INDEX.md`, `scripts/generate-api-docs.mjs`)؛
+  - `#57`: افزودن متادیتای محیط هدف `zenith.target` و زیرمسیر `./package.json` به همهٔ پکیج‌ها و حذف شاخه‌های `__ZENITH_DEV__` در بیلد production (`scripts/build-package.mjs`).
+
+- موج ۴ — دستهٔ ۸ از P1 (`#118`, `#119`, `#120`, `#121`, `#122`, `#123`, `#124`, `#125`):
+  - `#118`: یکسان‌سازی کامل قرارداد ۵ متدی رجیستری‌های سراسری (`registerX` با خروجی `Cleanup` idempotent، `getX`، `hasX`، `listXs`، `unregisterX`) در `actions`، `components`، `resource`، `store` و `ssr`، به همراه `registerTestingReset` و `resetForTesting()` در `@zenith/testing`؛
+  - `#119`: تعریف نام‌های غیرمبهم عمومی (`clearHttpCache`، `httpRequest`، `clearExpressionCache`، `showAlert`، `showConfirm`، `scheduleEffect`)؛
+  - `#120` و `#121`: استانداردسازی دایرکتیوها با `parseConfigAttr` و مجموعه تست انطباق خودکار قرارداد (`scripts/test/api-conformance.test.mjs`)؛
+  - `#122`: پیاده‌سازی `watch(source, cb, options)` در `@zenith/state` با پشتیبانی از منبع تکی/آرایه‌ای، `oldValue`/`newValue`، `immediate`، `flush: 'pre' | 'post' | 'sync'`، `deep`، `once`، `onCleanup` و `untrack` خودکار بدنهٔ `cb`؛
+  - `#123`: پیاده‌سازی `createAsync` و `asyncComputed` در `@zenith/state` با سیگنال‌های `data`/`loading`/`error`، لغو خودکار درخواست‌های قبلی با `AbortSignal` و محافظت در برابر شرایط رقابتی (race conditions)؛
+  - `#124` و `#125`: چرخهٔ عمر رسمی کامپوننت/دایرکتیو (`onMount`، `onUnmount`، `onUpdate`) و تزریق وابستگی درختی تایپ‌شده (`provide`، `inject`، `createInjectionKey<T>`) در `@zenith/runtime-core` و `@zenith/runtime`.
+
+- موج ۴ — دستهٔ ۹ از P1 (`#126`, `#127`, `#128`, `#129`, `#130`, `#131`, `#132`, `#133`, `#134`, `#135`, `#136`):
+  - `#126`: افزودن `afterEach`، `setScrollBehavior`، `installRouteAnnouncer` (انتقال فوکوس به `main` و `aria-live`) و انتقال مسیر در `@zenith/router`؛
+  - `#127`: پشتیبانی از `$subscribe(cb, { immediate })`، `$onAction`، سیستم پلاگین (`store.use` / `useStorePlugin`) و ذخیره‌سازی پایدار `persistStore` با مهاجرت نسخه (`version`/`migrate`) و `pick`/`omit` در `@zenith/store`؛
+  - `#128`: یکپارچه‌سازی ورودی `createForm(options)` برای قواعد رشته‌ای، توابع اعتبارسنجی، اسکیما و حالت چندمرحله‌ای (Wizard) در `@zenith/form`؛
+  - `#129`: پشتیبانی از `onUploadProgress`/`onDownloadProgress`، ترکیب `AbortSignal` خارجی با خطای استاندارد `ZEN-1600` و `mockHttp` در `@zenith/http`؛
+  - `#130`: باطل‌سازی سراسری مبتنی بر تگ (`invalidate(tags)`) در `@zenith/data` و `@zenith/resource`؛
+  - `#131`: مجازی‌سازی O(1) برای ۱۰۰٬۰۰۰+ ردیف (`virtualWindow` / `setScrollTop`)، خروجی استاندارد `exportCsv` با پشتیبانی از UTF-8 BOM فارسی و رندر دسترس‌پذیر `renderAriaGrid` در `@zenith/data-table`؛
+  - `#132`: صف‌بندی خودکار اعلان‌ها با سقف `maxVisible` و ادغام اعلان‌های تکراری (`deduplicate`) در `@zenith/notifications`؛
+  - `#133`: احترام کامل به `prefers-reduced-motion` در `createTransition` و تابع `runRouteTransition` (`out-in` / `in-out`) در `@zenith/transition`؛
+  - `#134`: تلاش مجدد خودکار با backoff نمایی (`zen-error-retry`)، `resetErrorBoundary`، رویداد `zen-error-recover` و fallback قابل‌پیکربندی در `@zenith/error-boundary`؛
+  - `#135`: سیگنال‌های واکنش‌گرای `can(permission)` / `canSignal` / `hasRoleSignal` و قرارداد ۵ متدی رجیستری در `@zenith/permission`؛
+  - `#136`: افزودن رسمی `passive` و `capture` به `BUILTIN_MODIFIERS` و `extractListenerOptions` در `@zenith/events`.
+
+- موج ۴ — دستهٔ ۱۰ از P1 (`#137`, `#138`, `#139`, `#140`):
+  - `#137`: تکمیل ابزارهای ارگونومیک تست در `@zenith/testing` شامل `useFakeTimers` (یکپارچه با `flushSync`)، `mockHttp`، `mockRouter`، `testDirective` و `resetForTesting`؛
+  - `#138`: ثبت صریح ۶ دایرکتیو فقط-runtime (`zen-resource-view`, `zen-action-button`, `zen-auth-view`, `zen-router`, `zen-button`, `zen-if-chain`) در `RUNTIME_DIRECTIVES` کامپایلر، صادرات `COMPILABLE_DIRECTIVES`/`RUNTIME_DIRECTIVES` و مستند جدول انطباق (`docs/DIRECTIVE-PARITY.md`)؛
+  - `#139`: تکمیل قرارداد ۵ متدی رجیستری در `@zenith/auth` (`hasAuth`, `listAuths`, `unregisterAuth`)، همگام‌سازی خروج بین تب‌ها (`enableCrossTabSync`) و پشتیبانی از چالش MFA/OTP (`verifyMfa`)؛
+  - `#140`: اسکریپت بررسی خودکار انطباق خروجی `.d.ts` و باندل JS (`scripts/check-dts-js-parity.mjs`) در تمامی ۴۳ پکیج.
+
+- موج ۵ — دستهٔ ۱ از NEW-PACKAGES P1 (`#150`، `#151`، `#152`، `#153`، `#154`، `#155`، `#156`، `#157`، `#158`، `#160`، `#174`):
+  - `#150`: موتور چندزبانگی واکنشی در `@zenith/i18n` — `createI18n` (پیام‌های ICU شامل `plural`/`select`/`number`/`@:linked`، fallback locale، `tm`/`te`)، سیگنال‌های reactive `locale`/`dir`، `i18nPlugin`، `useI18n` و `detectLocale` (query/cookie/navigator)؛
+  - `#151`: primitiveهای دسترس‌پذیری headless در `@zenith/runtime(-core)` — `createFocusTrap` (focus trapping کامل با initialFocus/returnFocus/Escape)، `createRovingTabindex` (Arrow/Home/End + سازگاری RTL با loop)، `lockScroll` (reference-counted) و `useId` (شناسهٔ قطعی SSR-safe و per-app)؛
+  - `#152`: مدیریت `<head>` واکنشی — `createHead` (dedupe meta/link با الویت آخرین ورودی، titleTemplate، سقف maxTags)، `useHead`، `renderHead` و `titleFromRoute` در `@zenith/ssr`؛
+  - `#153`: primitive موقعیت‌دهی headless — `computePosition` (top/bottom/left/right + flip خودکار نسبت به viewport) برای popover/tooltip/menu در `@zenith/runtime(-core)`؛
+  - `#154`: کلاینت realtime در `@zenith/http` — `createRealtime`/`createWebSocket`/`createSSE` با صف آفلاین (maxSize)، سیگنال‌های status/lastMessage/messages، subscribe ژرف‌محور بر اساس topic و رد قاطع `ws://` ناامن در production (ZEN-1703/1704)؛
+  - `#155`: موتور analytics در `@zenith/runtime` — `createAnalytics` با رعایت consent (opt-in)، DNT و providerهای console/beacon/gtag/plausible؛
+  - `#156` + `#157` + `#174`: ادغام SSR — `renderToString/Stream` با پذیرش `app: () => App` (per-request factory)، ورودی‌های per-request `head: SSRHeadInput` و `i18n: SSRI18nInput`، تولید `headTags`/`htmlAttrs`/`bodyAttrs`/`__ZENITH_I18N__` در `SSRResult` و `generateFullPage`، اعلام `@internal` برای `domAls`/`installDOMGlobalGetters` و handlerهای آمادهٔ `createNodeHandler` (Node/Express/Connect + `healthz` + CSP nonce) و `createFetchHandler` (Cloudflare/Deno/Bun/Vercel Edge و aliasهای `createCloudflareHandler`/`createDenoHandler`)؛
+  - `#158`: زیرساخت create-zenith — `getTemplateManifest(projectName, template)` (manifest داده‌محور فایل‌های `spa`/`ssr`/`pwa`/`dashboard`/`minimal`) در `@zenith/cli` به‌همراه دستور پیش‌نمایش CLI (`create-zenith-preview`)؛
+  - `#160`: پکیج جدید `@zenith/language-server` (Tooling): `analyzeZenithDocument` (استخراج دایرکتیوهای `zen-*` و سیگنال‌های `$name` با موقعیت دقیق line/character)، ثابت `LSP_METHODS`، `createZenithServerCore` (اسناد در حافظه) و `createServerLifecycle` (چرخهٔ حیات initialize/shutdown) به‌عنوان پایهٔ کلاینت نازک vscode-extension.
+
+  بازی‌گردانی انطباق monorepo پس از افزودن پکیج زبان‌سرور (۴۶ پوشهٔ packages / ۴۴ entrypoint): بروزرسانی `README.md` (ردیف جدول)، `.size-limit.json`، تست‌های `package-fields` (45)، `package-order` (45)، `root-readme` (46)، `pack-audit` (44)، `api-surface-docs` (44)، ثابت `DEFAULTS` منجمد برای `state`/`store`/`testing` (تست `defaults-tsdoc`), `docs/OPTIONS-REFERENCE.md` بازتولید، حذف `any` از `packages/i18n/src/index.ts` (پکیج zero-any)، تراز سقف legacy any (31) و بازتولید snapshot و `docs/api/language-server.md`.
+
+
+- موج ۵ — دستهٔ ۲ از NEW-PACKAGES P2 (`#161`, `#162`, `#168`, `#169`, `#170`):
+  - `#161`: پکیج جدید `@zenith/theme` (L2) — `createTheme` (حالت روشن/تاریک/سیستم با `resolved` computed، tokenهای CSS با پیشوند `-zen`، `themeDir` و themeInitScript برای no-flash SSR که قبل از paint اعمال می‌شود)، پلاگین `themePlugin` با چرخهٔ تعامل trueStore، و دایرکتیوهای `zen-theme-toggle` (با `aria-pressed`) و `zen-dir`؛
+  - `#162`: پکیج جدید `@zenith/auth-oauth` (L2) — `createOAuthClient` با PKCE S256 (`randomToken`/`base64url`/`pkceChallenge` با WebCrypto و fallback به `node:crypto` در Node)، discovery با ZEN-2103، ساخت URL ورود با state+nonce ردیابی‌شده در حافظه، `handleCallback` (ZEN-2101 state نامشخص/منقضی، ZEN-2105 بدون کد)، تبادل کد با بررسی nonce و عیار `oidcAuth`، `refresh` (ZEN-2104 فاقد refresh_token)، نگهداری توکن فقط در حافظه، تایمر silent-renew با `.unref()` و پلاگین `oauthAuthAdapter` (`zenith:auth-oauth`)؛
+  - `#168`: پکیج جدید `@zenith/feature-flags` (L2) — `createFlags` با `FlagSource` محلی/ریموت، rollout پایدار مبتنی بر FNV-1a (`stableHashRollout`)، `override` با خروجی Cleanup، ابزار تولید پایدار، و دایرکتیوهای `zen-flag`/`zen-flag-else`/`zen-flag-variant`؛
+  - `#169`: پکیج جدید `@zenith/charts` (L2) — `createChart` واکنشی (قبول `MaybeSignal<T>` و رندر مجدد با `effect`) و `renderChartSvg` ایستا برای SSR با خروجی SVG یکسان برای ورودی یکسان؛ پنج نوع نمودار (line/area/bar/pie/scatter)، axes/legend/a11yTable جایگزین قابل دسترس و احترام به `prefers-reduced-motion`؛ دایرکتیو `zen-chart` با خواندن داده از ارتباط کامپوننت و ادغام `zen-chart-options` JSON؛
+  - `#170`: پکیج جدید `@zenith/icons` (L2) — رجیستری آیکن ۵متدی (`registerIcons` با Cleanup, `getIcon`, `hasIcon`, `listIcons`, `unregisterIcon`)، `defineIconSet` با prefix، رندر امن SVG با aria (`aria-hidden` در مقابل `role="img"`+`aria-label` و کلاس `zen-icon-spin`)، `sanitizeIconBody` مبتنی بر `@zenith/security` (حذف script/foreignObject و رویدادها)، مجموعهٔ `BASIC_ICONS` (5 آیکن) و دایرکتیو `zen-icon` با گزینه‌های `zen-icon-size/-label/-set/-spin`.
+
+- موج ۵ — دستهٔ ۳ از NEW-PACKACES P2 (`#163` — تولید سایت استاتیک): هستهٔ SSG طبق الگوی دستهٔ ۱ در پکیج‌های موجود اکوسیستم فرو رفت (`@zenith/ssr` برای هستهٔ fs-free و `@zenith/cli` برای دستور ترمینال) تا نمودار وابستگی L0–L5 بدون تغییر بماند:
+  - `#163`: ماژول جدید `packages/ssr/src/ssg.ts` — `defineStaticRoutes([...])` (مسیر ساده/فرازی با `meta` + `getStaticPaths`/`skip`)، `prerender(opts)` با استخر خر وکارگر (`concurrency` پیش‌فرض ۴)، گاسترور تلفات (`Promise.allSettled`) و دایرکتوری-مصمم فایل‌ها (`route.html` متعارف یا `<route>/index.html` با `trailingSlash`)، گزارش `PrerenderReport` (rendered/failed/skipped/durationMs)، تولید `sitemap.xml` معتبر (با `hostname` + lastmod و `escapeXml`) و `robots.txt` (با اشارهٔ به sitemap)، مسیر داده-محور: شکست در `getStaticPaths` ⇒ `ZEN-1822` و شکست رندر یک مسیر با `failOnError` ⇒ `ZEN-1821` (بدون آن، مسیر مشکل‌دار صرفاً در `report.failed` افت می‌کند)؛ هسته `prerender` از ماژول `node:fs` عاری است تا برای هر Runtime قابل استفاده باشد؛
+  - دستور جدید CLI `zenith ssg` (`packages/cli/src/ssg.ts` + ثبت در `packages/cli/src/index.ts`): template را با جدایی `<head>`/`<body>` همراه `head` (string | ()=>string) به `generateFullPage` می‌رساند، فایل‌ها را به‌صورت بازگشتی می‌نویسد و خروجی‌های آماری را چاپ می‌کند؛ اگر `@zenith/ssr` نصب نباشد پیام راهگشا پرتاب می‌شود؛ `error-hygiene.mjs` برای ماژول ssg CLI (tooling، مشابه lighthouse) allowlist مستند دارد؛
+  - هم‌ترازی: پین وابستگی‌های `1.4.0→1.5.0` در پنج پکیج تازهٔ دستهٔ ۲ (schema/shared/storage) تا حل پروندهٔ workspace به رجیستری عمومی نرود (رفع 404 در `npm install`/`npm ci` به‌علت نبود نسخهٔ منتشرشدهٔ zenith)؛ نرمال‌سازی `package-lock.json` به `https://registry.npmjs.org/` و ثبت ورودی‌های lock برای شش workspace جدید (language-server + پنج پکیج دستهٔ ۲) تا `npm ci` دوباره کار کند؛
+  - تست‌های دسته: `scripts/test/wave5-batch2.test.mjs` (ساختار پنج پکیج + smoke صادرات، از کامیتی قبلی این موج) و `scripts/test/wave5-batch3-ssg.test.mjs` (۴ سناریوی رفتاری prerender: بسط getStaticPaths و ساختار فایل‌ها، taxonomy کامل `ZEN-1821`/`ZEN-1822`، حالت trailingSlash و wire دستور `zenith ssg` در CLI).
+
+- موج ۶ — دستهٔ ۴ کیفیت مخزن/CI/مستندات P2 (`#42`، `#43`، `#44`، `#78`، `#81`، `#82`، `#84`، `#85`):
+  - `#42`: devDependencyهای مشترک (`typescript`، `@types/node`، `tsx`) از ۴۲/۲۲/۱ مانیفست per-package حذف و فقط در ریشه پین شدند (typescript ^5.6.0، @types/node ^22.0.0)؛ در تست تأمین می‌گردد که هیچ پکیجی این سه را دوباره پین نکند؛
+  - `#43`: کامنت‌های ردیابی «Real cleanup:»/«Listener cleanup added» از `packages/devtools/src/hook.ts` پاک شد؛ جلوگیری از بازگشت با تست دائمی روی همهٔ src؛
+  - `#44`: ریشهٔ مخزن پاک شد — `ecommerce-preview.png` → `docs/assets/`؛ ریشه فقط فایل‌های پیکربندی/محصول دارد؛
+  - `#78`: `scripts/generate-sbom.mjs` (خروجی استاندارد CycloneDX 1.5 با metadata component و purl برای ۴۱٧ وابستگی خارجی؛ در job audit اجرا و به‌عنوان artifact ذخیره می‌شود) و `scripts/check-licenses.mjs` (allowlist MIT/ISC/BSD/Apache/… + استثنای مدارک‌دار `MPL-2.0`/`MIT-0` با استدلال توضیحی در کد) + دستورهای `make:sbom`/`license:check` در ریشه؛
+  - `#81`: job جدید `unit-os-matrix` در CI (windows-latest و macos-latest) تا رفتار مسیر/فایل‌سیستم/اسم CLI روی هر سه سیستم‌عامل سبز بماند؛
+  - `#82`: `actions/cache@v4` برای `packages/*/dist` (+ out داخلی vscode-extension) در چهار job مصرف‌کنندهٔ build (package-lint / peer-single-instance / size / e2e) با شرط `cache-hit != 'true'` برای اجتناب از build مجدد؛ job تولیدکنندهٔ build (ماتریس Node 18/20/22) دست‌نخورده ماند تا صحت اولیهٔ محصول حفظ شود؛
+  - `#84`: job جدید `benchmark` + `scripts/benchmark-ci.mjs` (متریک سنگین create/set سیگنال و computed روی dist منتشرشونده؛ بودجهٔ `ops/sec` در `benchmarks/budgets.json` و آستانهٔ شکست=بودجه×۰٫۶ برای جذب نویز CI؛ اگر dist نباشد پیام راهنما می‌دهد)؛
+  - `#85`: قالب‌های Issue (`bug_report.yml` و `feature_request.yml` — دومی با طراحی API-proposal هم‌راستای API-CONVENTIONS و انتخاب لایهٔ L0–L3/Tooling) و `PULL_REQUEST_TEMPLATE.md` با چک‌لیست کامل انطباق قرارداد API (options-object، DEFAULTS، ZenithError، cleanup، no-console، no-any)؛
+  - تست‌های دسته: `scripts/test/wave6-batch4.test.mjs` (۹ سناریو شامل تولید CycloneDX واقعی در tmpdir و اسکن workflow برای ماتریس/کش/بنچمارک). وضعیت: ۱۵۵۳ تست سوییت سبز، typecheck ۵۰ پکیج، lint ۰ خطا.
+
+- موج ۶ — دستهٔ ۵ پایداری/خطا/حاکمیت P2 (`#11`، `#94`، `#102`):
+  - `#11` (AUDIT): مسیر پاک‌سازی برای listenerهای کد تولیدشدهٔ کامپایلر — تابع `render` خروجی `compileTemplate` حالا ابتدای بدنه آرایهٔ `__disposers` را می‌سازد، handler دوطرفهٔ `zen-model` با نام `__elNInputHandler` تعریف و زوجِ `addEventListener`/`removeEventListener` را در disposer ثبت می‌کند، و پیوست `root.__zenDispose` (از طریق `Object.defineProperty` با `configurable: true` — غیرقابل‌شمارش، در try/catch) همه را به‌طور idempotent آزاد می‌کند؛ قرارداد بازگرداندن `root` حفظ شده و تست رفتاری jsdom کشتن واقعی listener پس از dispose و idempotent‌بودن فراخوان دوم را قفل کرد؛
+  - `#94` (STABILITY): telemetry اختیاری با opt-in صریح — ماژول `packages/cli/src/telemetry.ts` (پیش‌فرض همیشه خاموش؛ الویت: env `ZENITH_TELEMETRY` با kill-switch `0` > کانفیگ `~/.zenith/telemetry.json` (یا `ZENITH_CONFIG_HOME`) > default-off)؛ هیچ ارسالی بدون endpoint امن `https` از `ZENITH_TELEMETRY_ENDPOINT` نمی‌شود (هیچ سرور پیش‌فرضی وجود ندارد)؛ payload مینیمال مستندشده در `TELEMETRY_FIELDS` (event، zenithVersion، nodeMajor، platform، ci)؛ `sanitizeTelemetryProps` کلیدهای حساس (path/dir/file/home/name/user/email/token/secret/key/url/host/repo/project/cwd)، مقدارهای مسیر (`/` یا `\`) و اشیای تو‌در‌تو را حذف می‌کند؛ fire-and-forget بدون خطای مرئی (حداکثر ۸ pending)؛ دستور `zenith telemetry on|off|status` از طریق import دینامیک و exitCode ثبت شد؛ سیاست کامل در `docs/PRIVACY.md`؛ دو console.error UX جدید دستور با DEC-033 مستند و ceiling error-hygiene ۲۰۱→۲۰۳ ثبت شد (بازگشت در #39) و فایل به فهرست NO_CONSOLE_RATCHET پیوست (60→61)؛
+  - `#102` (I18N): پیام‌های خطا با کد پایدار و قابل ترجمه — لایهٔ locale در `@zenith/errors` (`setErrorLocale/getErrorLocale/getErrorMessage`؛ fa پیش‌فرض کانونیک و en ترجمهٔ کاتالوگ)، کاتالوگ کامل انگلیسی ۸۱ کد چهاررقمی (`ERROR_MESSAGES_EN` با message+suggestion — parity 1:1 با `RESERVED_ERROR_CODES`) و `LEGACY_ERROR_MESSAGES_EN` برای ۴۶ کد سه‌رقمی runtime (پیام‌های fa آن‌ها دست‌نخورده‌اند؛ فقط یک توضیح استاتیک en ثبت شده است)؛ `createReservedError` اکنون از locale فعلی پیام می‌سازد؛ کدهای CLI به بازهٔ چهاررقمی ۹۰NN منتقل شدند (Z001→9001، Z100→9010، Z101→9011، Z200→9020، Z201→9021، Z300→9030، Z301→9031، Z302→9032، Z400→9040، Z500→9050، Z600→9060، Z601→9061، Z700→9070، Z800→9080، Z810→9081، Z820→9082) و range مجاز cli = `{from: 9000, to: 9099}` در تست ranges (۱۷ بازه) ثبت شد؛ مولد خودکار `scripts/generate-error-docs.mjs` با حالت `--check` (drift gate) مستند `docs/ERROR-CODES.md` (۱۲۷ ردیف) را از `core.ts` می‌سازد؛ snapshot api-surface برای exportهای جدید #102 بازتولید شد؛
+  - تست‌های دسته: `scripts/test/wave6-batch5.test.mjs` (۱۵ سناریو: شکل کد/رفتار jsdom dispose، ماتریس env×config×endpoint تله‌متری + حذف PII + بررسی payload واقعی با fetch ترکیبی، parity کاتالوگ EN/LEGACY، بازهٔ cli و drift docs). وضعیت: ۱۵۶۸ تست سوییت سبز (۱۹۳ فایل)، typecheck ۵۰ پکیج، lint ۰ خطا (۹۶۷ هشدارِ baseline)، error-hygiene + cleanup-hygiene سبز.
+
+  بازی‌گردانی انطباق monorepo پس از پنج پکیج L2 جدید (۵۰ پوشهٔ packages / ۴۹ entrypoint): بروزرسانی `README.md` (ردیف‌های `theme`/`auth-oauth`/`feature-flags`/`charts`/`icons`)، `.size-limit.json` (۵ ورودی جدید با سقف‌های spec: ≤3KB, ≤8KB, ≤2KB, ≤20KB, ≤4KB)، تست‌های `package-fields` (50)، `package-order` (50)، `root-readme` (51)، `pack-audit` (49)، `api-surface-docs` (49)، هم‌سنتی LICENSE با `scripts/sync-license.mjs` (50 پکیج)، بازتولید کتابخانهٔ `docs/api/` (۴۹ پکیج) و اسناد جدید در `scripts/test/wave5-batch2.test.mjs` (7 تست ثانویه: ساختار هر پکیج، اسکریپت no-flash + دایرکتیوهای theme، PKCE S256، rolloutهای پایدار، renderChartSvg یکسان در Node، sanitize آیکن هایجک، وِی README/docs وجود دارد).
+

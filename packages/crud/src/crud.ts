@@ -30,6 +30,7 @@
 //   </form>
 
 import { getResource, type Resource } from '@zenith/resource';
+import { logger } from '@zenith/logger';
 import { Zen } from '@zenith/runtime';
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -127,13 +128,13 @@ function collectFormData(formEl: HTMLFormElement): Record<string, any> {
 Zen.action('crudList', ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
   if (!resourceName) {
-    console.error('[crudList] data-resource required');
+    logger.error('[crudList] data-resource required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudList] Resource "${resourceName}" not found`);
+    logger.error(`[crudList] Resource "${resourceName}" not found`);
     return;
   }
 
@@ -153,13 +154,13 @@ Zen.action('crudList', ({ element }) => {
 Zen.action('crudCreate', async ({ element }) => {
   const resourceName = element.getAttribute('data-resource');
   if (!resourceName) {
-    console.error('[crudCreate] data-resource required');
+    logger.error('[crudCreate] data-resource required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudCreate] Resource "${resourceName}" not found`);
+    logger.error(`[crudCreate] Resource "${resourceName}" not found`);
     return;
   }
 
@@ -167,7 +168,7 @@ Zen.action('crudCreate', async ({ element }) => {
   // مانند "user[0].name" یا "address.city" را به‌درستی parse می‌کند.
   const form = element.tagName === 'FORM' ? element : element.closest('form');
   if (!form) {
-    console.error('[crudCreate] No form found');
+    logger.error('[crudCreate] No form found');
     return;
   }
 
@@ -203,13 +204,13 @@ Zen.action('crudUpdate', async ({ element }) => {
   const bodyAttr = element.getAttribute('data-body');
 
   if (!resourceName || !id) {
-    console.error('[crudUpdate] data-resource and data-id required');
+    logger.error('[crudUpdate] data-resource and data-id required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudUpdate] Resource "${resourceName}" not found`);
+    logger.error(`[crudUpdate] Resource "${resourceName}" not found`);
     return;
   }
 
@@ -242,13 +243,13 @@ Zen.action('crudDelete', async ({ element }) => {
   const id = element.getAttribute('data-id');
 
   if (!resourceName || !id) {
-    console.error('[crudDelete] data-resource and data-id required');
+    logger.error('[crudDelete] data-resource and data-id required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudDelete] Resource "${resourceName}" not found`);
+    logger.error(`[crudDelete] Resource "${resourceName}" not found`);
     return;
   }
 
@@ -308,13 +309,13 @@ Zen.action('crudBulkDelete', async ({ element }) => {
   const idsAttr = element.getAttribute('data-ids');
 
   if (!resourceName || !idsAttr) {
-    console.error('[crudBulkDelete] data-resource and data-ids required');
+    logger.error('[crudBulkDelete] data-resource and data-ids required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudBulkDelete] Resource "${resourceName}" not found`);
+    logger.error(`[crudBulkDelete] Resource "${resourceName}" not found`);
     return;
   }
 
@@ -322,11 +323,11 @@ Zen.action('crudBulkDelete', async ({ element }) => {
   try {
     ids = JSON.parse(idsAttr);
   } catch {
-    console.error('[crudBulkDelete] data-ids must be a valid JSON array');
+    logger.error('[crudBulkDelete] data-ids must be a valid JSON array');
     return;
   }
   if (!Array.isArray(ids) || ids.length === 0) {
-    console.error('[crudBulkDelete] data-ids must be a non-empty array');
+    logger.error('[crudBulkDelete] data-ids must be a non-empty array');
     return;
   }
 
@@ -354,13 +355,13 @@ Zen.action('crudSmartDelete', async ({ element }) => {
   const id = element.getAttribute('data-id');
 
   if (!resourceName || !id) {
-    console.error('[crudSmartDelete] data-resource and data-id required');
+    logger.error('[crudSmartDelete] data-resource and data-id required');
     return;
   }
 
   const resource = getResource(resourceName);
   if (!resource) {
-    console.error(`[crudSmartDelete] Resource "${resourceName}" not found`);
+    logger.error(`[crudSmartDelete] Resource "${resourceName}" not found`);
     return;
   }
 

@@ -38,6 +38,7 @@
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
+import { logger } from '@zenith/logger';
 
 /**
  * پردازش دایرکتیو zen-intersection روی یک عنصر.
@@ -59,12 +60,11 @@ export function processIntersection(
   // ── SSR Safety Guard ──
   // اگر IntersectionObserver وجود نداشت (SSR یا محیط قدیمی)، no-op.
   if (typeof IntersectionObserver === 'undefined') {
-    if (typeof console !== 'undefined' && console.warn) {
-      console.warn(
-        '[Zenith zen-intersection] IntersectionObserver is not available in this environment. ' +
-          'The directive will be a no-op.',
-      );
-    }
+    // #39: logger.warn global fallbacks را خود مدیریت می‌کند (console guard لازم نیست).
+    logger.warn(
+      '[Zenith zen-intersection] IntersectionObserver is not available in this environment. ' +
+        'The directive will be a no-op.',
+    );
     return () => {}; // no-op dispose
   }
 
@@ -103,8 +103,8 @@ export function processIntersection(
                 element: el,
               });
             }
-          } else if (typeof console !== 'undefined' && console.warn) {
-            console.warn(
+          } else {
+            logger.warn(
               `[Zenith zen-intersection] Expression "${callbackExpr}" did not resolve to a function (got ${typeof callback}).`,
             );
           }

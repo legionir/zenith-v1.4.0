@@ -9,8 +9,9 @@
 
 import type { Signal } from '@zenith/state';
 import { getErrorHistory } from '@zenith/state';
+import { logger } from '@zenith/logger';
 
-export interface SignalInfo {
+export interface DevToolsSignalInfo {
   id: string;
   name?: string;
   value: any;
@@ -18,6 +19,11 @@ export interface SignalInfo {
   computed: boolean;
   createdAt: number;
 }
+
+/**
+ * @deprecated از `SignalInfo` در `@zenith/devtools-core` یا `DevToolsSignalInfo` استفاده کنید (#50 / #147).
+ */
+export type SignalInfo = DevToolsSignalInfo;
 
 export interface EffectInfo {
   id: string;
@@ -38,7 +44,7 @@ export interface ComponentInfo {
   createdAt: number;
 }
 
-export interface StateChange {
+export interface DevToolsStateChange {
   id: string;
   signalId: string;
   signalName?: string;
@@ -47,6 +53,11 @@ export interface StateChange {
   timestamp: number;
   stack?: string;
 }
+
+/**
+ * @deprecated از `StateChange` در `@zenith/devtools-core` یا `DevToolsStateChange` استفاده کنید (#50 / #147).
+ */
+export type StateChange = DevToolsStateChange;
 
 export interface DevToolsAPI {
   version: string;
@@ -217,7 +228,8 @@ export const devtoolsAPI: DevToolsAPI = {
     if (enabled) return;
     enabled = true;
     // All future registrations will now be tracked
-    console.log('[Zenith DevTools] API enabled — tracking framework internals');
+    // #39: لاگر مرکزی — کانال info (در dev چاپ، در prod خاموش).
+    logger.info('[Zenith DevTools] API enabled — tracking framework internals');
   },
 
   disable() {
@@ -229,7 +241,7 @@ export const devtoolsAPI: DevToolsAPI = {
     stateTimeline = [];
     signalSubscribers.clear();
     stateChangeSubscribers.clear();
-    console.log('[Zenith DevTools] API disabled — all tracking cleared');
+    logger.info('[Zenith DevTools] API disabled — all tracking cleared');
   },
 
   getSignals() {

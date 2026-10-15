@@ -26,6 +26,7 @@ import { effect } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
+import { logger } from '@zenith/logger';
 // #47: مصرف‌کنندهٔ داخلی باید روی API مبنا کار کند — enterTransition/
 // leaveTransition تنها wrapperهای deprecated برای کاربر نهایی‌اند و مصرف
 // آن‌ها در فریم‌ورک، هشدار ZEN-DEPR را برای برنامهٔ کاربر تولید می‌کرد.
@@ -74,7 +75,8 @@ export function processIf(
   // با querySelectorAll('[zen-for]') کل زیردرخت بررسی می‌شود.
   const hasForChild = el.querySelectorAll('[zen-for]').length > 0;
   if (hasForChild) {
-    console.warn(
+    // #39: logger مرکزی — scope=zen:directive.
+    logger.warn(
       '[Zenith] ⚠️ zen-if on parent of zen-for may cause context loss on re-mount.\n' +
         '  Problem: <div zen-if="$show"><li zen-for="...">  ← مشکل‌ساز\n' +
         '  Fix 1:   <div zen-bind:class="{hidden: !$show}"><li zen-for="...">  ← توصیه‌شده\n' +
@@ -85,7 +87,7 @@ export function processIf(
     // و context/signals محلی از دست برود. راه‌حل امن: el.style.display را
     // toggle کن و فقط یک‌بار manageChildren را فراخوانی کن.
     // FIX (v1.2.4): Removed reportError() here — this is a benign, expected
-    // fallback path, not an error. The console.warn above is sufficient for
+    // fallback path, not an error. The logger.warn above is sufficient for
     // developer visibility. Spamming reportError pollutes error-boundary logs.
 
     // ── جایگزینی اولیه با Comment (مانند مسیر اصلی) ──

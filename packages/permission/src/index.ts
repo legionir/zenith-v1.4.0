@@ -1,8 +1,13 @@
 export {
   PermissionManager,
   createPermissionManager,
+  registerPermissionManager,
   getPermissionManager,
+  hasPermissionManager,
+  listPermissionManagers,
+  unregisterPermissionManager,
   clearPermissionManagers,
+  can,
   createGuard,
   deepFreeze,
   requirePermission,

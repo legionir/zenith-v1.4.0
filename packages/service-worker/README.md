@@ -218,6 +218,35 @@ navigator.serviceWorker.ready.then((reg) => {
 
 MIT — part of the Zenith framework.
 
+## راهنمای ارتقای نسخه، پاک‌سازی کش‌های قدیمی و Kill Switch اضطراری (`#96`)
+
+### ۱. پاک‌سازی خودکار کش‌های قدیمی در `activate`
+
+با افزایش `cacheVersion` در `setupSW({ cacheVersion: 2, ... })`، تمام کش‌های نسخه‌های قدیمی‌تر (مانند `zenith-v1-*`) در رویداد `activate` به‌طور خودکار حذف می‌شوند.
+
+### ۲. اطلاع‌رسانی به کاربر هنگام انتشار نسخهٔ جدید (`onUpdateFound` + `skipWaiting`)
+
+```ts
+import { registerSW } from '@zenith/service-worker';
+
+const sw = registerSW('/sw.js', {
+  onUpdateFound(reg) {
+    // نمایش بنر «نسخهٔ جدید در دسترس است» به کاربر
+    sw?.skipWaiting();
+  },
+  onControllerChange() {
+    window.location.reload();
+  },
+});
+```
+
+### ۳. Kill Switch اضطراری (`unregisterSW` و `sw-kill.js`)
+
+- **در سمت کلاینت**: فراخوانی `await unregisterSW()` تمام Service Workerهای ثبت‌شده را لغو کرده و تمام کش‌های `CacheStorage` را پاک می‌کند.
+- **در سمت سرور (بدون نیاز به اقدام دستی کاربر)**: فایل `packages/service-worker/sw-kill.js` (یا خروجی `createKillSwitchScript()`) را در مسیر `/sw.js` سرو کنید؛ مرورگر هنگام بررسی به‌روزرسانی، کش‌ها را پاک کرده، Service Worker را unregister می‌کند و تب‌های باز را رفرش می‌نماید.
+
+---
+
 ## Lifecycle (cleanup protocol — #116 / DEC-032)
 
 The SW controller exposes `dispose()` (implements `Disposable` from

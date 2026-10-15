@@ -24,6 +24,10 @@ Zenith یک فریم‌ورک فرانت‌اند نوآورانه با رویک
 ### قراردادها
 - [📐 قرارداد API (API-CONVENTIONS) — نام‌گذاری، الگوی ساخت، فعل‌ها، ورودی واکنشی](./API-CONVENTIONS.md)
 - [🧾 گرامر attributeها و رویدادها (ATTRIBUTE-GRAMMAR) — قواعد zen-*، DirectiveMeta، zenith.meta.json](./ATTRIBUTE-GRAMMAR.md)
+- [🧱 معماری لایه‌ای L0–L5 (ARCHITECTURE-LAYERS)](./ARCHITECTURE-LAYERS.md)
+- [🔍 جدول ردیابی باگ‌ها و بهبودها (TRACEABILITY)](./TRACEABILITY.md)
+- [🛡️ بستهٔ ممیزی امنیتی (AUDIT-PACKAGE)](./security/AUDIT-PACKAGE.md)
+- [📦 ممیزی نام و اسکوپ npm (NPM-SCOPE-AUDIT)](./release/NPM-SCOPE-AUDIT.md)
 
 ## 🚀 شروع سریع
 

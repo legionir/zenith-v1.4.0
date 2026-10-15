@@ -1,7 +1,7 @@
 {
   "name": "@zenith/state",
   "version": "1.4.0",
-  "description": "Zenith framework — Reactive state engine (Phase 1 + 7). DOM-free, environment-agnostic. Uses Microtask Scheduler for automatic batching.",
+  "description": "Zenith framework \u2014 Reactive state engine (Phase 1 + 7). DOM-free, environment-agnostic. Uses Microtask Scheduler for automatic batching.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -11,7 +11,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -48,12 +49,11 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/scheduler": "1.4.0",
-    "@zenith/errors": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/scheduler": "1.4.0"
   },
-  "devDependencies": {
-    "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
-    "@types/node": "^20.11.0"
+  "zenith": {
+    "target": "universal"
   }
 }

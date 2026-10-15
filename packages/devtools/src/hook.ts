@@ -35,6 +35,7 @@ import {
   type StateChange,
 } from '@zenith/state';
 import { componentRegistry } from '@zenith/components';
+import { logger } from '@zenith/logger';
 // FEATURE (v0.4.0): Dependency Graph Viewer
 // گراف وابستگی‌ها (Signal → Effect → Directive → DOM) روی hook expose می‌شود.
 import { graph, getDependencyGraph, clearDependencyGraph, type GraphSnapshot } from './graph';
@@ -332,11 +333,10 @@ export function initDevTools(): void {
   setupHMRCleanup();
 
   // پیام خوش‌آمدگویی با استایل.
-  console.log(
-    '%c[Zenith DevTools] Hook installed. 🛠️',
-    'color: #bada55; font-weight: bold; font-size: 12px;',
-  );
-  console.log('%cAccess via window.__ZENITH__', 'color: #888; font-size: 11px;');
+  // #39: بنر خوش‌آمد از طریق logger؛ استایل %c در consoleSink پشتیبانی
+  // نمی‌شود و فرمت متنی لاگر خود همان نمای پررنگ dev را می‌سازد.
+  logger.info('[Zenith DevTools] Hook installed. 🛠️');
+  logger.debug('Access via window.__ZENITH__');
 }
 
 /**
@@ -381,5 +381,3 @@ export function cleanupDevtools(): void {
   }
   cleanupHookInstance();
 }
-// Listener cleanup added for packages/devtools/src/hook.ts
-// Real listener removal: stored handlers for pagehide/visibilitychange cleaned via __zenCleanupHandlers in cleanupDevtools()

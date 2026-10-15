@@ -36,7 +36,9 @@
       "name": "zen-for",
       "description": "تکرار المان روی هر آیتم یک collection؛ باید با zen-key همراه باشد.",
       "syntax": "<li zen-for=\"item in items\" zen-key=\"item.id\">{{ item.name }}</li>",
-      "attributes": ["zen-key"],
+      "attributes": [
+        "zen-key"
+      ],
       "docs": "https://zenith.dev/docs/runtime#zen-for"
     },
     {
@@ -55,7 +57,10 @@
       "name": "zen-if",
       "description": "رندر شرطی: المان فقط وقتی expression truthy است در DOM می‌ماند.",
       "syntax": "<div zen-if=\"isLoggedIn\">…</div>",
-      "attributes": ["zen-else", "zen-else-if"],
+      "attributes": [
+        "zen-else",
+        "zen-else-if"
+      ],
       "docs": "https://zenith.dev/docs/runtime#zen-if"
     },
     {
@@ -80,7 +85,9 @@
         "zen-persist-version",
         "zen-persist-debounce"
       ],
-      "values": ["کلید ذخیره (string غیرخالی)"],
+      "values": [
+        "کلید ذخیره (string غیرخالی)"
+      ],
       "docs": "https://zenith.dev/docs/storage#zen-persist"
     },
     {
@@ -93,7 +100,9 @@
       "name": "zen-resource",
       "description": "اتصال Resource (CRUD/lifecycle) به DOM؛ نام state خروجی با zen-state.",
       "syntax": "<div zen-resource=\"'/api/users'\" zen-state=\"users\">…</div>",
-      "attributes": ["zen-state"],
+      "attributes": [
+        "zen-state"
+      ],
       "docs": "https://zenith.dev/docs/resource#zen-resource"
     },
     {
@@ -119,6 +128,61 @@
       "description": "نام transition ثبت‌شده برای enter/leave المان‌های شرطی.",
       "syntax": "<div zen-if=\"open\" zen-transition=\"fade\">…</div>",
       "docs": "https://zenith.dev/docs/transition#zen-transition"
+    },
+    {
+      "name": "zen-t",
+      "description": "ترجمهٔ پیام با کلید از @zenith/i18n؛ واکنشی به تغییر locale (تنها textContent به‌روزرسانی می‌شود). همراه: zen-t-params (JSON)، zen-t-count (عدد برای plural)، zen-t-default (متن جایگزین).",
+      "syntax": "<span zen-t=\"greeting\" zen-t-params='{\"name\":\"علی\"}'></span>",
+      "attributes": [
+        "zen-t-params",
+        "zen-t-count",
+        "zen-t-default"
+      ],
+      "values": [
+        "کلید پیام (string غیرخالی)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t"
+    },
+    {
+      "name": "zen-t-html",
+      "description": "ترجمهٔ پیام HTML‌شده با sanitize (پیش‌فرض: escape کامل — با I18nOptions.sanitizeHtml سانتیزر واقعی وصل کنید).",
+      "syntax": "<div zen-t-html=\"welcome.rich\" zen-t-params='{\"name\":\"علی\"}'></div>",
+      "attributes": [
+        "zen-t-params",
+        "zen-t-count",
+        "zen-t-default"
+      ],
+      "values": [
+        "کلید پیام (string غیرخالی)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t-html"
+    },
+    {
+      "name": "zen-t-attr",
+      "description": "ترجمهٔ چند attribute با نگاشت \"attr:key; attr2:key2\"؛ همرها: zen-t-params.",
+      "syntax": "<input zen-t-attr=\"title:form.title; aria-label:form.aria\" />",
+      "attributes": [
+        "zen-t-params"
+      ],
+      "values": [
+        "نگاشت attribute:کلید (جدا با ;)"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-t-attr"
+    },
+    {
+      "name": "zen-locale",
+      "description": "marker فقط؛ attribute langِ المان = locale جاری i18n (واکنشی).",
+      "syntax": "<section zen-locale></section>",
+      "docs": "https://zenith.dev/docs/i18n#zen-locale"
+    },
+    {
+      "name": "zen-dir",
+      "description": "attribute dirِ المان — ltr|rtl|auto (auto ⇒ جهت جاری i18n؛ واکنشی).",
+      "syntax": "<section zen-dir=\"auto\"></section>",
+      "values": [
+        "ltr|rtl|auto"
+      ],
+      "docs": "https://zenith.dev/docs/i18n#zen-dir"
     }
   ]
 }

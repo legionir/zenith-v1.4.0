@@ -54,12 +54,19 @@
 
 ```
 devtools-extension/
-├── manifest.json          — Manifest V3
-├── popup.html             — UI با 4 tab
+├── manifest.json          — Manifest V3 (JSON استاندارد، بدون کامنت)
+├── popup.html             — UI با 4 tab (با سیاست CSP سخت‌گیرانه)
 ├── popup.js               — منطق popup (render همه‌ی panels)
+├── graph-viewer.html      — نمایشگر گراف وابستگی (بدون اسکریپت inline)
+├── graph-viewer.js        — منطق نمایشگر گراف وابستگی
 ├── content.js             — content script (ارتباط با window.__ZENITH__)
 ├── background.js          — service worker + DevTools panel creation
 ├── devtools.html          — DevTools panel entry
-├── devtools-panel.js      — ایجاد Zenith tab در DevTools
-└── icons/                 — آیکون‌ها
+└── devtools-panel.js      — ایجاد Zenith tab در DevTools
 ```
+
+## امنیت و سطوح دسترسی (#8)
+
+- **دسترسی حداقلی (`activeTab` + `optional_host_permissions`):** افزونه به‌صورت پیش‌فرض دسترسی سراسری (`host_permissions` روی `<all_urls>`) درخواست نمی‌کند؛ بازرسی تب فعلی با `activeTab` و `chrome.scripting.executeScript` انجام می‌شود و دسترسی به دامنه‌های `http://*/*` و `https://*/*` در `optional_host_permissions` قرار دارد تا فقط با تأیید صریح کاربر فعال شود (`BUG-DEVTEXT-01`, `BUG-DEVTEXT-08`, `IMP-DEVTEXT-05`).
+- **سیاست CSP (`content_security_policy`):** تمام صفحات افزونه (`popup.html`، `devtools.html`، `graph-viewer.html`) تحت سیاست `default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'` اجرا می‌شوند و هیچ اسکریپت inline در HTML وجود ندارد.
+

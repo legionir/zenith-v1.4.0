@@ -23,6 +23,8 @@ export {
   configureScheduler,
   setSchedulerHooks,
   getSchedulerHooks,
+  registerSchedulerInstance,
+  resetSchedulerInstanceTrackingForTesting,
   Priority,
   type PriorityInput,
   type SchedulerAdapter,

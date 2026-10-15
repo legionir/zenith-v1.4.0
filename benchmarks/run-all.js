@@ -2,9 +2,10 @@
 //
 // Runner برای تمام benchmarkها (reactivity + runtime + resource + ssr)
 
-import { pathToFileURL } from 'url';
+import { pathToFileURL, fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-const base = '/home/z/my-project/public/benchmarks';
+const base = dirname(fileURLToPath(import.meta.url));
 
 async function runFile(name, file) {
   console.log('\n' + '═'.repeat(60));

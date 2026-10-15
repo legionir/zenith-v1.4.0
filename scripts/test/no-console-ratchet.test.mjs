@@ -22,6 +22,7 @@ function consoleFiles() {
   const files = new Set();
   for (const d of readdirSync('packages', { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
+    if (d.name === 'tmp-scaffold-verify') continue; // ردّ دریکتوری گذرای scaffold موازی
     const base = join('packages', d.name, 'src');
     if (!existsSync(base)) continue;
     const stack = [base];
@@ -70,9 +71,20 @@ describe('no-console rule + ratchet (#143)', () => {
 
   it('baseline shrinks only via real migration (#143=62 → #115 unified hub sink)', () => {
     // #115 (DEC-031): error-path console.* now lives solely in the errors hub sink.
-    // boundary.ts/state error.ts migrated off console; errors index.ts→core.ts +
-    // hub.ts (the sink). Net 62→61 is genuine debt reduction, not a loosened gate.
-    expect(NO_CONSOLE_RATCHET.length).toBe(61);
+    // #147: packages/devtools/src/graph.ts migrated to @zenith/devtools-core (61 → 60).
+    // #94: packages/cli/src/telemetry.ts افزوده شد (خروجی کاربرپسند CLI؛ در دستورالعمل #39 مهاجرت می‌کند) (60 → 61).
+    // #39 موج ۱ (2026-10-13): events/security/data/permission/error-boundary/ssr/router/components
+    //   و store (بازنویسی جامنت) مهاجرت شدند — ۱۷ فایل از فهرست خارج شدند (61 → 44).
+    // #39 موج ۴ (2026-10-13): runtime×11/transition/errors×2 (32 → 9).
+    //   errors خودش به logger وابسته نیست (چرخهٔ import)؛ مرز چاپ به
+    //   packages/errors/src/print.ts (بدون import) سپرده شد و deprecate از
+    //   همان مسیر می‌گذرد.
+    //   ثقل باقی‌ماندهٔ ۹ فایل (cli×5/vite-plugin×2/vscode-extension/compiler)
+    //   مصونِ تصمیم‌شده‌اند: خروجی آن‌ها UX اصلی ابزار CLI/IDE است (نه
+    //   observability framework) و چاپ JSON-Lines لاگر برای ترمینال نامناسب است؛
+    //   compiler هم پیام‌های user-code را از طریق hub→print می‌گذرانَد.
+    //   نکته: در موج ۳ شمارندهٔ لیست از 32 به 23 رسید؛ این بار به 9.
+    expect(NO_CONSOLE_RATCHET.length).toBe(9);
     // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
     expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
   });

@@ -84,16 +84,36 @@ export function collectUsed(pkgDir, subs = ['src', 'test']) {
   const files = [];
   const walk = (dir) => {
     if (!existsSync(dir)) return;
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch (err) {
+      if (err && err.code === 'ENOENT') return; // دریکتوری گذرای scaffold موازی
+      throw err;
+    }
+    for (const e of entries) {
       const p = join(dir, e.name);
       if (e.isDirectory()) walk(p);
-      else if (/\.(?:m?js|ts)$/.test(e.name) && statSync(p).isFile()) files.push(p);
+      else if (/\.(?:m?js|ts)$/.test(e.name)) {
+        try {
+          if (statSync(p).isFile()) files.push(p);
+        } catch (err) {
+          if (!(err && err.code === 'ENOENT')) throw err;
+        }
+      }
     }
   };
   for (const sub of subs) walk(join(pkgDir, sub));
 
   for (const f of files) {
-    const stripped = stripComments(readFileSync(f, 'utf8'));
+    let raw;
+    try {
+      raw = readFileSync(f, 'utf8');
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue; // فایل گذرای scaffold موازی
+      throw err;
+    }
+    const stripped = stripComments(raw);
     // خط‌به‌خط: خطوط import/export/require (یا `from '<mod>'` در import
     // چندخطی) بررسی می‌شوند تا رشته‌های خام در template شمارش نشوند.
     for (const line of stripped.split('\n')) {
@@ -123,8 +143,14 @@ export function findUnused(packagesDir, dirsOverride) {
   for (const dir of dirs) {
     const pkgPath = join(packagesDir, dir, 'package.json');
     if (!existsSync(pkgPath)) continue;
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-    if (pkg.name !== `@zenith/${dir}`) continue; // فقط پکیج‌های zenith
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue; // دریکتوری گذرای scaffold موازی
+      throw err;
+    }
+    if (pkg.name !== `@zenith/${dir}` && !(dir === 'zenith' && pkg.name === 'zenith')) continue; // فقط پکیج‌های zenith
     checked += 1;
     const used = collectUsed(join(packagesDir, dir));
     for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {

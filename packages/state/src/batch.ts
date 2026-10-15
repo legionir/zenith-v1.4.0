@@ -32,23 +32,24 @@
  * برای backward compatibility نگه‌داشته شده است. کدهای قدیمی که از `batch()`
  * استفاده می‌کنند، بدون تغییر کار خواهند کرد — اما دیگر نیازی به آن نیست.
  *
- * در حالت Development، یک `console.warn` چاپ می‌شود تا به توسعه‌دهنده اطلاع
+ * در حالت Development، یک بار `logger.warn` چاپ می‌شود تا به توسعه‌دهنده اطلاع
  * داده شود که استفاده از `batch()` غیرضروری است.
  *
  * @param fn تابعی که باید اجرا شود.
  */
 // IMP-05 (v1.3.0): استفاده از DevTools Helper یکپارچه.
+import { logger } from '@zenith/logger';
 import { isDevtoolsEnabled } from './devtools';
 
-let batchWarningShown = false;
 export function batch(fn: () => void): void {
   // IMP-05 (v1.3.0): به‌جای دسترسی مستقیم به globalThis از isDevtoolsEnabled استفاده کن.
-  if (!batchWarningShown && isDevtoolsEnabled()) {
-    console.warn(
+  // #39: هشدار یک‌بار از طریق logger.warnOnce (به‌جای پلیگل سراسری دستی).
+  if (isDevtoolsEnabled()) {
+    logger.warnOnce(
+      'batch()',
       '[Zenith] batch() is deprecated since Phase 7. ' +
         'Scheduler handles batching automatically. You can safely remove batch() calls.',
     );
-    batchWarningShown = true;
   }
   fn();
 }

@@ -12,6 +12,7 @@
 //   - Simple reactive form API (v1.4.0)
 
 import { signal, effect, type Signal } from '@zenith/state';
+import { logger } from '@zenith/logger';
 import { deprecate } from '@zenith/errors';
 import type { Disposable } from '@zenith/shared';
 
@@ -24,12 +25,36 @@ export interface ValidationRule {
 }
 
 /**
- * Simple reactive form options.
+ * Unified reactive form options (#50 / #128: یکسان‌سازی `FormOptions` و `AdvancedFormOptions`).
  */
-export interface FormOptions<T extends Record<string, any>> {
+export interface FormOptions<T extends Record<string, any> = Record<string, any>> {
   initialValues?: T;
+  /** #128: قواعد رشته‌ای اعتبارسنجی به ازای هر فیلد (مثلاً `'required|email'`) */
+  rules?: Partial<Record<keyof T, string>>;
   validation?: Partial<Record<keyof T, ValidationRule | ValidationRule[]>>;
+  validate?: Partial<Record<keyof T, Validator | Validator[]>>;
+  validateForm?: (values: T) => ValidationResult;
+  schema?: {
+    parse: (values: any) => any;
+    safeParse: (values: any) => {
+      success?: boolean;
+      ok?: boolean;
+      error?: any;
+      issues?: Array<{ path?: string; message?: string }>;
+      data?: any;
+      value?: any;
+    };
+  };
+  /** #128: گام‌های چندمرحله‌ای (Wizard) در همان ورودی یکپارچهٔ `createForm` */
+  steps?: WizardStep[];
   onSubmit?: (values: T) => void | Promise<void>;
+  autoSave?: {
+    enabled: boolean;
+    interval?: number;
+    handler: (values: T) => void | Promise<void>;
+  };
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
 }
 
 /**
@@ -456,12 +481,12 @@ export class FormStore implements Disposable {
   removeItem(fieldName: string, index: number): void {
     const arr = this.getValue(fieldName);
     if (!Array.isArray(arr)) {
-      console.error(`[Zenith] removeItem: "${fieldName}" is not an array`);
+      logger.error(`[Zenith] removeItem: "${fieldName}" is not an array`);
       return;
     }
     // FIX (BUG-FRM-03): اعتبارسنجی index.
     if (index < 0 || index >= arr.length) {
-      console.error(
+      logger.error(
         `[Zenith] removeItem: index ${index} out of bounds for "${fieldName}" (length=${arr.length})`,
       );
       return;
@@ -476,12 +501,12 @@ export class FormStore implements Disposable {
   moveItem(fieldName: string, from: number, to: number): void {
     const arr = [...this.getValue(fieldName)];
     if (!Array.isArray(arr)) {
-      console.error(`[Zenith] moveItem: "${fieldName}" is not an array`);
+      logger.error(`[Zenith] moveItem: "${fieldName}" is not an array`);
       return;
     }
     // FIX (BUG-FRM-03): اعتبارسنجی indexها با خطای مشخص.
     if (from < 0 || from >= arr.length || to < 0 || to >= arr.length) {
-      console.error(
+      logger.error(
         `[Zenith] moveItem: index out of bounds for "${fieldName}" (length=${arr.length}, from=${from}, to=${to})`,
       );
       return;
@@ -547,8 +572,40 @@ export class FormStore implements Disposable {
   }
 }
 
-export function createForm(fields: Record<string, { initial: any; rules?: string }>): FormStore {
-  return new FormStore(fields);
+export function createForm<T extends Record<string, any>>(
+  options: FormOptions<T> & { steps: WizardStep[] },
+): WizardFormApi<T>;
+export function createForm<T extends Record<string, any>>(
+  options: FormOptions<T> & { initialValues: T },
+): AdvancedFormApi<T>;
+export function createForm(fields: Record<string, { initial: any; rules?: string }>): FormStore;
+export function createForm<T extends Record<string, any>>(
+  fieldsOrOptions:
+    | Record<string, { initial: any; rules?: string }>
+    | (FormOptions<T> & { initialValues?: T; steps?: WizardStep[] }),
+): FormStore | AdvancedFormApi<T> | WizardFormApi<T> {
+  if (
+    fieldsOrOptions &&
+    typeof fieldsOrOptions === 'object' &&
+    ('initialValues' in fieldsOrOptions ||
+      'steps' in fieldsOrOptions ||
+      'validate' in fieldsOrOptions ||
+      'validation' in fieldsOrOptions ||
+      'schema' in fieldsOrOptions ||
+      'rules' in fieldsOrOptions ||
+      'onSubmit' in fieldsOrOptions)
+  ) {
+    const opts = fieldsOrOptions as FormOptions<T> & { initialValues?: T; steps?: WizardStep[] };
+    const normalized: AdvancedFormOptions<T> = {
+      ...opts,
+      initialValues: (opts.initialValues ?? ({} as T)) as T,
+    };
+    if (Array.isArray(opts.steps) && opts.steps.length > 0) {
+      return createWizardForm({ ...normalized, steps: opts.steps });
+    }
+    return createAdvancedForm(normalized);
+  }
+  return new FormStore(fieldsOrOptions as Record<string, { initial: any; rules?: string }>);
 }
 
 // ============================================================
@@ -579,22 +636,11 @@ export interface FormState<T> {
   valid: ReadonlySignal<boolean>;
 }
 
-export interface AdvancedFormOptions<T extends Record<string, any>> {
+/**
+ * @deprecated از `FormOptions<T>` یکپارچه استفاده کنید (#50).
+ */
+export interface AdvancedFormOptions<T extends Record<string, any>> extends FormOptions<T> {
   initialValues: T;
-  validate?: Partial<Record<keyof T, Validator | Validator[]>>;
-  validateForm?: (values: T) => ValidationResult;
-  schema?: {
-    parse: (values: any) => any;
-    safeParse: (values: any) => { success: boolean; error?: any; data?: any };
-  };
-  onSubmit?: (values: T) => void | Promise<void>;
-  autoSave?: {
-    enabled: boolean;
-    interval?: number;
-    handler: (values: T) => void | Promise<void>;
-  };
-  validateOnChange?: boolean;
-  validateOnBlur?: boolean;
 }
 
 export interface AdvancedFormApi<T extends Record<string, any>> extends FormState<T> {
@@ -632,6 +678,8 @@ export function createAdvancedForm<T extends Record<string, any>>(
 ): AdvancedFormApi<T> {
   const {
     initialValues,
+    rules: stringRules,
+    validation: ruleValidation,
     validate,
     validateForm: formValidator,
     schema,
@@ -676,18 +724,53 @@ export function createAdvancedForm<T extends Record<string, any>>(
     });
   }
 
-  async function validateField(name: string): Promise<string | null> {
+  async function checkField(name: string): Promise<string | null> {
     const currentValues = values.get();
     const fieldValue = (currentValues as any)[name];
 
     if (schema) {
       const result = schema.safeParse(currentValues);
-      if (!result.success && result.error) {
+      if (result.success === false && result.error) {
         const fieldError = result.error.errors?.find((e: any) => e.path?.[0] === name);
         if (fieldError) {
           const msg = fieldError.message || 'Invalid value';
           setFieldError(name, msg);
           return msg;
+        }
+      } else if (result.ok === false && Array.isArray(result.issues)) {
+        const issue = result.issues.find((i) => i.path === name || i.path?.startsWith(`${name}.`));
+        if (issue) {
+          const msg = issue.message || 'Invalid value';
+          setFieldError(name, msg);
+          return msg;
+        }
+      }
+    }
+
+    const strRule = stringRules?.[name as keyof T];
+    if (strRule) {
+      const normalizedRule = strRule.replace(/\|/g, ',');
+      const res = await validateFieldAsync(fieldValue, normalizedRule, currentValues);
+      if (!res.valid) {
+        const msg = res.error || 'Invalid value';
+        setFieldError(name, msg);
+        return msg;
+      }
+    }
+
+    const ruleDefs = ruleValidation?.[name as keyof T];
+    if (ruleDefs) {
+      const list = Array.isArray(ruleDefs) ? ruleDefs : [ruleDefs];
+      for (const r of list) {
+        const outcome = await r.validate(fieldValue);
+        if (outcome === false) {
+          const msg = r.message || 'Invalid value';
+          setFieldError(name, msg);
+          return msg;
+        }
+        if (typeof outcome === 'string') {
+          setFieldError(name, outcome);
+          return outcome;
         }
       }
     }
@@ -715,8 +798,14 @@ export function createAdvancedForm<T extends Record<string, any>>(
 
   async function validateAll(): Promise<boolean> {
     validating.set(true);
-    const fieldNames = Object.keys({ ...initialValues, ...values.get() });
-    const results = await Promise.all(fieldNames.map(validateField));
+    const fieldNames = Object.keys({
+      ...initialValues,
+      ...(stringRules ?? {}),
+      ...(ruleValidation ?? {}),
+      ...(validate ?? {}),
+      ...values.get(),
+    });
+    const results = await Promise.all(fieldNames.map(checkField));
 
     if (formValidator) {
       const formResult = await formValidator(values.get());
@@ -742,7 +831,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     dirtyFields.set({ ...dirtyFields.get(), [name]: isDirty });
 
     if (validateOnChange && !validateOnBlur) {
-      void validateField(name);
+      void checkField(name);
     }
   }
 
@@ -753,7 +842,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
   function setFieldTouched(name: string, isTouched = true) {
     touchedFields.set({ ...touchedFields.get(), [name]: isTouched });
     if (validateOnBlur && isTouched) {
-      void validateField(name);
+      void checkField(name);
     }
   }
 
@@ -872,7 +961,7 @@ export function createAdvancedForm<T extends Record<string, any>>(
     setFieldError,
     setFieldTouched,
     validate: validateAll,
-    validateField,
+    validateField: checkField,
     reset,
     submit,
     startSubmit: () => submitting.set(true),

@@ -1,6 +1,8 @@
 // packages/form/src/validator.ts
 //
 // Validation Engine — Phase 7 Advanced (v1.0.0 — enhanced).
+
+import { logger } from '@zenith/logger';
 //
 // قابلیت‌ها:
 //   - Built-in rules (required, email, url, min, max, pattern, equals, equalsField)
@@ -343,7 +345,7 @@ export function validateField(
   for (const { name, param } of rules) {
     const ruleFn = builtinRules[name] || customRules.get(name);
     if (!ruleFn) {
-      console.warn(`[Zenith Form] Unknown validation rule: "${name}"`);
+      logger.warn(`[Zenith Form] Unknown validation rule: "${name}"`);
       continue;
     }
     const result = ruleFn(value, allValues, param);

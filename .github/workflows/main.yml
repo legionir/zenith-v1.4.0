@@ -73,8 +73,22 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      # #27: vitest with the >=70% statement coverage gate on core packages.
-      - run: npm run test:coverage
+      # #29: vitest with the >=80% statement coverage gate on core packages.
+      # اگر run شکست بخورد، ۸۰ خط آخر خروجی به‌صورت annotation غنی می‌شود تا بدون
+      # دسترسی به لاگ خام CI هم علت دقیق روشن شود (no-op در موفقیت).
+      - run: |
+          set +e
+          npm run test:coverage > "$RUNNER_TEMP/unit.out" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            {
+              echo "== diag exit=$code node $(node --version) tz=$(date +%Z) =="
+              tail -120 "$RUNNER_TEMP/unit.out"
+            } | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | cut -c1-380 | while IFS= read -r ln; do
+              echo "::error file=package.json::${ln//%/%25}"
+            done
+          fi
+          exit $code
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v6
@@ -83,8 +97,46 @@ jobs:
           path: coverage/
           retention-days: 14
 
+  # #81 (STD): ماتریس سیستم‌عامل — مسیرها/CLI/FS روی ویندوز و مک‌ هم باید سبز بمانند.
+  unit-os-matrix:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # #81: پیش از اجرای سوئیت، dist واقعی بساز. در os-matrix تست‌های
+      # scripts/test مستقیماً مسیرهای dist/ types را لمس می‌کنند (report TS7016
+      # فقط روی windows-runners) — ساخت کامل، که در jobهای build/size وجود دارد،
+      # کلاس کاملِ وابستگی‌های محیطی را بدون حدس حذف می‌کند (هزینه: چند دقیقه).
+      - name: Build all packages
+        run: npm run build
+      - run: npx vitest run scripts/test/
+
+  # #84: benchmark خودکار CI با بودجهٔ عملکرد (benchmarks/budgets.json) —
+  # رگرسیون هر متریک (بدتر از بودجه×۰٫۶) جریان را قرمز می‌کند.
+  benchmark:
+    name: Performance benchmark (#84)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run bench:ci
+
   audit:
-    name: Dependency audit (prod)
+    name: Dependency audit (prod + dev) & Secret Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -93,10 +145,42 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      # #65 owns the dev-dependency audit + secret scanning; this gate keeps
-      # the shipped production tree free of high/critical advisories.
+      # #65: fail on high/critical advisories in production dependencies
       - name: npm audit (production, high)
         run: npm audit --omit=dev --audit-level=high
+      # #65: report dev-dependency advisories in CI logs
+      - name: npm audit (dev report)
+        run: npm audit --audit-level=high || true
+      # #65: secret scan across tracked repository files
+      - name: Secret scan (gitleaks rules)
+        run: node scripts/secret-scan.mjs
+      # #78: SBOM (CycloneDX) برای هر push + بررسی لایسنس وابستگی‌ها در برابر allowlist.
+      - name: SBOM (CycloneDX)
+        run: npm run make:sbom
+      - name: License check (#78)
+        run: npm run license:check
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 14
+
+  secret-scan:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - run: node scripts/secret-scan.mjs
 
   deps:
     name: Dependency graph
@@ -128,6 +212,8 @@ jobs:
       # #173: attribute-grammar doc ↔ directive-meta registry consistency
       # (table §۴ vs zenith.meta.seed.json; no-unknown-option pre-#159 gate).
       - run: npm run attribute-grammar
+      # #12: every BUG-*/IMP-*/SEC-* claim in src must map to an existing test in docs/TRACEABILITY.md.
+      - run: npm run traceability
 
   package-lint:
     name: Package lint (publint)
@@ -140,7 +226,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       # vscode-extension's publint entry (out/extension.js) is compiled here,
       # not by the esbuild pipeline (it has no src/index.ts).
       - name: Compile vscode extension
@@ -153,6 +250,9 @@ jobs:
         run: node scripts/sync-license.mjs --check
       - name: publint all packages
         run: npm run publint
+      # #74: verify files allowlist, ATTW types ordering, and npm pack --dry-run tarball contents
+      - name: Audit package tarballs & types resolution
+        run: node scripts/pack-audit.mjs --pack
 
   peer-single-instance:
     name: Peer single instance (#46)
@@ -165,7 +265,18 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       # npm-pack state/scheduler + two consumers into a throwaway app and
       # assert exactly one copy of each singleton in the resulting tree.
       - run: npm run peer:single-instance
@@ -181,13 +292,26 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      # #79/#83: size و wrap-up budget باید همیشه روی build تازهٔ همین commit
+      # سنجه شود؛ کش dist مشمشکل تست عملکرد سنجه را مردود می‌کند (مبهم).
+      - name: Build all packages
+        run: npm run build
       - run: npm run build:browser
-      # #79 budget (.size-limit.json); per-package budgets expand in #83.
+      # #79/#83: per-package and bundle gzip budgets (.size-limit.json).
       - run: npm run size
+      - name: Annotate size failures
+        if: failure()
+        run: |
+          npm run size 2>&1 | grep -E "has exceeded|Size limit|Size:" | while IFS= read -r line; do
+            echo "::error file=.size-limit.json::$line"
+          done
+      - name: Publish size table to job summary
+        if: always()
+        run: node scripts/size-report.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
-    name: Browser e2e (Chromium)
+    name: Browser e2e (Chromium, Firefox, WebKit)
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -197,11 +321,51 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
+      - name: Restore dist cache (#82)
+        id: dist
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/*/dist
+            packages/vscode-extension/out
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
+      - name: Build all packages (cache miss)
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: npm run build
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Start e2e static server (manual, kept alive for post-mortem probes)
+        run: |
+          nohup node scripts/e2e-server.mjs > "$RUNNER_TEMP/e2e-server.out" 2>&1 &
+          echo $! > "$RUNNER_TEMP/e2e-server.pid"
+          for i in $(seq 1 30); do
+            curl -sf --max-time 2 http://127.0.0.1:8089/e2e/fixture.html >/dev/null && break
+            sleep 1
+          done
+          curl -s -o /dev/null -w "server-ready-check=%{http_code}\n" --max-time 3 http://127.0.0.1:8089/e2e/fixture.html
       - name: Run e2e
-        run: npm run test:e2e
+        run: |
+          set +e
+          ZENITH_E2E_NO_SERVER=1 npm run test:e2e > "$RUNNER_TEMP/e2e.out" 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            # یک annotation چندخطی واحد (%0A) — خلاصهٔ کاملِ شکست + پروب سرور زنده
+            {
+              echo "== playwright exit=$code | سرور: $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:8089/e2e/fixture.html) =="
+              for u in e2e/xss-fixture.html packages/state/dist/index.js packages/security/dist/index.js packages/security/test/xss-corpus.mjs; do
+                echo "== probe $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:8089/$u") /$u"
+              done
+              echo "── HEAD-40 ──"
+              head -40 "$RUNNER_TEMP/e2e.out"
+              echo "── TAIL-60 ──"
+              tail -60 "$RUNNER_TEMP/e2e.out"
+            } | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | head -115 > /tmp/e2e-diag.txt
+            # یک annotation چندخطی: % → %25 سپس خطوط با %0A جدا می‌شوند (python نمی‌خواهد؛ وگرنه ستون ۰ YAML را می‌شکند)
+            DIAG=$(awk '{ line=$0; gsub("%","%25",line); if (length($0) > 420) line = substr(line, 1, 420); printf "%s%%0A", line }' /tmp/e2e-diag.txt | cut -c1-7900)
+            echo "::error file=playwright.config.ts::$DIAG"
+          fi
+          exit $code
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v6
@@ -216,10 +380,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Lowest supported version (package.json engines: >=18.19, #14) and
-        # current LTS. GitHub's `node-version: '18'` resolves to the newest
-        # 18.x on the runner, which is >= 18.19, so the floor is exercised.
-        node: ['18', '22']
+        # #14, #32: Lowest supported version (package.json engines: >=18.19),
+        # Node 20 LTS, and Node 22 active LTS.
+        node: ['18.19', '20', '22']
     steps:
       - uses: actions/checkout@v6
       - name: Set up Node ${{ matrix.node }}
