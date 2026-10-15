@@ -44,11 +44,13 @@ function describe(diags: PageDiags): string {
  */
 export async function waitReady(page: Page, flag: string, diags: PageDiags): Promise<void> {
   try {
-    await page.waitForFunction((name) => (window as any)[name] === true, flag);
-  } catch (err) {
+    await page.waitForFunction((name) => (window as Record<string, unknown>)[name] === true, flag);
+  } catch {
     // One last snapshot AFTER the timeout — the flag might have flipped late,
     // and any late-arriving console entry must be visible too.
-    const flagValue = await page.evaluate((name) => (window as any)[name], flag).catch(() => null);
+    const flagValue = await page
+      .evaluate((name) => (window as Record<string, unknown>)[name], flag)
+      .catch(() => null);
     throw new Error(
       `READY flag "${flag}" never became true (final value: ${String(flagValue)}). Page diagnostics: ${describe(diags)}`,
     );

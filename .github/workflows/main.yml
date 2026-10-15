@@ -234,7 +234,7 @@ jobs:
           path: |
             packages/*/dist
             packages/vscode-extension/out
-          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
         run: npm run build
@@ -273,7 +273,7 @@ jobs:
           path: |
             packages/*/dist
             packages/vscode-extension/out
-          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
         run: npm run build
@@ -329,7 +329,7 @@ jobs:
           path: |
             packages/*/dist
             packages/vscode-extension/out
-          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/build*') }}
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
         run: npm run build

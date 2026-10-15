@@ -11,8 +11,13 @@ test('leave completes only after the longest transition (0.5s transform)', async
   await waitReady(page, '__ZENITH_TRN_READY__', diags);
 
   const elapsed = await page.evaluate(async () => {
-    await (window as any).startLeave('two-props');
-    const { startedAt, leaveCompleteAt, classNameAtEnd } = (window as any).__ZENITH_TRN__;
+    type TrnWindow = typeof window & {
+      startLeave: (id: string) => Promise<void>;
+      __ZENITH_TRN__: { startedAt: number; leaveCompleteAt: number; classNameAtEnd: string };
+    };
+    const tw = window as unknown as TrnWindow;
+    await tw.startLeave('two-props');
+    const { startedAt, leaveCompleteAt, classNameAtEnd } = tw.__ZENITH_TRN__;
     return { ms: leaveCompleteAt - startedAt, classNameAtEnd };
   });
 
@@ -27,17 +32,22 @@ test('child animation events do not end the parent transition early', async ({ p
   await waitReady(page, '__ZENITH_TRN_READY__', diags);
 
   const result = await page.evaluate(async () => {
+    type TrnWindow = typeof window & {
+      startLeave: (id: string) => Promise<void>;
+      __ZENITH_TRN__: { startedAt: number };
+    };
+    const tw = window as unknown as TrnWindow;
     // فرزند یک انیمیشن ۵۰ms دارد که transitionend/animationend را به والد
     // bubble می‌کند؛ والد هیچ transition خودش ندارد → fallback در
     // duration+50=100ms تمام می‌کند و نباید زودتر (مثلاً در ۵۰ms) تمام شود.
-    const p = (window as any).startLeave('child-anim');
+    const p = tw.startLeave('child-anim');
     await new Promise((r) => setTimeout(r, 60));
     const early = { done: false };
     p.then(() => (early.done = true));
     await new Promise((r) => setTimeout(r, 10));
     const doneAt60 = early.done;
     await p;
-    return { doneAt60, ms: performance.now() - (window as any).__ZENITH_TRN__.startedAt };
+    return { doneAt60, ms: performance.now() - tw.__ZENITH_TRN__.startedAt };
   });
 
   expect(result.doneAt60).toBe(false); // قرمز قبل از رفع: event فرزند در ~۵۰ms تمام می‌کرد
