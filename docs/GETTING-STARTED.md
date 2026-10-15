@@ -32,7 +32,7 @@ npm install @zenith/zenith @zenith/state @zenith/runtime
 </div>
 ```
 
-```ts
+```ts test
 // main.ts
 import { createApp } from '@zenith/runtime';
 import { signal } from '@zenith/state';
@@ -47,7 +47,8 @@ const app = createApp({
   },
 });
 
-const unmount = app.mount('#app');
+// mount یک المان می‌گیرد (Cleanup برمی‌گرداند؛ جایگزینِ Zen.start(selector, state))
+const unmount = app.mount(document.getElementById('app')!);
 ```
 
 ---
@@ -58,7 +59,7 @@ const unmount = app.mount('#app');
 
 در Zenith هیچ Virtual DOM وجود ندارد؛ تغییرات `signal` مستقیماً و فقط گره DOM وابسته را به‌روزرسانی می‌کنند:
 
-```ts
+```ts test-dom
 import { signal, computed, effect } from '@zenith/state';
 import { formatJalali, jalaliNow } from '@zenith/jalali';
 
@@ -119,31 +120,41 @@ export const stopLog = effect(() => {
 
 ### گام ۳: اعتبارسنجی فرم و اعلان دسترس‌پذیر (`@zenith/form` + `@zenith/notifications`)
 
-```ts
-import { createForm, required, minLength } from '@zenith/form';
+```ts test
+import { createForm, defineRule } from '@zenith/form';
 import { toasts } from '@zenith/notifications';
+import { formatJalali } from '@zenith/jalali';
+import { signal } from '@zenith/state';
+
+// قاعدهٔ سفارشی با پیام فارسی، در کنار قواعد رشته‌ای داخلی
+defineRule('titleMin', (value) => ({
+  valid: String(value).trim().length >= 3,
+  error: 'حداقل ۳ کاراکتر وارد کنید',
+}));
+
+interface TodoItem {
+  id: number;
+  title: string;
+  done: boolean;
+  createdAt: string;
+}
+
+export const todos = signal<TodoItem[]>([]);
 
 const todoForm = createForm({
   initialValues: { title: '' },
-  validators: {
-    title: [required('عنوان الزامی است'), minLength(3, 'حداقل ۳ کاراکتر وارد کنید')],
-  },
+  rules: { title: 'required|titleMin' },
 });
 
-export function submitTodo() {
-  if (!todoForm.validate()) {
+export async function submitTodo() {
+  if (!(await todoForm.validate())) {
     toasts.error('لطفاً خطاهای فرم را برطرف کنید.');
     return;
   }
-  const values = todoForm.getValues();
+  const { title } = todoForm.values.get();
   todos.set([
     ...todos.get(),
-    {
-      id: Date.now(),
-      title: values.title,
-      done: false,
-      createdAt: formatJalali(new Date()),
-    },
+    { id: Date.now(), title, done: false, createdAt: formatJalali(new Date()) },
   ]);
   todoForm.reset();
   toasts.success('وظیفه با موفقیت ثبت شد.');

@@ -28,6 +28,10 @@ Zenith یک فریم‌ورک فرانت‌اند نوآورانه با رویک
 - [🔍 جدول ردیابی باگ‌ها و بهبودها (TRACEABILITY)](./TRACEABILITY.md)
 - [🛡️ بستهٔ ممیزی امنیتی (AUDIT-PACKAGE)](./security/AUDIT-PACKAGE.md)
 - [📦 ممیزی نام و اسکوپ npm (NPM-SCOPE-AUDIT)](./release/NPM-SCOPE-AUDIT.md)
+- [🧭 کدهای خطا و صفحهٔ هر کد (ERROR-CODES + docs/errors)](./errors/README.md)
+- [✅ مثال‌های مستندات با راستی‌آزمایی CI (DOC-EXAMPLES)](./DOC-EXAMPLES.md)
+- [🧩 تصمیم‌های معماری (ADR, MADR)](./adr/README.md)
+- [🗺️ نمودار وابستگی و معماری اجرایی (تولیدشده)](./ARCHITECTURE-GRAPH.md)
 
 ## 🚀 شروع سریع
 
