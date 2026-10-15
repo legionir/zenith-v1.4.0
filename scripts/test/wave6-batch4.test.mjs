@@ -28,7 +28,21 @@ describe('Wave 6 P2 Batch 4 — repo/CI/docs quality (#42,#43,#44,#78,#81,#82,#8
           j.devDependencies?.[banned],
           `packages/${dir}/package.json devDependencies.${banned} باید حذف شده باشد`,
         ).toBeUndefined();
+        expect(
+          j.dependencies?.[banned],
+          `packages/${dir}/package.json dependencies.${banned} (#42: نباید runtime-dep باشد)`,
+        ).toBeUndefined();
       }
+    }
+    // معیار پذیرش #42: در کل workspace فقط یک نسخه از هرکدام در lockfile هست
+    const lock = JSON.parse(read('package-lock.json'));
+    for (const name of BANNED) {
+      const versions = new Set(
+        Object.entries(lock.packages)
+          .filter(([k]) => k.endsWith(`node_modules/${name}`))
+          .map(([, v]) => v.version),
+      );
+      expect([...versions], `lockfile versions of ${name}`).toHaveLength(1);
     }
   });
 

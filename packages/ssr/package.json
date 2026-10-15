@@ -49,7 +49,6 @@
     "provenance": true
   },
   "dependencies": {
-    "@types/node": "^20.0.0",
     "@zenith/errors": "1.4.0",
     "@zenith/logger": "1.5.0",
     "@zenith/router": "1.4.0",
