@@ -287,6 +287,42 @@ scripts/gen-zenith-meta.mjs [--check]  ← گیت تازگی در CI (متناظ
 | `zen-locale` | attribute | i18n | none (marker ⇒ `lang`) | — | ✅ |
 | `zen-dir` | attribute | i18n | مقدارثابت `ltr\|rtl\|auto` | — | ✅ |
 
+#### ۴.۰.۱ پوشش کامل سطح attribute (#120)
+
+گیت `scripts/attribute-grammar.mjs` (#120) هر نام موجود در
+`ZenithAttributes` (`packages/runtime/src/attributes.ts`) و هر دایرکتیو ثبت‌شده با
+`defineDirective({ name })` را با این جدول تطبیق می‌دهد؛ ردیفِ نبودن یا
+ثبت‌نشدن در seed متادیتا، گیت را قرمز می‌کند. جدول زیر ادامهٔ همان طبقه‌بندی است:
+
+| directive | kind | package | نوع مقدار | گزینه‌ها/همراه (از سند) | سازگار؟ |
+|---|---|---|---|---|---|
+| `zen-animate` | attribute | transition | preset یا keyframes JSON | — | ✅ |
+| `zen-portal` | attribute | runtime | CSS selector | — | ✅ |
+| `zen-intersection` | attribute | runtime | expression (callback) | — | ✅ |
+| `zen-component` | attribute | components | نام کامپوننت تعریف‌شده | `zen-props` | ✅ |
+| `zen-props` | attribute | components | JSON نگاشت propها | — | ✅ |
+| `zen-html-slot` | attribute | components | نام slot | — | ✅ |
+| `zen-form` | attribute | form | نام/expression schema | `zen-field`, `zen-submit` | ✅ |
+| `zen-field` | attribute | form | نام field | `zen-validate` | ✅ |
+| `zen-submit` | attribute | form | نام action | — | ✅ |
+| `zen-validate` | attribute | form | `required,email,…` (CSV قاعده) | — | ✅ |
+| `zen-route` | attribute | router | مسیر | — | ✅ |
+| `zen-outlet` | attribute | router | empty | — | ✅ |
+| `zen-link` | attribute | router | مسیر (SPA navigation) | — | ✅ |
+| `zen-store` | attribute | store | نام store | — | ✅ |
+| `zen-auth` | attribute | auth | نام نمونهٔ auth | — | ✅ |
+| `zen-stop-propagation` | attribute | events | `true` | — | ✅ |
+| `zen-prevent-default` | attribute | events | `true` | — | ✅ |
+| `zen-item-height` | attribute | virtual-list | عدد (px) | — | ✅ |
+| `zen-buffer` | attribute | virtual-list | عدد | — | ✅ |
+| `zen-dynamic-heights` | attribute | virtual-list | `true` | — | ✅ |
+| `zen-else` | attribute | runtime-core | none (companion) | — | ✅ |
+| `zen-else-if` | attribute | runtime-core | expression (boolean) | — | ✅ |
+| `zen-memo` | attribute | runtime-core | expression | — | ✅ |
+| `zen-resource-view` | component | stateful | tag سفارشی (`<zen-resource-view>`) | `config`, `empty-text`, `retry-text` | ✅ |
+| `zen-action-button` | component | stateful | tag سفارشی (`<zen-action-button>`) | `action`, `loading-text` | ✅ |
+| `zen-auth-view` | component | stateful | tag سفارشی (`<zen-auth-view>`) | `config` | ✅ |
+
 ### ۴.۱ موارد ناسازگار (بایستی اصلاح شوند؛ هر کدام issue خودش را دارد)
 
 - **`zen-action` — form دوگانه:** هم `zen-action="save"` و هم

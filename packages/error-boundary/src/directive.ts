@@ -20,6 +20,7 @@
 // handling، از onError() و errorSignal استفاده کنید.
 
 import { logger } from '@zenith/logger';
+import { parseJsonAttr } from '@zenith/schema/attr';
 import { clearError, onError } from './boundary';
 
 /**
@@ -81,16 +82,16 @@ export function processErrorBoundary(
     if (!Number.isNaN(parsedNum) && parsedNum > 0) {
       retryConfig.attempts = parsedNum;
     } else {
-      try {
-        const parsedObj = JSON.parse(retryAttr);
-        retryConfig = {
-          attempts: parsedObj.attempts ?? retryConfig.attempts,
-          delay: parsedObj.delay ?? retryConfig.delay,
-          factor: parsedObj.factor ?? retryConfig.factor,
-        };
-      } catch {
-        // ignore invalid retry attribute
-      }
+      // #120: JSON attribute از مسیر مشترک schema خوانده می‌شود (tolerant).
+      const parsedObj = parseJsonAttr<Partial<ErrorBoundaryRetryOptions>>(el, 'zen-error-retry', {
+        fallback: {},
+        onError: (err) => logger.warn(`[zenith:error-boundary] ${err.message}`),
+      });
+      retryConfig = {
+        attempts: parsedObj.attempts ?? retryConfig.attempts,
+        delay: parsedObj.delay ?? retryConfig.delay,
+        factor: parsedObj.factor ?? retryConfig.factor,
+      };
     }
   }
 

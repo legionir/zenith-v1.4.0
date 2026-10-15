@@ -22,6 +22,7 @@ import {
   type DirectiveMeta,
   type Schema,
 } from '@zenith/schema';
+import { parseJsonAttr } from '@zenith/schema/attr';
 import { sanitizeHTML } from '@zenith/security';
 import {
   createDisposer,
@@ -1080,10 +1081,14 @@ export function createApp(options?: AppOptions): App {
     // 2. zen-state: ساخت سیگنال‌های محلی از JSON attribute
     let currentLocalCtx = localCtx;
     if (el.hasAttribute('zen-state')) {
-      const rawState = el.getAttribute('zen-state') ?? '{}';
       el.removeAttribute('zen-state');
+      // #120: مقدار attribute از مسیر مشترک strict خوانده می‌شود
+      // (attribute غایب ⇒ {}؛ JSON خراب ⇒ ZEN-1003 که به handleAppError می‌رود).
       try {
-        const parsed = JSON.parse(rawState) as Record<string, unknown>;
+        const parsed = parseJsonAttr<Record<string, unknown>>(el, 'zen-state', {
+          fallback: {},
+          onError: (err) => handleAppError(app, err),
+        });
         const scopedSignals: Record<string, any> = {};
         for (const [k, v] of Object.entries(parsed)) {
           scopedSignals[k] = signal(v);
