@@ -1,6 +1,8 @@
 node_modules
 dist
 out
+.docexamples
+.tsbuild
 coverage
 browser-bundles
 artifacts

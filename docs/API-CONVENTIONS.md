@@ -122,6 +122,36 @@ const off = beforeEach((to) => to.meta.requiresAuth); // off() گارد را ب�
 
 ---
 
+### ۱.۷ یک نام، یک معنا (#119؛ DEC-035)
+
+**قاعده:** یک نام export عمومی در دو پکیج نباید **دو معنا** داشته باشد. نام
+تکراری فقط در سه حالت مجاز است:
+
+1. **facade** — پکیج چتر (`zenith` → بقیه) چیزی را دوباره export می‌کند؛ تعریف
+   یکی است.
+2. **هم‌معنا در دو لایه** — مثل `isReadable` در `@zenith/shared` (ساختاری،
+   DEC-021) و `@zenith/state` (برنددار، DEC-009). نام یکسان، پرسش یکسان.
+3. **قرارداد پکیج‌محور** — `DEFAULTS` در هر پکیج پیش‌فرض‌های *همان پکیج* است
+   (§۳).
+
+هر چیز دیگری باید **تغییر نام** بدهد: نام جدید canonical می‌شود و نام قدیمی
+یک alias با JSDoc `@deprecated` + `deprecate('ZEN-DEPR-0xx', …)` می‌شود
+(DEC-026: حذف در ۲.۰).
+
+```ts
+// قبل: دو معنای متفاوت با یک نام
+import { validate } from '@zenith/expressions'; // AST را برای sandbox بررسی می‌کند
+import { validate } from '@zenith/schema';      // داده را با Schema بررسی می‌کند
+// بعد:
+import { validateAst } from '@zenith/expressions'; // ZEN-DEPR-049
+import { validate } from '@zenith/schema';
+```
+
+**اجرا:** `npm run check:unique-exports` (`scripts/check-unique-export-names.mjs`)
+روی AST سطح عمومی همهٔ پکیج‌ها؛ استثناها فقط با دلیل در
+`scripts/unique-export-names.allowlist.json` (وضعیت‌های `same-meaning` /
+`layered` / `convention`) ثبت می‌شوند و ردیف بی‌استفاده خطاست.
+
 ## ۲. ورودی واکنشی: `MaybeReactive<T>` + `toValue()`
 
 هر گزینه‌ای که می‌تواند هم مقدار ساده و هم Signal باشد، با نوع
@@ -188,8 +218,28 @@ import { defineDefaults } from '@zenith/shared';
 export const DEFAULTS = defineDefaults({ ttl: 0, maxSize: 100 });
 ```
 
-**اجرا:** `scripts/error-hygiene.mjs`؛ `@zenith/options-single-arg` و
-`@zenith/frozen-defaults` (#159).
+**اجرا:** `scripts/error-hygiene.mjs`؛ `scripts/positional-config-audit.mjs`
+(`npm run check:positional-config`)؛ قاعدهٔ ESLint `zenith/options-object`؛
+`@zenith/options-single-arg` و `@zenith/frozen-defaults` (#159).
+
+### ۴.۱ پیکربندی positional ممنوع (#55)
+
+هر تابع عمومی که بیش از یک ورودیِ **پیکربندی** دارد باید `fn(main, options?)`
+باشد. امضاهای موجود که هنوز مهاجرت نکرده‌اند در
+`scripts/positional-config.allowlist.json` دسته‌بندی و مستدل شده‌اند؛ امضای جدید
+خارج از آن فهرست، گیت و lint را قرمز می‌کند (یخ‌زدگی + مهاجرت تدریجی).
+
+| قبل (positional) | بعد (options object) | کد deprecation |
+|---|---|---|
+| `createSuspenseContext(timeoutMs, onSettle)` | `createSuspenseContext({ timeoutMs, onSettle })` | `ZEN-DEPR-065` |
+| `processFetchWithCache(url, ttl)` | `processFetchWithCache(url, { ttl })` | `ZEN-DEPR-066` |
+| `enterTransition(el, name, duration, onComplete)` | `enterTransition(el, { name, duration, onComplete })` | `ZEN-DEPR-002` |
+| `leaveTransition(el, name, duration, onComplete)` | `leaveTransition(el, { name, duration, onComplete })` | `ZEN-DEPR-003` |
+| `animateGroup(els, direction, name, duration, stagger)` | `animateGroup(els, { direction, name, duration, staggerDelay })` | `ZEN-DEPR-004` |
+| `createMutation(fn, options)` / `createInfiniteQuery(key, fn, opts)` | `createMutation({ fn, ... })` / `createInfiniteQuery({ key, fn, ... })` | `ZEN-DEPR-035/036` |
+
+هر overload قدیمی TSDoc `@deprecated` دارد و یک‌بار با `deprecate()` هشدار
+می‌دهد؛ حذف در ۲.۰ (DEC-026).
 
 ---
 
@@ -273,6 +323,9 @@ export const DEFAULTS = defineDefaults({ ttl: 0, maxSize: 100 });
 | cleanup-hygiene | `npm run cleanup-hygiene` | deps |
 | error-hygiene | `npm run error-hygiene` | deps |
 | attribute-grammar (#173) | `npm run attribute-grammar` | deps |
+| unique-export-names (#119) | `npm run check:unique-exports` | deps |
+| positional-config (#55) | `npm run check:positional-config` | deps |
+| options-object lint (#55) | `zenith/options-object` | lint |
 | peer-rule | `npm run peer-rule` | deps |
 | no-console ratchet | `scripts/test/no-console-ratchet.test.mjs` | unit |
 | eslint-plugin قراردادها (#159) | `@zenith/eslint-plugin` rules | lint |

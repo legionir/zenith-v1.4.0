@@ -48,3 +48,6 @@ test-results/
 
 # Temporary type-check configs (scripts/typecheck-all.mjs #26)
 .tsbuild/
+
+# Temporary modules generated from marked doc examples (scripts/check-docs-examples.mjs #106)
+.docexamples/

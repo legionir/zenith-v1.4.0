@@ -554,7 +554,7 @@
       },
       {
         "name": "prefersReducedMotion",
-        "kind": "function",
+        "kind": "value",
         "tag": "public"
       },
       {
@@ -860,6 +860,11 @@
       {
         "name": "invalidate",
         "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "invalidateFetchCache",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -1146,6 +1151,11 @@
         "tag": "public"
       },
       {
+        "name": "recordPanelStateChange",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "recordRead",
         "kind": "value",
         "tag": "public"
@@ -1153,7 +1163,7 @@
       {
         "name": "recordStateChange",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "recordWrite",
@@ -1166,9 +1176,14 @@
         "tag": "public"
       },
       {
-        "name": "registerSignal",
+        "name": "registerPanelSignal",
         "kind": "function",
         "tag": "public"
+      },
+      {
+        "name": "registerSignal",
+        "kind": "function",
+        "tag": "deprecated"
       },
       {
         "name": "replay",
@@ -1229,6 +1244,11 @@
       {
         "name": "clearDevtoolsRegistry",
         "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "clearDevtoolsRegistryInternal",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -1399,6 +1419,16 @@
       {
         "name": "registerCache",
         "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "registerDevtoolsCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerDevtoolsStore",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -1409,7 +1439,7 @@
       {
         "name": "registerStore",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "replay",
@@ -1719,6 +1749,11 @@
         "tag": "public"
       },
       {
+        "name": "GlobalResetHook",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
         "name": "isDevMode",
         "kind": "function",
         "tag": "public"
@@ -1759,6 +1794,11 @@
         "tag": "public"
       },
       {
+        "name": "onGlobalReset",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "reportError",
         "kind": "function",
         "tag": "public"
@@ -1795,6 +1835,11 @@
       },
       {
         "name": "routerNavigationAbortedError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runGlobalResets",
         "kind": "function",
         "tag": "public"
       },
@@ -2128,6 +2173,11 @@
       {
         "name": "validate",
         "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "validateAst",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -2330,7 +2380,7 @@
       {
         "name": "fromJsonSchema",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "fromZod",
@@ -3271,7 +3321,7 @@
       {
         "name": "deprecate",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "FullLogger",
@@ -3329,6 +3379,11 @@
         "tag": "public"
       },
       {
+        "name": "warnDeprecated",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "warnOnce",
         "kind": "function",
         "tag": "public"
@@ -3342,11 +3397,16 @@
       {
         "name": "alert",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "AlertOptions",
         "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "autoDismissRemaining",
+        "kind": "function",
         "tag": "public"
       },
       {
@@ -3357,7 +3417,7 @@
       {
         "name": "confirm",
         "kind": "function",
-        "tag": "public"
+        "tag": "deprecated"
       },
       {
         "name": "ConfirmOptions",
@@ -3365,8 +3425,28 @@
         "tag": "public"
       },
       {
+        "name": "createDialogFocusTrap",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "DEFAULTS",
         "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DialogFocusTrap",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DialogFocusTrapOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DialogHandle",
+        "kind": "type",
         "tag": "public"
       },
       {
@@ -3390,7 +3470,17 @@
         "tag": "public"
       },
       {
+        "name": "getVisibleNotifications",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "handleNotifyDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isAutoDismissPaused",
         "kind": "function",
         "tag": "public"
       },
@@ -3425,12 +3515,32 @@
         "tag": "public"
       },
       {
+        "name": "openDialog",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pauseAutoDismiss",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
         "name": "renderAccessibleDialog",
         "kind": "function",
         "tag": "public"
       },
       {
         "name": "renderAccessibleToast",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetNotificationsInternal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resumeAutoDismiss",
         "kind": "function",
         "tag": "public"
       },
@@ -5199,7 +5309,7 @@
       },
       {
         "name": "secureId",
-        "kind": "function",
+        "kind": "value",
         "tag": "public"
       },
       {
@@ -5416,6 +5526,11 @@
       },
       {
         "name": "parseNumberAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "prefersReducedMotion",
         "kind": "function",
         "tag": "public"
       },
@@ -6597,9 +6712,14 @@
         "tag": "public"
       },
       {
-        "name": "mockHttp",
+        "name": "mockFetch",
         "kind": "function",
         "tag": "public"
+      },
+      {
+        "name": "mockHttp",
+        "kind": "function",
+        "tag": "deprecated"
       },
       {
         "name": "MockHttpCall",
@@ -6801,7 +6921,7 @@
       {
         "name": "animateGroup",
         "kind": "function",
-        "tag": "deprecated"
+        "tag": "public"
       },
       {
         "name": "animateLeave",
@@ -6826,7 +6946,7 @@
       {
         "name": "enterTransition",
         "kind": "function",
-        "tag": "deprecated"
+        "tag": "public"
       },
       {
         "name": "isTransitioning",
@@ -6836,7 +6956,7 @@
       {
         "name": "leaveTransition",
         "kind": "function",
-        "tag": "deprecated"
+        "tag": "public"
       },
       {
         "name": "parseAnimateAttr",
@@ -6850,7 +6970,7 @@
       },
       {
         "name": "prefersReducedMotion",
-        "kind": "function",
+        "kind": "value",
         "tag": "public"
       },
       {
