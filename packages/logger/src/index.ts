@@ -27,7 +27,7 @@ export type { OnceOptions } from './deprecate';
 
 export { createLogger } from './logger';
 export { consoleSink, bufferSink, beaconSink } from './sinks';
-export { deprecate, warnOnce } from './deprecate';
+export { deprecate, warnDeprecated, warnOnce } from './deprecate';
 
 export { logger };
 

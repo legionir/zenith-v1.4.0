@@ -5,14 +5,14 @@
 // نام API منحصربه‌فرد مصرف می‌کند (dedupe سراسری است و عمداً Set تست‌پذیر
 // ندارد — همان رفتار «یک‌بار در فرآیند» محصول است).
 import { describe, it, expect } from 'vitest';
-import { createLogger, deprecate, warnOnce, bufferSink } from '../src/index';
+import { createLogger, deprecate, warnDeprecated, warnOnce, bufferSink } from '../src/index';
 
 describe('deprecate(oldName, newName, since) (#143)', () => {
   it('registered code ZEN-DEPR-001: دو فراخوانی ⇒ دقیقاً یک هشدار (معیار پذیرش)', () => {
     const buf = bufferSink();
     const log = createLogger({ sinks: [buf] });
-    deprecate('processVirtualList', 'createVirtualList', '1.4.0', { logger: log });
-    deprecate('processVirtualList', 'createVirtualList', '1.4.0', { logger: log });
+    warnDeprecated('processVirtualList', 'createVirtualList', '1.4.0', { logger: log });
+    warnDeprecated('processVirtualList', 'createVirtualList', '1.4.0', { logger: log });
     const warnings = buf.entries().filter((e) => e.level === 'warn');
     expect(warnings).toHaveLength(1);
     const e = warnings[0]!;
@@ -28,7 +28,7 @@ describe('deprecate(oldName, newName, since) (#143)', () => {
   it('نام ثبت‌نشده ⇒ کد پیش‌کنج ZEN-DEPR-999 با details کامل', () => {
     const buf = bufferSink();
     const log = createLogger({ sinks: [buf] });
-    deprecate('legacyTween', 'tween', '1.5.0', { logger: log });
+    warnDeprecated('legacyTween', 'tween', '1.5.0', { logger: log });
     const e = buf.entries()[0]!;
     expect(e.level).toBe('warn');
     expect(e.message).toContain('ZEN-DEPR-999');
@@ -44,12 +44,23 @@ describe('deprecate(oldName, newName, since) (#143)', () => {
     try {
       const buf = bufferSink();
       const log = createLogger({ sinks: [buf] });
-      deprecate('prodQuiet', 'whatever', '1.5.0', { logger: log });
+      warnDeprecated('prodQuiet', 'whatever', '1.5.0', { logger: log });
       expect(buf.entries()).toEqual([]);
       log.dispose();
     } finally {
       delete (globalThis as Record<string, unknown>).__ZENITH_DEV__;
     }
+  });
+  // #119: نام قدیمی `deprecate` هنوز کار می‌کند (alias با ZEN-DEPR-050).
+  it('alias قدیمی deprecate() هشدار ZEN-DEPR-050 می‌دهد و به warnDeprecated واگذار می‌کند', () => {
+    const buf = bufferSink();
+    const log = createLogger({ sinks: [buf] });
+    // نام API ثبت‌شده (ZEN-DEPR-002) تا dedupe سراسریِ کد با تست‌های دیگر برخورد نکند
+    deprecate('enterTransition', 'createTransition', '1.4.0', { logger: log });
+    const messages = buf.entries().map((e) => e.message);
+    expect(messages.some((m) => m.includes('ZEN-DEPR-050'))).toBe(true);
+    expect(messages.some((m) => m.includes('enterTransition'))).toBe(true);
+    log.dispose();
   });
 });
 

@@ -32,3 +32,4 @@ export { createId, resetIdCounter, secureId } from './id';
 
 // assertion ساختارمند با کد رزورشدهٔ ZEN-1090 (#171)
 export { invariant, type InvariantFn } from './assert';
+export { prefersReducedMotion } from './media';

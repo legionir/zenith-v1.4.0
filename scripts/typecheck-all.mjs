@@ -58,6 +58,7 @@ export function typecheckConfigFor(dir) {
         // #142 — زیرمسیرهای @zenith/schema (SPEC §۲.۲).
         '@zenith/schema/zod': ['../packages/schema/src/zod.ts'],
         '@zenith/schema/json-schema': ['../packages/schema/src/json-schema.ts'],
+        '@zenith/schema/attr': ['../packages/schema/src/attr.ts'],
         '@zenith/storage/signal': ['../packages/storage/src/signal.ts'],
       },
     },

@@ -1,0 +1,83 @@
+{
+  "$comment": "استثناهای گیت #119 (scripts/check-unique-export-names.mjs). هر ردیف باید status از {same-meaning, layered, convention} و reason توضیحی داشته باشد؛ ردیف بی‌استفاده خطاست. اگر نامی «معنای متفاوت» دارد، به‌جای ثبت اینجا باید تغییر نام دهد (alias @deprecated + deprecate()).",
+  "entries": [
+    {
+      "name": "DEFAULTS",
+      "packages": "*",
+      "status": "convention",
+      "reason": "قرارداد پکیج‌محور (docs/API-CONVENTIONS.md §3، #53): هر پکیج یک DEFAULTS منجمد برای *گزینه‌های خودش* export می‌کند؛ نام یکسان، دامنهٔ متفاوت و بدون ابهام در محل import."
+    },
+    {
+      "name": "HydrationResult",
+      "packages": ["runtime-core", "ssr"],
+      "status": "layered",
+      "reason": "نوع نتیجهٔ دو تابع هم‌نام بالا؛ شکل فیلدها متفاوت است (app/cleanup در برابر elementsAdopted/duration) — همان تصمیم معلق تا یکی‌سازی نهایی."
+    },
+    {
+      "name": "Readable",
+      "packages": ["shared", "state"],
+      "status": "same-meaning",
+      "reason": "هر دو «ظرف دارای get(): T» هستند. تعریف state عمداً محلی است چون قرارداد DEC-021/#141 هیچ یال state→shared نمی‌خواهد (packages/shared/test/layering.test.ts آن را قفل می‌کند) و گیت #119 برای همین نوع هم‌معناییِ لایه‌ای، allowlist مستدل دارد."
+    },
+    {
+      "name": "WatchOptions",
+      "packages": ["state", "zenith"],
+      "status": "layered",
+      "reason": "گزینه‌های نظارت: نسخهٔ zenith فقط immediate دارد، نسخهٔ state flush/deep/once — دامنهٔ متفاوت، مفهوم یکی."
+    },
+    {
+      "name": "WatchSource",
+      "packages": ["state", "zenith"],
+      "status": "layered",
+      "reason": "نوع منبع نظارت در همان دو سطح بالا (Readable | signal | getter)."
+    },
+    {
+      "name": "assertCompatible",
+      "packages": ["runtime-core", "zenith"],
+      "status": "layered",
+      "reason": "zenith.assertCompatible ابتدا runtime-core را صدا می‌زند و سپس جدول LOCKSTEP_PACKAGES را هم بررسی می‌کند (ZEN-2320) — همان کار با دامنهٔ وسیع‌تر."
+    },
+    {
+      "name": "hydrate",
+      "packages": ["runtime-core", "ssr"],
+      "status": "layered",
+      "reason": "هر دو adoption حالت SSR هستند: @zenith/ssr سطح صفحه/ویندوز (__ZENITH_STATE__) و @zenith/runtime-core سطح App (نتیجه شامل app/cleanup). یکسان‌سازی کامل نیازمند تغییر شکل نتیجه و حذف یکی از دو API عمومی است → پیگیری در ADR #108 (docs/adr/0015)."
+    },
+    {
+      "name": "isReadable",
+      "packages": ["shared", "state"],
+      "status": "layered",
+      "reason": "L0 (@zenith/shared) بررسی ساختاری «دارای get()» را دارد تا چرخهٔ shared↔state نسازد (DEC-021)؛ L1 (@zenith/state) همان قرارداد را با برند Symbol.for('zenith.readable') سخت‌گیرانه‌تر می‌کند (DEC-009/#187). معنا یکی است: «آیا قابل خواندن واکنشی است؟»"
+    },
+    {
+      "name": "isServer",
+      "packages": ["shared", "ssr"],
+      "status": "layered",
+      "reason": "L0: نبود window؛ L3 (@zenith/ssr): همان پرسش بر پایهٔ getEnvironment() که env صریح (__ZENITH_ENV__) را هم می‌بیند. هر دو «آیا سمت سرور هستیم؟» را پاسخ می‌دهند."
+    },
+    {
+      "name": "onError",
+      "packages": ["error-boundary", "errors"],
+      "status": "layered",
+      "reason": "@zenith/error-boundary تابع @zenith/errors را با ensureSignalFeed() می‌پوشاند تا errorSignal مرز خطا هم پر شود (#115 — یک hub واحد). معنا یکی است: ثبت شنوندهٔ خطا."
+    },
+    {
+      "name": "persistStore",
+      "packages": ["storage", "store"],
+      "status": "layered",
+      "reason": "@zenith/storage روی هر آبجکت دارای subscribe کار می‌کند (L0، DEC-030)؛ @zenith/store نسخهٔ غنی‌تر با version/migrate/pick/omit برای Store را دارد (#127) و به همین adapter تکیه می‌کند."
+    },
+    {
+      "name": "reportError",
+      "packages": ["error-boundary", "errors"],
+      "status": "layered",
+      "reason": "پوشش نازک روی hub (@zenith/errors, #115) که فید errorSignal مرز را قبل از انتشار تضمین می‌کند؛ امضا و معنا یکی است."
+    },
+    {
+      "name": "watch",
+      "packages": ["state", "zenith"],
+      "status": "layered",
+      "reason": "@zenith/state سطح کامل است (flush/deep/once/آرایه منابع، #122) و zenith/src/watch.ts نسخهٔ سادهٔ root است که همیشه Cleanup برمی‌گرداند (SPEC §2.9). معنا یکی است: نظارت بر تغییر منبع واکنشی."
+    }
+  ]
+}

@@ -24,7 +24,14 @@
  */
 export const ZENITH_READABLE: symbol = Symbol.for('zenith.readable');
 
-/** هر ظرف واکنش‌گرای قابل‌خواندن حداقل یک get() دارد. */
+/**
+ * هر ظرف واکنش‌گرای قابل‌خواندن حداقل یک get() دارد.
+ *
+ * #119: این تعریف **عمداً محلی** است و از `@zenith/shared` import نمی‌شود:
+ * قرارداد DEC-021/#141 هیچ یال `state → shared` نمی‌خواهد (تست
+ * packages/shared/test/layering.test.ts). دو تعریف ساختاریِ هم‌معنا هستند و
+ * گیت #119 آن‌ها را به‌عنوان `same-meaning` در allowlist ثبت کرده است.
+ */
 export interface Readable<T = unknown> {
   get(): T;
 }

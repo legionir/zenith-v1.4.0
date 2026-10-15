@@ -1,6 +1,7 @@
 // packages/transition/src/animate.ts
 import { developerError, ErrorCode } from '@zenith/errors';
 import { logger } from '@zenith/logger';
+import { prefersReducedMotion } from '@zenith/shared';
 //
 // FEATURE (v0.5.0): zen-animate — انیمیشن مبتنی بر Web Animations API.
 //
@@ -117,19 +118,9 @@ export interface ZenAnimateConfig extends KeyframeAnimationOptions {
   respectReducedMotion?: boolean;
 }
 
-/**
- * #98 (WCAG 2.2 AA 2.3.3): بررسی فعال بودن `prefers-reduced-motion: reduce`.
- */
-export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return false;
-  }
-  try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch {
-    return false;
-  }
-}
+// #119: پیاده‌سازی یکتا در @zenith/shared (media.ts) است؛ اینجا فقط
+// re-export می‌شود تا نام عمومی پکیج حفظ شود (بدون پیاده‌سازی تکراری).
+export { prefersReducedMotion };
 
 export function zenAnimate(el: HTMLElement, config: ZenAnimateConfig): Promise<void>;
 export function zenAnimate(

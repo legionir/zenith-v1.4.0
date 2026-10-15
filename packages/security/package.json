@@ -59,7 +59,8 @@
   },
   "dependencies": {
     "@zenith/errors": "1.4.0",
-    "@zenith/logger": "1.5.0"
+    "@zenith/logger": "1.5.0",
+    "@zenith/shared": "1.5.0"
   },
   "zenith": {
     "target": "universal"
