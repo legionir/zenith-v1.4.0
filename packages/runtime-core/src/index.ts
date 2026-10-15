@@ -318,6 +318,11 @@ function handleAppError(app: App, err: unknown): void {
   }
 }
 
+// DEC-032: قلاب‌های چرخهٔ عمر (onMount/onUnmount/onUpdate) API «ثبت + لغو ثبت»
+// نیستند و Cleanup برنمی‌گردانند؛ teardown آن‌ها به dispose همان دامنه
+// (کامپوننت/دایرکتیو) گره خورده است — در scripts/cleanup-hygiene.mjs
+// (LIFECYCLE_HOOK_ALLOWLIST) با همین دلیل ثبت شده‌اند.
+
 /**
  * ثبت قلاب چرخهٔ عمر هنگام mount شدن دایرکتیو/کامپوننت.
  * فراخوانی خارج از دامنهٔ فعال ⇒ `ZEN-2301`.

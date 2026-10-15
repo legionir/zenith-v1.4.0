@@ -30,6 +30,23 @@ const TSC_PATH = requireFromHere.resolve('typescript/bin/tsc');
 export const TS_BUILD_DIR = '.tsbuild';
 
 /**
+ * نگاشت یکتای `@zenith/*` → src برای همهٔ passهای typecheck (هرگز dist).
+ * زیرمسیرها باید همراه پکیج‌شان اضافه شوند (زیرمسیرِ ناموجود = شکست CI).
+ */
+export const SRC_PATHS = {
+  // Every @zenith/<name> resolves to that package's src entry.
+  '@zenith/*': ['../packages/*/src'],
+  // Subpath exports that exist today (see vitest.config.ts #27).
+  '@zenith/service-worker/sw': ['../packages/service-worker/src/sw.ts'],
+  // #142 — زیرمسیرهای @zenith/schema (SPEC §۲.۲).
+  '@zenith/schema/zod': ['../packages/schema/src/zod.ts'],
+  '@zenith/schema/json-schema': ['../packages/schema/src/json-schema.ts'],
+  // #120 — مسیر مشترک خواندن attribute (بودجهٔ ۴KB باندل اصلی، DEC-036 پیوست الف).
+  '@zenith/schema/attr': ['../packages/schema/src/attr.ts'],
+  '@zenith/storage/signal': ['../packages/storage/src/signal.ts'],
+};
+
+/**
  * The temporary noEmit tsconfig for one package, as a plain object.
  * `extends` and relative paths are written from inside the repo root's
  * `.tsbuild/` directory; `rootDir` is pinned back to the package sources so
@@ -50,20 +67,65 @@ export function typecheckConfigFor(dir) {
       tsBuildInfoFile: `../${TS_BUILD_DIR}/${dir}.tsbuildinfo`,
       // Relative paths in `paths` (no baseUrl) resolve against this config's
       // own directory, i.e. the repo root's `.tsbuild/`.
-      paths: {
-        // Every @zenith/<name> resolves to that package's src entry.
-        '@zenith/*': ['../packages/*/src'],
-        // Subpath exports that exist today (see vitest.config.ts #27).
-        '@zenith/service-worker/sw': ['../packages/service-worker/src/sw.ts'],
-        // #142 — زیرمسیرهای @zenith/schema (SPEC §۲.۲).
-        '@zenith/schema/zod': ['../packages/schema/src/zod.ts'],
-        '@zenith/schema/json-schema': ['../packages/schema/src/json-schema.ts'],
-        '@zenith/schema/attr': ['../packages/schema/src/attr.ts'],
-        '@zenith/storage/signal': ['../packages/storage/src/signal.ts'],
-      },
+      paths: SRC_PATHS,
     },
     include: [`../packages/${dir}/src/**/*.ts`],
   };
+}
+
+/**
+ * #118/#120 — پیکربندی type-testها (`packages/<pkg>/test/**\/*.test-d.ts`).
+ *
+ * چرا pass جدا؟ `npm run typecheck` (job CI «Type-check») فقط `src/**` را
+ * می‌دید و فایل‌های type-level (مثل هم‌ساختاری `Readable` در state با
+ * `@zenith/shared`، یا برابری `ReturnType<typeof onGlobalReset>` با `Cleanup`)
+ * هرگز کامپایل نمی‌شدند — یعنی شکستن ساختار تایپ‌ها می‌توانست بی‌سروصدا رد شود.
+ * این pass همان فایل‌ها را با نگاشت src-resolved کامپایل می‌کند.
+ */
+export function typeTestConfigFor() {
+  return {
+    extends: '../tsconfig.base.json',
+    compilerOptions: {
+      noEmit: true,
+      declaration: false,
+      declarationMap: false,
+      sourceMap: false,
+      rootDir: '..',
+      outDir: `../${TS_BUILD_DIR}/unused`,
+      tsBuildInfoFile: `../${TS_BUILD_DIR}/type-tests.tsbuildinfo`,
+      paths: SRC_PATHS,
+    },
+    include: ['../packages/*/test/**/*.test-d.ts'],
+  };
+}
+
+/** فهرست فایل‌های type-test موجود در ورک‌اسپیس (مسیر نسبی به root). */
+export function listTypeTestFiles(root = process.cwd()) {
+  const packagesDir = join(root, 'packages');
+  const out = [];
+  let dirs = [];
+  try {
+    dirs = readdirSync(packagesDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith('tmp-'))
+      .map((e) => e.name);
+  } catch {
+    return out;
+  }
+  const walk = (dir) => {
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.test-d.ts')) out.push(relative(root, full));
+    }
+  };
+  for (const pkg of dirs) walk(join(packagesDir, pkg, 'test'));
+  return out.sort();
 }
 
 /**
@@ -109,9 +171,38 @@ export function runTypecheckAll(root = process.cwd()) {
     }
   }
 
+  // ── pass دوم: type-testها (`packages/*/test/**/*.test-d.ts`) ──
+  // اگر هیچ فایلی نباشد (fixtureها/ورک‌اسپیس بدون type-test) اجرا نمی‌شود تا
+  // TS18003 («No inputs were found») گیت را بی‌دلیل قرمز نکند.
+  const typeTests = listTypeTestFiles(root);
+  let typeTestChecked = 0;
+  if (typeTests.length > 0) {
+    console.log(
+      `🔬 Type-checking ${typeTests.length} type-test file(s) (expectTypeOf assertions)…`,
+    );
+    const cfgPath = join(buildDir, 'type-tests.tsconfig.json');
+    writeFileSync(cfgPath, JSON.stringify(typeTestConfigFor(), null, 2));
+    const result = spawnSync(process.execPath, [TSC_PATH, '-p', cfgPath], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    if (result.status !== 0) {
+      failed++;
+      errorOutput.push(output);
+      process.stdout.write(output);
+    }
+    typeTestChecked = typeTests.length;
+  }
+
   // The temp dir survives the run for debugging; it is wiped at the START of
   // every run, so nothing stale can ever mask an error (#26 acceptance).
-  return { failed, checked: dirs.length, output: errorOutput.join('\n') };
+  return {
+    failed,
+    checked: dirs.length,
+    typeTests: typeTestChecked,
+    output: errorOutput.join('\n'),
+  };
 }
 
 // Only execute when run directly (so the functions above are testable).

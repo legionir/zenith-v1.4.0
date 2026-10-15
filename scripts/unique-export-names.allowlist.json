@@ -17,7 +17,7 @@
       "name": "Readable",
       "packages": ["shared", "state"],
       "status": "same-meaning",
-      "reason": "هر دو «ظرف دارای get(): T» هستند. تعریف state عمداً محلی است چون قرارداد DEC-021/#141 هیچ یال state→shared نمی‌خواهد (packages/shared/test/layering.test.ts آن را قفل می‌کند) و گیت #119 برای همین نوع هم‌معناییِ لایه‌ای، allowlist مستدل دارد."
+      "reason": "هر دو «ظرف دارای get(): T» هستند. تعریف state عمداً محلی است چون قرارداد DEC-021/#141 هیچ یال state→shared نمی‌خواهد (packages/shared/test/layering.test.ts آن را قفل می‌کند) و گیت #119 برای همین نوع هم‌معناییِ لایه‌ای، allowlist مستدل دارد. قفلِ برابری: تست نوعِ دوطرفه در packages/shared/test/types.test-d.ts (`Readable` و `MaybeReactive`) که در pass دوم `npm run typecheck` کامپایل می‌شود؛ اگر یکی از دو تعریف تغییر کند CI قرمز می‌شود (#118/#119)."
     },
     {
       "name": "WatchOptions",

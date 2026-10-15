@@ -64,9 +64,7 @@ function ensureSignalFeed(): void {
  *
  * @returns تابع unsubscribe (Cleanup) — idempotent.
  */
-export function onError(
-  handler: Parameters<typeof onErrorFrom>[0],
-): ReturnType<typeof onErrorFrom> {
+export function onError(handler: Parameters<typeof onErrorFrom>[0]): () => void {
   ensureSignalFeed();
   return onErrorFrom(handler);
 }

@@ -9,7 +9,13 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { typecheckConfigFor, runTypecheckAll, TS_BUILD_DIR } from '../typecheck-all.mjs';
+import {
+  typecheckConfigFor,
+  typeTestConfigFor,
+  listTypeTestFiles,
+  runTypecheckAll,
+  TS_BUILD_DIR,
+} from '../typecheck-all.mjs';
 
 const PKG_TSCONFIG = {
   compilerOptions: {
@@ -43,6 +49,14 @@ function pkg(dir, { src, staleDistTypes = null } = {}) {
     mkdirSync(join(base, 'dist'), { recursive: true });
     writeFileSync(join(base, 'dist', 'index.d.ts'), staleDistTypes);
   }
+}
+
+/** fixture root: همان tsconfig.base.json مخزن، ولی بدون include خودکار. */
+function baseConfig() {
+  writeFileSync(
+    join(root, 'tsconfig.base.json'),
+    JSON.stringify({ compilerOptions: PKG_TSCONFIG.compilerOptions }),
+  );
 }
 
 function listDist(dir) {
@@ -112,5 +126,63 @@ describe('typecheck-all (#26)', () => {
 
   it('uses the shared .tsbuild dir name', () => {
     expect(TS_BUILD_DIR).toBe('.tsbuild');
+  });
+
+  // ── #118/#120 — pass دوم: type-testها ──
+  it('type-test config compiles packages/*/test/**/*.test-d.ts against src', () => {
+    const cfg = typeTestConfigFor();
+    expect(cfg.include).toEqual(['../packages/*/test/**/*.test-d.ts']);
+    expect(cfg.compilerOptions.noEmit).toBe(true);
+    expect(cfg.compilerOptions.declaration).toBe(false);
+    expect(cfg.compilerOptions.paths['@zenith/*']).toEqual(['../packages/*/src']);
+    // زیرمسیرها هم مثل pass اول src-resolvedاند (dist روی CI ساخته نمی‌شود).
+    expect(cfg.compilerOptions.paths['@zenith/schema/attr']).toEqual([
+      '../packages/schema/src/attr.ts',
+    ]);
+  });
+
+  it('listTypeTestFiles finds nested .test-d.ts files and ignores tmp-* packages', () => {
+    pkg('a', { src: 'export const x = 1;\n' });
+    mkdirSync(join(root, 'packages/a/test'), { recursive: true });
+    writeFileSync(join(root, 'packages/a/test/types.test-d.ts'), 'export {};\n');
+    mkdirSync(join(root, 'packages/a/test/nested'), { recursive: true });
+    writeFileSync(join(root, 'packages/a/test/nested/deep.test-d.ts'), 'export {};\n');
+    writeFileSync(join(root, 'packages/a/test/plain.test.ts'), 'export {};\n');
+    mkdirSync(join(root, 'packages/tmp-scratch/test'), { recursive: true });
+    writeFileSync(join(root, 'packages/tmp-scratch/test/x.test-d.ts'), 'export {};\n');
+
+    expect(listTypeTestFiles(root)).toEqual([
+      join('packages/a/test/nested/deep.test-d.ts'),
+      join('packages/a/test/types.test-d.ts'),
+    ]);
+  });
+
+  it('returns an empty list (no tsc run, no TS18003) when a workspace has no type-tests', () => {
+    pkg('a', { src: 'export const x = 1;\n' });
+    expect(listTypeTestFiles(root)).toEqual([]);
+    const result = runTypecheckAll(root);
+    expect(result.failed).toBe(0);
+    expect(result.typeTests).toBe(0);
+  });
+
+  it('a wrong type assertion in a *.test-d.ts fixture fails the run', () => {
+    baseConfig();
+    pkg('a', { src: 'export declare function f(): number;\n' });
+    mkdirSync(join(root, 'packages/a/test'), { recursive: true });
+    writeFileSync(
+      join(root, 'packages/a/test/bad.test-d.ts'),
+      [
+        "import { f } from '@zenith/a';",
+        '// ادعای غلط: f عدد برمی‌گرداند، نه string (شبیه expectTypeOf().toEqualTypeOf).',
+        'export const broken: string = f();',
+        '',
+      ].join('\n'),
+    );
+    const result = runTypecheckAll(root);
+    expect(result.typeTests).toBe(1);
+    expect(result.failed).toBe(1);
+    // خطا باید از خودِ فایل type-test باشد، نه از حل‌نشدن import (fixture بدون node_modules است).
+    expect(result.output).toContain('bad.test-d.ts');
+    expect(result.output).toContain("Type 'number' is not assignable to type 'string'");
   });
 });
