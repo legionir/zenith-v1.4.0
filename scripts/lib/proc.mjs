@@ -1,5 +1,5 @@
 // scripts/lib/proc.mjs — cross-platform process helpers (the Windows CI job runs the same scripts).
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -22,4 +22,21 @@ export function binScript(root, pkgName, binName = pkgName) {
 /** Run `node <script> …args`. */
 export function spawnNode(script, args = [], options = {}) {
   return spawnSync(process.execPath, [script, ...args], options);
+}
+
+/**
+ * Async `npm`: same result shape as spawnSync ({ status, stdout, stderr }) but it does not block
+ * the event loop. Required inside vitest, where a long synchronous spawn (e.g. 49 × `npm pack`
+ * on Windows, ~70 s) starves the worker's RPC heartbeat → "Timeout calling onTaskUpdate".
+ */
+export function spawnNpmAsync(args, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn('npm', args, { ...options, shell: isWin });
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.on('data', (d) => (stdout += d));
+    child.stderr?.on('data', (d) => (stderr += d));
+    child.on('error', (err) => resolve({ status: null, stdout, stderr: stderr + String(err) }));
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
 }
