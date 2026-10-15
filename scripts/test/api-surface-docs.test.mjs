@@ -22,7 +22,10 @@ describe('Public API surface snapshot, TypeDoc reference, conditional exports & 
     const pkgDirs = readdirSync(join(process.cwd(), 'packages'), { withFileTypes: true })
       .filter(
         (d) =>
-          d.isDirectory() && existsSync(join(process.cwd(), 'packages', d.name, 'package.json')),
+          d.isDirectory() &&
+          // tmp-* = scratch package the scaffold test creates/removes while suites run in parallel
+          !d.name.startsWith('tmp-') &&
+          existsSync(join(process.cwd(), 'packages', d.name, 'package.json')),
       )
       .map((d) => d.name);
 

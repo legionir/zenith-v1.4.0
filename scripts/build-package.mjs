@@ -1,7 +1,15 @@
 import { build } from 'esbuild';
 import { rollup } from 'rollup';
 import { dts } from 'rollup-plugin-dts';
-import { existsSync, rmSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
+import {
+  existsSync,
+  rmSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  copyFileSync,
+  renameSync,
+} from 'fs';
 import { createHash } from 'crypto';
 import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
@@ -27,18 +35,30 @@ const NODE_PLATFORM_PACKAGES = new Set(['cli', 'ssr', 'vite-plugin']);
 export async function buildPackage(pkgName) {
   const pkgPath = `./packages/${pkgName}`;
   const srcPath = join(pkgPath, 'src', 'index.ts');
-  const outDir = join(pkgPath, 'dist');
+  const finalDir = join(pkgPath, 'dist');
+  // Build into a sibling scratch directory and swap it in at the end. Other builds (and the
+  // tests that run several in parallel) read `dist/` of their dependencies while this one runs;
+  // wiping `dist/` first left a window where `@zenith/errors` had no declarations (TS7016).
+  const outDir = join(pkgPath, `dist.build-${process.pid}-${buildCounter++}`);
 
   if (!existsSync(srcPath)) {
     console.log(`⏭️  @zenith/${pkgName}: no src/index.ts, skipping`);
     return false;
   }
 
-  if (existsSync(outDir)) {
-    rmSync(outDir, { recursive: true });
-  }
+  rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
+  try {
+    return await buildInto(pkgName, pkgPath, srcPath, outDir, finalDir);
+  } catch (err) {
+    rmSync(outDir, { recursive: true, force: true });
+    throw err;
+  }
+}
 
+let buildCounter = 0;
+
+async function buildInto(pkgName, pkgPath, srcPath, outDir, finalDir) {
   console.log(`🔨 Building @zenith/${pkgName}...`);
 
   const platform = NODE_PLATFORM_PACKAGES.has(pkgName) ? 'node' : 'neutral';
@@ -241,6 +261,10 @@ export async function buildPackage(pkgName) {
     }
     rmSync(scratch, { recursive: true, force: true });
   }
+
+  // atomic-ish swap: the old dist disappears only for the duration of one rename
+  rmSync(finalDir, { recursive: true, force: true });
+  renameSync(outDir, finalDir);
 
   console.log(`✅ @zenith/${pkgName} built successfully`);
   return true;

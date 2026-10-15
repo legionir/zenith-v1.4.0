@@ -9,13 +9,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { toDot, renderSvg, packageEdges } from '../dependency-graph.mjs';
+import { binScript } from '../lib/proc.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const { layers } = JSON.parse(
   readFileSync(join(root, 'scripts', 'architecture-layers.json'), 'utf8'),
 );
 const mapped = Object.entries(layers).flatMap(([layer, pkgs]) => pkgs.map((p) => [p, layer]));
-const depcruise = join(root, 'node_modules', '.bin', 'depcruise');
+const depcruise = binScript(root, 'dependency-cruiser', 'depcruise');
 
 function cruise(files) {
   const dir = mkdtempSync(join(tmpdir(), 'layers-'));
@@ -37,8 +38,15 @@ function cruise(files) {
       writeFileSync(join(dir, rel), body);
     }
     const r = spawnSync(
-      depcruise,
-      ['--config', join(root, '.dependency-cruiser.cjs'), '--output-type', 'json', 'packages'],
+      process.execPath,
+      [
+        depcruise,
+        '--config',
+        join(root, '.dependency-cruiser.cjs'),
+        '--output-type',
+        'json',
+        'packages',
+      ],
       { cwd: dir, encoding: 'utf8' },
     );
     const report = JSON.parse(r.stdout);
@@ -126,10 +134,14 @@ describe('#49 dependency-cruiser enforcement (sample trees)', () => {
   });
 
   it('the real workspace has zero violations', () => {
-    const r = spawnSync(depcruise, ['--config', '.dependency-cruiser.cjs', 'packages'], {
-      cwd: root,
-      encoding: 'utf8',
-    });
+    const r = spawnSync(
+      process.execPath,
+      [depcruise, '--config', '.dependency-cruiser.cjs', 'packages'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    );
     expect(r.status, r.stdout + r.stderr).toBe(0);
   });
 });

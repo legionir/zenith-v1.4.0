@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { binScript } from './lib/proc.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { layers } = JSON.parse(
@@ -39,10 +40,16 @@ const rank = (pkg) => {
 
 /** Package-level edges derived from dependency-cruiser's module graph (real import edges). */
 export function packageEdges(root = ROOT) {
-  const bin = path.join(root, 'node_modules', '.bin', 'depcruise');
   const r = spawnSync(
-    bin,
-    ['--config', '.dependency-cruiser.cjs', '--output-type', 'json', 'packages'],
+    process.execPath,
+    [
+      binScript(root, 'dependency-cruiser', 'depcruise'),
+      '--config',
+      '.dependency-cruiser.cjs',
+      '--output-type',
+      'json',
+      'packages',
+    ],
     { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
   );
   const report = JSON.parse(r.stdout);

@@ -29,6 +29,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { conditionTarget } from './lib/exports-shape.mjs';
+import { spawnNpm } from './lib/proc.mjs';
 
 const SKIP = new Set(['devtools-extension', 'vscode-extension']);
 
@@ -63,7 +64,11 @@ export function specifiersOf(manifest) {
 }
 
 function run(cmd, args, opts = {}) {
-  const r = spawnSync(cmd, args, { encoding: 'utf8', ...opts });
+  // `npm` needs a shell on Windows; everything else is spawned directly (`node` = this process).
+  const r =
+    cmd === 'npm'
+      ? spawnNpm(args, { encoding: 'utf8', ...opts })
+      : spawnSync(cmd === 'node' ? process.execPath : cmd, args, { encoding: 'utf8', ...opts });
   if (r.status !== 0) {
     throw new Error(`${cmd} ${args.join(' ')} failed (${r.status}):\n${r.stdout}\n${r.stderr}`);
   }
@@ -144,9 +149,9 @@ export async function installImportCheck(root = process.cwd()) {
     // 4) the installed CLI binary reports its package version
     const cli = packages.find((p) => p.manifest.name === '@zenith/cli');
     if (cli) {
-      const version = run(join(project, 'node_modules', '.bin', 'zenith'), ['--version'], {
-        cwd: project,
-      }).trim();
+      // run the installed bin script through node (no .bin/*.cmd shim on Windows)
+      const cliBin = join(project, 'node_modules', '@zenith', 'cli', 'dist', 'index.js');
+      const version = run('node', [cliBin, '--version'], { cwd: project }).trim();
       if (version !== cli.manifest.version) {
         problems.push(`zenith --version printed "${version}", package is ${cli.manifest.version}`);
       }

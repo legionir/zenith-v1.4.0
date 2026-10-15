@@ -2,11 +2,12 @@
 // #140 — the .d.ts ↔ ESM ↔ CJS export parity gate: fixtures prove it detects missing / extra
 // names in either format and ignores type-only exports; the real workspace must be in parity.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkPackageParity, checkDtsJsParity } from '../check-dts-js-parity.mjs';
+import { isFullyBuilt } from '../lib/workspace.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 let tmp;
@@ -102,7 +103,7 @@ describe('#140 .d.ts ↔ ESM ↔ CJS export parity', () => {
     expect(await checkPackageParity(dir)).toBeNull();
   });
 
-  it.skipIf(!existsSync(join(root, 'packages', 'state', 'dist', 'index.cjs')))(
+  it.skipIf(!isFullyBuilt(root))(
     'the real workspace (built) has full parity across every package',
     async () => {
       const { checkedPackages, mismatches } = await checkDtsJsParity(root);

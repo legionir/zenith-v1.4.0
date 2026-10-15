@@ -2,7 +2,7 @@
 // #74 — published-package validation: exports shape helper, d.ts bundling fix-ups, the audits
 // wired into CI, and (when the workspace is built) the real attw gate on every package.
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { conditionTarget, distName, entryFor, isDualEntry } from '../lib/exports-shape.mjs';
@@ -10,6 +10,7 @@ import { collectTypeOnlyReexports, restoreTypeOnlyReexports } from '../lib/dts-b
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { attwAll } from '../attw-all.mjs';
+import { isFullyBuilt } from '../lib/workspace.mjs';
 import { auditPackages, ALLOWED_TARBALL_FILES } from '../pack-audit.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -122,7 +123,7 @@ describe('#74 CI wiring and the real gates', () => {
     }
   });
 
-  it.skipIf(!existsSync(join(root, 'packages', 'state', 'dist', 'index.d.cts')))(
+  it.skipIf(!isFullyBuilt(root))(
     'attw: every built package resolves its types under every mode (dual) / esm-only profile',
     async () => {
       const { checked, failures } = await attwAll(root);
@@ -131,4 +132,21 @@ describe('#74 CI wiring and the real gates', () => {
     },
     180_000,
   );
+});
+
+describe('#74/#78 the only license exception is the build-only d.ts bundler', () => {
+  it('rollup-plugin-dts (LGPL-3.0-only) is a root devDependency and no published package depends on it', async () => {
+    const { BUILD_ONLY_EXCEPTIONS } = await import('../check-licenses.mjs');
+    expect([...BUILD_ONLY_EXCEPTIONS]).toEqual([['rollup-plugin-dts', 'LGPL-3.0-only']]);
+    const rootPkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    expect(rootPkg.devDependencies['rollup-plugin-dts']).toBeTruthy();
+    for (const dir of readdirSync(join(root, 'packages'))) {
+      const f = join(root, 'packages', dir, 'package.json');
+      if (!existsSync(f)) continue;
+      const m = JSON.parse(readFileSync(f, 'utf8'));
+      for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+        expect(m[field]?.['rollup-plugin-dts'], `${dir} ${field}`).toBeUndefined();
+      }
+    }
+  });
 });

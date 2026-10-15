@@ -142,7 +142,8 @@ module.exports = {
   ],
   options: {
     includeOnly: '^packages/[^/]+/src',
-    exclude: { dynamic: true },
+    // tmp-* = scratch packages the scaffold test creates and deletes while other suites run
+    exclude: { dynamic: true, path: '^packages/tmp-' },
     doNotFollow: { path: 'node_modules' },
     tsConfig: { fileName: 'tsconfig.depcruise.json' },
     tsPreCompilationDeps: false,

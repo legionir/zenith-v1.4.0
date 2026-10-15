@@ -11,12 +11,12 @@
  * CommonJS consumers reach them through `require(esm)` which attw reports as a warning.
  */
 import { checkPackage, createPackageFromTarballData } from '@arethetypeswrong/core';
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isDualEntry } from './lib/exports-shape.mjs';
+import { spawnNpm } from './lib/proc.mjs';
 
 const SKIP = new Set(['devtools-extension', 'vscode-extension']);
 /** resolution modes ignored for ESM-only packages (attw's `esm-only` profile). */
@@ -34,7 +34,7 @@ export async function attwAll(root = process.cwd()) {
       const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
       if (manifest.private || !existsSync(join(pkgDir, 'dist'))) continue;
 
-      const pack = spawnSync('npm', ['pack', '--json', '--pack-destination', tmp], {
+      const pack = spawnNpm(['pack', '--json', '--pack-destination', tmp], {
         cwd: pkgDir,
         encoding: 'utf8',
       });

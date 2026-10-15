@@ -17,9 +17,9 @@
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { conditionTarget, isDualEntry } from './lib/exports-shape.mjs';
+import { spawnNpm } from './lib/proc.mjs';
 
 const SKIP_DIRS = new Set(['devtools-extension', 'vscode-extension']);
 const FORBIDDEN_FILE_PATTERNS = [/^src(\/|$)/, /^test(\/|$)/, /\.tsbuildinfo$/, /^tsconfig/];
@@ -115,7 +115,7 @@ export function auditPackages(rootDir = process.cwd(), { runNpmPack = false } = 
 
     // 4. Optional `npm pack --dry-run --json` tarball contents inspection
     if (runNpmPack && existsSync(join(pkgDir, 'dist'))) {
-      const res = spawnSync('npm', ['pack', '--dry-run', '--json'], {
+      const res = spawnNpm(['pack', '--dry-run', '--json'], {
         cwd: pkgDir,
         encoding: 'utf8',
       });

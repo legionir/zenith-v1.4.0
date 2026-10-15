@@ -1,7 +1,8 @@
 // scripts/test/pre-commit-hook.test.mjs
 // #37 — pre-commit با husky + lint-staged: ESLint و Prettier روی فایل‌های staged.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,7 +19,12 @@ describe('#37 pre-commit hook (husky + lint-staged)', () => {
   it('.husky/pre-commit قابل‌اجراست و lint-staged را فراخوانی می‌کند', () => {
     const hook = join(root, '.husky', 'pre-commit');
     expect(existsSync(hook)).toBe(true);
-    expect(statSync(hook).mode & 0o111, 'executable bit').not.toBe(0);
+    // the mode git records is what matters (the filesystem has no exec bit on Windows)
+    const staged = spawnSync('git', ['ls-files', '--stage', '.husky/pre-commit'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).stdout;
+    expect(staged, 'tracked as an executable file').toMatch(/^100755 /);
     expect(readFileSync(hook, 'utf8')).toContain('lint-staged');
   });
 
