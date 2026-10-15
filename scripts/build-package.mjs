@@ -154,6 +154,8 @@ export async function buildPackage(pkgName) {
         outfile: iifeOut,
         format: 'iife',
         globalName: 'Zenith',
+        // the IIFE's namespace return would overwrite the global installed by browser.ts
+        footer: { js: 'Zenith=Zenith.ZenithBrowser;' },
         platform: 'browser',
         target: 'es2022',
         minify: true,

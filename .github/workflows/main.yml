@@ -348,6 +348,9 @@ jobs:
         run: npm run build
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
+      # #76: the SRI e2e loads the versioned browser bundle with <script integrity>
+      - name: Build browser bundles
+        run: npm run build:browser
       - name: Start e2e static server (manual, kept alive for post-mortem probes)
         run: |
           nohup node scripts/e2e-server.mjs > "$RUNNER_TEMP/e2e-server.out" 2>&1 &
