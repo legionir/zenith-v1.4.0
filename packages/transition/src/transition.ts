@@ -122,13 +122,40 @@ export interface TransitionController {
  * @param onComplete callback بعد از پایان transition (پایان موفق).
  * @returns تابع cancel.
  */
+export interface LegacyDirectionOptions {
+  /** نام transition (مثل 'fade'). */
+  name: string;
+  /** مدت زمان fallback به میلی‌ثانیه. @default 300 */
+  duration?: number;
+  /** callback بعد از پایان موفق transition. */
+  onComplete?: () => void;
+}
+
+export function enterTransition(el: HTMLElement, options: LegacyDirectionOptions): () => void;
+/** @deprecated #55 — امضای positional؛ از `enterTransition(el, { name, duration })` استفاده کنید. */
 export function enterTransition(
   el: HTMLElement,
   name: string,
-  duration: number = 300,
+  duration?: number,
+  onComplete?: () => void,
+): () => void;
+export function enterTransition(
+  el: HTMLElement,
+  nameOrOptions: string | LegacyDirectionOptions,
+  duration = 300,
   onComplete?: () => void,
 ): () => void {
-  return runLegacyDirection(el, name, 'enter', duration, onComplete);
+  if (typeof nameOrOptions === 'string') {
+    // هشدار ZEN-DEPR-002 خودِ runLegacyDirection می‌دهد (warnOnce — یک پیام).
+    return runLegacyDirection(el, nameOrOptions, 'enter', duration, onComplete);
+  }
+  return runLegacyDirection(
+    el,
+    nameOrOptions.name,
+    'enter',
+    nameOrOptions.duration ?? 300,
+    nameOrOptions.onComplete,
+  );
 }
 
 /**
@@ -136,13 +163,31 @@ export function enterTransition(
  *
  * خروج یک عنصر با transition (leave) — wrapper روی موتور مبنا.
  */
+export function leaveTransition(el: HTMLElement, options: LegacyDirectionOptions): () => void;
+/** @deprecated #55 — امضای positional؛ از `leaveTransition(el, { name, duration })` استفاده کنید. */
 export function leaveTransition(
   el: HTMLElement,
   name: string,
-  duration: number = 300,
+  duration?: number,
+  onComplete?: () => void,
+): () => void;
+export function leaveTransition(
+  el: HTMLElement,
+  nameOrOptions: string | LegacyDirectionOptions,
+  duration = 300,
   onComplete?: () => void,
 ): () => void {
-  return runLegacyDirection(el, name, 'leave', duration, onComplete);
+  if (typeof nameOrOptions === 'string') {
+    // هشدار ZEN-DEPR-003 خودِ runLegacyDirection می‌دهد (warnOnce — یک پیام).
+    return runLegacyDirection(el, nameOrOptions, 'leave', duration, onComplete);
+  }
+  return runLegacyDirection(
+    el,
+    nameOrOptions.name,
+    'leave',
+    nameOrOptions.duration ?? 300,
+    nameOrOptions.onComplete,
+  );
 }
 
 /** پیاده‌سازی مشترک wrapperهای enter/leave روی createTransition (#47). */
@@ -155,8 +200,10 @@ function runLegacyDirection(
 ): () => void {
   deprecate(
     direction === 'enter' ? 'ZEN-DEPR-002' : 'ZEN-DEPR-003',
-    direction === 'enter' ? 'enterTransition' : 'leaveTransition',
-    'createTransition(name, { duration, ... }).enter(el) / .leave(el)',
+    direction === 'enter'
+      ? 'enterTransition(el, name, duration, onComplete)'
+      : 'leaveTransition(el, name, duration, onComplete)',
+    'createTransition(name, { duration }).enter(el) یا enterTransition(el, { name, duration })',
   );
   const controller = createTransition(name, {
     duration,
@@ -225,14 +272,53 @@ export function validateEasing(easing: string): EffectTiming['easing'] {
  * @param staggerDelay تأخیر بین هر عنصر به میلی‌ثانیه (پیش‌فرض: 50)
  * @returns Promise که بعد از پایان همه transitionها resolve می‌شود
  */
+export interface AnimateGroupOptions {
+  /** جهت transition. */
+  direction: TransitionDirection;
+  /** نام transition. */
+  name: string;
+  /** مدت زمان به میلی‌ثانیه. @default 300 */
+  duration?: number;
+  /** تأخیر پلکانی بین عناصر به میلی‌ثانیه. @default 50 */
+  staggerDelay?: number;
+}
+
+export function animateGroup(elements: HTMLElement[], options: AnimateGroupOptions): Promise<void>;
+/** @deprecated #55 — امضای positional؛ از `animateGroup(elements, { direction, name })` استفاده کنید. */
 export function animateGroup(
   elements: HTMLElement[],
   direction: TransitionDirection,
   name: string,
-  duration: number = 300,
-  staggerDelay: number = 50,
+  duration?: number,
+  staggerDelay?: number,
+): Promise<void>;
+export function animateGroup(
+  elements: HTMLElement[],
+  directionOrOptions: TransitionDirection | AnimateGroupOptions,
+  legacyName = '',
+  legacyDuration = 300,
+  legacyStagger = 50,
 ): Promise<void> {
-  deprecate('ZEN-DEPR-004', 'animateGroup', 'createTransition(name, { duration })');
+  const options: Required<AnimateGroupOptions> =
+    typeof directionOrOptions === 'string'
+      ? {
+          direction: directionOrOptions,
+          name: legacyName,
+          duration: legacyDuration,
+          staggerDelay: legacyStagger,
+        }
+      : {
+          direction: directionOrOptions.direction,
+          name: directionOrOptions.name,
+          duration: directionOrOptions.duration ?? 300,
+          staggerDelay: directionOrOptions.staggerDelay ?? 50,
+        };
+  const { direction, name, duration, staggerDelay } = options;
+  deprecate(
+    'ZEN-DEPR-004',
+    'animateGroup(elements, direction, name, duration, staggerDelay)',
+    'animateGroup(elements, { direction, name, duration, staggerDelay }) یا createTransition',
+  );
   return new Promise((resolve) => {
     let remaining = elements.length;
     if (remaining === 0) {

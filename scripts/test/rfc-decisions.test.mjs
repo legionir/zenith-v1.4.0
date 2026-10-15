@@ -37,11 +37,11 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     expect(text).toMatch(/#\d{2,3}/);
   });
 
-  it('DEC numbering has no duplicates and reaches 034', () => {
+  it('DEC numbering has no duplicates and reaches 036', () => {
     const files = readdirSync(DEC).filter((f) => f.startsWith('DEC-'));
     const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(34); // #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    expect(Math.max(...nums)).toBe(36); // #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
   });
 
   it('error-space ADR formalizes ZEN-DEPR registry (DEC-019) and hands ranges to #171', () => {

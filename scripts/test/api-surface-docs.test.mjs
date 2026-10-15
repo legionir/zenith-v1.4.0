@@ -64,6 +64,8 @@ describe('Public API surface snapshot, TypeDoc reference, conditional exports & 
     // واقعی به unknown/generic/نوع دقیق کاهش یابد — نه با حذف تست یا حرکت
     // کد. هدف معیار پذیرش: ≤ ۱۰۰ مورد باقی‌مانده با کامنت توجیه.
     const res = auditSrcAnyTotals(process.cwd());
-    expect(res.grandTotal).toBeLessThanOrEqual(478);
+    // #55 (2026-10-15): processFetchWithCache سه امضای `Promise<any>` داشت؛ با
+    // unknown شدن، سقف رتچت به ۴۷۷ کاهش یافت (فقط نزولی — هرگز بالا نمی‌رود).
+    expect(res.grandTotal).toBeLessThanOrEqual(477);
   });
 });
