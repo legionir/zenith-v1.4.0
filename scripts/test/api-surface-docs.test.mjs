@@ -7,13 +7,53 @@ import { auditPublicEntrypointAny, auditSrcAnyTotals } from '../check-public-any
 describe('Public API surface snapshot, TypeDoc reference, conditional exports & public-any audit (#38, #56, #57, #103)', () => {
   it('verifies docs/api/api-surface.snapshot.json is up-to-date and every package has README.md and docs/api/<pkg>.md (#56, #103)', () => {
     const res = generateApiDocs(process.cwd(), { checkOnly: true });
-    expect(Object.keys(res.surface).length).toBe(49); // #147..#149 + #160,#161,#162,#168,#169,#170 (41 → 49)
+    const keys = Object.keys(res.surface);
+    const subpaths = keys.filter((k) => res.surface[k].subpath);
+    // 49 پکیج (#147..#149 + #160,#161,#162,#168,#169,#170 ⇒ 41 → 49) + 11 زیرمسیر عمومی
+    // (#142/#120: zod/json-schema/attr + storage/signal + core/ssr/testing/presets×3/browser).
+    expect(keys.length - subpaths.length).toBe(49);
+    expect(subpaths.length).toBe(11);
     expect(existsSync(join(process.cwd(), 'docs/api/INDEX.md'))).toBe(true);
 
     for (const [, info] of Object.entries(res.surface)) {
+      if (info.subpath) continue;
       expect(existsSync(join(process.cwd(), 'packages', info.slug, 'README.md'))).toBe(true);
       expect(existsSync(join(process.cwd(), 'docs/api', `${info.slug}.md`))).toBe(true);
       expect(info.exports.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('publishes every public subpath in the snapshot and its own reference page (#142/#120)', () => {
+    const res = generateApiDocs(process.cwd(), { checkOnly: true });
+    const schemaAttr = res.surface['@zenith/schema/attr'];
+    expect(schemaAttr).toBeDefined();
+    expect(schemaAttr.slug).toBe('schema');
+    expect(schemaAttr.entry).toBe('src/attr.ts');
+    // نگهبان بودجهٔ ۴KB باندل اصلی schema (#142، DEC-029) باید همان نمادها را بدهد.
+    expect(schemaAttr.exports.map((e) => e.name)).toEqual([
+      'parseConfigAttr',
+      'parseJsonAttr',
+      'ParseJsonAttrOptions',
+      'parseJsonValue',
+    ]);
+    expect(existsSync(join(process.cwd(), 'docs/api/schema--attr.md'))).toBe(true);
+
+    // هر زیرمسیر باید صفحهٔ مستقل داشته باشد و اسنپ‌شات به فایل منبعش اشاره کند.
+    for (const [key, info] of Object.entries(res.surface)) {
+      if (!info.subpath) continue;
+      expect(existsSync(join(process.cwd(), 'packages', info.slug, info.entry))).toBe(true);
+      const docFile = `${info.slug}--${info.subpath.replace(/\//g, '-')}.md`;
+      expect(existsSync(join(process.cwd(), 'docs/api', docFile)), `${key} → ${docFile}`).toBe(
+        true,
+      );
+      // زیرمسیری که صفر نماد دارد حتماً از پکیج دیگری بازصادر می‌کند.
+      if (info.exports.length === 0) expect(info.reexports?.length).toBeGreaterThan(0);
+    }
+
+    // INDEX.md باید هر ۱۱ زیرمسیر را با specifier کامل فهرست کند.
+    const index = readFileSync(join(process.cwd(), 'docs/api/INDEX.md'), 'utf8');
+    for (const key of Object.keys(res.surface)) {
+      if (res.surface[key].subpath) expect(index).toContain(`\`${key}\``);
     }
   });
 

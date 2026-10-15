@@ -2,7 +2,9 @@
 /**
  * #56 & #103 — Public API Surface Extractor & TypeDoc-Style Reference Generator
  *
- * 1. Scans `packages/<slug>/src/index.ts` (and local re-exports) using the TypeScript
+ * 1. Scans `packages/<slug>/src/index.ts`, every public subpath entry
+ *    (`src/<sub>.ts` from the single table in `scripts/lib/exports-shape.mjs`,
+ *    e.g. `@zenith/schema/attr`), and local re-exports using the TypeScript
  *    compiler AST (`typescript`).
  * 2. Extracts all exported symbols, their kind (`function`, `class`, `interface`,
  *    `type`, `const`), and release tag (`@public`, `@internal`, `@experimental`, `@deprecated`).
@@ -14,6 +16,7 @@ import ts from 'typescript';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PUBLIC_SUBPATHS, subpathKey } from './lib/exports-shape.mjs';
 
 function extractReleaseTag(node, sourceText) {
   const ranges = ts.getLeadingCommentRanges(sourceText, node.pos) || [];
@@ -22,6 +25,23 @@ function extractReleaseTag(node, sourceText) {
   if (/@experimental\b|@beta\b/.test(comments)) return 'experimental';
   if (/@deprecated\b/.test(comments)) return 'deprecated';
   return 'public';
+}
+
+/** بازصادرات از پکیج‌های ورک‌اسپیس (`export * from '@zenith/ssr'`). */
+export function collectWorkspaceReexports(entryFile) {
+  if (!existsSync(entryFile)) return [];
+  const sourceText = readFileSync(entryFile, 'utf8');
+  const sf = ts.createSourceFile(entryFile, sourceText, ts.ScriptTarget.ES2022, true);
+  const out = [];
+  for (const stmt of sf.statements) {
+    if (!ts.isExportDeclaration(stmt) || !stmt.moduleSpecifier) continue;
+    if (!ts.isStringLiteral(stmt.moduleSpecifier)) continue;
+    const spec = stmt.moduleSpecifier.text;
+    if (spec.startsWith('.') || spec.startsWith('node:')) continue;
+    if (!spec.startsWith('@zenith/') && spec !== 'zenith' && !spec.startsWith('zenith/')) continue;
+    if (!out.includes(spec)) out.push(spec);
+  }
+  return out;
 }
 
 function resolveLocalModulePath(fromFile, spec) {
@@ -146,8 +166,33 @@ export function buildApiSurfaceSnapshot(rootDir = process.cwd()) {
       target: pkgJson.zenith?.target ?? 'universal',
       exports: symbols,
     };
+
+    // #142/#120 — زیرمسیرهای عمومی هم بخشی از API عمومی‌اند (مثل
+    // `@zenith/schema/attr`) و باید در snapshot و مرجع دیده شوند. فهرست از
+    // جدول یکتای scripts/lib/exports-shape.mjs می‌آید، نه از package.json.
+    for (const sub of PUBLIC_SUBPATHS[pkgJson.name] ?? []) {
+      const subEntry = join(packagesDir, slug, 'src', `${sub}.ts`);
+      if (!existsSync(subEntry)) continue;
+      const subSymbols = [...extractPackageExports(subEntry).values()].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      const reexports = collectWorkspaceReexports(subEntry);
+      surface[`${pkgJson.name}/${sub}`] = {
+        slug,
+        subpath: sub,
+        target: pkgJson.zenith?.target ?? 'universal',
+        entry: `src/${sub}.ts`,
+        ...(reexports.length > 0 ? { reexports } : {}),
+        exports: subSymbols,
+      };
+    }
   }
   return surface;
+}
+
+/** نام فایل doc برای یک کلید سطح (`@zenith/schema` یا `@zenith/schema/attr`). */
+export function apiDocFileName(info) {
+  return info.subpath ? `${info.slug}--${info.subpath.replace(/\//g, '-')}.md` : `${info.slug}.md`;
 }
 
 export function generateApiDocs(rootDir = process.cwd(), { checkOnly = false } = {}) {
@@ -183,8 +228,9 @@ export function generateApiDocs(rootDir = process.cwd(), { checkOnly = false } =
   ];
 
   for (const [pkgName, info] of Object.entries(surface)) {
-    const docFile = `${info.slug}.md`;
+    const docFile = apiDocFileName(info);
     const docPath = join(apiDir, docFile);
+    if (info.subpath) continue; // جدول دوم برای زیرمسیرها (پایین‌تر)
     indexLines.push(
       `| \`${pkgName}\` | \`${info.target}\` | ${info.exports.length} | [${docFile}](./${docFile}) |`,
     );
@@ -209,6 +255,74 @@ export function generateApiDocs(rootDir = process.cwd(), { checkOnly = false } =
     }
   }
 
+  // ── زیرمسیرهای عمومی (#142/#120): صفحهٔ مستقل + ردیف در همان INDEX ──
+  const subpathRows = [];
+  for (const [specifier, info] of Object.entries(surface)) {
+    if (!info.subpath) continue;
+    const docFile = apiDocFileName(info);
+    const docPath = join(apiDir, docFile);
+    subpathRows.push(
+      `| \`${specifier}\` | \`${info.target}\` | ${info.exports.length} | [${docFile}](./${docFile}) |`,
+    );
+
+    if (!existsSync(docPath)) {
+      const subLines = [
+        `# API Reference: \`${specifier}\``,
+        '',
+        `- **پکیج والد**: \`${info.slug}\` — [\`${info.slug}.md\`](./${info.slug}.md)`,
+        `- **فایل منبع**: \`packages/${info.slug}/${info.entry}\``,
+        `- **کلید exports**: \`${subpathKey(info.subpath)}\` (ESM-only؛ DEC-027)`,
+        `- **محیط هدف (\`zenith.target\`)**: \`${info.target}\``,
+        '',
+        '## چرا زیرمسیر؟',
+        '',
+        'زیرمسیرهای عمومی برای نگه‌داشتن **بودجهٔ باندل ورودی اصلی** ساخته شده‌اند',
+        '(#142): مصرف‌کننده‌ای که فقط این بخش را می‌خواهد، باندل اصلی پکیج را',
+        'بار نمی‌کند. شکل و فهرست زیرمسیرها از `scripts/lib/exports-shape.mjs`',
+        '(`PUBLIC_SUBPATHS`) می‌آید؛ DEC-036/DEC-037.',
+        '',
+        '## نمادهای صادرشده (Public Surface)',
+        '',
+        ...(info.exports.length > 0
+          ? [
+              '| نام نماد | نوع (Kind) | سطح پایداری |',
+              '|----------|------------|-------------|',
+              ...info.exports.map((s) => `| \`${s.name}\` | \`${s.kind}\` | \`@${s.tag}\` |`),
+            ]
+          : [
+              'این زیرمسیر چیزی خودش تعریف نمی‌کند؛ همهٔ نمادها از پکیج',
+              (info.reexports ?? []).map((r) => `\`${r}\``).join('، ') + ' بازصادر می‌شوند:',
+              ...[
+                ...new Set(
+                  (info.reexports ?? []).map((r) => {
+                    const rest = r.startsWith('@zenith/') ? r.slice('@zenith/'.length) : r;
+                    return rest.split('/')[0];
+                  }),
+                ),
+              ].map((slug) => `[\`${slug}.md\`](./${slug}.md)`),
+            ]),
+        '',
+      ];
+      writeFileSync(docPath, subLines.join('\n'), 'utf8');
+    }
+  }
+
+  if (subpathRows.length > 0) {
+    indexLines.push(
+      '',
+      '## زیرمسیرهای عمومی (subpath entry points؛ #142/#120)',
+      '',
+      'این زیرمسیرها بخشی از API عمومی‌اند و در `api-surface.snapshot.json` هم',
+      'با کلید خودشان (`@zenith/schema/attr` و …) ثبت شده‌اند تا حذف/افزودن',
+      'ناخواسته در CI قرمز شود.',
+      '',
+      '| زیرمسیر | محیط هدف (`zenith.target`) | تعداد نمادهای عمومی | صفحهٔ مرجع API |',
+      '|---------|----------------------------|---------------------|----------------|',
+      ...subpathRows,
+      '',
+    );
+  }
+
   writeFileSync(join(apiDir, 'INDEX.md'), indexLines.join('\n') + '\n', 'utf8');
   return { surface, updated: true };
 }
@@ -218,6 +332,8 @@ if (isMain) {
   const checkOnly = process.argv.includes('--check');
   const { surface } = generateApiDocs(process.cwd(), { checkOnly });
   console.log(
-    `✅ API surface ${checkOnly ? 'verified' : 'generated'} for ${Object.keys(surface).length} packages.`,
+    `✅ API surface ${checkOnly ? 'verified' : 'generated'} for ${
+      Object.values(surface).filter((i) => !i.subpath).length
+    } packages + ${Object.values(surface).filter((i) => i.subpath).length} public subpaths.`,
   );
 }

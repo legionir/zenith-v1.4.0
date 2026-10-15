@@ -132,6 +132,48 @@ describe('#74 CI wiring and the real gates', () => {
     },
     180_000,
   );
+
+  // #142/#120 (شرط تأیید مالک): سطح attw فقط در سطح پکیج سنجیده نمی‌شود —
+  // زیرمسیرها هم entrypoint مستقل‌اند و باید در `node16-esm`/`bundler` به
+  // dist/attr.js + dist/attr.d.ts برسند (نه فقط «صفر مشکل» کلی).
+  it.skipIf(!isFullyBuilt(root))(
+    'attw sees @zenith/schema/attr as its own entrypoint and resolves it in node16-esm',
+    async () => {
+      const { checkPackage, createPackageFromTarballData } = await import('@arethetypeswrong/core');
+      const { execFileSync } = await import('node:child_process');
+      const packDir = mkdtempSync(join(tmpdir(), 'attw-subpath-'));
+      try {
+        const pack = execFileSync('npm', ['pack', '--json', '--pack-destination', packDir], {
+          cwd: join(root, 'packages', 'schema'),
+          encoding: 'utf8',
+        });
+        const tarball = join(packDir, JSON.parse(pack)[0].filename);
+        const analysis = await checkPackage(createPackageFromTarballData(readFileSync(tarball)));
+
+        const attr = analysis.entrypoints?.['./attr'];
+        expect(attr, 'ATTW must report the ./attr entrypoint').toBeDefined();
+        for (const mode of ['node16-esm', 'bundler']) {
+          const resolved = attr.resolutions?.[mode];
+          expect(resolved, `./attr @ ${mode}`).toBeDefined();
+          expect(resolved.resolution?.fileName, `./attr @ ${mode}`).toMatch(
+            /\/dist\/attr\.(js|d\.ts)$/,
+          );
+        }
+        // تنها مشکلات مجاز برای زیرمسیر ESM-only همان دو مود نادیدهٔ پروفایل esm-only است.
+        const attrProblems = (analysis.problems ?? [])
+          .filter((p) => p.entrypoint === './attr')
+          .map((p) => `${p.kind} [${p.resolutionKind}]`);
+        expect(
+          attrProblems.every((p) =>
+            /^(NoResolution \[node10\]|CJSResolvesToESM \[node16-cjs\])$/.test(p),
+          ),
+        ).toBe(true);
+      } finally {
+        rmSync(packDir, { recursive: true, force: true });
+      }
+    },
+    180_000,
+  );
 });
 
 describe('#74/#78 the only license exception is the build-only d.ts bundler', () => {

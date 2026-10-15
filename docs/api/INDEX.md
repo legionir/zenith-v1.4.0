@@ -53,3 +53,24 @@
 | `@zenith/virtual-list` | `browser` | 15 | [virtual-list.md](./virtual-list.md) |
 | `@zenith/vite-plugin` | `node` | 17 | [vite-plugin.md](./vite-plugin.md) |
 | `zenith` | `universal` | 47 | [zenith.md](./zenith.md) |
+
+## زیرمسیرهای عمومی (subpath entry points؛ #142/#120)
+
+این زیرمسیرها بخشی از API عمومی‌اند و در `api-surface.snapshot.json` هم
+با کلید خودشان (`@zenith/schema/attr` و …) ثبت شده‌اند تا حذف/افزودن
+ناخواسته در CI قرمز شود.
+
+| زیرمسیر | محیط هدف (`zenith.target`) | تعداد نمادهای عمومی | صفحهٔ مرجع API |
+|---------|----------------------------|---------------------|----------------|
+| `@zenith/schema/zod` | `universal` | 3 | [schema--zod.md](./schema--zod.md) |
+| `@zenith/schema/json-schema` | `universal` | 2 | [schema--json-schema.md](./schema--json-schema.md) |
+| `@zenith/schema/attr` | `universal` | 4 | [schema--attr.md](./schema--attr.md) |
+| `@zenith/storage/signal` | `universal` | 3 | [storage--signal.md](./storage--signal.md) |
+| `zenith/core` | `universal` | 38 | [zenith--core.md](./zenith--core.md) |
+| `zenith/ssr` | `universal` | 0 | [zenith--ssr.md](./zenith--ssr.md) |
+| `zenith/testing` | `universal` | 0 | [zenith--testing.md](./zenith--testing.md) |
+| `zenith/presets/minimal` | `universal` | 9 | [zenith--presets-minimal.md](./zenith--presets-minimal.md) |
+| `zenith/presets/spa` | `universal` | 16 | [zenith--presets-spa.md](./zenith--presets-spa.md) |
+| `zenith/presets/full` | `universal` | 16 | [zenith--presets-full.md](./zenith--presets-full.md) |
+| `zenith/browser` | `universal` | 22 | [zenith--browser.md](./zenith--browser.md) |
+
