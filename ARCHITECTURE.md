@@ -9,6 +9,9 @@
   پکیج‌های جدید موج ۲ (`shared` #141، `logger` #143) ESM-only هستند (DEC-027)
 - نسخهٔ پکیج‌های موجود `1.4.0` (lockstep)؛ متولدهای موج ۲ از `1.5.0` (DEC-026)؛
   لایسنس اعلام‌شده `MIT`
+- **چرا** این‌گونه ساخته شده (گزینه‌های ردشده، پیامدها): [`docs/adr/`](./docs/adr/README.md)
+  (`#108`، قالب MADR)؛ نمودار وابستگی تولیدشده و توضیح هستهٔ reactive:
+  [`docs/ARCHITECTURE-GRAPH.md`](./docs/ARCHITECTURE-GRAPH.md)
 
 ---
 
