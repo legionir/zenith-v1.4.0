@@ -12,8 +12,8 @@ test('no XSS/mXSS payload executes after sanitizeHTML + innerHTML', async ({ pag
   await waitReady(page, '__ZENITH_XSS_READY__', diags);
 
   const results = await page.evaluate(async () =>
-      (window as unknown as { runCorpus: () => Promise<CorpusResults> }).runCorpus(),
-    );
+    (window as unknown as { runCorpus: () => Promise<CorpusResults> }).runCorpus(),
+  );
 
   // Positive control باید کار کند، وگرنه harness شکسته و تست توخالی است
   expect(results.controlFired).toBe(true);
