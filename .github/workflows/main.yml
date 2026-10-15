@@ -195,6 +195,15 @@ jobs:
       # #79 baseline: no static import cycles / src→devDep leakage. Full
       # layering rules land in #49.
       - run: npm run deps
+      # #49: package-level dependency graph (SVG, coloured by layer) on every run.
+      - name: Generate dependency graph (SVG)
+        run: npm run deps:graph
+      - name: Upload dependency graph
+        uses: actions/upload-artifact@v6
+        with:
+          name: dependency-graph
+          path: artifacts/dependency-graph.svg
+          retention-days: 14
       # #45: every declared @zenith/* dependency must actually be imported
       # in that package's src/test (static, type, dynamic or re-export).
       - run: npm run deps:unused

@@ -1,15 +1,37 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- CommonJS config file (dependency-cruiser loads it with require) */
 // Dependency-cruiser config for CI (#79 dependency stage + #48 reverse-dep removal + #49 L0-L5 architecture layers).
 // See docs/ARCHITECTURE-LAYERS.md for the formal layer map.
 
-const L0 = 'errors|shared|logger|cache|jalali|storage|schema|scheduler|security';
-const L1 = 'state|expressions|dependency-graph|devtools-core';
-const L2 =
-  'router|events|components|resource|data|http|actions|auth|permission|store|form|notifications|error-boundary|suspense|transition|virtual-list|data-table|i18n|a11y|head|ui|realtime|analytics|theme|auth-oauth|feature-flags|charts|icons';
-const L3 = 'runtime-core|runtime|ssr';
-const L4 = 'stateful|crud|service-worker|devtools|testing|adapter-node|adapter-edge|ssg';
-const L5 = 'zenith';
-const TOOLING =
-  'compiler|vite-plugin|cli|vscode-extension|unplugin-zenith|create-zenith|eslint-plugin|language-server|codemod|mock|testing-e2e';
+// #49: the package→layer map lives in ONE file (scripts/architecture-layers.json) shared by
+// this config, the graph generator and the docs/test that keep ARCHITECTURE-LAYERS.md honest.
+const { layers } = require('./scripts/architecture-layers.json');
+const alt = (name) => layers[name].join('|');
+const L0 = alt('L0');
+const L1 = alt('L1');
+const L2 = alt('L2');
+const L3 = alt('L3');
+const L4 = alt('L4');
+const L5 = alt('L5');
+const TOOLING = alt('TOOLING');
+
+/** `exports` subpaths ("./zod" …) are public entries: allow packages/<pkg>/src/<sub>(/index).ts */
+function publicSubpathEntries() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const out = [];
+  const dir = path.join(__dirname, 'packages');
+  for (const name of fs.readdirSync(dir)) {
+    const manifest = path.join(dir, name, 'package.json');
+    if (!fs.existsSync(manifest)) continue;
+    const exp = JSON.parse(fs.readFileSync(manifest, 'utf8')).exports ?? {};
+    for (const key of Object.keys(exp)) {
+      if (key === '.' || key === './package.json' || !key.startsWith('./')) continue;
+      const sub = key.slice(2).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out.push(`^packages/${name}/src/${sub}(/index)?\\.ts$`);
+    }
+  }
+  return out;
+}
 
 module.exports = {
   forbidden: [
@@ -26,6 +48,17 @@ module.exports = {
       comment: 'Source files must not depend on devDependencies.',
       from: { path: '^packages/[^/]+/src', pathNot: '\\.d\\.ts$' },
       to: { dependencyTypes: ['npm-dev'] },
+    },
+    {
+      name: 'no-deep-import',
+      severity: 'error',
+      comment:
+        '#49: import another workspace package only through its public entry (src/index.ts or a subpath declared in its package.json "exports") — never its internal files.',
+      from: { path: '^packages/([^/]+)/src' },
+      to: {
+        path: '^packages/[^/]+/src/',
+        pathNot: ['^packages/$1/', '^packages/[^/]+/src/index\\.ts$', ...publicSubpathEntries()],
+      },
     },
     // ── #48: Explicit forbidden reverse/unrelated dependencies ──
     {
@@ -111,7 +144,7 @@ module.exports = {
     includeOnly: '^packages/[^/]+/src',
     exclude: { dynamic: true },
     doNotFollow: { path: 'node_modules' },
-    tsConfig: { fileName: 'tsconfig.eslint.json' },
+    tsConfig: { fileName: 'tsconfig.depcruise.json' },
     tsPreCompilationDeps: false,
     moduleSystems: ['cjs', 'es6', 'tsd'],
     progress: { type: 'none' },

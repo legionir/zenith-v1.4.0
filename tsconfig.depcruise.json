@@ -1,0 +1,12 @@
+{
+  // #49: dependency-cruiser must see REAL cross-package edges. Workspace imports
+  // (`@zenith/state`) resolve through node_modules to dist/ — outside `includeOnly` — so the
+  // layer rules never fired. Mapping them to sources makes every `@zenith/*` import an edge.
+  "extends": "./tsconfig.eslint.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@zenith/*": ["packages/*/src/index.ts"]
+    }
+  }
+}

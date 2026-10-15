@@ -39,11 +39,13 @@
     "license:check": "node scripts/check-licenses.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs",
     "prepare": "husky",
-    "dts-parity": "node scripts/check-dts-js-parity.mjs"
+    "dts-parity": "node scripts/check-dts-js-parity.mjs",
+    "deps:graph": "node scripts/dependency-graph.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.5",
+    "@hpcc-js/wasm-graphviz": "^1.29.2",
     "@playwright/test": "^1.56.1",
     "@size-limit/file": "^11.2.0",
     "@types/node": "^22.0.0",
