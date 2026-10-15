@@ -38,7 +38,8 @@
     "make:sbom": "node scripts/generate-sbom.mjs",
     "license:check": "node scripts/check-licenses.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dts-parity": "node scripts/check-dts-js-parity.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
