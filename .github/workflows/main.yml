@@ -378,6 +378,8 @@ jobs:
               for u in e2e/xss-fixture.html packages/state/dist/index.js packages/security/dist/index.js packages/security/test/xss-corpus.mjs; do
                 echo "== probe $(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:8089/$u") /$u"
               done
+              echo "── FAILED/FLAKY TESTS ──"
+              grep -E "✘|flaky|^  [0-9]+ (failed|flaky)|Error:" "$RUNNER_TEMP/e2e.out" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | head -25
               echo "── HEAD-40 ──"
               head -40 "$RUNNER_TEMP/e2e.out"
               echo "── TAIL-60 ──"
