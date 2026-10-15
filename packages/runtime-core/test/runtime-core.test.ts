@@ -337,3 +337,36 @@ describe('@zenith/runtime-core (#148, SPEC §2.8)', () => {
     expect(err.code).toBe('ZEN-2320');
   });
 });
+
+describe('#120 — zen-state JSON attribute', () => {
+  it('builds scoped local signals from the JSON attribute and removes it afterwards', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<span zen-state=\'{"count":3,"label":"x"}\' zen-text="$count"></span>';
+    document.body.appendChild(root);
+    const app = createApp();
+    app.mount(root);
+
+    const span = root.querySelector('span')!;
+    expect(span.textContent).toBe('3');
+    expect(span.hasAttribute('zen-state')).toBe(false);
+    app.dispose();
+    root.remove();
+  });
+
+  it('keeps rendering when the attribute is not valid JSON and reports the error', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<span zen-state="not-json" zen-text="\'ok\'"></span>';
+    document.body.appendChild(root);
+    const errors: unknown[] = [];
+    const onError = (err: unknown) => errors.push(err);
+    const app = createApp({ errorHandler: onError as (err: unknown) => void });
+    app.mount(root);
+
+    expect(root.querySelector('span')!.textContent).toBe('ok');
+    expect(root.querySelector('span')!.hasAttribute('zen-state')).toBe(false);
+    // خطای ZEN-1003 گزارش شده است (بدون شکستن رندر).
+    expect(errors.length).toBeGreaterThan(0);
+    app.dispose();
+    root.remove();
+  });
+});

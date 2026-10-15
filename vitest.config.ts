@@ -23,6 +23,11 @@ const alias: AliasEntry[] = [
     find: /^@zenith\/schema\/json-schema$/,
     replacement: join(packagesDir, 'schema/src/json-schema.ts'),
   },
+  // #120 — مسیر مشترک خواندن attribute (@zenith/schema/attr)
+  {
+    find: /^@zenith\/schema\/attr$/,
+    replacement: join(packagesDir, 'schema/src/attr.ts'),
+  },
   // #145 — زیرمسیر SPEC §۲.۵: @zenith/storage/signal
   {
     find: /^@zenith\/storage\/signal$/,

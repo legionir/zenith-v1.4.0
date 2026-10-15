@@ -1081,22 +1081,19 @@ export function createApp(options?: AppOptions): App {
     // 2. zen-state: ساخت سیگنال‌های محلی از JSON attribute
     let currentLocalCtx = localCtx;
     if (el.hasAttribute('zen-state')) {
+      // #120: مقدار attribute از مسیر مشترک خوانده می‌شود — پیش از حذف، چون
+      // helper خودش attribute را از DOM می‌خواند (JSON خراب ⇒ ZEN-1003 به
+      // handleAppError و بازگشت به {}؛ attribute غایب ⇒ {}).
+      const parsed = parseJsonAttr<Record<string, unknown>>(el, 'zen-state', {
+        fallback: {},
+        onError: (err) => handleAppError(app, err),
+      });
       el.removeAttribute('zen-state');
-      // #120: مقدار attribute از مسیر مشترک strict خوانده می‌شود
-      // (attribute غایب ⇒ {}؛ JSON خراب ⇒ ZEN-1003 که به handleAppError می‌رود).
-      try {
-        const parsed = parseJsonAttr<Record<string, unknown>>(el, 'zen-state', {
-          fallback: {},
-          onError: (err) => handleAppError(app, err),
-        });
-        const scopedSignals: Record<string, any> = {};
-        for (const [k, v] of Object.entries(parsed)) {
-          scopedSignals[k] = signal(v);
-        }
-        currentLocalCtx = { ...localCtx, ...scopedSignals };
-      } catch (err) {
-        handleAppError(app, err);
+      const scopedSignals: Record<string, any> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        scopedSignals[k] = signal(v);
       }
+      currentLocalCtx = { ...localCtx, ...scopedSignals };
     }
 
     // 3. جمع‌آوری دایرکتیوهای روی این المان
