@@ -2,6 +2,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
+import { generateDecIndex } from '../generate-dec-index.mjs';
 
 // #175 (RFC): هر ۸ تصمیم باز NEW-PACKAGES-SPEC باید ADR داشته باشد
 // (تصمیم، دلیل، پیامد) + لینک issueهای تحت‌تأثیر، و SPEC با تصمیم‌ها همگام شود.
@@ -37,11 +38,41 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     expect(text).toMatch(/#\d{2,3}/);
   });
 
-  it('DEC numbering has no duplicates and reaches 036', () => {
-    const files = readdirSync(DEC).filter((f) => f.startsWith('DEC-'));
+  it('DEC numbering has no duplicates and reaches 037', () => {
+    const files = readdirSync(DEC).filter((f) => /^DEC-\d{3}-/.test(f));
     const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(36); // #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    expect(Math.max(...nums)).toBe(37); // #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    // پوشه باید دقیقاً از ۱ تا max پیوسته باشد (شمارهٔ جاافتاده = تصمیم گم‌شده).
+    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 37 }, (_, i) => i + 1));
+  });
+
+  it('DEC-035 exists exactly once and the two later decisions are real files', () => {
+    const files = readdirSync(DEC).filter((f) => f.startsWith('DEC-035'));
+    expect(files).toEqual(['DEC-035-unique-public-export-names.md']);
+    expect(existsSync(join(DEC, 'DEC-036-options-object-signatures.md')), 'DEC-036').toBe(true);
+    expect(
+      existsSync(join(DEC, 'DEC-037-public-subpath-table-and-global-reset-placement.md')),
+      'DEC-037',
+    ).toBe(true);
+  });
+
+  it('docs/decisions/README.md (DEC index) lists every decision — drift fails CI', () => {
+    const { rows, stale } = generateDecIndex({ checkOnly: true });
+    expect(stale).toBe(false);
+    expect(rows.length).toBeGreaterThanOrEqual(37);
+    const index = readFileSync(join(DEC, 'README.md'), 'utf8');
+    for (const row of rows) {
+      expect(index).toContain(`[\`${row.file}\`](./${row.file})`);
+    }
+    expect(index).toContain('DEC-037');
+  });
+
+  it('DEC-036 appendix records the two owner-approved placements and links DEC-037', () => {
+    const text = readFileSync(join(DEC, 'DEC-036-options-object-signatures.md'), 'utf8');
+    expect(text).toContain('DEC-037');
+    expect(text).toMatch(/۴KB|4KB/);
+    expect(text).toContain('onGlobalReset');
   });
 
   it('error-space ADR formalizes ZEN-DEPR registry (DEC-019) and hands ranges to #171', () => {

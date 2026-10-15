@@ -3,6 +3,7 @@
 - **وضعیت:** پذیرفته‌شده (موج ۴، #55)
 - **تاریخ:** ۲۰۲۶-۱۰-۱۵
 - **مرتبط:** DEC-003 (any)، DEC-026 (سیاست deprecation)، DEC-029 (مرزهای schema/گزینه‌ها)،
+  **DEC-037** (زیرمسیرهای عمومی از یک جدول + جایگاه `onGlobalReset`)،
   API-CONVENTIONS §۱.۱/§۴، `scripts/positional-config-audit.mjs`، قاعدهٔ ESLint
   `zenith/options-object`
 
@@ -55,3 +56,18 @@
   فایل‌های `packages/*/src` را می‌بیند (اسکریپت‌های `scripts/` مشمول گیت CI هستند).
 - **خنثی:** تغییر رفتار ندارد؛ همهٔ overloadهای قدیمی هنوز کار می‌کنند و تست
   سازگاری دوگانه دارند (`scripts/test/positional-config.test.mjs`).
+
+## پیوست الف — دو جای‌گذاری تأییدشدهٔ مالک (DEC-037)
+
+این دو مورد در موج ۴ و ذیل همین تأیید بسته شدند؛ شرح کامل در
+[`DEC-037`](./DEC-037-public-subpath-table-and-global-reset-placement.md):
+
+1. **`@zenith/schema/attr`** زیرمسیری است که باندل ورودی اصلی `schema` را زیر
+   بودجهٔ **یخ‌زدهٔ ۴KB (#142)** نگه می‌دارد. فهرست و شکل همهٔ زیرمسیرهای عمومی
+   فقط از `scripts/lib/exports-shape.mjs` (`PUBLIC_SUBPATHS`) می‌آید و
+   `scripts/test/exports-shape.test.mjs` برابری‌اش را با همهٔ `package.json`ها
+   می‌سنجد. **سقف ۴KB بازنگری نشد.**
+2. **`onGlobalReset`/`runGlobalResets` در `@zenith/errors`** می‌مانند (صفر
+   وابستگی، بودجهٔ ۲KB `shared` دست‌نخورده، رِجیستری روی `globalThis` با
+   `Symbol.for('zenith.globalReset')` برای ایمنی dual-package، و
+   `onGlobalReset` برگردانندهٔ `Cleanup` طبق DEC-032).

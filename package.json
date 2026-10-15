@@ -38,6 +38,8 @@
     "make:sbom": "node scripts/generate-sbom.mjs",
     "license:check": "node scripts/check-licenses.mjs",
     "docs:api": "node scripts/generate-api-docs.mjs",
+    "dec:index": "node scripts/generate-dec-index.mjs",
+    "check:dec-index": "node scripts/generate-dec-index.mjs --check",
     "docs:errors": "node scripts/generate-error-docs.mjs",
     "check:positional-config": "node scripts/positional-config-audit.mjs",
     "check:error-docs": "node scripts/check-error-docs.mjs",
