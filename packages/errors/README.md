@@ -90,6 +90,11 @@ try {
 
 کلاس پایه برای تمام خطاهای Zenith.
 
+> **#112:** `docsUrl` همیشه پر است (در سازنده از `errorDocsUrl(code)` مشتق می‌شود)
+> و `toUserString()` آن را چاپ می‌کند. صفحهٔ هر کد — با علت، نمونهٔ کد خطادار و
+> رفع — در [`docs/errors/`](../../docs/errors/README.md) تولید می‌شود و گیت CI
+> `npm run check:error-docs` آن را از کاتالوگ هم‌گام نگه می‌دارد.
+
 ```typescript
 class ZenithError extends Error {
   code: string; // "ZEN-001"
@@ -97,7 +102,7 @@ class ZenithError extends Error {
   suggestion?: string; // راهنمای رفع
   details?: Record<string, unknown>; // جزئیات دیباگ
   context?: Record<string, unknown>; // context در زمان خطا
-  docsUrl?: string; // لینک مستندات (createReservedError خودکار ست می‌کند)
+  docsUrl: string; // همیشه پر است: https://zenith.dev/errors/<code> (#112)
 
   toUserString(): string; // فرمت کاربرپسند
   toJSON(): Record<string, unknown>; // فرمت API

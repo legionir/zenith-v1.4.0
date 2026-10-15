@@ -54,8 +54,14 @@ export class ZenithError extends Error {
   readonly details?: Record<string, unknown>;
   readonly context?: Record<string, unknown>;
   readonly isDevMode: boolean;
-  /** لینک مستندات خطا (SPEC §۰.۴: `https://zenith.dev/errors/<code>`) — #171 */
-  readonly docsUrl?: string;
+  /**
+   * لینک مستندات خطا (SPEC §۰.۴: `https://zenith.dev/errors/<code>`) — #171.
+   * #112: همیشه پر است (در سازنده از `errorDocsUrl(code)` مشتق می‌شود) تا هیچ
+   * خطی بدون راهنمای قابل‌اقدام چاپ نشود؛ صفحهٔ هر کد در `docs/errors/<code>.md`
+   * است و با `scripts/check-error-docs.mjs` در CI گیت می‌شود.
+   * @default errorDocsUrl(code)
+   */
+  readonly docsUrl: string;
   /**
    * شدت خطای زمان اجرا (#115 / DEC-031) — اختیاری؛ hub هنگام emit ست می‌کند.
    * خطای throw شده (مسیر programmer) معمولاً undefined است.
@@ -93,7 +99,8 @@ export class ZenithError extends Error {
     this.suggestion = opts.suggestion;
     this.details = opts.details;
     this.context = opts.context;
-    this.docsUrl = opts.docsUrl;
+    // #112: پیش‌فرض، خودِ کد است — سازندهٔ بدون docsUrl هم لینک می‌گیرد.
+    this.docsUrl = opts.docsUrl ?? errorDocsUrl(opts.code);
     this.timestamp = Date.now();
     this.isDevMode =
       typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false;
@@ -1497,6 +1504,125 @@ export const DEPRECATION_CODES: Readonly<
   'ZEN-DEPR-041': {
     api: 'animateLeave(el, name, duration, easing, onFinish)',
     replacement: 'animateLeave(el, { name, duration, easing, onFinish })',
+    removedIn: '2.0.0',
+  },
+  // #119 — «یک نام، یک معنا»: نام‌های تکراری cross-package که به نام یکتا
+  // تغییر کردند (DEC-035). aliasهای قدیمی در ۲.۰ حذف می‌شوند (DEC-026).
+  'ZEN-DEPR-042': {
+    api: 'registerCache (@zenith/devtools-core)',
+    replacement: 'registerDevtoolsCache',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-043': {
+    api: 'registerStore (@zenith/devtools-core)',
+    replacement: 'registerDevtoolsStore',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-044': {
+    api: 'registerSignal (@zenith/devtools)',
+    replacement: 'registerPanelSignal',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-045': {
+    api: 'recordStateChange (@zenith/devtools)',
+    replacement: 'recordPanelStateChange',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-046': {
+    api: 'invalidate (@zenith/data)',
+    replacement: 'invalidateFetchCache',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-049': {
+    api: 'validate (@zenith/expressions)',
+    replacement: 'validateAst',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-050': {
+    api: 'deprecate (@zenith/logger)',
+    replacement: 'warnDeprecated',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-051': {
+    api: 'mockHttp (@zenith/testing)',
+    replacement: 'mockFetch',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-052': {
+    api: 'alert (@zenith/notifications)',
+    replacement: 'showAlert',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-053': {
+    api: 'confirm (@zenith/notifications)',
+    replacement: 'showConfirm',
+    removedIn: '2.0.0',
+  },
+  // #118 — پاک‌سازی‌های سراسری که به resetForTesting()/@zenith/testing منتقل شدند
+  'ZEN-DEPR-054': {
+    api: 'clearActions',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-055': {
+    api: 'clearComponents',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-056': {
+    api: 'clearAuth',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-057': {
+    api: 'clearPermissionManagers',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-058': {
+    api: 'clearResources',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-059': {
+    api: 'clearStores',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-060': {
+    api: 'clearServerComponents',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-061': {
+    api: 'clearEventModifiers',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-062': {
+    api: 'clearCustomDirectives',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-063': {
+    api: 'clearScheduler',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-064': {
+    api: 'clearRegistry (@zenith/devtools-core)',
+    replacement: 'resetForTesting() (@zenith/testing)',
+    removedIn: '2.0.0',
+  },
+  // #55 — پیکربندی positional → options-object
+  'ZEN-DEPR-065': {
+    api: 'createSuspenseContext(timeoutMs, onSettle)',
+    replacement: 'createSuspenseContext({ timeoutMs, onSettle })',
+    removedIn: '2.0.0',
+  },
+  'ZEN-DEPR-066': {
+    api: 'processFetchWithCache(url, ttl)',
+    replacement: 'processFetchWithCache(url, { ttl })',
     removedIn: '2.0.0',
   },
 };

@@ -25,3 +25,6 @@ export {
   type ErrorLogSink,
   type EmitErrorInput,
 } from './hub';
+
+// ریست سراسری (#118): رجیستری هوک‌های پاک‌سازی وضعیت ماژولی
+export { onGlobalReset, runGlobalResets, type GlobalResetHook } from './global-reset';
