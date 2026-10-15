@@ -29,8 +29,8 @@ jobs:
     name: Lint (ESLint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -42,8 +42,8 @@ jobs:
     name: Format (Prettier)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -54,8 +54,8 @@ jobs:
     name: Type-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -67,8 +67,8 @@ jobs:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -91,7 +91,7 @@ jobs:
           exit $code
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage/
@@ -106,8 +106,8 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -126,8 +126,8 @@ jobs:
     name: Performance benchmark (#84)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -139,8 +139,8 @@ jobs:
     name: Dependency audit (prod + dev) & Secret Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -161,7 +161,7 @@ jobs:
         run: npm run license:check
       - name: Upload SBOM
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.json
@@ -171,13 +171,13 @@ jobs:
     name: Secret scan (Gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - run: node scripts/secret-scan.mjs
@@ -186,8 +186,8 @@ jobs:
     name: Dependency graph
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -220,8 +220,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -229,7 +229,7 @@ jobs:
       # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
       - name: Restore dist cache (#82)
         id: dist
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             packages/*/dist
@@ -259,8 +259,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -268,7 +268,7 @@ jobs:
       # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
       - name: Restore dist cache (#82)
         id: dist
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             packages/*/dist
@@ -286,8 +286,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -315,8 +315,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -324,7 +324,7 @@ jobs:
       # #82: cache خروجی build برای تسریع CI؛ روی miss بیلد کامل اجرا می‌شود.
       - name: Restore dist cache (#82)
         id: dist
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             packages/*/dist
@@ -368,7 +368,7 @@ jobs:
           exit $code
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
@@ -384,9 +384,9 @@ jobs:
         # Node 20 LTS, and Node 22 active LTS.
         node: ['18.19', '20', '22']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node ${{ matrix.node }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -420,7 +420,7 @@ jobs:
       # Bundles land under artifacts/packages/<name>/dist/ plus a manifest.json
       # index. Download them from the run's Artifacts section.
       - name: Upload bundles
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: zenith-bundles-node${{ matrix.node }}
           path: artifacts/
@@ -438,13 +438,13 @@ jobs:
       contents: write
     steps:
       - name: Download bundles
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: zenith-bundles-node22
           path: artifacts
       - name: Create tarball
         run: tar -czf "zenith-bundles-${GITHUB_REF_NAME}.tar.gz" -C artifacts .
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: zenith-bundles-*.tar.gz
