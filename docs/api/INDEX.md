@@ -20,7 +20,7 @@
 | `@zenith/devtools-core` | `universal` | 51 | [devtools-core.md](./devtools-core.md) |
 | `@zenith/error-boundary` | `browser` | 20 | [error-boundary.md](./error-boundary.md) |
 | `@zenith/errors` | `universal` | 53 | [errors.md](./errors.md) |
-| `@zenith/events` | `browser` | 24 | [events.md](./events.md) |
+| `@zenith/events` | `browser` | 27 | [events.md](./events.md) |
 | `@zenith/expressions` | `universal` | 28 | [expressions.md](./expressions.md) |
 | `@zenith/feature-flags` | `universal` | 13 | [feature-flags.md](./feature-flags.md) |
 | `@zenith/form` | `universal` | 43 | [form.md](./form.md) |

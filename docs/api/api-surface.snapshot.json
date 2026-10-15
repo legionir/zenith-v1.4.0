@@ -1945,6 +1945,11 @@
         "tag": "public"
       },
       {
+        "name": "NON_BUBBLING_EVENTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
         "name": "parseBinding",
         "kind": "function",
         "tag": "public"
@@ -1955,7 +1960,17 @@
         "tag": "public"
       },
       {
+        "name": "PASSIVE_BY_DEFAULT_EVENTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
         "name": "registerEventModifier",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetPassiveWarnings",
         "kind": "function",
         "tag": "public"
       },

@@ -119,9 +119,12 @@ directiveهایی که نتیجه‌شان را در state می‌نویسند،
 
 فرم پارامتریک با `:` (نام رویداد) و `.` (modifierها). پایهٔ `zen-action` یک
 action name از رجیستری `@zenith/actions` می‌گیرد. modifierهای داخلی در
-`BUILTIN_MODIFIERS` (`packages/events/src/modifiers.ts`): `prevent`, `stop`,
-`immediate`, `self`, `once`, `enter`, `escape`, کلیدهای ترکیبی، و زمانی
-`debounce.NNN`/`throttle.NNN`.
+`BUILTIN_MODIFIERS` (`packages/events/src/modifiers.ts`): رفتار (`prevent`, `stop`,
+`immediate`, `self`, `once`)، گزینهٔ listener (`passive`, `capture`)، زمان‌بندی
+(`debounce.NNN`, `throttle.NNN`)، کلیدها (`enter`, `escape`, `tab`, `space`, `backspace`, `del`,
+`up`, `down`, `left`, `right`) و کلیدهای تغییردهنده (`shift`, `ctrl`, `alt`, `meta`).
+مرجع کامل هر modifier با مثال و نکتهٔ passive/capture:
+[`packages/events/README.md`](../packages/events/README.md#modifier-ها-مرجع-کامل--136).
 
 ```html
 <button zen-action="save">                    <!-- پیش‌فرض: click -->
