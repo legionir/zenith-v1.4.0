@@ -17,6 +17,7 @@ export {
   registerTestingReset,
   resetForTesting,
   useFakeTimers,
+  mockFetch,
   mockHttp,
   mockRouter,
   testDirective,

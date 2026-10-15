@@ -32,6 +32,7 @@
 
 import { signal, computed, type Signal, type ReadonlySignal } from '@zenith/state';
 import { logger } from '@zenith/logger';
+import { deprecate, onGlobalReset } from '@zenith/errors';
 
 /**
  * Deep-freeze an object and all its nested properties. Used by
@@ -415,8 +416,18 @@ export function can(permission: string, managerName: string = 'default'): Readon
  * پاکسازی همه‌ی PermissionManager instances (برای تست‌ها).
  */
 export function clearPermissionManagers(): void {
+  deprecate('ZEN-DEPR-057', 'clearPermissionManagers', 'resetForTesting() (@zenith/testing)');
+  clearPermissionManagersInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearPermissionManagersInternal(): void {
   permissionRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearPermissionManagersInternal);
 
 /**
  * IMP-PRM-03 (v1.3.0): Route guard factory for router integration.

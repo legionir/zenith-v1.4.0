@@ -16,6 +16,8 @@ import {
   ZenithError,
   resetDeprecationWarnings,
   clearErrorHistory,
+  deprecate,
+  runGlobalResets,
 } from '@zenith/errors';
 
 // ============================================================
@@ -562,6 +564,9 @@ export function registerTestingReset(fn: () => void): () => void {
 export function resetForTesting(): void {
   resetDeprecationWarnings();
   clearErrorHistory();
+  // #118: هوک‌هایی که پکیج‌ها خودشان در L0 ثبت کرده‌اند (رجیستری‌ها، صف
+  // اعلان‌ها، زمان‌بند) — بدون وابستگی معکوس از L4 به همهٔ پکیج‌ها.
+  runGlobalResets();
   for (const hook of Array.from(_testingResetHooks)) {
     try {
       hook();
@@ -661,7 +666,7 @@ export interface MockHttpController {
 /**
  * #137: شبیه‌ساز درخواست‌های `fetch` برای تست‌های بدون شبکه (مانند `zen-fetch` و `@zenith/http`).
  */
-export function mockHttp(
+export function mockFetch(
   handler: (
     url: string,
     init: RequestInit,
@@ -853,3 +858,13 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   includeWarnings: false,
   level: 'AA' as const,
 });
+
+/**
+ * @deprecated #119 — نام `mockHttp` با `@zenith/http.mockHttp` (mock خط لولهٔ
+ * http) هم‌نام و مبهم بود؛ این تابع `globalThis.fetch` را در تست‌ها patch
+ * می‌کند. از `mockFetch` استفاده کنید (ZEN-DEPR-051؛ حذف در ۲.۰).
+ */
+export function mockHttp(handler: Parameters<typeof mockFetch>[0]): MockHttpController {
+  deprecate('ZEN-DEPR-051', 'mockHttp (@zenith/testing)', 'mockFetch');
+  return mockFetch(handler);
+}

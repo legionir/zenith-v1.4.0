@@ -34,6 +34,7 @@ import { logger } from '@zenith/logger';
 import type { Disposable } from '@zenith/shared';
 // #144: dedupe درخواست‌های هم‌زمان روی @zenith/cache (L0).
 import { createCache, type Cache } from '@zenith/cache';
+import { onGlobalReset } from '@zenith/errors';
 
 /**
  * وضعیت یک Resource.
@@ -930,11 +931,21 @@ export function resetResourceRegistry(): void {
 }
 
 export function clearResources(): void {
+  deprecate('ZEN-DEPR-058', 'clearResources', 'resetForTesting() (@zenith/testing)');
+  clearResourcesInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearResourcesInternal(): void {
   for (const resource of resourceRegistry.values()) {
     resource.reset();
   }
   resourceRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearResourcesInternal);
 
 /**
  * Invalidate همه‌ی Resource ها (مفید بعد از login/logout).

@@ -1,5 +1,5 @@
 // packages/components/src/registry.ts
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError, ErrorCode, deprecate, onGlobalReset } from '@zenith/errors';
 //
 // Component Registry — ثبت و بازیابی قالب‌های کامپوننت‌ها.
 //
@@ -184,8 +184,18 @@ export function listComponents(): string[] {
  * ⚠️ در Production استفاده نکنید.
  */
 export function clearComponents(): void {
+  deprecate('ZEN-DEPR-055', 'clearComponents', 'resetForTesting() (@zenith/testing)');
+  clearComponentsInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearComponentsInternal(): void {
   getActiveComponentMap().clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearComponentsInternal);
 
 // ─────────────────────────────────────────────────────────────────────────
 // BUG-COM-01 (v1.3.0): Component Lifecycle Tracking with MutationObserver

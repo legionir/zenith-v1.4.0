@@ -9,10 +9,11 @@
 //   • رجیستری پنل: `registerCache`, `registerStore`, `registerApp`.
 //   • Hook نسخه‌دار روی `globalThis.__ZENITH_DEVTOOLS_HOOK__` با `{ version, emit, on }` و خطاهای ZEN-2401 / ZEN-2402.
 
-import { createReservedError } from '@zenith/errors';
+import { createReservedError, deprecate } from '@zenith/errors';
 import { s, defineOptions } from '@zenith/schema';
 import type { Cleanup, Disposable } from '@zenith/shared';
 import { setSignalObserver, type Signal } from '@zenith/state';
+import { onGlobalReset } from '@zenith/errors';
 
 export {
   RuntimeGraph,
@@ -410,11 +411,29 @@ export function onStateChange(cb: (change: StateChange) => void): Cleanup {
 }
 
 export function clearRegistry(): void {
+  deprecate(
+    'ZEN-DEPR-064',
+    'clearRegistry (@zenith/devtools-core)',
+    'resetForTesting() (@zenith/testing)',
+  );
+  clearDevtoolsRegistryInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearDevtoolsRegistryInternal(): void {
   signalToId = new WeakMap<UntypedSignal, string>();
   idToInfo.clear();
   timeline.length = 0;
   stateChangeListeners.clear();
+  // رجیستری‌های پنل (#119 نام‌گذاری صریح)
+  registeredCaches.clear();
+  registeredStores.clear();
+  registeredApps.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearDevtoolsRegistryInternal);
 
 export const clearDevtoolsRegistry = clearRegistry;
 
@@ -547,7 +566,7 @@ export async function replay(from: number, to: number, opts?: { speed?: number }
 
 // ── Panel Registries (`registerCache`, `registerStore`, `registerApp`) ──
 
-export function registerCache(name: string, cache: unknown): Cleanup {
+export function registerDevtoolsCache(name: string, cache: unknown): Cleanup {
   registeredCaches.set(name, cache);
   let removed = false;
   return () => {
@@ -563,7 +582,7 @@ export function getRegisteredCaches(): ReadonlyMap<string, unknown> {
   return new Map(registeredCaches);
 }
 
-export function registerStore(name: string, store: unknown): Cleanup {
+export function registerDevtoolsStore(name: string, store: unknown): Cleanup {
   registeredStores.set(name, store);
   let removed = false;
   return () => {
@@ -658,4 +677,24 @@ export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
       }
     },
   };
+}
+
+/**
+ * @deprecated #119 — نام `registerCache` با `@zenith/cache.registerCache`
+ * (رجیستری واقعی کش) هم‌نام و مبهم بود؛ این تابع رجیستری **پنل devtools** است.
+ * از `registerDevtoolsCache` استفاده کنید (ZEN-DEPR-042؛ حذف در ۲.۰).
+ */
+export function registerCache(name: string, cache: unknown): Cleanup {
+  deprecate('ZEN-DEPR-042', 'registerCache (@zenith/devtools-core)', 'registerDevtoolsCache');
+  return registerDevtoolsCache(name, cache);
+}
+
+/**
+ * @deprecated #119 — نام `registerStore` با `@zenith/store.registerStore`
+ * (رجیستری واقعی storeها) هم‌نام و مبهم بود؛ این تابع رجیستری **پنل devtools**
+ * است. از `registerDevtoolsStore` استفاده کنید (ZEN-DEPR-043؛ حذف در ۲.۰).
+ */
+export function registerStore(name: string, store: unknown): Cleanup {
+  deprecate('ZEN-DEPR-043', 'registerStore (@zenith/devtools-core)', 'registerDevtoolsStore');
+  return registerDevtoolsStore(name, store);
 }

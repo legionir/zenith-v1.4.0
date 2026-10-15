@@ -56,10 +56,12 @@ export {
 export {
   devtoolsAPI,
   exposeDevToolsAPI,
+  registerPanelSignal,
   registerSignal,
   registerEffect,
   markEffectActive,
   markEffectDisposed,
+  recordPanelStateChange,
   recordStateChange,
   type DevToolsAPI,
   type DevToolsSignalInfo,

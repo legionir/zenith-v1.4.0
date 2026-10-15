@@ -51,7 +51,7 @@
 // این الگو شبیه به Vue 3 reactivity است.
 
 import { signal, computed, type Signal } from '@zenith/state';
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError, ErrorCode, deprecate, onGlobalReset } from '@zenith/errors';
 
 /**
  * #127: گزینه‌های ذخیره‌سازی پایدار Store (`persistStore`).
@@ -748,8 +748,18 @@ export function unregisterStore(name: string): boolean {
  * پاکسازی همه‌ی store ها (برای تست‌ها).
  */
 export function clearStores(): void {
+  deprecate('ZEN-DEPR-059', 'clearStores', 'resetForTesting() (@zenith/testing)');
+  clearStoresInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearStoresInternal(): void {
   for (const store of storeRegistry.values()) {
     (store as any).__dispose__?.();
   }
   storeRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearStoresInternal);

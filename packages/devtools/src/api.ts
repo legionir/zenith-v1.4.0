@@ -10,6 +10,7 @@
 import type { Signal } from '@zenith/state';
 import { getErrorHistory } from '@zenith/state';
 import { logger } from '@zenith/logger';
+import { deprecate } from '@zenith/errors';
 
 export interface DevToolsSignalInfo {
   id: string;
@@ -115,7 +116,7 @@ const generateId = (prefix: string) => `${prefix}_${nextId++}_${Date.now().toStr
 
 // --- Registration hooks (called by core only when enabled) ---
 
-export function registerSignal(signal: Signal<any>, name?: string): void {
+export function registerPanelSignal(signal: Signal<any>, name?: string): void {
   if (!enabled) return;
 
   const id = generateId('sig');
@@ -166,7 +167,7 @@ export function markEffectDisposed(id: string): void {
   }
 }
 
-export function recordStateChange(
+export function recordPanelStateChange(
   signalId: string,
   oldValue: any,
   newValue: any,
@@ -309,4 +310,22 @@ export function exposeDevToolsAPI(): void {
   if ((window as any).__ZENITH__) return;
 
   (window as any).__ZENITH__ = devtoolsAPI;
+}
+
+/**
+ * @deprecated #119 — نام `registerSignal` با `@zenith/devtools-core.registerSignal`
+ * هم‌نام و مبهم بود؛ از `registerPanelSignal` استفاده کنید (ZEN-DEPR-044؛ حذف در ۲.۰).
+ */
+export function registerSignal(...args: Parameters<typeof registerPanelSignal>): void {
+  deprecate('ZEN-DEPR-044', 'registerSignal (@zenith/devtools)', 'registerPanelSignal');
+  registerPanelSignal(...args);
+}
+
+/**
+ * @deprecated #119 — نام `recordStateChange` با `@zenith/devtools-core` هم‌نام بود؛
+ * از `recordPanelStateChange` استفاده کنید (ZEN-DEPR-045؛ حذف در ۲.۰).
+ */
+export function recordStateChange(...args: Parameters<typeof recordPanelStateChange>): void {
+  deprecate('ZEN-DEPR-045', 'recordStateChange (@zenith/devtools)', 'recordPanelStateChange');
+  recordPanelStateChange(...args);
 }

@@ -55,10 +55,10 @@ describe('#117 API-CONVENTIONS document', () => {
   });
 
   it('every numbered rule section has a code example', () => {
-    // بخش‌های قاعدهٔ ۱.۱..۱.۶ (### زیر ۱.) باید بلوک کد ``` داشته باشند
+    // بخش‌های قاعدهٔ ۱.۱..۱.۷ (### زیر ۱.) باید بلوک کد ``` داشته باشند
     const sections = DOC.split(/^### /m).slice(1);
     const ruleSections = sections.filter((s) => /^۱\.[۰-۹]+/.test(s));
-    expect(ruleSections.length).toBe(6);
+    expect(ruleSections.length).toBe(7); // #119: ۱.۷ «یک نام، یک معنا»
     for (const s of ruleSections) {
       expect(s, `section "${s.split('\n')[0]}" has no code example`).toContain('```');
     }

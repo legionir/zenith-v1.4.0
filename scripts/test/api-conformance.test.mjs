@@ -59,6 +59,40 @@ import {
   createInjectionKey,
 } from '../../packages/runtime-core/src/index.ts';
 import { parseConfigAttr, s } from '../../packages/schema/src/index.ts';
+import {
+  createAuth,
+  registerAuth,
+  getAuth,
+  hasAuth,
+  listAuths,
+  unregisterAuth,
+} from '../../packages/auth/src/index.ts';
+import {
+  registerPermissionManager,
+  getPermissionManager,
+  hasPermissionManager,
+  listPermissionManagers,
+  unregisterPermissionManager,
+  createPermissionManager,
+} from '../../packages/permission/src/index.ts';
+import {
+  registerEventModifier,
+  getEventModifier,
+  hasEventModifier,
+} from '../../packages/events/src/index.ts';
+import {
+  registerCustomDirective,
+  getCustomDirective,
+  hasCustomDirective,
+  unregisterCustomDirective,
+} from '../../packages/runtime/src/index.ts';
+import {
+  registerDevtoolsCache,
+  getRegisteredCaches,
+  registerDevtoolsStore,
+  getRegisteredStores,
+} from '../../packages/devtools-core/src/index.ts';
+import { onGlobalReset, runGlobalResets } from '../../packages/errors/src/index.ts';
 
 describe('Wave 4 P1 Batch 8 — Registry Uniformity, Unambiguous Exports, Directives, Lifecycle & DI (#118..#125)', () => {
   beforeEach(() => {
@@ -151,6 +185,109 @@ describe('Wave 4 P1 Batch 8 — Registry Uniformity, Unambiguous Exports, Direct
     resetForTesting();
     expect(customResetCalled).toBe(1);
     unregHook();
+  });
+
+  it('covers every remaining registry with the same 5-method contract (#118)', () => {
+    // @zenith/auth — کلید پیش‌فرض 'default'
+    const fakeAuth = createAuth({ loginUrl: '/login', tokenStorage: 'memory' });
+    const stopAuth = registerAuth('app', fakeAuth);
+    expect(hasAuth('app')).toBe(true);
+    expect(getAuth('app')).toBe(fakeAuth);
+    expect(listAuths()).toContain('app');
+    stopAuth();
+    stopAuth();
+    expect(hasAuth('app')).toBe(false);
+    registerAuth('app2', fakeAuth);
+    expect(unregisterAuth('app2')).toBe(true);
+    expect(unregisterAuth('app2')).toBe(false);
+
+    // @zenith/permission
+    const manager = createPermissionManager();
+    const stopPerm = registerPermissionManager('app', manager);
+    expect(hasPermissionManager('app')).toBe(true);
+    expect(getPermissionManager('app')).toBe(manager);
+    expect(listPermissionManagers()).toContain('app');
+    stopPerm();
+    stopPerm();
+    expect(hasPermissionManager('app')).toBe(false);
+    registerPermissionManager('app2', manager);
+    expect(unregisterPermissionManager('app2')).toBe(true);
+
+    // @zenith/events (modifier)
+    const mod = () => undefined;
+    const stopMod = registerEventModifier('mymod', mod);
+    expect(hasEventModifier('mymod')).toBe(true);
+    expect(getEventModifier('mymod')).toBe(mod);
+    stopMod();
+
+    // @zenith/runtime (custom directive)
+    const handler = () => undefined;
+    const stopDir = registerCustomDirective('zen-x', handler);
+    expect(hasCustomDirective('zen-x')).toBe(true);
+    expect(getCustomDirective('zen-x')).toBeTruthy();
+    stopDir();
+    registerCustomDirective('zen-y', handler);
+    expect(unregisterCustomDirective('zen-y')).toBe(true);
+
+    // @zenith/devtools-core (panel registries)
+    const stopCacheReg = registerDevtoolsCache('c1', {});
+    expect(getRegisteredCaches().get('c1')).toEqual({});
+    stopCacheReg();
+    expect(getRegisteredCaches().has('c1')).toBe(false);
+    const stopStoreReg = registerDevtoolsStore('s1', {});
+    expect(getRegisteredStores().get('s1')).toEqual({});
+    stopStoreReg();
+    expect(getRegisteredStores().has('s1')).toBe(false);
+  });
+
+  it('resetForTesting() clears every global registry — no cross-test leaks (#118)', () => {
+    // #118: هر پکیج دارندهٔ وضعیت سراسری یک هوک ثبت کرده است.
+    expect(runGlobalResets()).toBeGreaterThanOrEqual(12);
+
+    registerAction('leak-action', () => 'x');
+    const tpl = document.createElement('template');
+    registerComponent('leak-comp', tpl);
+    registerResource('leak-res', new Resource({ url: '/api/x' }));
+    registerServerComponent({ name: 'leak-srv', render: () => '<i/>' });
+    registerDevtoolsCache('leak-cache', {});
+    registerEventModifier('leak-mod', () => undefined);
+    registerCustomDirective('zen-leak', () => undefined);
+    registerAuth('leak-auth', createAuth({ loginUrl: '/login', tokenStorage: 'memory' }));
+    registerPermissionManager('leak-perm', createPermissionManager());
+
+    expect(hasAction('leak-action')).toBe(true);
+    expect(hasComponent('leak-comp')).toBe(true);
+    expect(hasResource('leak-res')).toBe(true);
+    expect(hasServerComponent('leak-srv')).toBe(true);
+    expect(getRegisteredCaches().has('leak-cache')).toBe(true);
+    expect(hasEventModifier('leak-mod')).toBe(true);
+    expect(hasCustomDirective('zen-leak')).toBe(true);
+    expect(hasAuth('leak-auth')).toBe(true);
+    expect(hasPermissionManager('leak-perm')).toBe(true);
+
+    resetForTesting();
+
+    expect(hasAction('leak-action')).toBe(false);
+    expect(hasComponent('leak-comp')).toBe(false);
+    expect(hasResource('leak-res')).toBe(false);
+    expect(hasServerComponent('leak-srv')).toBe(false);
+    expect(getRegisteredCaches().has('leak-cache')).toBe(false);
+    expect(hasEventModifier('leak-mod')).toBe(false);
+    expect(hasCustomDirective('zen-leak')).toBe(false);
+    expect(hasAuth('leak-auth')).toBe(false);
+    expect(hasPermissionManager('leak-perm')).toBe(false);
+  });
+
+  it('runGlobalResets() keeps going when a hook throws and reports how many ran (#118)', () => {
+    const bad = onGlobalReset(() => {
+      throw new Error('boom');
+    });
+    const before = runGlobalResets();
+    const after = runGlobalResets();
+    expect(after).toBe(before); // هوک خراب هرگز شمرده نمی‌شود
+    bad();
+    expect(runGlobalResets()).toBe(after); // پس از حذف هوک خراب، همهٔ ۱۲ هوک سالم اجرا می‌شوند
+    expect(after).toBeGreaterThanOrEqual(12);
   });
 
   it('exports unambiguous public API names across packages (#119)', () => {

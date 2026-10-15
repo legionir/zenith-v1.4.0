@@ -197,6 +197,10 @@ export interface JsonSchema {
  * #142: تبدیل خالص JSON Schema → Schema در @zenith/schema/json-schema قرار
  * دارد؛ اینجا mapping به rules فرم (قالب FormStore — خارج از L0) است و
  * deprecated شده (ZEN-DEPR-018؛ حذف در 2.0).
+ *
+ * @deprecated #119/#142 — نام تکراری با `@zenith/schema/json-schema.fromJsonSchema`
+ * (امضا ناسازگار، DEC-029). از `fromJsonSchema` از `@zenith/schema/json-schema` +
+ * `createForm` استفاده کنید (ZEN-DEPR-018؛ حذف در ۲.۰).
  */
 export function fromJsonSchema(
   jsonSchema: JsonSchema,

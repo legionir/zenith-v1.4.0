@@ -1,6 +1,7 @@
 // packages/actions/src/registry.ts
 import { deprecate, developerError, ErrorCode } from '@zenith/errors';
 import { logger } from '@zenith/logger';
+import { onGlobalReset } from '@zenith/errors';
 import type { Disposable } from '@zenith/shared';
 //
 // Action Registry — ثبت و بازیابی توابع Business Logic.
@@ -448,8 +449,20 @@ export function hasAction(name: string): boolean {
  * ⚠️ در Production استفاده نکنید — این عملیات تمام اکشن‌های فعال را حذف می‌کند.
  */
 export function clearActions(): void {
+  deprecate('ZEN-DEPR-054', 'clearActions', 'resetForTesting() (@zenith/testing)');
+  clearActionsInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی رجیستری (بدون هشدار) — هوک ریست سراسری به این وصل است
+ * تا `resetForTesting()` خودش هشدار deprecation تولید نکند.
+ */
+export function clearActionsInternal(): void {
   getActiveActionRegistry().clear();
 }
+
+// #118: ثبت در رجیستری ریست سراسری (L0) — اجرا با resetForTesting().
+/* @__PURE__ */ onGlobalReset(clearActionsInternal);
 
 /**
  * FEATURE (v1.3.0): لیست تمام Action های ثبت‌شده در Registry پیش‌فرض.

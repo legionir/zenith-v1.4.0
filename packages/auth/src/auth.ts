@@ -48,6 +48,7 @@ import { developerError, resourceHttpError, deprecate, ErrorCode } from '@zenith
 import { logger } from '@zenith/logger';
 import { s, defineOptions } from '@zenith/schema';
 import type { Disposable } from '@zenith/shared';
+import { onGlobalReset } from '@zenith/errors';
 
 /**
  * وضعیت کاربر فعلی.
@@ -1111,8 +1112,18 @@ export function unregisterAuth(name: string): boolean {
  * پاکسازی همه‌ی Auth instances (برای تست‌ها).
  */
 export function clearAuth(): void {
+  deprecate('ZEN-DEPR-056', 'clearAuth', 'resetForTesting() (@zenith/testing)');
+  clearAuthInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearAuthInternal(): void {
   authRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearAuthInternal);
 
 // ============================================================
 // FEATURE (v1.4.0): Functional Auth API

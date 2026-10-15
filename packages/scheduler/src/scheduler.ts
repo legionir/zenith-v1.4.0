@@ -33,7 +33,7 @@
 
 // #115 (DEC-031): مسیر واحد انتشار خطا — hub در @zenith/errors (dependency
 // مستقیم؛ مجاز چون errors هیچ وابستگی ندارد و چرخه‌ای نمی‌سازد).
-import { ZenithError, emitError, isErrorRouted, deprecate } from '@zenith/errors';
+import { ZenithError, emitError, isErrorRouted, deprecate, onGlobalReset } from '@zenith/errors';
 
 /**
  * سطح اولویت یک Effect — عدد پایین‌تر = اولویت بالاتر.
@@ -411,12 +411,22 @@ export function pendingEffectsByPriority(priority: PriorityInput): number {
  * پاکسازی کامل Scheduler.
  */
 export function clearScheduler(): void {
+  deprecate('ZEN-DEPR-063', 'clearScheduler', 'resetForTesting() (@zenith/testing)');
+  clearSchedulerInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearSchedulerInternal(): void {
   queue.clear();
   _sched.isFlushing = false;
   _sched.flushPromise = null;
   _sched.insertSeq = 0;
   afterFlushCallbacks.length = 0;
 }
+
+/* @__PURE__ */ onGlobalReset(clearSchedulerInternal);
 
 /**
  * ثبت callback بعد از flush.

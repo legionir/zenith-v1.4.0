@@ -1,7 +1,7 @@
 {
   "name": "@zenith/runtime",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
+  "description": "Zenith framework — DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

@@ -1,6 +1,7 @@
 // packages/events/src/modifiers.ts
-import { developerError } from '@zenith/errors';
+import { developerError, deprecate } from '@zenith/errors';
 import { logger } from '@zenith/logger';
+import { onGlobalReset } from '@zenith/errors';
 //
 // تجزیه و اعمال Modifier های رویداد.
 //
@@ -237,8 +238,18 @@ export function unregisterEventModifier(name: string): boolean {
  * مفید برای HMR و تست‌ها.
  */
 export function clearEventModifiers(): void {
+  deprecate('ZEN-DEPR-061', 'clearEventModifiers', 'resetForTesting() (@zenith/testing)');
+  clearEventModifiersInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearEventModifiersInternal(): void {
   _customModifiers.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearEventModifiersInternal);
 
 /**
  * FEATURE (v1.3.0): بررسی وجود یک Event Modifier سفارشی.

@@ -15,7 +15,9 @@
 //     در زمان unmount dispose کند.
 //   - processFor (فاز ۵) همین الگو را برای هر آیتم لیست به‌کار می‌برد.
 
+import { deprecate, onGlobalReset } from '@zenith/errors';
 import { createContext } from './context';
+import type { Cleanup } from '@zenith/shared';
 import { logger } from '@zenith/logger';
 import { processText } from './directives/text';
 import { processShow } from './directives/show';
@@ -136,16 +138,26 @@ export function registerCustomDirective(
   tagName: string,
   handler: CustomDirectiveHandler,
   attributeName: string = 'config',
-): void {
+): Cleanup {
   if (typeof tagName !== 'string' || tagName.length === 0) {
     logger.warn('[Zenith] registerCustomDirective: tagName must be a non-empty string.');
-    return;
+    return () => undefined;
   }
   if (typeof handler !== 'function') {
     logger.warn(`[Zenith] registerCustomDirective: handler for "${tagName}" must be a function.`);
-    return;
+    return () => undefined;
   }
-  customDirectiveRegistry.set(tagName.toLowerCase(), { attributeName, handler });
+  const key = tagName.toLowerCase();
+  customDirectiveRegistry.set(key, { attributeName, handler });
+  // #118: قرارداد یکنواخت رجیستری — خروجی Cleanup idempotent با identity-guard.
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (customDirectiveRegistry.get(key)?.handler === handler) {
+      customDirectiveRegistry.delete(key);
+    }
+  };
 }
 
 /**
@@ -159,8 +171,18 @@ export function unregisterCustomDirective(tagName: string): boolean {
  * پاکسازی کل registry (فقط برای تست‌ها و teardown کامل).
  */
 export function clearCustomDirectives(): void {
+  deprecate('ZEN-DEPR-062', 'clearCustomDirectives', 'resetForTesting() (@zenith/testing)');
+  clearCustomDirectivesInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearCustomDirectivesInternal(): void {
   customDirectiveRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearCustomDirectivesInternal);
 
 /**
  * دریافت handler یک custom directive (برای دیباگ و DevTools).
