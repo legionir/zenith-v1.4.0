@@ -13,17 +13,21 @@
   88.69% (compiler 94.70 / expressions 89.70 / scheduler 88.57 / state 83.42)، حد ۸۰٪ حفظ شد.
 - lint پس از جداسازی vendor reportهای تولیدی (`a401bdf`) مجدداً ۰ error/۹۳۸ warning؛ typecheck ۵۰؛ build ۴۹/۰ شکست + compile جداگانهٔ vscode؛
   browser-bundle، size/deps/format، ATTW/pack-audit، نصب واقعی ۴۹ tarball و ESM+CJS پاس.
-- در حال انجام: push و CI همین snapshot؛ نتیجهٔ محلی جای CI جدید نیست.
-- browser محلی: Playwright به‌علت نبود executable مرورگر launch نشد؛ تأیید مرورگر نداریم.
+- push انجام شد. CI **موفق** روی `f1b5b2e0ee72fe04e556278abf477280d7d7fa3a`:
+  https://github.com/legionir/zenith-v1.4.0/actions/runs/38914852036 — ۱۹ job موفق،
+  فقط attachment انتشارِ بدون tag skipped؛ Vite 6/7، buildهای Node 18.19/20/22،
+  Windows/macOS، coverage و browser سه‌موتوره همه success.
+- این ثبت CI فقط اسناد را به‌روز می‌کند؛ CI آخرین commit نیز پس از push بررسی می‌شود.
+- browser محلی launch نشد (executable موجود نیست)؛ **job مرورگر CI برای Chromium/Firefox/WebKit موفق شد**؛ این شاهد، CSP/a11y جامع یا #63/#163 کامل نیست.
 - #154: پروب transport واقعی **شکست** دارد؛ control echo موفق، Zenith بدون frame؛
   prototype بودن API مستند است، transport production تکمیل نشده.
 - بعدی: خاتمهٔ شواهد W1، سپس W2 (#51، bootstrap #56/#57/#38، #159/#166، #39/#40).
 - نیازمند مالک: #61/#66/#77/#80/#107؛ تلاش کامنت GitHub با خطای مجوز رد شد، **هیچ
   درخواست/برچسبی در GitHub ثبت نشد**. متن آماده در
   [OWNER-REQUESTS](./OWNER-REQUESTS-2026-10-16.md)، وضعیت در [MANUAL-STEPS](../MANUAL-STEPS.md).
-- آخرین run موفق **تاریخی** پیش از این batch:
+- run موفق **تاریخی** پیش از این batch:
   https://github.com/legionir/zenith-v1.4.0/actions/runs/38894573919 روی baseline؛
-  این run شاهد تغییرات جدید نیست. run جدید هنوز ثبت نشده است.
+  این run شاهد تغییرات جدید نیست؛ شاهد همین batch در بالا ثبت شده است.
 - جزئیات تست، دامنهٔ ناقص، advisoryها و شواهد:
   [REMEDIATION-W1](./REMEDIATION-W1-2026-10-16.md).
 

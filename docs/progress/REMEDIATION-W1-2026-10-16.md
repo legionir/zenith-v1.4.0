@@ -10,11 +10,11 @@
   `arena/ff992be5-zenith-v1-4-0` حفظ شد. دو سند ممیزی/پلن از مرحلهٔ قبل untracked بودند.
 - ۶۳ issue باز در آغاز batch بازخوانی شدند؛ هیچ issue در این batch بسته نشده است.
 - مجری تغییرات درون‌مخزنی: عامل همین نشست؛ بازبین امنیت/مالک انتشار هنوز تعیین نشده‌اند.
-- hotfix کد: `e416261` و `1845e41`؛ ابزارهای امن و ماتریس: `7561995`؛ compiler: `f57d806`؛ شاهد CI جدید هنوز در انتظار push/run است.
+- hotfix کد: `e416261` و `1845e41`؛ ابزارهای امن و ماتریس: `7561995`؛ compiler: `f57d806`؛ شاهد CI موفق در بخش ۶ ثبت شد.
 
 | کارت | نتیجهٔ این batch | باقی‌مانده / وضعیت issue |
 |---|---|---|
-| #13 | audit prod+dev صفر؛ ابزار رفع‌شده، peer امن، build/dev-server واقعی Vite 6/7، نصب peer نامعتبر رد می‌شود | CI و browser همان candidate باید تأیید شوند؛ تا آن زمان باز |
+| #13 | audit prod+dev صفر؛ ابزار رفع‌شده، peer امن، build/dev-server واقعی Vite 6/7، peer نامعتبر رد؛ CI و browser candidate موفق | بازبینی امنیت/هماهنگی release major و ثبت خاتمه در GitHub؛ مجوز issue-write موجود نیست، باز |
 | #155 | throw/reject provider مهار و ZEN-1901 بدون PII گزارش می‌شود | استخراج analytics و کل privacy/provider/contract spec در W5؛ باز |
 | #156/#157 | nonce تصادفی per-response، CSP template، انتقال cancellation و cleanup listener | پکیج adapter واقعی، transport/stream/deploy و Edge واقعی کامل نشده‌اند؛ باز |
 | #154 | پروب واقعی transport نقص را اثبات و مستندات prototype اصلاح شد | ارسال/دریافت، reconnect، parsing و backpressure پیاده نشده‌اند؛ باز |
@@ -186,8 +186,17 @@ artifactهای تولیدی lint در `a401bdf` و اسناد پس از آن ث�
 | format | پاس؛ markdown طبق ignore موجود جزو Prettier gate نیست |
 | audit کامل و omit=dev | هر دو صفر؛ هیچ استثنای critical/high پذیرفته نشده |
 | realtime transport | **شکست پذیرش واقعی** طبق بخش ۴؛ در تعداد تست‌های پاس شمرده نشده |
-| browser محلی | **اجرا نشد**؛ executable مرورگر موجود نیست، launch شکست خورد |
-| CI همین snapshot | در زمان ثبت سند هنوز push/run این snapshot انجام نشده؛ نتیجهٔ محلی جای CI نیست |
+| browser | محلی launch نشد؛ **job CI سه‌موتوره success** (Chromium/Firefox/WebKit طبق workflow) |
+| CI candidate | **موفق**: run `38914852036` روی `f1b5b2e`؛ ۱۹ job success و یک release attachment غیرتگی skipped |
+
+شاهد CI: [run 38914852036](https://github.com/legionir/zenith-v1.4.0/actions/runs/38914852036)،
+SHA کامل `f1b5b2e0ee72fe04e556278abf477280d7d7fa3a`، conclusion=success طبق API.
+ماتریس Node 18.19/20/22، دو Vite، unit/coverage، Windows/macOS، browser سه‌موتوره،
+audit، package-lint و size موفق‌اند. تنها skipped، attachment انتشار بدون tag است،
+نه غیرفعال‌کردن test. این به‌معنای رفع کامل معیارهای CSP/a11y/SSR/hydration نیست.
+دریافت لاگ خام CI از میزبان results-receiver خارج allowlist با EOF ناموفق شد؛ شمار
+تست/coverage این جدول از **خروجی محلی** است، نه شمار استخراج‌شده از لاگ خام CI.
+این ثبت CI صرفاً تغییر سند است؛ code/runtime پس از candidate موفق عوض نشده است.
 
 چهار مورد #106/#108/#112/#119 از نظر گیت‌های محلی بازاعتبارسنجی شدند، نه اینکه
 بدون مجوز و run مرتبط بسته شده باشند. نسخهٔ وب مستندات و تست دستی/ممیزی بیرونی
@@ -209,7 +218,7 @@ source/test پروژه‌ای مستثنا نشد**. سپس `npm run lint` کا�
 اجرای محلی Playwright با `--project=chromium --max-failures=1` در مرحلهٔ launch با
 نبودن executable مرورگر شکست خورد (یک fail زیرساختی و ۲۵ test اجرا نشد). مرورگر در
 محیط حاضر نصب نیست و نصب از میزبان خارج allowlist انجام نشد. نتیجهٔ browser **تأییدنشده**
-است؛ CI موجود مرورگرها را نصب می‌کند، اما تا run موفق، سبز اعلام نمی‌شود.
+بود؛ سپس CI مرورگرها را نصب کرد و job سه‌موتورهٔ همین candidate موفق شد.
 
 لاگ‌های خام و JSONهای audit خارج Git در `/home/user/remediation-w1/` نگه‌داری شدند؛
 node_modules/dist/coverage/artifact بزرگ یا credential وارد commit نمی‌شود. CI artifactها
@@ -218,7 +227,7 @@ node_modules/dist/coverage/artifact بزرگ یا credential وارد commit ن�
 ## ۷. صف بعدی
 
 1. گیت‌های batch و CI همین candidate، سپس تصمیم دربارهٔ خاتمهٔ #13 و چهار بازاعتبارسنجی؛
-   ناتوانی ثبت issue به‌صورت مانع صریح بماند، نه ادعای closure.
+   ناتوانی ثبت issue به‌صورت مانع صریح بماند، نه ادعای closure. CI candidate اکنون موفق است.
 2. W2: #51، bootstrap #56/#57/#38، scaffold #159/#166 و شروع #39/#40 طبق پلن.
 3. #154 و تکمیل پکیج‌های #155/#156/#157 به W5 باقی‌اند؛ اصلاح خطر فوری مساوی اتمام کارت نیست.
 4. پاسخ مالک برای دسترسی، scope، ممیز و Trusted Publishing جداگانه لازم است؛ هیچ انتشار
