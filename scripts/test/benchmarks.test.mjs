@@ -375,6 +375,16 @@ describe('#86 — baseline و سند تولیدشده', () => {
     expect(bad).toEqual([]);
   });
 
+  it('documents the advisory default and the opt-in strict gate', () => {
+    const { doc } = generateBenchmarksDoc({ checkOnly: true });
+    expect(doc).toContain('--strict');
+    expect(doc).toContain('حالت مشورتی');
+    const source = read('scripts/bench.mjs');
+    // انحراف در حالت پیش‌فرض کد خروج را تغییر نمی‌دهد؛ فقط `--strict` سخت است.
+    expect(source).toMatch(/if \(flags\.strict\)/);
+    expect(source).toContain('حالت مشورتی — کد خروج ۰');
+  });
+
   it('documents the reproducibility contract honestly', () => {
     const doc = read('docs/BENCHMARKS.md');
     expect(doc).toContain('baseline.json');
@@ -410,6 +420,8 @@ describe('#86 — اتصال اسکریپت‌ها و CI', () => {
     expect(parseArgs(['--', '--json']).json).toBe(true);
     expect(parseArgs(['--groups', 'reactive,dom']).groups).toEqual(['reactive', 'dom']);
     expect(parseArgs(['--only', 'dom.clear-1k']).only).toEqual(['dom.clear-1k']);
+    expect(parseArgs(['--strict']).strict).toBe(true);
+    expect(parseArgs([]).strict).toBe(false);
     expect(parseArgs(['--passes', '0']).passes).toBe(1); // حداقل یک پاس
     expect(parseArgs(['--passes', '3']).passes).toBe(3);
     expect(parseArgs([]).only).toBeNull();
