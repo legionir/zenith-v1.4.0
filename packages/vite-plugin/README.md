@@ -13,6 +13,20 @@
 npm install @zenith/vite-plugin --save-dev
 ```
 
+## Vite support and security migration (#13)
+
+Supported peer versions: **Vite `^6.4.4 || ^7.3.7`**. Vite 5 and earlier patches
+of 6/7 are no longer supported because the previous development toolchain had
+open advisories. Upgrade Vite before installing this plugin; do not bypass the
+peer check with `--force` or `--legacy-peer-deps`. Vite 7 needs Node 20.19+ or
+22.12+; this repository's normal development/test environment is Node 22.12+ on
+22 LTS (DEC-040). Library `engines >=18.19` does not mean all dev tools run there.
+
+After building this checkout, run `node scripts/vite-plugin-integration.mjs`
+for real production compilation/bundling and dev-server HTTP tests on both
+installed major versions. CI runs each major as a separate job. Vite 8 and the
+full state-preserving HMR/sourcemap contract are **not yet supported** (#110).
+
 ## استفاده
 
 در `vite.config.ts` پروژه‌ی خود:

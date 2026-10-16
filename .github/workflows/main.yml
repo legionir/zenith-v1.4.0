@@ -120,6 +120,24 @@ jobs:
         run: npm run build
       - run: npx vitest run scripts/test/
 
+  # #13: test the real plugin HTML pipeline, not direct hook invocations.
+  vite-integration:
+    name: Vite ${{ matrix.vite }} integration
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vite: [6, 7]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/vite-plugin-integration.mjs ${{ matrix.vite }}
+
   # #84: benchmark خودکار CI با بودجهٔ عملکرد (benchmarks/budgets.json) —
   # رگرسیون هر متریک (بدتر از بودجه×۰٫۶) جریان را قرمز می‌کند.
   benchmark:
@@ -148,9 +166,9 @@ jobs:
       # #65: fail on high/critical advisories in production dependencies
       - name: npm audit (production, high)
         run: npm audit --omit=dev --audit-level=high
-      # #65: report dev-dependency advisories in CI logs
-      - name: npm audit (dev report)
-        run: npm audit --audit-level=high || true
+      # #13: dev tooling is an attack surface too; any advisory blocks the gate
+      - name: npm audit (production + development)
+        run: npm audit --audit-level=low
       # #65: secret scan across tracked repository files
       - name: Secret scan (gitleaks rules)
         run: node scripts/secret-scan.mjs

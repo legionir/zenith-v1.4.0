@@ -4,7 +4,7 @@
 `node scripts/generate-dec-index.mjs` برای بازتولید و `npm run check:dec-index` برای اطمینان از
 هم‌گامیِ فهرست با پوشه (هر دو در CI از طریق `scripts/test/rfc-decisions.test.mjs`).
 
-آخرین شماره: **DEC-039** — تعداد تصمیم‌ها: **39** (بدون شمارهٔ تکراری).
+آخرین شماره: **DEC-040** — تعداد تصمیم‌ها: **40** (بدون شمارهٔ تکراری).
 
 | # | فایل | عنوان |
 |---|------|-------|
@@ -47,6 +47,7 @@
 | DEC-037 | [`DEC-037-public-subpath-table-and-global-reset-placement.md`](./DEC-037-public-subpath-table-and-global-reset-placement.md) | زیرمسیرهای عمومی از یک جدولِ تنها؛ جایگاه رِجیستری ریستِ فرایند در `@zenith/errors` |
 | DEC-038 | [`DEC-038-extension-message-schema-and-csp.md`](./DEC-038-extension-message-schema-and-csp.md) | مرز امنیتی افزونه‌ها — یک ماژول schema، «نادیده‌گرفتنِ» پیام نامعتبر، CSP غیرِ inline |
 | DEC-039 | [`DEC-039-benchmark-methodology-and-reproducibility-gate.md`](./DEC-039-benchmark-methodology-and-reproducibility-gate.md) | روش‌شناسی بنچمارک و گیت بازتولیدپذیری — «عددِ صادق» به‌جای «عددِ بزرگ» |
+| DEC-040 | [`DEC-040-secure-development-toolchain.md`](./DEC-040-secure-development-toolchain.md) | ابزارهای توسعهٔ رفع‌شده و تفکیک کف Node ابزارها از کتابخانه |
 
 ## قواعد ثبت
 

@@ -182,9 +182,9 @@ export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
 
     // ── تنظیم build mode از config Vite ──
     // FIX (B-1): به‌جای ctx.hasOwnProperty('bundle') که ناپایدار است،
-    // از config.isProduction استفاده می‌کنیم که Vite به‌صورت رسمی پشتیبانی می‌کند.
+    // از config.command استفاده می‌کنیم؛ NODE_ENV=production نباید serve را build کند.
     configResolved(config: ResolvedConfig) {
-      isBuild = config.isProduction || config.command === 'build';
+      isBuild = config.command === 'build';
 
       // ذخیره مسیر واقعی DevTools برای تزریق در Development
       // FIX (B-6): از Vite resolve API استفاده می‌کنیم.
@@ -219,74 +219,78 @@ export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
     },
 
     // ── تزریق اسکریپت HMR و DevTools در HTML ──
-    async transformIndexHtml(html, ctx) {
-      const compileEnabled = compile.enabled !== false;
+    transformIndexHtml: {
+      // The compiled <script type="module"> must enter Vite's HTML pipeline
+      // before Vite resolves/bundles module scripts (default order is too late).
+      order: 'pre',
+      async handler(html, ctx) {
+        const compileEnabled = compile.enabled !== false;
 
-      // FIX (B-1): از متغیر isBuild تنظیم‌شده در configResolved استفاده کن.
-      if (isBuild && compileEnabled && hasZenithDirectives(html)) {
-        try {
-          const result = await transformHtml(html, 'index.html', {
-            ...compile,
-            enabled: true,
-          });
+        // FIX (B-1): از متغیر isBuild تنظیم‌شده در configResolved استفاده کن.
+        if (isBuild && compileEnabled && hasZenithDirectives(html)) {
+          try {
+            const result = await transformHtml(html, 'index.html', {
+              ...compile,
+              enabled: true,
+            });
 
-          // چاپ warningها
-          if (result.warnings.length > 0) {
-            for (const w of result.warnings) {
-              console.warn(`[Zenith Compile] ⚠️  ${w}`);
+            // چاپ warningها
+            if (result.warnings.length > 0) {
+              for (const w of result.warnings) {
+                console.warn(`[Zenith Compile] ⚠️  ${w}`);
+              }
+            }
+
+            // در Production، HTML transform شده را برمی‌گردانیم.
+            // فایل JS به‌صورت virtual module در hook `load` پردازش می‌شود.
+            if (result.js) {
+              // ثبت JS برای پردازش بعدی در resolveId/load
+              pendingModules.set(result.moduleName, result.js);
+              compileCount++;
+              return result.html;
+            }
+          } catch (e) {
+            console.error(`[Zenith Compile] ❌ Failed to compile: ${(e as Error).message}`);
+            if (compile.strict) {
+              throw e;
             }
           }
-
-          // در Production، HTML transform شده را برمی‌گردانیم.
-          // فایل JS به‌صورت virtual module در hook `load` پردازش می‌شود.
-          if (result.js) {
-            // ثبت JS برای پردازش بعدی در resolveId/load
-            pendingModules.set(result.moduleName, result.js);
-            compileCount++;
-            return result.html;
-          }
-        } catch (e) {
-          console.error(`[Zenith Compile] ❌ Failed to compile: ${(e as Error).message}`);
-          if (compile.strict) {
-            throw e;
-          }
         }
-      }
 
-      // در Development: HMR و DevTools را تزریق کن.
-      if (!ctx.server) return html;
+        // در Development: HMR و DevTools را تزریق کن.
+        if (!ctx.server) return html;
 
-      const tags: Array<{
-        tag: string;
-        attrs?: Record<string, string>;
-        children?: string;
-        injectTo?: 'head' | 'body' | 'head-prepend' | 'body-prepend';
-      }> = [];
+        const tags: Array<{
+          tag: string;
+          attrs?: Record<string, string>;
+          children?: string;
+          injectTo?: 'head' | 'body' | 'head-prepend' | 'body-prepend';
+        }> = [];
 
-      // ── تزریق DevTools ──
-      if (autoInjectDevtools && devtoolsModulePath) {
-        // FIX (B-6): از مسیر واقعی DevTools (resolve شده) استفاده می‌کنیم
-        // تا در pnpm و monorepoها هم کار کند.
-        const importPath = `/@fs/${devtoolsModulePath.replace(/\\/g, '/')}`;
-        tags.push({
-          tag: 'script',
-          attrs: { type: 'module' },
-          children: `
+        // ── تزریق DevTools ──
+        if (autoInjectDevtools && devtoolsModulePath) {
+          // FIX (B-6): از مسیر واقعی DevTools (resolve شده) استفاده می‌کنیم
+          // تا در pnpm و monorepoها هم کار کند.
+          const importPath = `/@fs/${devtoolsModulePath.replace(/\\/g, '/')}`;
+          tags.push({
+            tag: 'script',
+            attrs: { type: 'module' },
+            children: `
             // Auto-injected by @zenith/vite-plugin
             import { initDevTools } from '${importPath}';
             initDevTools();
             console.log('[Zenith] DevTools auto-injected by Vite plugin.');
           `,
-          injectTo: 'head',
-        });
-      }
+            injectTo: 'head',
+          });
+        }
 
-      // ── تزریق HMR client ──
-      if (enableHtmlHMR) {
-        tags.push({
-          tag: 'script',
-          attrs: { type: 'module' },
-          children: `
+        // ── تزریق HMR client ──
+        if (enableHtmlHMR) {
+          tags.push({
+            tag: 'script',
+            attrs: { type: 'module' },
+            children: `
             // Auto-injected by @zenith/vite-plugin
             if (import.meta.hot) {
               import.meta.hot.on('zenith:html-update', (data) => {
@@ -302,11 +306,12 @@ export function zenithPlugin(options: ZenithPluginOptions = {}): Plugin {
               console.log('[Zenith] HMR client installed.');
             }
           `,
-          injectTo: 'head',
-        });
-      }
+            injectTo: 'head',
+          });
+        }
 
-      return { html, tags };
+        return { html, tags };
+      },
     },
 
     // ── resolveId برای virtual modules ──
