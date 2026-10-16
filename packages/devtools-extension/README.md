@@ -55,8 +55,9 @@
 ```
 devtools-extension/
 ├── manifest.json          — Manifest V3 (JSON استاندارد، بدون کامنت)
+├── message-schema.js      — اعتبارسنجی/پاک‌سازی پیام‌ها و دادهٔ ورودی (#67)
 ├── popup.html             — UI با 4 tab (با سیاست CSP سخت‌گیرانه)
-├── popup.js               — منطق popup (render همه‌ی panels)
+├── popup.js               — منطق popup (render همه‌ی panels، بدون innerHTML)
 ├── graph-viewer.html      — نمایشگر گراف وابستگی (بدون اسکریپت inline)
 ├── graph-viewer.js        — منطق نمایشگر گراف وابستگی
 ├── content.js             — content script (ارتباط با window.__ZENITH__)
@@ -68,5 +69,9 @@ devtools-extension/
 ## امنیت و سطوح دسترسی (#8)
 
 - **دسترسی حداقلی (`activeTab` + `optional_host_permissions`):** افزونه به‌صورت پیش‌فرض دسترسی سراسری (`host_permissions` روی `<all_urls>`) درخواست نمی‌کند؛ بازرسی تب فعلی با `activeTab` و `chrome.scripting.executeScript` انجام می‌شود و دسترسی به دامنه‌های `http://*/*` و `https://*/*` در `optional_host_permissions` قرار دارد تا فقط با تأیید صریح کاربر فعال شود (`BUG-DEVTEXT-01`, `BUG-DEVTEXT-08`, `IMP-DEVTEXT-05`).
-- **سیاست CSP (`content_security_policy`):** تمام صفحات افزونه (`popup.html`، `devtools.html`، `graph-viewer.html`) تحت سیاست `default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'` اجرا می‌شوند و هیچ اسکریپت inline در HTML وجود ندارد.
+- **سیاست CSP (`content_security_policy`):** تمام صفحات افزونه (`popup.html`، `devtools.html`، `graph-viewer.html`) تحت سیاست `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'` اجرا می‌شوند و هیچ اسکریپت inline در HTML وجود ندارد.
+- **اعتبارسنجی پیام و داده (#67):** `message-schema.js` پیش از هر مصرف، ورودی‌های غیرقابل‌اعتماد را بررسی می‌کند:
+  - پیام‌های `chrome.runtime.onMessage` فقط با allowlist نوع (`ZENITH_CHECK`/`ZENITH_REFRESH`/`ZENITH_CLEAR`/`ZENITH_NOTIFICATION`) و فقط از فرستندهٔ خود افزونه (`isTrustedSender`) پذیرفته می‌شوند؛ هر چیز دیگری **بی‌صدا نادیده** گرفته می‌شود.
+  - payload گراف (`window.__ZENITH_GRAPH_DATA__`، hook، یا `?data=`) و پاسخ بازرسی با schema سخت‌گیرانه پالایش می‌شوند (سقف تعداد/طول، حذف کلیدهای ناامن مثل `__proto__`، حذف یال‌های معلق) و در صورت ناسازگاری رندر انجام **نمی‌شود**.
+  - هیچ مسیری از `innerHTML` برای دادهٔ ورودی استفاده نمی‌کند؛ popup و graph-viewer با `textContent`/DOM API رندر می‌شوند (تست: `scripts/test/devtools-message-schema.test.mjs`).
 

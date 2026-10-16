@@ -4,6 +4,12 @@
 (function () {
   'use strict';
 
+  // #67 (SEC): اعتبارسنجی/پاک‌سازی ورودی‌ها از ماژول مشترک افزونه.
+  var schema = globalThis.ZenithDevtoolsSchema;
+  if (!schema) {
+    throw new Error('[Zenith DevTools] message-schema.js must be loaded before graph-viewer.js');
+  }
+
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var canvas = document.getElementById('canvas');
   var gViewport = document.getElementById('g-viewport');
@@ -22,12 +28,10 @@
     });
   }
 
-  // ── XSS Sanitization (BUG-DEV-07: جلوگیری از تزریق HTML از طریق label ها) ──
-  function sanitize(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  // ── XSS (#67 / BUG-DEV-07) ──
+  // همهٔ متن‌ها با `textContent` (DOM API) داخل SVG و panel می‌نشینند، پس هیچ
+  // رشتهٔ HTML از دادهٔ میزبان ساخته نمی‌شود. `sanitize` فقط یک لایهٔ دفاعی است
+  // برای جاهایی که متن باید داخل یک رشتهٔ link/HTML برود.
 
   // ── نمونه‌ی دمو (وقتی DevTools نصب نیست) ──
   var SAMPLE = {
@@ -171,6 +175,21 @@
   }
 
   // ── بارگذاری داده ──
+  //
+  // #67: هر سه منبع داده «غیرقابل‌اعتماد» هستند (صفحهٔ میزبان، hook، query string).
+  // همه از `schema.sanitizeGraphPayload` می‌گذرند و در صورت ناسازگاری schema،
+  // همان منبع رد می‌شود و به منبع بعدی می‌رویم.
+  function acceptPayload(raw, sourceLabel) {
+    var check = schema.sanitizeGraphPayload(raw);
+    if (!check.ok) {
+      toast('داده‌ی ' + sourceLabel + ' نامعتبر است (' + check.reason + ') — نادیده گرفته شد.');
+      return false;
+    }
+    if (!check.value.nodes.length) return false;
+    setData(check.value);
+    return true;
+  }
+
   function loadSnapshot() {
     // 1) حالت زنده از DevTools hook
     try {
@@ -179,11 +198,7 @@
         window.__ZENITH__ &&
         typeof window.__ZENITH__.getDependencyGraph === 'function'
       ) {
-        var live = window.__ZENITH__.getDependencyGraph();
-        if (live && live.nodes && live.nodes.length) {
-          setData(live);
-          return;
-        }
+        if (acceptPayload(window.__ZENITH__.getDependencyGraph(), 'DevTools hook')) return;
       }
     } catch (e) {
       toast('خطا در دریافت از DevTools: ' + e.message);
@@ -191,8 +206,7 @@
     // 2) داده‌ی inline از صفحه‌ی میزبان
     try {
       if (typeof window !== 'undefined' && window.__ZENITH_GRAPH_DATA__) {
-        setData(window.__ZENITH_GRAPH_DATA__);
-        return;
+        if (acceptPayload(window.__ZENITH_GRAPH_DATA__, 'inline payload')) return;
       }
     } catch (e) {
       toast('خطا در دریافت از __ZENITH_GRAPH_DATA__: ' + e.message);
@@ -202,8 +216,7 @@
       var qs = new URLSearchParams(window.location.search).get('data');
       if (qs) {
         var json = JSON.parse(atob(qs));
-        setData(json);
-        return;
+        if (acceptPayload(json, 'query string')) return;
       }
     } catch (e) {
       toast('خطا در decode query string: ' + e.message);
@@ -424,7 +437,7 @@
       var sub = document.createElementNS(SVG_NS, 'text');
       sub.setAttribute('class', 'sub');
       sub.setAttribute('y', nodeRadius(n) + 27);
-      sub.textContent = sanitize(TYPE_FA[n.type] || n.type);
+      sub.textContent = TYPE_FA[n.type] || n.type;
       g.appendChild(sub);
       g.addEventListener('click', function (ev) {
         ev.stopPropagation();
@@ -570,12 +583,52 @@
     clearSelection();
   }
 
+  // #67: پنل جزئیات کاملاً با DOM API ساخته می‌شود (textContent) — هیچ رشتهٔ HTML
+  // از دادهٔ میزبان ساخته نمی‌شود، پس هیچ innerHTML با دادهٔ غیرقابل‌اعتماد نداریم.
+  function domEl(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = String(text);
+    return node;
+  }
+
+  function fieldRow(label, value) {
+    var wrap = domEl('div', 'field');
+    wrap.appendChild(domEl('div', 'k', label));
+    var v = domEl('div', 'v', value);
+    wrap.appendChild(v);
+    return { row: wrap, valueEl: v };
+  }
+
   function renderPanel(n) {
+    panel.replaceChildren();
     if (!n) {
-      panel.innerHTML =
-        '<h2>جزئیات نود</h2><div class="hint">یک نود را در گراف انتخاب کنید تا اطلاعات آن اینجا نمایش داده شود.<br><br>روی نود کلیک کنید تا یال‌های ورودی/خروجی آن هایلایت شوند. کلیک روی فضای خالی، انتخاب را لغو می‌کند.<br><br><span class="badge">Signal → Effect</span> خوانده‌شدن، <span class="badge">Effect → Directive</span> هدایت، <span class="badge">Directive → DOM</span> به‌روزرسانی.</div>';
+      panel.appendChild(domEl('h2', null, 'جزئیات نود'));
+      var hint = domEl('div', 'hint');
+      hint.appendChild(
+        document.createTextNode(
+          'یک نود را در گراف انتخاب کنید تا اطلاعات آن اینجا نمایش داده شود.',
+        ),
+      );
+      hint.appendChild(domEl('br'));
+      hint.appendChild(domEl('br'));
+      hint.appendChild(
+        document.createTextNode(
+          'روی نود کلیک کنید تا یال‌های ورودی/خروجی آن هایلایت شوند. کلیک روی فضای خالی، انتخاب را لغو می‌کند.',
+        ),
+      );
+      hint.appendChild(domEl('br'));
+      hint.appendChild(domEl('br'));
+      hint.appendChild(domEl('span', 'badge', 'Signal → Effect'));
+      hint.appendChild(document.createTextNode(' خوانده‌شدن، '));
+      hint.appendChild(domEl('span', 'badge', 'Effect → Directive'));
+      hint.appendChild(document.createTextNode(' هدایت، '));
+      hint.appendChild(domEl('span', 'badge', 'Directive → DOM'));
+      hint.appendChild(document.createTextNode(' به‌روزرسانی.'));
+      panel.appendChild(hint);
       return;
     }
+
     var r = n.raw || {};
     var inEdges = state.edges.filter(function (e) {
       return e.to.id === n.id;
@@ -583,43 +636,36 @@
     var outEdges = state.edges.filter(function (e) {
       return e.from.id === n.id;
     });
-    var html = '<h2>' + sanitize(TYPE_FA[n.type] || n.type) + '</h2>';
-    html += field('شناسه', sanitize(n.id));
-    html += field('برچسب', sanitize(n.label));
-    if (r.value !== undefined) html += field('مقدار', sanitize(fmtVal(r.value)));
-    if (r.deps) html += field('وابستگی‌ها', sanitize(r.deps.length ? r.deps.join('، ') : '—'));
-    if (r.directiveType) html += field('نوع دایرکتیو', sanitize('zen-' + r.directiveType));
-    if (r.elementSelector) html += field('عنصر هدف', sanitize(r.elementSelector));
-    if (r.expression) html += field('عبارت', sanitize(r.expression));
-    if (r.domTag) html += field('تگ DOM', '&lt;' + sanitize(r.domTag) + '&gt;');
-    html += field('یال‌های ورودی', String(inEdges.length));
-    html += field('یال‌های خروجی', String(outEdges.length));
-    if (inEdges.length) {
-      html +=
-        '<div class="field"><div class="k">ورودی از:</div><div class="v">' +
-        inEdges
-          .map(function (e) {
-            return '<span class="badge">' + sanitize(e.from.label) + '</span>';
-          })
-          .join(' ') +
-        '</div></div>';
+
+    panel.appendChild(domEl('h2', null, TYPE_FA[n.type] || n.type));
+    panel.appendChild(fieldRow('شناسه', n.id).row);
+    panel.appendChild(fieldRow('برچسب', n.label).row);
+    if (r.value !== undefined) panel.appendChild(fieldRow('مقدار', fmtVal(r.value)).row);
+    if (r.deps) {
+      panel.appendChild(fieldRow('وابستگی‌ها', r.deps.length ? r.deps.join('، ') : '—').row);
     }
-    if (outEdges.length) {
-      html +=
-        '<div class="field"><div class="k">خروجی به:</div><div class="v">' +
-        outEdges
-          .map(function (e) {
-            return '<span class="badge">' + sanitize(e.to.label) + '</span>';
-          })
-          .join(' ') +
-        '</div></div>';
+    if (r.directiveType) {
+      panel.appendChild(fieldRow('نوع دایرکتیو', 'zen-' + r.directiveType).row);
     }
-    panel.innerHTML = html;
+    if (r.elementSelector) panel.appendChild(fieldRow('عنصر هدف', r.elementSelector).row);
+    if (r.expression) panel.appendChild(fieldRow('عبارت', r.expression).row);
+    if (r.domTag) panel.appendChild(fieldRow('تگ DOM', '<' + r.domTag + '>').row);
+    panel.appendChild(fieldRow('یال‌های ورودی', String(inEdges.length)).row);
+    panel.appendChild(fieldRow('یال‌های خروجی', String(outEdges.length)).row);
+
+    function badgeRow(label, edges, key) {
+      var row = fieldRow(label, '').row;
+      var v = row.querySelector('.v');
+      edges.forEach(function (e) {
+        v.appendChild(domEl('span', 'badge', key === 'from' ? e.from.label : e.to.label));
+        v.appendChild(document.createTextNode(' '));
+      });
+      return row;
+    }
+    if (inEdges.length) panel.appendChild(badgeRow('ورودی از:', inEdges, 'from'));
+    if (outEdges.length) panel.appendChild(badgeRow('خروجی به:', outEdges, 'to'));
   }
 
-  function field(k, v) {
-    return '<div class="field"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
-  }
   function fmtVal(v) {
     try {
       if (typeof v === 'string') return '"' + v + '"';

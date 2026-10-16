@@ -4,7 +4,7 @@
 `node scripts/generate-dec-index.mjs` برای بازتولید و `npm run check:dec-index` برای اطمینان از
 هم‌گامیِ فهرست با پوشه (هر دو در CI از طریق `scripts/test/rfc-decisions.test.mjs`).
 
-آخرین شماره: **DEC-037** — تعداد تصمیم‌ها: **37** (بدون شمارهٔ تکراری).
+آخرین شماره: **DEC-038** — تعداد تصمیم‌ها: **38** (بدون شمارهٔ تکراری).
 
 | # | فایل | عنوان |
 |---|------|-------|
@@ -45,6 +45,7 @@
 | DEC-035 | [`DEC-035-unique-public-export-names.md`](./DEC-035-unique-public-export-names.md) | «یک نام، یک معنا» در سطح عمومی پکیج‌ها (گیت AST + allowlist مستند) |
 | DEC-036 | [`DEC-036-options-object-signatures.md`](./DEC-036-options-object-signatures.md) | پیکربندی positional یخ‌زده شد؛ فقط `fn(main, options?)` |
 | DEC-037 | [`DEC-037-public-subpath-table-and-global-reset-placement.md`](./DEC-037-public-subpath-table-and-global-reset-placement.md) | زیرمسیرهای عمومی از یک جدولِ تنها؛ جایگاه رِجیستری ریستِ فرایند در `@zenith/errors` |
+| DEC-038 | [`DEC-038-extension-message-schema-and-csp.md`](./DEC-038-extension-message-schema-and-csp.md) | مرز امنیتی افزونه‌ها — یک ماژول schema، «نادیده‌گرفتنِ» پیام نامعتبر، CSP غیرِ inline |
 
 ## قواعد ثبت
 

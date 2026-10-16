@@ -12,6 +12,13 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  buildDevToolsData,
+  buildDevToolsHtml,
+  buildStatusMessage,
+  createNonce,
+  validateWebviewMessage,
+} from './webview';
 
 /**
  * لیست همه‌ی directive های Zenith با توضیحات.
@@ -1036,16 +1043,31 @@ export function activate(context: vscode.ExtensionContext): void {
         'zenithDevTools',
         'Zenith DevTools',
         vscode.ViewColumn.Two,
-        { enableScripts: true, retainContextWhenHidden: true },
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          // #67: هیچ منبع محلی خارجی به webview نمی‌دهیم (CSP هم default-src none).
+          localResourceRoots: [],
+        },
       );
 
-      panel.webview.html = getDevToolsHtml();
+      // #67: nonce یکتا در هر panel؛ CSP از webview.cspSource ساخته می‌شود.
+      panel.webview.html = buildDevToolsHtml({
+        nonce: createNonce(),
+        cspSource: panel.webview.cspSource,
+      });
 
       // IMPROVEMENT (B-10): WebView پیشرفته‌تر با دریافت داده واقعی از extension
       // وقتی کاربر Refresh می‌کند، اطلاعات companion files و directives را
       // از فایل HTML جاری استخراج کرده و به WebView ارسال می‌کند.
       panel.webview.onDidReceiveMessage(
-        (msg) => {
+        (raw) => {
+          // #67: هر پیام ورودی از webview اعتبارسنجی می‌شود (allowlist: refresh/connect).
+          // پیام نامعتبر کاملاً نادیده گرفته می‌شود — نه throw، نه پاسخ.
+          const incoming = validateWebviewMessage(raw);
+          if (!incoming.ok) return;
+          const msg = incoming.message;
+
           if (msg.type === 'refresh') {
             const editor = vscode.window.activeTextEditor;
             if (
@@ -1067,33 +1089,30 @@ export function activate(context: vscode.ExtensionContext): void {
               const signalList: Array<{ name: string; types: string[] }> = [];
               signals.forEach((types, name) => signalList.push({ name, types }));
 
-              panel.webview.postMessage({
-                type: 'devtools-data',
+              const payload = buildDevToolsData({
                 fileName: doc.fileName,
                 directives: dirs,
-                directiveCount: dirs.length,
-                uniqueDirectives: [...new Set(dirs)].length,
                 signals: signalList,
-                totalSignals: signalList.length,
                 lineCount: doc.lineCount,
               });
+              panel.webview.postMessage(
+                payload ?? buildStatusMessage('نام فایل قابل نمایش نیست.', true),
+              );
             } else {
-              panel.webview.postMessage({
-                type: 'status',
-                message: 'یک فایل .html با directiveهای Zenith باز کنید.',
-                isError: true,
-              });
+              panel.webview.postMessage(
+                buildStatusMessage('یک فایل .html با directiveهای Zenith باز کنید.', true),
+              );
             }
           }
 
           // IMPROVEMENT (B-10): پشتیبانی از WebSocket-like connection
           // برای دریافت داده از سرور توسعه (در آینده)
           if (msg.type === 'connect') {
-            panel.webview.postMessage({
-              type: 'status',
-              message:
+            panel.webview.postMessage(
+              buildStatusMessage(
                 'CDP connection not yet implemented. For real-time data, run app with --remote-debugging-port=9222',
-            });
+              ),
+            );
           }
         },
         undefined,
@@ -1152,146 +1171,6 @@ class ZenithSemanticTokensProvider implements vscode.DocumentSemanticTokensProvi
     }
     return tokensBuilder.build();
   }
-}
-
-function getDevToolsHtml(): string {
-  return `<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; padding: 16px; background: var(--vscode-editor-background, #1e1e1e); color: var(--vscode-editor-foreground, #d4d4d4); }
-    h2 { color: var(--vscode-textLink-foreground, #3794ff); margin-bottom: 12px; font-size: 18px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--vscode-badge-background, #3c3c3c); color: var(--vscode-badge-foreground, #fff); }
-    .card { background: var(--vscode-editorWidget-background, #252526); border: 1px solid var(--vscode-widget-border, #3c3c3c); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-    .card-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--vscode-textLink-foreground, #3794ff); }
-    .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0; }
-    .stat { background: var(--vscode-input-background, #3c3c3c); border-radius: 6px; padding: 8px 14px; text-align: center; flex: 1; min-width: 80px; }
-    .stat-value { font-size: 22px; font-weight: 700; display: block; }
-    .stat-label { font-size: 11px; opacity: 0.7; display: block; margin-top: 2px; }
-    .status-msg { padding: 8px 12px; border-radius: 6px; margin: 8px 0; font-size: 12px; background: var(--vscode-inputValidation-infoBackground, #063b4a); border: 1px solid var(--vscode-inputValidation-infoBorder, #3794ff); }
-    .status-msg.error { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); border-color: var(--vscode-inputValidation-errorBorder, #e51400); }
-    button { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-size: 13px; margin: 4px 4px 4px 0; }
-    button:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
-    button.secondary { background: var(--vscode-button-secondaryBackground, #3a3d41); }
-    button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
-    ul { list-style: none; padding: 0; }
-    li { padding: 4px 8px; font-size: 12px; font-family: 'Cascadia Code', 'Fira Code', monospace; border-bottom: 1px solid var(--vscode-widget-border, #3c3c3c); }
-    li:last-child { border-bottom: none; }
-    .signal-name { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
-    .directive-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; background: var(--vscode-editor-selectionBackground, #264f78); margin: 1px; }
-    .empty { opacity: 0.5; font-size: 12px; text-align: center; padding: 20px; }
-    .file-path { font-size: 11px; opacity: 0.6; margin-bottom: 8px; word-break: break-all; }
-    .actions { margin: 8px 0; }
-  </style>
-</head>
-<body>
-  <h2>🔧 Zenith DevTools</h2>
-  <p style="font-size:12px;opacity:0.7;margin-bottom:12px;">VSCode Extension — Signal & Directive Inspector</p>
-
-  <div id="fileInfo" class="card" style="display:none;">
-    <div class="card-title">📄 File</div>
-    <div class="file-path" id="filePath"></div>
-    <div class="stat-row">
-      <div class="stat"><span class="stat-value" id="dirCount">0</span><span class="stat-label">Directives</span></div>
-      <div class="stat"><span class="stat-value" id="uniqueDirs">0</span><span class="stat-label">Unique</span></div>
-      <div class="stat"><span class="stat-value" id="signalCount">0</span><span class="stat-label">Signals</span></div>
-      <div class="stat"><span class="stat-value" id="lineCount">0</span><span class="stat-label">Lines</span></div>
-    </div>
-  </div>
-
-  <div class="actions">
-    <button onclick="refreshData()">🔄 Refresh</button>
-    <button class="secondary" onclick="connectCDP()" id="connectBtn">🔌 Connect CDP</button>
-  </div>
-
-  <div id="status" class="status-msg">برای شروع، روی Refresh کلیک کنید.</div>
-
-  <div id="signalsCard" class="card" style="display:none;">
-    <div class="card-title">📡 Signals <span class="badge" id="signalBadge">0</span></div>
-    <ul id="signalList"></ul>
-  </div>
-
-  <div id="directivesCard" class="card" style="display:none;">
-    <div class="card-title">🏷️ Directives <span class="badge" id="dirBadge">0</span></div>
-    <div id="directiveList"></div>
-  </div>
-
-  <script>
-    const vscodeApi = acquireVsCodeApi();
-
-    function refreshData() {
-      setStatus('در حال دریافت اطلاعات...');
-      vscodeApi.postMessage({ type: 'refresh' });
-    }
-
-    function connectCDP() {
-      document.getElementById('connectBtn').disabled = true;
-      document.getElementById('connectBtn').textContent = '⏳ Connecting...';
-      vscodeApi.postMessage({ type: 'connect' });
-    }
-
-    window.addEventListener('message', (event) => {
-      const msg = event.data;
-
-      if (msg.type === 'status') {
-        setStatus(msg.message, msg.isError);
-        if (msg.isError) document.getElementById('connectBtn').disabled = false;
-        return;
-      }
-
-      if (msg.type === 'devtools-data') {
-        document.getElementById('fileInfo').style.display = 'block';
-        document.getElementById('filePath').textContent = msg.fileName || 'unknown';
-        document.getElementById('dirCount').textContent = msg.directiveCount ?? 0;
-        document.getElementById('uniqueDirs').textContent = msg.uniqueDirectives ?? 0;
-        document.getElementById('signalCount').textContent = msg.totalSignals ?? 0;
-        document.getElementById('lineCount').textContent = msg.lineCount ?? 0;
-
-        const signalList = document.getElementById('signalList');
-        const signalsCard = document.getElementById('signalsCard');
-        if (msg.signals && msg.signals.length > 0) {
-          signalsCard.style.display = 'block';
-          document.getElementById('signalBadge').textContent = msg.signals.length;
-          signalList.innerHTML = msg.signals.map(s =>
-            '<li><span class="signal-name">$' + s.name + '</span> <span style="opacity:0.6">:</span> <span style="opacity:0.8">' + (s.types.join(', ') || 'unknown') + '</span></li>'
-          ).join('');
-        } else {
-          signalsCard.style.display = 'none';
-        }
-
-        const directiveList = document.getElementById('directiveList');
-        const directivesCard = document.getElementById('directivesCard');
-        if (msg.directives && msg.directives.length > 0) {
-          directivesCard.style.display = 'block';
-          document.getElementById('dirBadge').textContent = msg.directives.length;
-          const counts = {};
-          msg.directives.forEach(d => { counts[d] = (counts[d] || 0) + 1; });
-          directiveList.innerHTML = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, count]) =>
-              '<span class="directive-tag">' + name + ' (' + count + ')</span> '
-            ).join('');
-        } else {
-          directivesCard.style.display = 'none';
-        }
-
-        setStatus('✅ ' + msg.directiveCount + ' directive, ' + msg.totalSignals + ' signal in ' + msg.fileName);
-        document.getElementById('connectBtn').disabled = false;
-        document.getElementById('connectBtn').textContent = '🔌 Connect CDP';
-      }
-    });
-
-    function setStatus(msg, isError) {
-      const el = document.getElementById('status');
-      el.textContent = msg;
-      el.className = 'status-msg' + (isError ? ' error' : '');
-    }
-  </script>
-</body>
-</html>`;
 }
 
 export function deactivate(): void {

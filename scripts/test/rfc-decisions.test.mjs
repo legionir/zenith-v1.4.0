@@ -38,13 +38,13 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     expect(text).toMatch(/#\d{2,3}/);
   });
 
-  it('DEC numbering has no duplicates and reaches 037', () => {
+  it('DEC numbering has no duplicates and reaches 038', () => {
     const files = readdirSync(DEC).filter((f) => /^DEC-\d{3}-/.test(f));
     const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(37); // #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    expect(Math.max(...nums)).toBe(38); // #67: DEC-038 (extension message schema + nonce CSP); #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
     // پوشه باید دقیقاً از ۱ تا max پیوسته باشد (شمارهٔ جاافتاده = تصمیم گم‌شده).
-    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 37 }, (_, i) => i + 1));
+    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 38 }, (_, i) => i + 1));
   });
 
   it('DEC-035 exists exactly once and the two later decisions are real files', () => {
@@ -60,12 +60,13 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
   it('docs/decisions/README.md (DEC index) lists every decision — drift fails CI', () => {
     const { rows, stale } = generateDecIndex({ checkOnly: true });
     expect(stale).toBe(false);
-    expect(rows.length).toBeGreaterThanOrEqual(37);
+    expect(rows.length).toBeGreaterThanOrEqual(38);
     const index = readFileSync(join(DEC, 'README.md'), 'utf8');
     for (const row of rows) {
       expect(index).toContain(`[\`${row.file}\`](./${row.file})`);
     }
     expect(index).toContain('DEC-037');
+    expect(index).toContain('DEC-038');
   });
 
   it('DEC-036 appendix records the two owner-approved placements and links DEC-037', () => {

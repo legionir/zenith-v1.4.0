@@ -12,7 +12,20 @@
 // message channel بیشتر از حد نیاز. چون تمام عملیات هم‌زمان
 // (synchronous) هستند، نیازی به return true نیست.
 
+const schema = globalThis.ZenithDevtoolsSchema;
+if (!schema) {
+  throw new Error('[Zenith DevTools] message-schema.js must be injected before content.js');
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // #67 (SEC): پیام باید از همین افزونه باشد و schema آن شناخته‌شده باشد؛
+  // در غیر این صورت بدون پاسخ/بدون throw نادیده گرفته می‌شود.
+  if (!schema.isTrustedSender(sender, chrome.runtime.id)) return undefined;
+  const valid = schema.validateRuntimeMessage(request, {
+    allowedTypes: ['ZENITH_CHECK', 'ZENITH_REFRESH', 'ZENITH_CLEAR'],
+  });
+  if (!valid.ok) return undefined;
+
   if (request.type === 'ZENITH_CHECK' || request.type === 'ZENITH_REFRESH') {
     const hook = window.__ZENITH__;
 
@@ -55,6 +68,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // SSR stores فعال
     const activeSSRStores = hook.getActiveSSRStores ? hook.getActiveSSRStores() : [];
 
+    // #67: پاسخ فقط از فیلدهای شناخته‌شده ساخته می‌شود (بقیه در popup هم دوباره
+    // اعتبارسنجی می‌شوند) — هیچ آبجکت خام صفحهٔ میزبان عبور نمی‌کند.
     sendResponse({
       installed: true,
       version: hook.version || 'unknown',
@@ -83,7 +98,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return; // synchronous
   }
 
-  if (request.type === 'ZENITH_CLEAR') {
+  if (valid.type === 'ZENITH_CLEAR') {
     const hook = window.__ZENITH__;
     if (hook && hook.clearTimeline) {
       hook.clearTimeline();
@@ -95,6 +110,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return; // synchronous
   }
 
-  // برای message type های ناشناخته، sendResponse فراخوانی نمی‌شود
-  // و false برمی‌گردانیم تا channel بسته شود.
+  // برای message type های ناشناخته، sendResponse فراخوانی نمی‌شود و
+  // `undefined` برمی‌گردانیم تا channel بسته شود (#67).
+  return undefined;
 });

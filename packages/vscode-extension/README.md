@@ -65,3 +65,24 @@
 - `Zenith: Create Component` — ساخت کامپوننت جدید
 - `Zenith: Create Page` — ساخت صفحه‌ی جدید
 - `Zenith: Create Action` — ساخت action جدید
+
+## امنیت webview (#67)
+
+پنل «Zenith DevTools» یک `WebviewPanel` با `enableScripts: true` است، پس مثل هر
+سطح وب دیگری سخت‌گیرانه مهار شده است (`src/webview.ts`):
+
+- **CSP با nonce:** در هر بار ساخت پنل یک nonce تازه (`createNonce()` — ۱۶ بایت
+  تصادفی رمزنگارانه) ساخته می‌شود و `<meta http-equiv="Content-Security-Policy">`
+  با `default-src 'none'; script-src 'nonce-…'; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} data:; connect-src 'none'; base-uri 'none'; form-action 'none'`
+  تزریق می‌شود؛ هیچ `<script src>` بیرونی، هیچ inline handler (`onclick=`) و هیچ
+  `eval`/`new Function` در پنل وجود ندارد. `localResourceRoots` هم عمداً خالی است
+  تا webview به فایل‌های local دسترسی نداشته باشد.
+- **اعتبارسنجی پیام (allowlist):** هر پیام ورودی از webview با
+  `validateWebviewMessage()` بررسی می‌شود — فقط `{ type: 'refresh' }` و
+  `{ type: 'connect' }` پذیرفته می‌شوند و هر چیز دیگری (نوع ناشناخته، payload
+  غیرشیء، شیء آلوده به `__proto__`) بی‌صدا نادیده گرفته می‌شود.
+- **رندر بدون `innerHTML`:** `DEVTOOLS_CLIENT_SCRIPT` فقط با `createElement`،
+  `textContent` و `replaceChildren` رندر می‌کند و پیام‌های سمت host را خودش دوباره
+  اعتبارسنجی می‌کند (`isDevToolsHostMessage`). داده‌ی خروجی host با
+  `buildDevToolsData()` سقف‌دار و متن‌محور می‌شود.
+- تست: [`test/webview.test.ts`](./test/webview.test.ts) (CSP، nonce، allowlist، نبود `innerHTML`).
