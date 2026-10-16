@@ -169,10 +169,11 @@ export function buildBenchmarksDoc(baseline) {
   lines.push('');
   lines.push('جزئیات و لینک هر عدد:');
   lines.push('');
+  // هدر هر جدول دقیقاً به تعداد ستون‌های metricRow — جدول واگرا، سندِ خراب است.
   lines.push(
-    '| متریک | مقدار | نمونه | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
+    '| متریک | مقدار | نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
   );
-  lines.push('|---|---|---|---|---|---|---|');
+  lines.push('|---|---|---|---|---|---|---|---|');
   for (const metric of reactiveMetrics(metrics)) lines.push(metricRow(metric, commit));
   lines.push('');
 
@@ -182,9 +183,9 @@ export function buildBenchmarksDoc(baseline) {
   lines.push(GROUPS[1].intro);
   lines.push('');
   lines.push(
-    '| متریک | زمان هر بار | نمونه | تکرار/نمونه | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
+    '| متریک | زمان هر بار | نمونه | تکرار/نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
   );
-  lines.push('|---|---|---|---|---|---|---|---|');
+  lines.push('|---|---|---|---|---|---|---|---|---|');
   for (const metric of groupMetrics(metrics, 'dom')) {
     const cells = metricRow(metric, commit).split('|');
     // درج ستون تکرار در جای مناسب
@@ -206,9 +207,9 @@ export function buildBenchmarksDoc(baseline) {
     lines.push(group.intro);
     lines.push('');
     lines.push(
-      '| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
+      '| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |',
     );
-    lines.push('|---|---|---|---|---|---|---|');
+    lines.push('|---|---|---|---|---|---|---|---|');
     for (const metric of groupMetrics(metrics, group.id)) lines.push(metricRow(metric, commit));
     lines.push('');
   }
@@ -251,7 +252,7 @@ export function buildBenchmarksDoc(baseline) {
     '2. **بدون layout/paint.** هزینهٔ style/layout/composite مرورگر در این اعداد نیست؛ فقط هزینهٔ ساخت و جهش DOM.',
   );
   lines.push(
-    '3. **حافظه تقریبی است** (`process.memoryUsage().heapUsed` بدون `--expose-gc`) و آستانهٔ ۲۵٪ برای همین است.',
+    '3. **حافظه از یک پروب فرزند می‌آید** (`node --expose-gc` + دو `gc()` صریح + ۱۰۰k سیگنال تا `benchmarks/memory-probe.mjs`) و چون تخمین هیپ است، آستانهٔ گروه ۲۵٪ است.',
   );
   lines.push('4. **تک‌رشته‌ای.** هیچ عددی هم‌زمانی/چند‌هسته‌ای را نمی‌سنجد.');
   lines.push(

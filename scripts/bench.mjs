@@ -68,6 +68,19 @@ export function groupsForOnly(only) {
   return known ? wanted : null;
 }
 
+/**
+ * جهتِ «بهتر» برای هر واحد — نویز همیشه فقط زمان اضافه می‌کند (کندتر/سنگین‌تر)،
+ * پس بهترین مشاهدهٔ چند پاس، پایدارترین برآورد است: برای زمان/حافظه کمینه و
+ * برای نرخ‌ها بیشینه. (پیش‌تر برای همه کمینه گرفته می‌شد و یک پاسِ کند، عددِ
+ * نرخ را تا نصف پایین می‌کشید — اندازه‌گیری‌شده: ceiling ۱۴۲M ⇒ ۷۸M.)
+ */
+export const HIGHER_IS_BETTER = Object.freeze(['ops/sec', 'pages/sec', 'runs']);
+
+/** آیا مقدار بزرگ‌تر بهتر است؟ */
+export function isHigherBetter(unit) {
+  return HIGHER_IS_BETTER.includes(unit);
+}
+
 /** یک متریک در ثبت بعدی «گیت‌شده» است یا فقط اطلاعاتی؟ */
 export function isGated(metric, reproPct) {
   const limit = GATE_LIMIT_PCT[metric.group] ?? 15;
@@ -186,9 +199,10 @@ export async function runPasses({ passes = 1, options = {}, only = null, quick =
         continue;
       }
       prev.values.push(metric.value);
-      if (metric.value < prev.value) {
-        merged.set(metric.id, { ...metric, values: prev.values });
-      }
+      const better = isHigherBetter(metric.unit)
+        ? metric.value > prev.value
+        : metric.value < prev.value;
+      if (better) merged.set(metric.id, { ...metric, values: prev.values });
     }
   }
   const metrics = [...merged.values()].map((metric) => {

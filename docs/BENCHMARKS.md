@@ -8,13 +8,13 @@
 > - گیت drift سند در CI: `npm run check:bench-doc`
 > - اعداد DOM در مرورگر واقعی: `npm run bench:browser` (نیازمند `npx playwright install chromium`)
 
-> ⚠️ **این سند تولیدشده است** — [`scripts/generate-benchmarks-doc.mjs`](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/scripts/generate-benchmarks-doc.mjs) از `benchmarks/results/baseline.json` (کامیت `9b6b2698`، تاریخ 2026-10-16).
+> ⚠️ **این سند تولیدشده است** — [`scripts/generate-benchmarks-doc.mjs`](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/scripts/generate-benchmarks-doc.mjs) از `benchmarks/results/baseline.json` (کامیت `c3b7241a`، تاریخ 2026-10-16).
 
 ## محیط ثبت‌شده
 
 | مورد | مقدار |
 |---|---|
-| کامیت | `9b6b2698772ee983faf5abe8224c70e12a569c2e` |
+| کامیت | `c3b7241a034607299d0864329a5e0c793c17f615` |
 | CPU | Intel(R) Xeon(R) Processor @ 2.60GHz (2 هسته) |
 | حافظه | 3.8 GB |
 | سیستم | Linux 6.1.158+ / linux x64 |
@@ -34,81 +34,81 @@
 
 | سنجه | zenith | solid | vue | preact | واحد |
 |---|---|---|---|---|---|
-| signal.get() | 161,785,820 ⛔ | 127,302,332 ⛔ | 129,999,081 ⛔ | 136,540,573 ⛔ | ops/sec |
-| signal.set() (بدون subscriber) | 4,456,355 | 79,984,402 | 32,121,658 | 44,164,893 | ops/sec |
-| الماسِ computed (set + read) | 3,477,959 | 1,479,492 | 4,281,382 | 5,604,150 | ops/sec |
+| signal.get() | 155,163,883 ⛔ | 125,220,450 | 112,421,648 | 140,654,250 | ops/sec |
+| signal.set() (بدون subscriber) | 4,601,598 | 91,435,480 | 34,071,391 | 37,477,167 | ops/sec |
+| الماسِ computed (set + read) | 3,653,335 | 1,534,357 | 4,069,301 | 5,220,116 | ops/sec |
 | اجرای effect برای 10,000 نوشتن متوالی | 1 | 9,999 | 9,999 | 9,999 | runs |
-سقف اندازه‌گیری این محیط (یک عملیات بی‌هزینه در همان حلقه/closure): **142,662,157 ops/sec** — هر عددی که به آن نزدیک باشد (≥۸۵٪، علامت ⛔) **کفِ واقعی** است، نه نرخ واقعی کتابخانه؛ در آن ناحیه هارنس گلوگاه است نه کتابخانه.
+سقف اندازه‌گیری این محیط (یک عملیات بی‌هزینه در همان حلقه/closure): **165,899,386 ops/sec** — هر عددی که به آن نزدیک باشد (≥۸۵٪، علامت ⛔) **کفِ واقعی** است، نه نرخ واقعی کتابخانه؛ در آن ناحیه هارنس گلوگاه است نه کتابخانه.
 
 جزئیات و لینک هر عدد:
 
-| متریک | مقدار | نمونه | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
-|---|---|---|---|---|---|---|
-| `reactive.harness.ceiling` | 142,662,157 | — | 14.61% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.harness.ceiling` |
-| `reactive.zenith.signal-write-batched-effect` | 863,137 | — | 12.61% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write-batched-effect` |
-| `reactive.zenith.signal-read` | 161,785,820 | — | 4.12% | 7% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-read` |
-| `reactive.solid.signal-read` | 127,302,332 | — | 0.73% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-read` |
-| `reactive.vue.signal-read` | 129,999,081 | — | 6.55% | 10% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-read` |
-| `reactive.preact.signal-read` | 136,540,573 | — | 8.86% | 14% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-read` |
-| `reactive.zenith.signal-write` | 4,456,355 | — | 19.29% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write` |
-| `reactive.solid.signal-write` | 79,984,402 | — | 14.7% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-write` |
-| `reactive.vue.signal-write` | 32,121,658 | — | 10.27% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-write` |
-| `reactive.preact.signal-write` | 44,164,893 | — | 2.39% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-write` |
-| `reactive.zenith.computed-diamond` | 3,477,959 | — | 2.67% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.computed-diamond` |
-| `reactive.solid.computed-diamond` | 1,479,492 | — | 12.19% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.computed-diamond` |
-| `reactive.vue.computed-diamond` | 4,281,382 | — | 11.55% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.computed-diamond` |
-| `reactive.preact.computed-diamond` | 5,604,150 | — | 14.47% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.computed-diamond` |
-| `reactive.zenith.effect-runs-per-10k-writes` | 1 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.effect-runs-per-10k-writes` |
-| `reactive.solid.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.effect-runs-per-10k-writes` |
-| `reactive.vue.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.effect-runs-per-10k-writes` |
-| `reactive.preact.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.effect-runs-per-10k-writes` |
+| متریک | مقدار | نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `reactive.harness.ceiling` | 165,899,386 | — | 96.51% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.harness.ceiling` |
+| `reactive.zenith.signal-write-batched-effect` | 760,991 | — | 90.02% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write-batched-effect` |
+| `reactive.zenith.signal-read` | 155,163,883 | — | 18.63% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-read` |
+| `reactive.solid.signal-read` | 125,220,450 | — | 91.77% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-read` |
+| `reactive.vue.signal-read` | 112,421,648 | — | 59.62% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-read` |
+| `reactive.preact.signal-read` | 140,654,250 | — | 91.91% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-read` |
+| `reactive.zenith.signal-write` | 4,601,598 | — | 99.15% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write` |
+| `reactive.solid.signal-write` | 91,435,480 | — | 97.3% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-write` |
+| `reactive.vue.signal-write` | 34,071,391 | — | 18.1% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-write` |
+| `reactive.preact.signal-write` | 37,477,167 | — | 60.78% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-write` |
+| `reactive.zenith.computed-diamond` | 3,653,335 | — | 117.2% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.computed-diamond` |
+| `reactive.solid.computed-diamond` | 1,534,357 | — | 14.26% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.computed-diamond` |
+| `reactive.vue.computed-diamond` | 4,069,301 | — | 15.76% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.computed-diamond` |
+| `reactive.preact.computed-diamond` | 5,220,116 | — | 68.94% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.computed-diamond` |
+| `reactive.zenith.effect-runs-per-10k-writes` | 1 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.effect-runs-per-10k-writes` |
+| `reactive.solid.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.effect-runs-per-10k-writes` |
+| `reactive.vue.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.effect-runs-per-10k-writes` |
+| `reactive.preact.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.effect-runs-per-10k-writes` |
 
 ## ۲. عملیات لیست js-framework-benchmark (jsdom)
 
 همان ۹ عملیات استاندارد روی `<table><tbody>` واقعی، ولی موتور DOM این محیط **jsdom** است (مرورگر واقعی → `npm run bench:browser`). عملیات سبک K بار تکرار می‌شوند و عدد گزارش‌شده **زمان هر یک بار** است؛ عدد هر ردیف **کمینهٔ نمونه‌ها** است (نویز فقط زمان اضافه می‌کند).
 
-| متریک | زمان هر بار | نمونه | تکرار/نمونه | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
-|---|---|---|---|---|---|---|---|
-| `dom.append-1k-to-10k` | 115.617 ms | 7 | x1 | 2.12% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.append-1k-to-10k` |
-| `dom.clear-1k` | 0.121 ms | 7 | x128 | 12.4% | 19% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.clear-1k` |
-| `dom.create-10k` | 1.40s | 5 | x1 | 9.77% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-10k` |
-| `dom.create-1k` | 127.812 ms | 7 | x1 | 15.18% | 23% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-1k` |
-| `dom.partial-update-1k` | 8.973 ms | 7 | x10 | 8.57% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.partial-update-1k` |
-| `dom.remove-row-1k` | 0.069 ms | 7 | x500 | 1.45% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.remove-row-1k` |
-| `dom.replace-all-1k` | 130.875 ms | 5 | x2 | 4.13% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.replace-all-1k` |
-| `dom.select-1k` | 0.087 ms | 7 | x500 | 6.9% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.select-1k` |
-| `dom.swap-rows-1k` | 0.421 ms | 7 | x100 | 2.61% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only dom.swap-rows-1k` |
+| متریک | زمان هر بار | نمونه | تکرار/نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|---|
+| `dom.append-1k-to-10k` | 126.14 ms | 7 | x1 | 10.03% | 16% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.append-1k-to-10k` |
+| `dom.clear-1k` | 0.129 ms | 7 | x128 | 18.6% | 28% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.clear-1k` |
+| `dom.create-10k` | 1.92s | 5 | x1 | 15.16% | 23% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-10k` |
+| `dom.create-1k` | 143.895 ms | 7 | x1 | 45.17% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-1k` |
+| `dom.partial-update-1k` | 9.559 ms | 7 | x10 | 29.62% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.partial-update-1k` |
+| `dom.remove-row-1k` | 0.078 ms | 7 | x500 | 6.41% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.remove-row-1k` |
+| `dom.replace-all-1k` | 138.319 ms | 5 | x2 | 40.34% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.replace-all-1k` |
+| `dom.select-1k` | 0.093 ms | 7 | x500 | 12.9% | 20% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.select-1k` |
+| `dom.swap-rows-1k` | 0.419 ms | 7 | x100 | 18.14% | 28% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.swap-rows-1k` |
 
 ## ۳. حافظه
 
 delta هیپ جاوااسکریپت به‌ازای هر signal — تقریبی (بدون `--expose-gc`).
 
-| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
-|---|---|---|---|---|---|---|
-| `memory.bytes-per-signal` | 527 B | — | 13.28% | 25% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only memory.bytes-per-signal` |
+| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `memory.bytes-per-signal` | 506 B | — | 17.98% | 27% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only memory.bytes-per-signal` |
 
 ## ۴. SSR (Node)
 
 رندر یک صفحهٔ ۵۰ آیتمی با `renderToString` — میانهٔ ۳ اجرا پس از گرم‌کردن.
 
-| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
-|---|---|---|---|---|---|---|
-| `ssr.pages-per-sec` | 170 | — | 5.29% | 8% | ✅ گیت‌شده | [benchmarks/suite.mjs@9b6b2698](https://github.com/legionir/zenith-v1.4.0/blob/9b6b2698772ee983faf5abe8224c70e12a569c2e/benchmarks/suite.mjs) | `npm run bench -- --only ssr.pages-per-sec` |
+| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `ssr.pages-per-sec` | 165 | — | 13.79% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only ssr.pages-per-sec` |
 
 ## بازتولیدپذیری — چه چیزی تضمین می‌شود؟
 
 - هر متریک با **کمینهٔ چند نمونه** (نه میانگین) گزارش می‌شود؛ نویز GC/زمان‌بندی فقط زمان اضافه می‌کند، پس کمترین زمان پایدارترین برآورد است.
 - `baseline.json` با `npm run bench:record -- --passes 3` ساخته شده و برای هر متریک **درصد بازتولید مشاهده‌شده** ثبت شده است.
-- **27 متریک گیت‌شده** و **2 متریک اطلاعاتی** در این baseline ثبت شده است. از متریک‌های گیت‌شده، **12 عدد با بازتولید ≤۵٪** و بقیه با آستانهٔ خودشان (کفِ گروه: ۵٪ برای `reactive`/`ssr`، ۱۵٪ برای `dom`، ۲۵٪ برای `memory`) بررسی می‌شوند.
+- **10 متریک گیت‌شده** و **19 متریک اطلاعاتی** در این baseline ثبت شده است. از متریک‌های گیت‌شده، **4 عدد با بازتولید ≤۵٪** و بقیه با آستانهٔ خودشان (کفِ گروه: ۵٪ برای `reactive`/`ssr`، ۱۵٪ برای `dom`، ۲۵٪ برای `memory`) بررسی می‌شوند.
 - `npm run bench` روی **همان محیط** هر متریک گیت‌شده را با آستانهٔ ثبت‌شده‌اش مقایسه می‌کند و در صورت عبور، exit 1 می‌دهد. متریک‌های اطلاعاتی (⚠️) فقط گزارش می‌شوند — عددشان «بهترین مشاهده» است و ادعای بازتولید برایشان مطرح نیست.
-- متریک‌های اطلاعاتی عمدتاً عملیات زیر ~۱۰ns هستند (مثل `signal.get()`): V8 در همین یک اجرا بین ۵ns و ۱۵ns می‌لرزد (پراکندگی ثبت‌شده تا 19.29٪). این عدد در سند می‌ماند چون «کفِ» عملکرد مفید است، ولی برای تصمیم‌گیری به آستانه گره نمی‌خورد.
+- متریک‌های اطلاعاتی عمدتاً عملیات زیر ~۱۰ns هستند (مثل `signal.get()`): V8 در همین یک اجرا بین ۵ns و ۱۵ns می‌لرزد (پراکندگی ثبت‌شده تا 117.2٪). این عدد در سند می‌ماند چون «کفِ» عملکرد مفید است، ولی برای تصمیم‌گیری به آستانه گره نمی‌خورد.
 - روی محیط دیگر، مقایسه غیرفعال می‌شود و فقط اعداد مطلق چاپ می‌شوند — «۵٪» یک ادعای محیط‌وابسته است، نه یک تضمین جهانی.
 
 ## محدودیت‌ها (صادقانه)
 
 1. **مرورگر واقعی ثبت نشده است.** گروه DOM روی `jsdom@24.1.3` اجرا شده، چون محیط ثبت (`Linux 6.1.158+`) مرورگر نصب ندارد. برای اعداد مرورگری: `npx playwright install chromium && npm run bench:browser` (نسخهٔ مرورگر در `benchmarks/results/browser.json` ثبت می‌شود).
 2. **بدون layout/paint.** هزینهٔ style/layout/composite مرورگر در این اعداد نیست؛ فقط هزینهٔ ساخت و جهش DOM.
-3. **حافظه تقریبی است** (`process.memoryUsage().heapUsed` بدون `--expose-gc`) و آستانهٔ ۲۵٪ برای همین است.
+3. **حافظه از یک پروب فرزند می‌آید** (`node --expose-gc` + دو `gc()` صریح + ۱۰۰k سیگنال تا `benchmarks/memory-probe.mjs`) و چون تخمین هیپ است، آستانهٔ گروه ۲۵٪ است.
 4. **تک‌رشته‌ای.** هیچ عددی هم‌زمانی/چند‌هسته‌ای را نمی‌سنجد.
 5. اعداد v1.0.0 قبلی (Node 24 + Chrome Headless) بازتولیدپذیر نبودند و حذف شدند؛ در تاریخ گیت (`git log -- docs/BENCHMARKS.md`) باقی‌اند.
 

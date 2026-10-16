@@ -23,10 +23,12 @@ import {
 import { SUITE_GROUPS, runBenchmarkSuite } from '../../benchmarks/suite.mjs';
 import {
   GATE_LIMIT_PCT,
+  HIGHER_IS_BETTER,
   QUICK_OPTIONS,
   compareMetric,
   groupsForOnly,
   isGated,
+  isHigherBetter,
   parseArgs,
   runPasses,
   toleranceFor,
@@ -263,6 +265,15 @@ describe('#86 — گیت بازتولیدپذیری', () => {
     expect(SUITE_GROUPS).toEqual(['reactive', 'dom', 'memory', 'ssr']);
   });
 
+  it('cancels noise in the right direction: min for times, max for rates', () => {
+    expect(HIGHER_IS_BETTER).toEqual(['ops/sec', 'pages/sec', 'runs']);
+    expect(isHigherBetter('ops/sec')).toBe(true);
+    expect(isHigherBetter('pages/sec')).toBe(true);
+    expect(isHigherBetter('runs')).toBe(true);
+    expect(isHigherBetter('ms')).toBe(false);
+    expect(isHigherBetter('bytes')).toBe(false);
+  });
+
   it('merges passes by minimum and records the observed reproducibility', async () => {
     const { metrics } = await runPasses({
       passes: 2,
@@ -343,6 +354,25 @@ describe('#86 — baseline و سند تولیدشده', () => {
       const row = doc.split('\n').find((line) => line.startsWith(`| \`dom.${op.id}\` |`));
       expect(row, op.id).toContain(`| x${op.repeat} |`);
     }
+  });
+
+  it('keeps every generated table rectangular (header width == row width)', () => {
+    const { doc } = generateBenchmarksDoc({ checkOnly: true });
+    let width = null;
+    const bad = [];
+    for (const line of doc.split('\n')) {
+      if (!line.startsWith('|')) {
+        width = null; // خارج از جدول، انتظار ستون نداریم
+        continue;
+      }
+      if (/^\|[-: |]+\|$/.test(line)) {
+        width = line.split('|').length - 2; // ردیف جداکننده، عرض جدول را تعیین می‌کند
+        continue;
+      }
+      const cells = line.split('|').length - 2;
+      if (width !== null && cells !== width) bad.push(`${cells}≠${width}: ${line.slice(0, 60)}`);
+    }
+    expect(bad).toEqual([]);
   });
 
   it('documents the reproducibility contract honestly', () => {
