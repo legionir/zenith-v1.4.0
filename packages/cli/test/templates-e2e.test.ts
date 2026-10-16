@@ -73,7 +73,15 @@ describe('zenith create templates (standard & --pwa), demos, and automated a11y 
     expect(JSON.parse(pwaManifestTemplate('my-pwa')).display).toBe('standalone');
     expect(pwaServiceWorkerTemplate()).toContain('staleWhileRevalidate');
     expect(pwaViteConfigTemplate()).toContain('VitePWA');
-    expect(JSON.parse(packageJsonTemplate('my-app')).name).toBe('my-app');
+    const generatedPackage = JSON.parse(packageJsonTemplate('my-app'));
+    expect(generatedPackage.name).toBe('my-app');
+    expect(generatedPackage.devDependencies.vite).toBe('^6.4.4');
+    const pluginPackage = JSON.parse(
+      readFileSync(join(process.cwd(), 'packages/vite-plugin/package.json'), 'utf8'),
+    );
+    expect(pluginPackage.peerDependencies.vite.split(' || ')).toContain(
+      generatedPackage.devDependencies.vite,
+    );
     expect(JSON.parse(tsConfigTemplate()).compilerOptions.strict).toBe(true);
     expect(componentTemplate('UserCard')).toContain('<zen-component name="user-card">');
     expect(pageTemplate('Home')).toContain('page-home');

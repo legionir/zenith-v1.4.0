@@ -146,7 +146,7 @@ export function packageJsonTemplate(projectName: string): string {
     "@zenith/vite-plugin": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^5.4.0",
+    "vite": "^6.4.4",
     "typescript": "^5.4.0"
   }
 }

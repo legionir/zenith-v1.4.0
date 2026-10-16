@@ -519,6 +519,8 @@ const formatted = formatJalali(new Date(), 'YYYY/MM/DD');
   Dropping Vite 5 is a breaking tooling-support change (major changeset); no
   package version is bumped or published in this batch. Coordinate the fixed-group
   release with the release owner. Vite 8 support remains pending in #110.
+- Newly generated CLI manifests now select `vite: ^6.4.4`, matching the patched
+  plugin peer range. This does not fix the other scaffold/workspace gaps in #109/#158.
 - CSP nonce values are no longer static. Never depend on `zen-ssr-nonce` or
   `zen-edge-nonce`. A custom adapter CSP should use `'nonce-{{nonce}}'` so header
   and script agree. Do not reuse full nonce-bearing response HTML across requests.
