@@ -109,7 +109,14 @@ export default tseslint.config(
       'demos/**',
       'ecommerce-demo/**',
       'dashboard/**',
-      'benchmarks/**',
+      // #86: فایل‌های قدیمی benchmarks/ دست‌نویس و بدون نگهداری‌اند؛ اسکریپت‌ها و
+      // کتابخانه‌های جدید سوئیت (benchmarks/*.js، benchmarks/lib/**) لینت می‌شوند.
+      'benchmarks/run-all.js',
+      'benchmarks/src/**',
+      'benchmarks/ssr/**',
+      'benchmarks/runtime/**',
+      'benchmarks/resource/**',
+      'benchmarks/results/**',
       'index.html',
       '**/*.d.ts',
     ],
@@ -224,9 +231,17 @@ export default tseslint.config(
     },
   },
 
-  // ── Build scripts (untyped, node) ──
+  // ── Build scripts & benchmark suite (untyped, node) ──
+  // #86: سوئیت بنچمارک از اسکریپت‌های Node استفاده می‌کند (`benchmarks/*.js`،
+  // `benchmarks/lib/**`) — همان قواعد اسکریپت‌های build.
   {
-    files: ['scripts/**/*.mjs', 'eslint.config.mjs'],
+    files: [
+      'scripts/**/*.mjs',
+      'eslint.config.mjs',
+      'benchmarks/*.js',
+      'benchmarks/*.mjs',
+      'benchmarks/lib/**/*.mjs',
+    ],
     languageOptions: {
       parserOptions: { project: null },
       ecmaVersion: 2022,

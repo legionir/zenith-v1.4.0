@@ -245,6 +245,10 @@ jobs:
       # scripts/positional-config.allowlist.json (mirrored by the ESLint rule
       # `zenith/options-object`).
       - run: npm run check:positional-config
+      # #86: docs/BENCHMARKS.md is generated from benchmarks/results/baseline.json
+      # — a hand-edited number (or a baseline update without regenerating the doc)
+      # turns this red. The doc is the only place the numbers are published.
+      - run: npm run check:bench-doc
 
   package-lint:
     name: Package lint (publint)

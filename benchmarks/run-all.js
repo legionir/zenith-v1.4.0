@@ -1,39 +1,27 @@
 // benchmarks/run-all.js
 //
-// Runner برای تمام benchmarkها (reactivity + runtime + resource + ssr)
+// ⚠️ DEPRECATED — از #86 فقط یک اجراکننده وجود دارد: `npm run bench`.
+//
+// این فایل دیگر خودش اندازه‌گیری نمی‌کند (اسکریپت‌های قدیمی `benchmarks/src`,
+// `runtime`, `resource`, `ssr` تاریخی‌اند و اعدادشان ثبت‌نشده/غیرقابل‌بازتولید
+// بود). حالا فقط پاس‌دهنده است تا اسکریپت‌ها و اسناد قدیمی نشکنند و همه به همان
+// سوئیت ثبت‌شده برسند:
+//
+//   node benchmarks/run-all.js            → مانند `npm run bench`
+//   node benchmarks/run-all.js -- --json  → آرگومان‌ها پاس داده می‌شوند
+//
+// خروجی مرجع (اعداد + گیت): `docs/BENCHMARKS.md`
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { pathToFileURL, fileURLToPath } from 'url';
-import { dirname } from 'path';
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const forwarded = process.argv.slice(2).filter((arg, i, all) => !(arg === '--' && i === 0));
+const args = [join(ROOT, 'scripts', 'bench.mjs'), ...forwarded];
 
-const base = dirname(fileURLToPath(import.meta.url));
+console.log(
+  '⚠️  benchmarks/run-all.js منسوخ شده است — از `npm run bench` استفاده کنید (docs/BENCHMARKS.md).\n',
+);
 
-async function runFile(name, file) {
-  console.log('\n' + '═'.repeat(60));
-  console.log('  Running: ' + name);
-  console.log('═'.repeat(60) + '\n');
-  try {
-    await import(pathToFileURL(file).href);
-  } catch(e) {
-    console.log('  ⚠️  Skipped (error: ' + e.message.substring(0, 80) + ')\n');
-  }
-}
-
-async function main() {
-  console.log('╔══════════════════════════════════════════════════════════╗');
-  console.log('║     Zenith Framework — Full Benchmark Suite v0.6.3      ║');
-  console.log('║     Node.js v' + process.version + '                                     ║');
-  console.log('╚══════════════════════════════════════════════════════════╝');
-
-  await runFile('1. Reactivity Core', base + '/src/signal-vs-computed.js');
-  await runFile('2. Runtime/DOM (directives)', base + '/runtime/directives.js');
-  await runFile('3. Resource (cache/dedupe)', base + '/resource/resource.js');
-  await runFile('4. SSR (render)', base + '/ssr/render.js');
-
-  console.log('\n╔══════════════════════════════════════════════════════════╗');
-  console.log('║  All benchmarks complete.                                ║');
-  console.log('║  Results are on Node.js with mock DOM.                   ║');
-  console.log('║  Real browser numbers will differ (slower due to paint). ║');
-  console.log('╚══════════════════════════════════════════════════════════╝');
-}
-
-main().catch(err => { console.error('Fatal:', err); process.exit(1); });
+const result = spawnSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
+process.exit(result.status ?? 1);

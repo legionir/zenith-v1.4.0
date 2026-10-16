@@ -1,39 +1,42 @@
-# Zenith Benchmark Suite (v0.4.0)
+# Zenith Benchmark Suite
 
-مجموعه‌ای از benchmarkهای عملکرد برای Zenith Framework.
+> **یک دستور، همهٔ اعداد:** `npm run bench` (سوئیت + مقایسه با baseline ثبت‌شده + `exit 1` روی انحراف).
+> خروجی مرجع و قابل‌استناد: [`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md) — هر عدد به اسکریپت و کامیت لینک خورده است.
 
-## اجرا
+## دستورها
 
-```bash
-node benchmarks/src/run-all.js
-```
+| دستور | چه می‌کند |
+|---|---|
+| `npm run bench` | اجرای سوئیت، مقایسه با `results/baseline.json` (فقط روی **همان امضای محیط**) و `exit 1` روی انحراف |
+| `npm run bench -- --only <id>` | بازتولید **یک عدد** (`--list` فهرست شناسه‌ها) — فقط گروه همان متریک اندازه‌گیری می‌شود |
+| `npm run bench -- --json` | خروجی ماشین‌خوان کامل (محیط + نسخه‌ها + متریک‌ها + مقایسه) |
+| `npm run bench:record` | ثبت مجدد baseline (۳ پاس، هر پاس در فرایند جدا؛ کمینهٔ هر متریک برنده است) |
+| `npm run bench:browser` | همان عملیات لیست، در **مرورگر واقعی** (اختیاری، نیازمند `npx playwright install chromium`) |
+| `npm run bench:doc` | تولید `docs/BENCHMARKS.md` از baseline |
+| `npm run check:bench-doc` | گیت CI — سند دست‌کاری‌شده یا baseline بدون سند تازه را قرمز می‌کند |
+| `npm run bench:ci` | گیت بودجهٔ عملکرد (#84) — `benchmarks/budgets.json`، دست‌نخورده |
 
-## benchmarkها
+## ساختار
 
-### ۱. List Rendering (zen-for vs manual DOM)
-رندر لیستی از N آیتم (۱k, ۱۰k, ۱۰۰k) با zen-for و مقایسه با appendChild دستی.
-معیار: initial render time, node count.
+| مسیر | نقش |
+|---|---|
+| `suite.mjs` | سوئیت: میکرو reactive (+مقایسه با Solid/Vue/Preact واقعی)، عملیات لیست jsdom، حافظه، SSR |
+| `lib/measure.mjs` | تنها هلپر زمان‌سنجی (batchهای **زمان‌محور**، میانه، sink برای جلوگیری از DCE) |
+| `lib/env.mjs` | امضای محیط (CPU/هسته/RAM/OS/Node/jsdom) — مبنای «همان محیط؟» در مقایسه |
+| `competitors.js` | آداپتورهای Solid/Vue/Preact با **بیلد صریح** (solid از `dist/solid.js`، چون بیلد server در Node effect را اجرا نمی‌کند) |
+| `dom-suite.js` | ۹ عملیات js-framework-benchmark؛ `runDomListSuite` سریال‌پذیر است و در مرورگر هم اجرا می‌شود |
+| `memory-probe.mjs` | پروب حافظه در فرزند با `--expose-gc` (دلتای درون‌فرایندی بی‌معنا بود) |
+| `results/baseline.json` | اعداد ثبت‌شده + درصد بازتولید هر متریک + وضعیت گیت (⚠️ اطلاعاتی / ✅ گیت‌شده) |
+| `results/latest.json`، `results/browser.json` | خروجی هر اجرا / خروجی مرورگر (git-ignored؛ مربوط به همان ماشین) |
 
-### ۲. Signal Updates
-- ۱۰k آپدیت متوالی به یک signal (per-update time, ops/sec)
-- ۱k آیتم × ۱۰ آپدیت (bulk updates)
+## سیاست بازتولیدپذیری
 
-### ۳. Nested Reactivity
-۳ سطح nested zen-for (users → orders → items): ۱۰۰×۱۰×۱۰ = ۱۰k leaf nodes.
-معیار: signals created, build time, deep update re-render time.
-این benchmark "Nested Reactivity Explosion" را کمی می‌کند.
+- **زمان‌محور، نه تعداد‌محور**: batch ثابتِ ۱۰۰k برای عملیات ۲۰۰M ops/sec فقط ۰٫۴ms است و نتیجه را تا ۵ برابر جابه‌جا می‌کرد.
+- **میانه، نه میانگین** و **کمینهٔ چند پاس** برای ثبت baseline؛ نویز فقط زمان اضافه می‌کند.
+- متریکی که در زمان ثبت پراکندگی‌اش از سقفِ گروه (`GATE_LIMIT_PCT`) بیشتر بود **⚠️ اطلاعاتی** علامت می‌خورد و در تصمیم pass/fail شمرده نمی‌شود — نه پنهان می‌شود، نه ادعای بی‌پایه می‌گیرد.
+- **سقف هارنس**: `reactive.harness.ceiling` (یک عملیات بی‌هزینه در همان حلقه) مرز اندازه‌گیری این محیط است؛ هر متریکی ≥۸۵٪ آن **کفِ** واقعی است نه نرخ کتابخانه (`⛔` در سند).
+- روی **محیط دیگر** (سخت‌افزار/Node/jsdom متفاوت) مقایسه غیرفعال می‌شود و فقط اعداد مطلق چاپ می‌شوند: «۵٪» یک ادعای محیط‌وابسته است.
 
-### ۴. Signal vs Computed (micro-benchmarks)
-- `signal.get()` throughput (۱M iterations)
-- `signal.set()` throughput (۱M iterations, no effect)
-- `computed` re-evaluation (۱۰۰k iterations)
-- `effect` re-run cost (۱۰۰k iterations)
+## فایل‌های تاریخی
 
-## تفسیر نتایج
-
-- نتایج به سخت‌افزار و محیط (Node version, browser) بستگی دارد.
-- برای مقایسه‌ی دقیق، در محیط target اجرا کنید.
-- benchmarkهای List Rendering ممکن است در محیط‌های بدون DOM کامل fallback کنند (با mini-dom stub).
-
-## نسخه
-v0.4.0 — اولین نسخه‌ی رسمی Benchmark Suite.
+`src/`، `runtime/`، `resource/`، `ssr/` و `run-all.js` نسخهٔ قدیمی سوئیت‌اند (v0.4.0، «mock DOM»، اعداد ثبت‌نشده و غیرقابل‌بازتولید). `run-all.js` حالا فقط به `npm run bench` پاس می‌دهد و خودش اندازه‌گیری نمی‌کند؛ فایل‌های `src/**` صرفاً برای تاریخ گیت نگه داشته شده‌اند و بخشی از اعداد منتشرشده **نیستند**.

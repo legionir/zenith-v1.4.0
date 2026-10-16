@@ -51,3 +51,5 @@ test-results/
 
 # Temporary modules generated from marked doc examples (scripts/check-docs-examples.mjs #106)
 .docexamples/
+benchmarks/results/latest.json
+benchmarks/results/browser.json
