@@ -22,6 +22,11 @@
       "import": "./dist/json-schema.js",
       "default": "./dist/json-schema.js"
     },
+    "./attr": {
+      "types": "./dist/attr.d.ts",
+      "import": "./dist/attr.js",
+      "default": "./dist/attr.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

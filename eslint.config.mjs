@@ -13,21 +13,110 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
 import { NO_CONSOLE_RATCHET } from './scripts/no-console-ratchet.mjs';
+import {
+  loadAllowlist,
+  isOptionsParamText,
+  ALLOWLIST_PATH,
+} from './scripts/positional-config-audit.mjs';
+
+// ── #55 — قاعدهٔ `options-object` ──
+//
+// API-CONVENTIONS §۱.۱/§۴: تابع عمومی با بیش از دو پارامتر باید
+// `fn(main, options?)` باشد. این قاعده در زمان lint همان چیزی را می‌گیرد که
+// `npm run check:positional-config` در CI می‌گیرد، تا «پیکربندی positional
+// جدید» همان‌جا که نوشته می‌شود رد شود. امضاهای موجودِ بازبینی‌شده در
+// scripts/positional-config.allowlist.json (دسته‌محور و با دلیل) معاف‌اند.
+const POSITIONAL_ALLOW = new Set(loadAllowlist(process.cwd()).map((e) => `${e.pkg}:${e.name}`));
+
+const optionsObjectRule = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description:
+        'public functions take `(main, options?)` — positional config is frozen in ' +
+        `${ALLOWLIST_PATH} and may not grow (#55)`,
+    },
+    schema: [],
+    messages: {
+      optionsObject:
+        '`{{name}}` پارامتر پیکربندی positional دارد؛ امضای `fn(main, options?)` بسازید ' +
+        '(overload قدیمی با @deprecated + deprecate()) یا دلیل را در ' +
+        `${ALLOWLIST_PATH} ثبت کنید (#55).`,
+    },
+  },
+  create(context) {
+    const filename = context.filename ?? context.getFilename();
+    const m = /packages[\\/]([^\\/]+)[\\/]src[\\/]/.exec(filename.split('\\').join('/'));
+    if (!m) return {};
+    const pkg = m[1];
+
+    // همان predicate گیت #55 (تک منبع حقیقت — واگرایی غیرممکن).
+    const isOptionsParam = (param) => isOptionsParamText(context.sourceCode.getText(param));
+    // @deprecated روی JSDocِ خودِ export است (والد declaration) و باید همان‌جا دیده شود.
+    const isDeprecated = (node) => {
+      const target =
+        node.parent && node.parent.type === 'ExportNamedDeclaration' ? node.parent : node;
+      return context.sourceCode.getCommentsBefore(target).some((c) => /@deprecated/.test(c.value));
+    };
+
+    const check = (node, name) => {
+      const params = node.params.filter((p) => !(p.type === 'Identifier' && p.name === 'this'));
+      if (params.length <= 2) return;
+      if (params.some(isOptionsParam)) return;
+      if (POSITIONAL_ALLOW.has(`${pkg}:${name}`)) return;
+      if (isDeprecated(node)) return;
+      context.report({ node, messageId: 'optionsObject', data: { name } });
+    };
+
+    return {
+      ExportNamedDeclaration(node) {
+        const decl = node.declaration;
+        if (!decl) return;
+        if (decl.type === 'FunctionDeclaration' && decl.id) check(decl, decl.id.name);
+        if (decl.type === 'VariableDeclaration') {
+          for (const d of decl.declarations) {
+            if (d.id.type !== 'Identifier') continue;
+            if (
+              d.init &&
+              (d.init.type === 'ArrowFunctionExpression' || d.init.type === 'FunctionExpression')
+            ) {
+              check(d.init, d.id.name);
+            }
+          }
+        }
+      },
+    };
+  },
+};
+
+const zenithPlugin = { rules: { 'options-object': optionsObjectRule } };
 
 export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      // #118/#134: پوشهٔ موقت buildPackage (dist.build-<pid>-<n>) که با rename
+      // به dist تبدیل می‌شود؛ اگر build نیمه‌کاره بماند نباید lint را بشکند.
+      '**/dist.build-*/**',
       '**/node_modules/**',
       '**/out/**',
       'browser-bundles/**',
       'artifacts/**',
       'coverage/**',
       'docs/**',
+      '.docexamples/**',
+      '.tsbuild/**',
       'demos/**',
       'ecommerce-demo/**',
       'dashboard/**',
-      'benchmarks/**',
+      // #86: فایل‌های قدیمی benchmarks/ دست‌نویس و بدون نگهداری‌اند؛ اسکریپت‌ها و
+      // کتابخانه‌های جدید سوئیت (benchmarks/*.js، benchmarks/lib/**) لینت می‌شوند.
+      'benchmarks/run-all.js',
+      'benchmarks/src/**',
+      'benchmarks/ssr/**',
+      'benchmarks/runtime/**',
+      'benchmarks/resource/**',
+      'benchmarks/results/**',
       'index.html',
       '**/*.d.ts',
     ],
@@ -38,6 +127,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     files: ['packages/**/src/**/*.ts', 'packages/**/test/**/*.ts', 'vitest.config.ts'],
+    plugins: { zenith: zenithPlugin },
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -61,6 +151,9 @@ export default tseslint.config(
       // #36 requested rules
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-explicit-any': 'warn', // error after #38
+
+      // #55: options-object — پیکربندی positional در سطح عمومی پکیج‌ها.
+      'zenith/options-object': 'error',
 
       // TS type checker already flags undefined names; no-undef is noise.
       'no-undef': 'off',
@@ -138,9 +231,17 @@ export default tseslint.config(
     },
   },
 
-  // ── Build scripts (untyped, node) ──
+  // ── Build scripts & benchmark suite (untyped, node) ──
+  // #86: سوئیت بنچمارک از اسکریپت‌های Node استفاده می‌کند (`benchmarks/*.js`،
+  // `benchmarks/lib/**`) — همان قواعد اسکریپت‌های build.
   {
-    files: ['scripts/**/*.mjs', 'eslint.config.mjs'],
+    files: [
+      'scripts/**/*.mjs',
+      'eslint.config.mjs',
+      'benchmarks/*.js',
+      'benchmarks/*.mjs',
+      'benchmarks/lib/**/*.mjs',
+    ],
     languageOptions: {
       parserOptions: { project: null },
       ecmaVersion: 2022,

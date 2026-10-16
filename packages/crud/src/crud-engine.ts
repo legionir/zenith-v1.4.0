@@ -50,6 +50,7 @@ import { getAction } from '@zenith/actions';
 import { processPermission, getPermissionManager } from '@zenith/permission';
 import { deprecate, developerError, ErrorCode } from '@zenith/errors';
 import { logger } from '@zenith/logger';
+import { parseJsonValue } from '@zenith/schema/attr';
 import type { Disposable } from '@zenith/shared';
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1073,15 +1074,16 @@ export function processCrud(
       return () => {};
     }
   } else {
-    // حالت JSON string
-    try {
-      config = JSON.parse(trimmed);
-    } catch (e) {
-      logger.error(
-        `[CrudEngine] Invalid JSON config: ${e instanceof Error ? e.message : String(e)}`,
-      );
+    // حالت JSON string — #120: از helper مشترک `@zenith/schema` استفاده می‌شود
+    // (کد خطای ZEN-1003 در پیام؛ بدون `JSON.parse` مستقیم روی attribute).
+    const parsed = parseJsonValue<CrudEngineConfig>(trimmed, {
+      onError: (err) => logger.error(`[CrudEngine] ${err.message}`),
+    });
+    if (parsed === null || typeof parsed !== 'object') {
+      logger.error('[CrudEngine] Invalid JSON config: expected a JSON object.');
       return () => {};
     }
+    config = parsed as CrudEngineConfig;
   }
 
   // ── Validation ──

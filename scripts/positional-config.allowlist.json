@@ -1,0 +1,499 @@
+{
+  "$comment": "allowlist گیت #55 (scripts/positional-config-audit.mjs). هر دسته یک دلیل بازبینی‌شده دارد و اعضای آن فهرست شده‌اند؛ امضای جدید خارج از این فهرست گیت را قرمز می‌کند. حذف یک ردیف یعنی آن امضا به `fn(main, options?)` مهاجرت کرده است.",
+  "categories": [
+    {
+      "id": "directive-binder",
+      "reason": "دایرکتیو/بایندر walker: امضای `processX(el, expr, context, processChildren, disposes)` قرارداد درونی موتور پیمایش است و #120 آن را به `bindX(el, ctx: BindContext) → Cleanup` یکدست می‌کند؛ تا آن زمان تغییر امضا دو بار مهاجرت می‌سازد.",
+      "entries": [
+        {
+          "pkg": "charts",
+          "name": "processChart"
+        },
+        {
+          "pkg": "components",
+          "name": "processAsyncComponent"
+        },
+        {
+          "pkg": "components",
+          "name": "processComponent"
+        },
+        {
+          "pkg": "crud",
+          "name": "processCrud"
+        },
+        {
+          "pkg": "data",
+          "name": "processFetch"
+        },
+        {
+          "pkg": "resource",
+          "name": "processResource"
+        },
+        {
+          "pkg": "router",
+          "name": "processRouter"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processBind"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processFor"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processHtmlTrusted"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processHtml"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processIf"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processIntersection"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processIsland"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processMemo"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processModel"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processOptimistic"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processPersist"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processPortal"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processRef"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processShow"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processStatefulButton"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processText"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processTrack"
+        },
+        {
+          "pkg": "runtime",
+          "name": "processVirtualRepeat"
+        },
+        {
+          "pkg": "stateful",
+          "name": "processActionButton"
+        },
+        {
+          "pkg": "stateful",
+          "name": "processAuthView"
+        },
+        {
+          "pkg": "stateful",
+          "name": "processResourceView"
+        },
+        {
+          "pkg": "suspense",
+          "name": "processSuspense"
+        },
+        {
+          "pkg": "transition",
+          "name": "processAnimate"
+        }
+      ]
+    },
+    {
+      "id": "error-factory",
+      "reason": "کارخانهٔ خطا در `@zenith/errors` (و `deprecate`) — آرگومان‌ها تکه‌های دادهٔ ساختاری‌اند (کد/url/status/توکن) که در پیام و `details` می‌نشینند، نه یک بستهٔ پیکربندی؛ options کردنشان هر فراخوانی داخلی را بی‌جهت شلوغ می‌کند.",
+      "entries": [
+        {
+          "pkg": "error-boundary",
+          "name": "reportError"
+        },
+        {
+          "pkg": "errors",
+          "name": "deprecate"
+        },
+        {
+          "pkg": "errors",
+          "name": "resourceDestroyedError"
+        },
+        {
+          "pkg": "errors",
+          "name": "securityError"
+        },
+        {
+          "pkg": "errors",
+          "name": "resourceHttpError"
+        },
+        {
+          "pkg": "errors",
+          "name": "expressionSyntaxError"
+        },
+        {
+          "pkg": "errors",
+          "name": "compileSyntaxError"
+        },
+        {
+          "pkg": "errors",
+          "name": "routerNavigationAbortedError"
+        },
+        {
+          "pkg": "errors",
+          "name": "findClosestMatch"
+        },
+        {
+          "pkg": "errors",
+          "name": "developerError"
+        },
+        {
+          "pkg": "errors",
+          "name": "reportError"
+        },
+        {
+          "pkg": "shared",
+          "name": "invariant"
+        }
+      ]
+    },
+    {
+      "id": "validation-utils",
+      "reason": "کمکی اعتبارسنجی/فرم: پارامترها «مقدار» و «قاعده/مسیر» هستند و options کردنشان خوانایی فراخوانی را کم می‌کند (الگوی `validateField(name, value, rules)`).",
+      "entries": [
+        {
+          "pkg": "components",
+          "name": "defineComponent"
+        },
+        {
+          "pkg": "expressions",
+          "name": "validateType"
+        },
+        {
+          "pkg": "form",
+          "name": "setNestedValue"
+        },
+        {
+          "pkg": "form",
+          "name": "validateField"
+        },
+        {
+          "pkg": "form",
+          "name": "validateFieldAsync"
+        },
+        {
+          "pkg": "form",
+          "name": "validateFormAsync"
+        },
+        {
+          "pkg": "form",
+          "name": "validateWithLifecycle"
+        },
+        {
+          "pkg": "icons",
+          "name": "defineIconSet"
+        },
+        {
+          "pkg": "schema",
+          "name": "safeValidate"
+        },
+        {
+          "pkg": "schema",
+          "name": "validate"
+        },
+        {
+          "pkg": "schema",
+          "name": "defineOptions"
+        },
+        {
+          "pkg": "schema",
+          "name": "parseConfigAttr"
+        },
+        {
+          "pkg": "testing",
+          "name": "expectSignal"
+        }
+      ]
+    },
+    {
+      "id": "reactive-and-scheduler",
+      "reason": "زمان‌بند/واکنش‌پذیری: امضا `(source, cb, options)` است — تنها پارامتر پیکربندی همان options انتهایی است و بقیه داده/دستگاه هستند.",
+      "entries": [
+        {
+          "pkg": "actions",
+          "name": "registerAction"
+        },
+        {
+          "pkg": "data",
+          "name": "setCachedData"
+        },
+        {
+          "pkg": "devtools",
+          "name": "recordPanelStateChange"
+        },
+        {
+          "pkg": "devtools-core",
+          "name": "recordStateChange"
+        },
+        {
+          "pkg": "devtools-core",
+          "name": "replay"
+        },
+        {
+          "pkg": "events",
+          "name": "applyBehaviorModifiers"
+        },
+        {
+          "pkg": "logger",
+          "name": "warnDeprecated"
+        },
+        {
+          "pkg": "logger",
+          "name": "warnOnce"
+        },
+        {
+          "pkg": "runtime",
+          "name": "registerCustomDirective"
+        },
+        {
+          "pkg": "scheduler",
+          "name": "scheduleEffect"
+        },
+        {
+          "pkg": "state",
+          "name": "notifySignalChange"
+        },
+        {
+          "pkg": "state",
+          "name": "_recordStateChangeInternal"
+        },
+        {
+          "pkg": "state",
+          "name": "watch"
+        },
+        {
+          "pkg": "storage",
+          "name": "buildCookieString"
+        },
+        {
+          "pkg": "storage",
+          "name": "driverByName"
+        },
+        {
+          "pkg": "storage",
+          "name": "signal"
+        },
+        {
+          "pkg": "suspense",
+          "name": "trackPromise"
+        },
+        {
+          "pkg": "zenith",
+          "name": "watch"
+        }
+      ]
+    },
+    {
+      "id": "formatting",
+      "reason": "قالب‌بندی i18n/جلالی: پارامترهای پس از مقدار، «توکن قالب/منطقه/تقویم»اند (`formatJalali(date, pattern, locale)`) و در همهٔ کتابخانه‌های مشابه positional می‌مانند.",
+      "entries": [
+        {
+          "pkg": "i18n",
+          "name": "formatTemplate"
+        },
+        {
+          "pkg": "i18n",
+          "name": "formatLocaleNumber"
+        },
+        {
+          "pkg": "i18n",
+          "name": "formatCurrency"
+        },
+        {
+          "pkg": "i18n",
+          "name": "formatRelativeTime"
+        },
+        {
+          "pkg": "i18n",
+          "name": "formatDateTime"
+        },
+        {
+          "pkg": "i18n",
+          "name": "formatList"
+        },
+        {
+          "pkg": "jalali",
+          "name": "isValidJalali"
+        },
+        {
+          "pkg": "jalali",
+          "name": "fromJalaliParts"
+        },
+        {
+          "pkg": "jalali",
+          "name": "jalaliToGregorian"
+        },
+        {
+          "pkg": "jalali",
+          "name": "gregorianToJalali"
+        },
+        {
+          "pkg": "jalali",
+          "name": "g2d"
+        },
+        {
+          "pkg": "jalali",
+          "name": "j2d"
+        },
+        {
+          "pkg": "jalali",
+          "name": "dateToJdn"
+        },
+        {
+          "pkg": "jalali",
+          "name": "formatJalali"
+        },
+        {
+          "pkg": "jalali",
+          "name": "parseJalali"
+        }
+      ]
+    },
+    {
+      "id": "render-and-dom",
+      "reason": "رندر/SSR/DOM: پارامترها محتوای ساختاری (سند/سرصفحه/استراتژی) هستند و options ندارند؛ این توابع در #120/#67 بازبینی شده‌اند.",
+      "entries": [
+        {
+          "pkg": "compiler",
+          "name": "runParityTest"
+        },
+        {
+          "pkg": "error-boundary",
+          "name": "redactPIIValue"
+        },
+        {
+          "pkg": "notifications",
+          "name": "handleNotifyDirective"
+        },
+        {
+          "pkg": "notifications",
+          "name": "renderAccessibleDialog"
+        },
+        {
+          "pkg": "security",
+          "name": "setSafeInnerHTML"
+        },
+        {
+          "pkg": "service-worker",
+          "name": "networkFirst"
+        },
+        {
+          "pkg": "service-worker",
+          "name": "cacheThenNetwork"
+        },
+        {
+          "pkg": "service-worker",
+          "name": "applyStrategy"
+        },
+        {
+          "pkg": "ssr",
+          "name": "renderSSRHead"
+        },
+        {
+          "pkg": "ssr",
+          "name": "generateFullPage"
+        },
+        {
+          "pkg": "transition",
+          "name": "zenAnimate"
+        }
+      ]
+    },
+    {
+      "id": "misc-reviewed",
+      "reason": "بازبینی‌شده در موج #55: پارامترها دادهٔ ورودی/دستگاه‌اند (نه پیکربندی اختیاری) و تبدیل به options فقط شکل فراخوانی را عوض می‌کند؛ در صورت افزودن پارامتر جدید باید options-object شود (گیت این فایل را قرمز می‌کند).",
+      "entries": [
+        {
+          "pkg": "errors",
+          "name": "printToHost"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateText"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateTextExpr"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateHtml"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateHtmlExpr"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateHtmlTrusted"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateShow"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateShowExpr"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateIf"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateBind"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateBindExpr"
+        },
+        {
+          "pkg": "runtime",
+          "name": "hydrateModel"
+        },
+        {
+          "pkg": "runtime",
+          "name": "reportParityDivergence"
+        },
+        {
+          "pkg": "runtime",
+          "name": "assertParity"
+        }
+      ]
+    }
+  ]
+}

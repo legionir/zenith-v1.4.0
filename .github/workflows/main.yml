@@ -223,6 +223,32 @@ jobs:
       - run: npm run attribute-grammar
       # #12: every BUG-*/IMP-*/SEC-* claim in src must map to an existing test in docs/TRACEABILITY.md.
       - run: npm run traceability
+      # #112: every catalog error code has a docs page (cause / failing sample /
+      # fix / docsUrl) and the pages are in sync with packages/errors/src/core.ts.
+      - run: npm run check:error-docs
+      # #106: every marked doc example (```ts test) compiles against the current
+      # sources — an API change that breaks a doc turns this job red.
+      - run: npm run check:docs-examples
+      # #108: ADRs (MADR) are well-formed, link a DEC each and the index is fresh.
+      - run: npm run check:adr
+      # #108: docs/ARCHITECTURE-GRAPH.md is regenerated from the real import graph.
+      - run: npm run check:architecture-graph
+      # #108/#118: docs/decisions/README.md (the DEC index) is regenerated from
+      # the decision files — a stale/missing row means a decision nobody indexed.
+      - run: npm run check:dec-index
+      # #119: a public export name may not mean two different things in two
+      # packages (allowlist: scripts/unique-export-names.allowlist.json).
+      - run: npm run check:unique-exports
+      # #55: positional configuration is frozen — every public signature with
+      # more than one config parameter must be `fn(main, options?)`, and each
+      # reviewed exception is listed with a reason in
+      # scripts/positional-config.allowlist.json (mirrored by the ESLint rule
+      # `zenith/options-object`).
+      - run: npm run check:positional-config
+      # #86: docs/BENCHMARKS.md is generated from benchmarks/results/baseline.json
+      # — a hand-edited number (or a baseline update without regenerating the doc)
+      # turns this red. The doc is the only place the numbers are published.
+      - run: npm run check:bench-doc
 
   package-lint:
     name: Package lint (publint)

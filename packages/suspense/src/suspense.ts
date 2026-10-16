@@ -109,6 +109,14 @@ export function createSuspenseContext(
   timeoutOrOptions: number | SuspenseContextOptions = 0,
   legacyOnSettle?: (settled: boolean) => void,
 ): SuspenseContext {
+  // #55: امضای positional در ۲.۰ حذف می‌شود (DEC-026).
+  if (typeof timeoutOrOptions === 'number') {
+    deprecate(
+      'ZEN-DEPR-065',
+      'createSuspenseContext(timeoutMs, onSettle)',
+      'createSuspenseContext({ timeoutMs, onSettle })',
+    );
+  }
   const timeoutMs =
     typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
       ? (timeoutOrOptions.timeoutMs ?? 0)

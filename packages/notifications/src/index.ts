@@ -4,15 +4,26 @@
 
 export * from './notifications';
 export {
+  DEFAULTS,
+  // #132: نام‌های canonical دیالوگ‌ها
+  showAlert,
+  showConfirm,
+  openDialog,
+  // #132: کنترل تایمر بستن خودکار
+  pauseAutoDismiss,
+  resumeAutoDismiss,
+  isAutoDismissPaused,
+  autoDismissRemaining,
+  getVisibleNotifications,
+  resetNotificationsInternal,
+  // سازگاری: aliasهای deprecated (هشدار ZEN-DEPR-052/053)
+  alert,
+  confirm,
   notify,
   dismissNotification,
   clearAllNotifications,
   getQueuedNotifications,
   toasts,
-  alert,
-  alert as showAlert,
-  confirm,
-  confirm as showConfirm,
   setNotificationDefaults,
   getNotificationDefaults,
   getNotificationsByPosition,
@@ -21,6 +32,8 @@ export {
   renderAccessibleToast,
   renderAccessibleDialog,
 } from './notifications';
+export { createDialogFocusTrap } from './focus-trap';
+export type { DialogFocusTrap, DialogFocusTrapOptions } from './focus-trap';
 export type {
   Notification,
   NotificationType,
@@ -28,17 +41,5 @@ export type {
   NotifyOptions,
   AlertOptions,
   ConfirmOptions,
+  DialogHandle,
 } from './notifications';
-
-/**
- * #53: پیش‌فرض‌های منجمد برای `@zenith/notifications` (`NotifyOptions`).
- * @default { type: 'info', duration: 3000, position: 'top-left', dismissible: true }
- * @unit ms (duration)
- * @since 1.4.0
- */
-export const DEFAULTS = /* @__PURE__ */ Object.freeze({
-  type: 'info' as const,
-  duration: 3_000,
-  position: 'top-left' as const,
-  dismissible: true,
-});

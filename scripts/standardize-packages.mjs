@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { entryFor, isDualEntry } from './lib/exports-shape.mjs';
+import { entryFor, exportsFor, isDualEntry } from './lib/exports-shape.mjs';
 
 // #172 — Standardize workspace package.json manifests while respecting:
 // - DEC-026: lockstep 1.5.0 on born-1.5.0 packages (1.4.0 on legacy packages until release bump)
@@ -50,11 +50,9 @@ export function standardizePackages(packagesDir = './packages', rootVersion = '1
         ? { ...development, ...base }
         : { types: base.types, ...development, import: base.import, default: base.default };
 
-      pkg.exports = {
-        ...(pkg.exports ?? {}),
-        '.': nextDot,
-        './package.json': './package.json',
-      };
+      // #142/#120: زیرمسیرها هم از scripts/lib/exports-shape.mjs می‌آیند
+      // (جدول PUBLIC_SUBPATHS) — دیگر هیچ زیرمسیری دست‌نویس نیست.
+      pkg.exports = exportsFor(pkg.name, nextDot);
 
       const files = new Set(Array.isArray(pkg.files) ? pkg.files : ['dist', 'README.md']);
       files.add('dist');

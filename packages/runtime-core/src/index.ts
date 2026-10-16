@@ -22,6 +22,7 @@ import {
   type DirectiveMeta,
   type Schema,
 } from '@zenith/schema';
+import { parseJsonAttr } from '@zenith/schema/attr';
 import { sanitizeHTML } from '@zenith/security';
 import {
   createDisposer,
@@ -316,6 +317,11 @@ function handleAppError(app: App, err: unknown): void {
     emitError(zenErr);
   }
 }
+
+// DEC-032: قلاب‌های چرخهٔ عمر (onMount/onUnmount/onUpdate) API «ثبت + لغو ثبت»
+// نیستند و Cleanup برنمی‌گردانند؛ teardown آن‌ها به dispose همان دامنه
+// (کامپوننت/دایرکتیو) گره خورده است — در scripts/cleanup-hygiene.mjs
+// (LIFECYCLE_HOOK_ALLOWLIST) با همین دلیل ثبت شده‌اند.
 
 /**
  * ثبت قلاب چرخهٔ عمر هنگام mount شدن دایرکتیو/کامپوننت.
@@ -1080,18 +1086,19 @@ export function createApp(options?: AppOptions): App {
     // 2. zen-state: ساخت سیگنال‌های محلی از JSON attribute
     let currentLocalCtx = localCtx;
     if (el.hasAttribute('zen-state')) {
-      const rawState = el.getAttribute('zen-state') ?? '{}';
+      // #120: مقدار attribute از مسیر مشترک خوانده می‌شود — پیش از حذف، چون
+      // helper خودش attribute را از DOM می‌خواند (JSON خراب ⇒ ZEN-1003 به
+      // handleAppError و بازگشت به {}؛ attribute غایب ⇒ {}).
+      const parsed = parseJsonAttr<Record<string, unknown>>(el, 'zen-state', {
+        fallback: {},
+        onError: (err) => handleAppError(app, err),
+      });
       el.removeAttribute('zen-state');
-      try {
-        const parsed = JSON.parse(rawState) as Record<string, unknown>;
-        const scopedSignals: Record<string, any> = {};
-        for (const [k, v] of Object.entries(parsed)) {
-          scopedSignals[k] = signal(v);
-        }
-        currentLocalCtx = { ...localCtx, ...scopedSignals };
-      } catch (err) {
-        handleAppError(app, err);
+      const scopedSignals: Record<string, any> = {};
+      for (const [k, v] of Object.entries(parsed)) {
+        scopedSignals[k] = signal(v);
       }
+      currentLocalCtx = { ...localCtx, ...scopedSignals };
     }
 
     // 3. جمع‌آوری دایرکتیوهای روی این المان

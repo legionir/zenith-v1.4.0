@@ -1,7 +1,7 @@
 {
   "name": "@zenith/crud",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 CRUD UI Actions (Phase 3). Pre-built actions for create/read/update/delete operations with @zenith/resource.",
+  "description": "Zenith framework — CRUD UI Actions (Phase 3). Pre-built actions for create/read/update/delete operations with @zenith/resource.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -59,6 +59,7 @@
     "@zenith/permission": "1.4.0",
     "@zenith/resource": "1.4.0",
     "@zenith/runtime": "1.4.0",
+    "@zenith/schema": "1.5.0",
     "@zenith/shared": "1.5.0"
   },
   "peerDependencies": {

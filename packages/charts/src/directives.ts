@@ -4,6 +4,7 @@
 //   zen-chart-type, zen-chart-x, zen-chart-y, zen-chart-series (JSON),
 //   zen-chart-height, zen-chart-legend, zen-chart-aria-label, zen-chart-options (JSON)
 
+import { parseJsonAttr } from '@zenith/schema/attr';
 import {
   createChart,
   type Chart,
@@ -49,15 +50,11 @@ export function processChart(
     .filter(Boolean);
   const y: string | string[] = yKeys.length > 1 ? yKeys : (yKeys[0] ?? 'y');
 
-  let extra: Partial<ChartOptions> = {};
-  const optionsJson = el.getAttribute('zen-chart-options');
-  if (optionsJson) {
-    try {
-      extra = JSON.parse(optionsJson) as Partial<ChartOptions>;
-    } catch {
-      /* JSON نامعتبر نادیده گرفته می‌شود تا رندر نشکند */
-    }
-  }
+  // #120: خواندن attribute از طریق helper مشترک (@zenith/schema) — JSON خراب
+  // دیگر با try/catch پراکنده مدیریت نمی‌شود و خطا کد ZEN-1003 می‌گیرد.
+  const extra = parseJsonAttr<Partial<ChartOptions>>(el, 'zen-chart-options', {
+    fallback: {},
+  });
 
   const chart: Chart = createChart(el, {
     type,

@@ -1,175 +1,118 @@
-# Zenith Framework — Benchmark Results (v1.4.0 — `#86`)
+# Zenith Framework — بنچمارک‌ها (#86)
 
-> **دستور بازتولید خودکار (`#86`)**:
-> ```bash
-> npm run bench          # اجرای میکروبنچمارک‌های قابل‌بازتولید و مقایسه در کنسول
-> npm run bench -- --json # خروجی JSON ماشین‌خوان شامل مشخصات CPU/OS/Node
-> ```
-> اسکریپت‌های مرجع: [`scripts/bench.mjs`](../scripts/bench.mjs) و [`benchmarks/run-all.js`](../benchmarks/run-all.js).
-
-> ✅ نتایج Reactive Core و Resource و SSR روی Node.js اجرا شده‌اند (قابل اعتماد).
-> ✅ نتایج Runtime/DOM روی **Chrome Headless واقعی** اجرا شده‌اند (قابل اعتماد).
-> محیط: Node.js v24.16.0 + Chrome Headless (Linux x86_64)
+> **یک دستور، همهٔ اعداد:** `npm run bench` — سوئیت را اجرا می‌کند، هر متریک را با همین سند
+> مقایسه می‌کند و هر انحراف را گزارش می‌دهد (حالت مشورتی؛ با `--strict` کد خروج ۱ می‌شود).
 >
-> FEATURE (v1.0.0): تمام benchmark ها با `devtools: false` اجرا می‌شوند تا overhead
-> صفر باشد و اعداد REAL runtime را ببینیم. در v0.6.3، DevTools tracking به‌صورت
-> پیش‌فرض فعال بود که باعث ۱۰۰x کندتر شدن zen-text mount می‌شد (LRU eviction
-> thrashing با ۱۰k عنصر و MAX_NODES_PER_TYPE=500).
+> - خودِ گیت: `scripts/bench.mjs` — اجرا، مقایسه با baseline، و گزارش هر انحراف (`--strict` = کد خروج ۱)
+> - ثبت مجدد baseline: `npm run bench:record` (هر پاس در فرایند جدا؛ کمینه برنده است)
+> - گیت drift سند در CI: `npm run check:bench-doc`
+> - اعداد DOM در مرورگر واقعی: `npm run bench:browser` (نیازمند `npx playwright install chromium`)
+
+> ⚠️ **این سند تولیدشده است** — [`scripts/generate-benchmarks-doc.mjs`](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/scripts/generate-benchmarks-doc.mjs) از `benchmarks/results/baseline.json` (کامیت `c3b7241a`، تاریخ 2026-10-16).
+
+## محیط ثبت‌شده
+
+| مورد | مقدار |
+|---|---|
+| کامیت | `c3b7241a034607299d0864329a5e0c793c17f615` |
+| CPU | Intel(R) Xeon(R) Processor @ 2.60GHz (2 هسته) |
+| حافظه | 3.8 GB |
+| سیستم | Linux 6.1.158+ / linux x64 |
+| Node | v22.22.3 (V8 12.4.254.21-node.56) |
+| موتور DOM (گروه DOM/SSR) | jsdom@24.1.3 — **مرورگر واقعی نیست**؛ ببینید «محدودیت‌ها» |
+| کتابخانه‌های مقایسه | zenith@1.4.0 · solid@1.9.17 · vue@3.5.44 · preact@1.14.4 |
+| بیلد solid | `solid-js/dist/solid.js (client build)` |
+| بیلد vue | `@vue/reactivity (environment-agnostic)` |
+| بیلد preact | `@preact/signals-core (environment-agnostic)` |
+
+**امضای محیط (مبنای مقایسهٔ baseline):** `v22.22.3 | linux x64 | Intel(R) Xeon(R) Processor @ 2.60GHz | 2c | jsdom@24.1.3`
+اگر سخت‌افزار/نسخهٔ Node/jsdom تغییر کند، `npm run bench` فقط هشدار می‌دهد و گیت را غیرفعال می‌کند (اعداد مطلق چاپ می‌شوند).
+
+## ۱. میکرو reactive — Zenith در برابر Solid/Vue/Preact (کتابخانه‌های واقعی)
+
+همه در یک V8 واحد و با همان حلقهٔ اندازه‌گیری (`benchmarks/suite.mjs#runReactiveSuite`): هر batch تا ۲۰ms اجرا می‌شود (اندازه‌گیری **زمان‌محور**، نه تعداد ثابت — یک batch ثابتِ ۱۰۰k برای عملیات ۲۰۰M ops/sec فقط ۰٫۴ms است و ساعت/JIT نتیجه را تا ۵ برابر جابه‌جا می‌کند). عدد هر ردیف **میانهٔ ۵ batch** است و نتیجهٔ هر فراخوانی مصرف می‌شود تا V8 حلقه را حذف نکند (DCE).
+
+| سنجه | zenith | solid | vue | preact | واحد |
+|---|---|---|---|---|---|
+| signal.get() | 155,163,883 ⛔ | 125,220,450 | 112,421,648 | 140,654,250 | ops/sec |
+| signal.set() (بدون subscriber) | 4,601,598 | 91,435,480 | 34,071,391 | 37,477,167 | ops/sec |
+| الماسِ computed (set + read) | 3,653,335 | 1,534,357 | 4,069,301 | 5,220,116 | ops/sec |
+| اجرای effect برای 10,000 نوشتن متوالی | 1 | 9,999 | 9,999 | 9,999 | runs |
+سقف اندازه‌گیری این محیط (یک عملیات بی‌هزینه در همان حلقه/closure): **165,899,386 ops/sec** — هر عددی که به آن نزدیک باشد (≥۸۵٪، علامت ⛔) **کفِ واقعی** است، نه نرخ واقعی کتابخانه؛ در آن ناحیه هارنس گلوگاه است نه کتابخانه.
+
+جزئیات و لینک هر عدد:
+
+| متریک | مقدار | نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `reactive.harness.ceiling` | 165,899,386 | — | 96.51% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.harness.ceiling` |
+| `reactive.zenith.signal-write-batched-effect` | 760,991 | — | 90.02% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write-batched-effect` |
+| `reactive.zenith.signal-read` | 155,163,883 | — | 18.63% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-read` |
+| `reactive.solid.signal-read` | 125,220,450 | — | 91.77% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-read` |
+| `reactive.vue.signal-read` | 112,421,648 | — | 59.62% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-read` |
+| `reactive.preact.signal-read` | 140,654,250 | — | 91.91% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-read` |
+| `reactive.zenith.signal-write` | 4,601,598 | — | 99.15% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.signal-write` |
+| `reactive.solid.signal-write` | 91,435,480 | — | 97.3% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.signal-write` |
+| `reactive.vue.signal-write` | 34,071,391 | — | 18.1% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.signal-write` |
+| `reactive.preact.signal-write` | 37,477,167 | — | 60.78% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.signal-write` |
+| `reactive.zenith.computed-diamond` | 3,653,335 | — | 117.2% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.computed-diamond` |
+| `reactive.solid.computed-diamond` | 1,534,357 | — | 14.26% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.computed-diamond` |
+| `reactive.vue.computed-diamond` | 4,069,301 | — | 15.76% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.computed-diamond` |
+| `reactive.preact.computed-diamond` | 5,220,116 | — | 68.94% | 15% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.computed-diamond` |
+| `reactive.zenith.effect-runs-per-10k-writes` | 1 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.zenith.effect-runs-per-10k-writes` |
+| `reactive.solid.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.solid.effect-runs-per-10k-writes` |
+| `reactive.vue.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.vue.effect-runs-per-10k-writes` |
+| `reactive.preact.effect-runs-per-10k-writes` | 9,999 | — | 0% | 5% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only reactive.preact.effect-runs-per-10k-writes` |
+
+## ۲. عملیات لیست js-framework-benchmark (jsdom)
+
+همان ۹ عملیات استاندارد روی `<table><tbody>` واقعی، ولی موتور DOM این محیط **jsdom** است (مرورگر واقعی → `npm run bench:browser`). عملیات سبک K بار تکرار می‌شوند و عدد گزارش‌شده **زمان هر یک بار** است؛ عدد هر ردیف **کمینهٔ نمونه‌ها** است (نویز فقط زمان اضافه می‌کند).
+
+| متریک | زمان هر بار | نمونه | تکرار/نمونه | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|---|
+| `dom.append-1k-to-10k` | 126.14 ms | 7 | x1 | 10.03% | 16% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.append-1k-to-10k` |
+| `dom.clear-1k` | 0.129 ms | 7 | x128 | 18.6% | 28% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.clear-1k` |
+| `dom.create-10k` | 1.92s | 5 | x1 | 15.16% | 23% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-10k` |
+| `dom.create-1k` | 143.895 ms | 7 | x1 | 45.17% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.create-1k` |
+| `dom.partial-update-1k` | 9.559 ms | 7 | x10 | 29.62% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.partial-update-1k` |
+| `dom.remove-row-1k` | 0.078 ms | 7 | x500 | 6.41% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.remove-row-1k` |
+| `dom.replace-all-1k` | 138.319 ms | 5 | x2 | 40.34% | 45% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.replace-all-1k` |
+| `dom.select-1k` | 0.093 ms | 7 | x500 | 12.9% | 20% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.select-1k` |
+| `dom.swap-rows-1k` | 0.419 ms | 7 | x100 | 18.14% | 28% | ⚠️ اطلاعاتی | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only dom.swap-rows-1k` |
+
+## ۳. حافظه
+
+delta هیپ جاوااسکریپت به‌ازای هر signal — تقریبی (بدون `--expose-gc`).
+
+| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `memory.bytes-per-signal` | 506 B | — | 17.98% | 27% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only memory.bytes-per-signal` |
+
+## ۴. SSR (Node)
+
+رندر یک صفحهٔ ۵۰ آیتمی با `renderToString` — میانهٔ ۳ اجرا پس از گرم‌کردن.
+
+| متریک | مقدار | توضیح | بازتولید مشاهده‌شده | آستانه | وضعیت | منبع (اسکریپت + کامیت) | بازتولید یک عدد |
+|---|---|---|---|---|---|---|---|
+| `ssr.pages-per-sec` | 165 | — | 13.79% | 15% | ✅ گیت‌شده | [benchmarks/suite.mjs@c3b7241a](https://github.com/legionir/zenith-v1.4.0/blob/c3b7241a034607299d0864329a5e0c793c17f615/benchmarks/suite.mjs) | `npm run bench -- --only ssr.pages-per-sec` |
+
+## بازتولیدپذیری — چه چیزی تضمین می‌شود؟
+
+- هر متریک با **کمینهٔ چند نمونه** (نه میانگین) گزارش می‌شود؛ نویز GC/زمان‌بندی فقط زمان اضافه می‌کند، پس کمترین زمان پایدارترین برآورد است.
+- `baseline.json` با `npm run bench:record -- --passes 3` ساخته شده و برای هر متریک **درصد بازتولید مشاهده‌شده** ثبت شده است.
+- **10 متریک گیت‌شده** و **19 متریک اطلاعاتی** در این baseline ثبت شده است. از متریک‌های گیت‌شده، **4 عدد با بازتولید ≤۵٪** و بقیه با آستانهٔ خودشان (کفِ گروه: ۵٪ برای `reactive`/`ssr`، ۱۵٪ برای `dom`، ۲۵٪ برای `memory`) بررسی می‌شوند.
+- `npm run bench` روی **همان محیط** هر متریک گیت‌شده را با آستانهٔ ثبت‌شده‌اش مقایسه می‌کند. متریک‌های اطلاعاتی (⚠️) فقط گزارش می‌شوند — عددشان «بهترین مشاهده» است و ادعای بازتولید برایشان مطرح نیست.
+- **حالت مشورتی پیش‌فرض است** (`npm run bench` با کد ۰ برمی‌گردد و انحراف‌ها را ❌ چاپ می‌کند)؛ برای گیت سخت روی ماشین کنترل‌شده: `npm run bench -- --strict`. چرا؟ روی یک ماشین مشترک، افت سرعتِ خود محیط هم همین علامت را می‌دهد: در همین ثبت، `ssr.pages-per-sec` در یک ساعت از ۱۷۰ به ۱۰۱ افت کرد و بعد دوباره ۱۴۳ شد، در حالی که حلقهٔ مرجع CPU ثابت ماند (۱۴۲M↔۱۶۶M). گیتِ سختِ مخزن همان بودجه‌های `bench:ci` (#84) روی رانر CI است.
+- متریک‌های اطلاعاتی عمدتاً عملیات زیر ~۱۰ns هستند (مثل `signal.get()`): V8 در همین یک اجرا بین ۵ns و ۱۵ns می‌لرزد (پراکندگی ثبت‌شده تا 117.2٪). این عدد در سند می‌ماند چون «کفِ» عملکرد مفید است، ولی برای تصمیم‌گیری به آستانه گره نمی‌خورد.
+- روی محیط دیگر، مقایسه غیرفعال می‌شود و فقط اعداد مطلق چاپ می‌شوند — «۵٪» یک ادعای محیط‌وابسته است، نه یک تضمین جهانی.
+
+## محدودیت‌ها (صادقانه)
+
+1. **مرورگر واقعی ثبت نشده است.** گروه DOM روی `jsdom@24.1.3` اجرا شده، چون محیط ثبت (`Linux 6.1.158+`) مرورگر نصب ندارد. برای اعداد مرورگری: `npx playwright install chromium && npm run bench:browser` (نسخهٔ مرورگر در `benchmarks/results/browser.json` ثبت می‌شود).
+2. **بدون layout/paint.** هزینهٔ style/layout/composite مرورگر در این اعداد نیست؛ فقط هزینهٔ ساخت و جهش DOM.
+3. **حافظه از یک پروب فرزند می‌آید** (`node --expose-gc` + دو `gc()` صریح + ۱۰۰k سیگنال تا `benchmarks/memory-probe.mjs`) و چون تخمین هیپ است، آستانهٔ گروه ۲۵٪ است.
+4. **تک‌رشته‌ای.** هیچ عددی هم‌زمانی/چند‌هسته‌ای را نمی‌سنجد.
+5. اعداد v1.0.0 قبلی (Node 24 + Chrome Headless) بازتولیدپذیر نبودند و حذف شدند؛ در تاریخ گیت (`git log -- docs/BENCHMARKS.md`) باقی‌اند.
 
 ---
 
-## ۱. Reactive Core (Signal / Effect / Computed)
-
-بدون DOM — قابل اعتماد در هر دو محیط.
-
-| # | Benchmark | Node.js | Chrome Headless | توضیح |
-|---|-----------|---------|-----------------|-------|
-| ۱ | `signal.get()` (۱M) | **۱۰۳.۸M** ops/sec | **۱۰۵.۳M** ops/sec | خواندن Signal عملاً free |
-| ۲ | `signal.set()` بدون effect (۱M) | **۵.۷M** ops/sec | **۲.۷M** ops/sec | نوشتن بدون subscriber |
-| ۳ | `signal.set()` با ۱ effect (۱۰۰k) | **۴.۵M** ops/sec | **۱.۸M** ops/sec | effect فقط ۱ بار ran (auto-batch) |
-| ۴ | `computed` re-evaluation (۱۰۰k) | **۴.۴M** ops/sec | **۱.۸M** ops/sec | محاسبه‌ی مجدد computed |
-
-### تحلیل
-- **Chrome signal.get() ۱۰۵M ops/sec** — فوق‌العاده سریع (حتی سریع‌تر از Node.js در این run).
-- **effect فقط ۱ بار ran در ۱۰۰k set** — microtask batching خودکار کار می‌کند.
-
----
-
-## ۲. Runtime / DOM — Chrome Headless واقعی (v1.0.0 — DevTools OFF)
-
-این اعداد روی **DOM واقعی مرورگر** اجرا شده‌اند — شامل `createElement`, `appendChild`, layout, paint.
-
-| # | Benchmark | عملیات | نتیجه (v1.0.0) | نتیجه (v0.6.3) | بهبود |
-|---|-----------|--------|----------------|----------------|-------|
-| ۱ | **zen-text** (۱k) | mount | ۱۷.۶ms = **۵۶٬۸۱۸ el/sec** | ۵۲۹ms = ۱٬۸۸۹ el/sec | **۳۰x** ⭐ |
-| ۱ | **zen-text** (۱k) | update | ۰.۹ms = **۱.۱M ops/sec** | ۰.۹ms = ۱.۱M ops/sec | — |
-| ۱ | **zen-text** (۱۰k) | mount | ۱۱۶ms = **۸۶٬۲۰۷ el/sec** | ۱۳٬۹۲۴ms = ۷۱۸ el/sec | **۱۲۰x** ⭐⭐ |
-| ۱ | **zen-text** (۱۰k) | update | ۱۷.۸ms = **۵۶۲k ops/sec** | ۱۳.۵ms = ۷۴۱k ops/sec | -۲۴٪¹ |
-| ۲ | **zen-if** (۱۰k) | mount | ۱۰۴.۸ms = **۹۵٬۴۲۰ el/sec** | ۱۱۸ms = ۸۵k el/sec | ۱۴٪ |
-| ۲ | **zen-if** (۱۰k) | hide all | ۶.۴ms = **۱.۵۶M ops/sec** | ۱۲.۱ms = ۸۲۶k ops/sec | ۱.۹x ⭐ |
-| ۲ | **zen-if** (۱۰k) | show all | ۱۴.۳ms = **۶۹۹k ops/sec** | ۶.۵ms = ۱.۵M ops/sec | -۲x² |
-| ۳ | **zen-for** (۱k) | init | ۱۸.۷ms = **۵۳٬۴۷۶ items/sec** | ۸۶۳ms = ۱٬۱۵۸ items/sec | **۴۶x** ⭐⭐ |
-| ۳ | **zen-for** (۱۰k) | init | ۱۶۶.۳ms = **۶۰٬۱۳۲ items/sec** | ۸٬۱۷۳ms = ۱٬۲۲۴ items/sec | **۴۹x** ⭐⭐ |
-| ۳ | **zen-for** (۱۰k) | append ۱۰۰ | ۰.۲ms | ۰.۲ms | — |
-| ۳ | **zen-for** (۱۰k) | remove ۱۰۰ | ~۰ms | ~۰ms | — |
-| ۳b | **zen-for zen-static** (۱k) | init | ۹.۹ms = **۱۰۱k items/sec** | — | **۱.۹x vs standard** ⭐ |
-| ۳b | **zen-for zen-static** (۱۰k) | init | ۱۲۴.۸ms = **۸۰k items/sec** | — | **۱.۳x vs standard** ⭐ |
-| ۴ | **zen-bind** (۱۰k) | mount | ۱۰۲.۸ms = **۹۷٬۲۷۶ el/sec** | ۱۷٬۲۸۳ms = ۵۷۹ el/sec | **۱۶۸x** ⭐⭐ |
-| ۴ | **zen-bind** (۱۰k) | update | ۷.۴ms = **۱.۳۵M ops/sec** | ۱۵.۱ms = ۶۶۲k ops/sec | **۲x** ⭐ |
-
-¹ zen-text update کمی کندتر به‌دلیل property diffing overhead (first-run comparison).
-   اما برایzen-bind update ۲x سریع‌تر شد (property diffing skip می‌کند).
-² zen-if show all: در v1.0.0 با compileExpression، evaluation سریع‌تر شده اما
-   DevTools tracking هم غیرفعال است. نوسان طبیعی است.
-
-### تحلیل بحرانی v1.0.0
-
-**نکته ۱: ۱۰۰x Gap بین zen-text و zen-if برطرف شد!**
-- v0.6.3: zen-text mount ۷۱۸ el/sec vs zen-if mount ۸۵k el/sec — **۱۰۰x اختلاف**.
-- v1.0.0: zen-text mount ۸۶k el/sec vs zen-if mount ۹۵k el/sec — **۱۰٪ اختلاف**.
-- علت: DevTools tracking برای zen-text صدا زده می‌شد (processNodeDirectives) اما
-  نه برای zen-if (walker بعد از processIf برمی‌گردت). با `devtools: false`،
-  هر دو به سطح پایین‌ترین overhead رسیدند.
-
-**نکته ۲: Mount سرعت ۱۲۰x بهبود یافت**
-- zen-text mount: ۷۱۸ → ۸۶k el/sec (**۱۲۰x**)
-- zen-bind mount: ۵۷۹ → ۹۷k el/sec (**۱۶۸x**)
-- zen-for init: ۱٬۲۲۴ → ۶۰k items/sec (**۴۹x**)
-- علت: `devtools: false` (حذف LRU eviction thrashing) + `compileExpression`
-  (حذف cache.has/get/delete/set در هر effect) + DocumentFragment batching
-  (۱ insertBefore به جای N تا).
-
-**نکته ۳: zen-static Fast Path کار می‌کند**
-- ۱۰k items: standard ۱۶۶ms vs static ۱۲۵ms — **۱.۳x سریع‌تر**.
-- ۱k items: standard ۱۹ms vs static ۱۰ms — **۱.۹x سریع‌تر**.
-- برای لیست‌های ایستا (منوها، جدول‌های read-only)، `zen-static` attribute
-  سرعت mount را تا ۲x افزایش می‌دهد.
-
-**نکته ۴: zen-bind update ۲x سریع‌تر شد (Property Diffing)**
-- v0.6.3: ۶۶۲k ops/sec — v1.0.0: ۱.۳۵M ops/sec
-- علت: property diffing (`if (prev === value) return`) باعث می‌شود setAttribute
-  برای مقادیر تغییرنکرده صدا زده نشود. در benchmark، vals[i].set('updated-' + i)
-  همیشه مقدار جدید می‌سازد، اما در اپ‌های real-world که Signalها ممکن است
-  بدون تغییر actual value set شوند، skip بسیار موثرتر است.
-
-### مقایسه با سایر فریم‌ورک‌ها (v1.0.0)
-
-| Benchmark | Zenith v1.0.0 | Vue 3 (est.) | Solid (est.) | Svelte 5 (est.) |
-|-----------|---------------|-------------|-------------|-----------------|
-| zen-text mount (۱۰k) | **۸۶k el/sec** | ~۵-۱۰k | ~۱۰-۲۰k | ~۵-۱۵k |
-| zen-text update (۱۰k) | **۵۶۲k ops/sec** | ~۲۰۰-۴۰۰k | ~۵۰۰-۱۰۰0k | ~۳۰۰-۶۰۰k |
-| zen-if toggle (۱۰k) | **۶۹۹k-۱.۵M** | ~۲۰۰-۵۰۰k | ~۵۰۰-۱۰۰0k | ~۳۰۰-۸۰۰k |
-| zen-for ۱۰k init | **۶۰k items/sec** | ~۵-۲۰k | ~۱۰-۵۰k | ~۵-۳۰k |
-
-> ✅ v1.0.0: Mount سرعت اکنون **قابل رقابت یا بهتر از** رقبا است.
-> این بهبود عظیم ناشی از: غیرفعال‌کردن DevTools tracking در benchmark،
-> compileExpression API، و DocumentFragment batching.
-
----
-
-## ۳. Memory — Chrome Headless واقعی
-
-| # | Benchmark | نتیجه | ارزیابی |
-|---|-----------|-------|---------|
-| ۱ | ۱۰۰k signals | **۱۶.۵ MB** delta = **۱۷۳ bytes/signal** | ✅ قابل قبول |
-
-### تحلیل
-- ۱۷۳ bytes per signal — شامل: value + subscribers Set + effect tracking overhead.
-- برای مقایسه: Vue 3 reactive ~۲۰۰-۳۰۰ bytes/prop، Solid signal ~۱۰۰-۱۵۰ bytes.
-- ۱۰۰k signal = ۱۶.۵ MB — برای اپ‌های بزرگ قابل قبول است.
-
----
-
-## ۴. Resource (Cache / Dedupe) — Node.js
-
-| # | Benchmark | نتیجه | ارزیابی |
-|---|-----------|-------|---------|
-| ۱ | **Dedupe** (۱۰۰۰ concurrent) | ۵۲ms، **۱ fetch** (۱۰۰۰:۱) | ⭐ عالی |
-| ۲ | **SWR** | ۵.۶ms (cached فوری + bg refresh) | ✅ کار می‌کند |
-
----
-
-## ۵. SSR — Node.js
-
-| # | Benchmark | نتیجه | ارزیابی |
-|---|-----------|-------|---------|
-| ۱ | Render ۱۰۰ pages | ۳۰ms = **۳٬۳۲۰ pages/sec** | ⭐ عالی |
-| ۲ | Render ۱۰۰۰ pages | ۲۲۶ms = **۴٬۴۱۷ pages/sec** | ⭐ خوب |
-
-> FEATURE (v1.0.0): SSR اکنون از AsyncLocalStorage برای isolation per-request
-> استفاده می‌کند (به‌جای globalThis mutation). این از race condition در ۱۰۰
-> درخواست concurrent جلوگیری می‌کند.
-
----
-
-## جمع‌بندی نهایی v1.0.0
-
-| لایه | امتیاز v0.6.3 | امتیاز v1.0.0 | قابلیت اعتماد | نکته کلیدی |
-|------|---------------|---------------|---------------|------------|
-| **Reactive Core** | ۹/۱۰ | ۹/۱۰ | ✅ Chrome + Node | signal.get ۱۰۵M، batching خودکار |
-| **Framework Runtime (mount)** | ۵/۱۰ | **۹/۱۰** | ✅ Chrome واقعی | ۸۶k-۹۷k el/sec — ۱۲۰x بهبود |
-| **Framework Runtime (update)** | ۹/۱۰ | **۹.۵/۱۰** | ✅ Chrome واقعی | ۵۶۲k-۱.۳۵M ops/sec — ۲x بهبود zen-bind |
-| **Memory** | ۸/۱۰ | ۸/۱۰ | ✅ Chrome واقعی | ۱۷۳ bytes/signal |
-| **Resource** | ۹/۱۰ | ۹/۱۰ | ✅ Node.js | dedupe ۱۰۰۰:۱ + destroy() API |
-| **SSR** | ۸.۵/۱۰ | **۹.۵/۱۰** | ✅ Node.js | ۴.۴k pages/sec + AsyncLocalStorage isolation |
-
-### نتیجه‌گیری v1.0.0
-
-**بهبود عظیم Mount speed**: با غیرفعال‌کردن DevTools tracking در benchmark و
-اضافه‌کردن compileExpression + DocumentFragment batching، Mount سرعت ۴۹x-۱۶۸x
-بهبود یافت. zen-text mount از ۷۱۸ el/sec به ۸۶k el/sec رسید.
-
-**بهبود Update speed**: Property Diffing در zen-bind باعث ۲x سریع‌تر شدن update
-شد (۶۶۲k → ۱.۳۵M ops/sec). compileExpression نیز overhead را کاهش داد.
-
-**100x Gap برطرف شد**: zen-text و zen-if اکنون در Mount سرعت قابل مقایسه‌اند
-(۸۶k vs ۹۵k el/sec) — به‌جای ۱۰۰x اختلاف.
-
-**zen-static Fast Path**: برای لیست‌های ایستا، ۱.۳x-۱.۹x سریع‌تر از standard.
-
-**SSR Race Fix**: AsyncLocalStorage جایگزین globalThis mutation شد — safe برای
-۱۰۰+ concurrent requests.
-
----
-
-*نتایج Reactive Core روی Node.js v24.16.0. نتایج Runtime/Memory روی Chrome Headless (Linux) با `devtools: false`. نتایج Resource/SSR روی Node.js.*
+بازتولید کامل: `npm run bench` · گیت بودجهٔ عملکرد CI: `npm run bench:ci` (`benchmarks/budgets.json`) · سند: `docs/BENCHMARKS.md`

@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // #116 (DEC-032) — گیت پروتکل یکسان cleanup:
-//  1. هر تابع exportشدهٔ `process*`/`bind*` در packages/*/src باید نوع
+//  1. هر تابع exportشدهٔ `process*`/`bind*`/`on*` در packages/*/src باید نوع
 //     بازگشتی Cleanup (`() => void` یا `Cleanup`) داشته باشد — نه `void`.
+//     `on*` = APIهای «ثبت + لغو ثبت» (مثل `onGlobalReset`، `onError`،
+//     `onStateChange`): هر ثبت باید دستهٔ لغو برگرداند (DEC-032). استثنا:
+//     قلاب‌های چرخهٔ عمر (`onMount`/`onUnmount`/`onUpdate`) که به دامنهٔ فعال
+//     وابسته‌اند و per-call teardown ندارند — در LIFECYCLE_HOOK_ALLOWLIST با
+//     دلیل ثبت شده‌اند.
 //     استثنای نام‌گذاری: processFetchWithCache یک utility داده (Promise) با
 //     پیشوند اشتباه است؛ در PROCESS_NAME_ALLOWLIST با دلیل ثبت شده.
 //     controllerها (VirtualListController) خود تابعِ قابل‌صدازدن‌اند و در
@@ -49,6 +54,19 @@ export const BEHAVIORAL_ALLOWLIST = {
   },
 };
 
+/**
+ * استثنای rule #1 برای قلاب‌های چرخهٔ عمر (DEC-032): این‌ها «ثبت لغو» نیستند،
+ * ثبت در دامنهٔ فعال‌اند و teardown آن‌ها به dispose خودِ کامپوننت/دایرکتیو
+ * گره خورده (نه یک handle برگشتی). فایل هم باید کامنت DEC-032 داشته باشد.
+ */
+export const LIFECYCLE_HOOK_ALLOWLIST = {
+  'packages/runtime-core/src/index.ts': {
+    onMount: 'component-scope lifecycle hook — teardown به dispose دامنه گره خورده (DEC-032)',
+    onUnmount: 'component-scope lifecycle hook — teardown به dispose دامنه گره خورده (DEC-032)',
+    onUpdate: 'component-scope lifecycle hook — teardown به dispose دامنه گره خورده (DEC-032)',
+  },
+};
+
 /** استثنای rule #1 (پیشوند نام‌گذاری اشتباه) — فایل → تابع → دلیل. */
 export const PROCESS_NAME_ALLOWLIST = {
   'packages/data/src/fetcher.ts': {
@@ -90,12 +108,13 @@ export function checkCleanupHygiene(packagesDir, read) {
       const relRepo = `packages/${relf}`;
       const text = read(relRepo);
 
-      // ── ۱. process*/bind* ⇒ نوع بازگشتی Cleanup ──
+      // ── ۱. process*/bind*/on* ⇒ نوع بازگشتی Cleanup ──
       for (const m of text.matchAll(
-        /^export (?:async )?function ((?:process|bind)[A-Za-z]*)\s*(?:<[^>]*>)?\(/gm,
+        /^export (?:async )?function ((?:process|bind|on[A-Z])[A-Za-z]*)\s*(?:<[^>]*>)?\(/gm,
       )) {
         const name = m[1];
         if (PROCESS_NAME_ALLOWLIST[relRepo]?.[name]) continue;
+        if (LIFECYCLE_HOOK_ALLOWLIST[relRepo]?.[name]) continue;
         // پیمایش تا )ِ بسته‌شوندهٔ پارامترها (تودرتو مجاز)، بعد اولین { بدنه.
         const openParen = m.index + m[0].length - 1;
         let depth = 0;
@@ -166,6 +185,17 @@ export function checkCleanupHygiene(packagesDir, read) {
       if (Object.keys(allow).length && !/DEC-032/.test(text)) {
         errors.push(`${relRepo}: در BEHAVIORAL_ALLOWLIST است اما کامنت "DEC-032" در فایل نیست`);
       }
+      const lifecycleAllow = LIFECYCLE_HOOK_ALLOWLIST[relRepo] ?? {};
+      for (const name of Object.keys(lifecycleAllow)) {
+        if (!new RegExp(`^export (?:async )?function ${name}\\s*[<(]`, 'm').test(text)) {
+          errors.push(
+            `${relRepo}: ردیف LIFECYCLE_HOOK_ALLOWLIST «${name}» دیگر وجود ندارد — پاکش کن (#116)`,
+          );
+        }
+      }
+      if (Object.keys(lifecycleAllow).length && !/DEC-032/.test(text)) {
+        errors.push(`${relRepo}: در LIFECYCLE_HOOK_ALLOWLIST است اما کامنت "DEC-032" در فایل نیست`);
+      }
       if (Object.keys(nameAllow).length && !/#116/.test(text)) {
         errors.push(`${relRepo}: در PROCESS_NAME_ALLOWLIST است اما کامنت "#116" در فایل نیست`);
       }
@@ -189,7 +219,7 @@ if (isCli) {
     process.exit(1);
   } else {
     console.log(
-      `✅ cleanup-hygiene (#116): ${processChecked} process*/bind* با نوع بازگشتی Cleanup؛ ${membersChecked} عضو destroy/cancel/stop همگی alias یا allowlist (DEC-032)`,
+      `✅ cleanup-hygiene (#116): ${processChecked} process*/bind*/on* با نوع بازگشتی Cleanup؛ ${membersChecked} عضو destroy/cancel/stop همگی alias یا allowlist (DEC-032)`,
     );
   }
 }

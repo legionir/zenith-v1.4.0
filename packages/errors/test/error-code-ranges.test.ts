@@ -182,7 +182,7 @@ describe('reserved 4-digit catalog (#171)', () => {
 });
 
 describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
-  it('contains exactly the issued codes with api/replacement (41 after #55 positional-options)', () => {
+  it('contains exactly the issued codes with api/replacement (62 after #118 reset + #132 alert names)', () => {
     expect(Object.keys(DEPRECATION_CODES).sort()).toEqual([
       'ZEN-DEPR-001',
       'ZEN-DEPR-002',
@@ -231,12 +231,44 @@ describe('ZEN-DEPR registry (#171 formalizes DEC-019)', () => {
       'ZEN-DEPR-039',
       'ZEN-DEPR-040',
       'ZEN-DEPR-041',
+      // #119 — «یک نام، یک معنا»: نام‌های تکراری cross-package (DEC-035)
+      'ZEN-DEPR-042',
+      'ZEN-DEPR-043',
+      'ZEN-DEPR-044',
+      'ZEN-DEPR-045',
+      'ZEN-DEPR-046',
+      'ZEN-DEPR-049',
+      'ZEN-DEPR-050',
+      'ZEN-DEPR-051',
+      // #132 — نام‌های یکتای دیالوگ اعلان
+      'ZEN-DEPR-052',
+      'ZEN-DEPR-053',
+      // #118 — پاک‌سازی‌های سراسری → resetForTesting()
+      'ZEN-DEPR-054',
+      'ZEN-DEPR-055',
+      'ZEN-DEPR-056',
+      'ZEN-DEPR-057',
+      'ZEN-DEPR-058',
+      'ZEN-DEPR-059',
+      'ZEN-DEPR-060',
+      'ZEN-DEPR-061',
+      'ZEN-DEPR-062',
+      'ZEN-DEPR-063',
+      'ZEN-DEPR-064',
+      'ZEN-DEPR-065',
+      'ZEN-DEPR-066',
     ]);
     expect(DEPRECATION_CODES['ZEN-DEPR-001'].api).toBe('processVirtualList');
     expect(DEPRECATION_CODES['ZEN-DEPR-002'].api).toBe('enterTransition');
     expect(DEPRECATION_CODES['ZEN-DEPR-003'].api).toBe('leaveTransition');
     expect(DEPRECATION_CODES['ZEN-DEPR-004'].api).toBe('animateGroup');
     expect(DEPRECATION_CODES['ZEN-DEPR-005'].api).toBe('clearCache (http)'); // #144
+    expect(DEPRECATION_CODES['ZEN-DEPR-065'].api).toBe(
+      'createSuspenseContext(timeoutMs, onSettle)',
+    ); // #55
+    expect(DEPRECATION_CODES['ZEN-DEPR-066'].replacement).toBe(
+      'processFetchWithCache(url, { ttl })',
+    ); // #55
     for (const meta of Object.values(DEPRECATION_CODES)) {
       expect(meta.removedIn).toBe('2.0.0'); // DEC-026
     }

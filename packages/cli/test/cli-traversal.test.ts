@@ -88,12 +88,15 @@ describe('zenith create CLI integration (#7)', () => {
         {
           name: 'cli-alias',
           setup(esbuild) {
-            esbuild.onResolve({ filter: /^@zenith\/cli\// }, (args) => ({
-              path: join(ROOT, 'packages/cli/src', args.path.slice('@zenith/cli/'.length) + '.ts'),
-            }));
-            esbuild.onResolve({ filter: /^@zenith\/[^/]+$/ }, (args) => ({
-              path: join(ROOT, 'packages', args.path.slice('@zenith/'.length), 'src/index.ts'),
-            }));
+            // هر specifier ورک‌اسپیس (با یا بدون زیرمسیر) به src نگاشت می‌شود —
+            // مثل scripts/build-browser-bundle.mjs؛ وگرنه bundle به dist نیاز
+            // دارد و روی چک‌اوت تازهٔ CI (بدون build) می‌شکند (#120: /attr).
+            esbuild.onResolve({ filter: /^@zenith\/[^/]+(\/.+)?$/ }, (args) => {
+              const [slug, ...rest] = args.path.slice('@zenith/'.length).split('/');
+              return {
+                path: join(ROOT, 'packages', slug, 'src', `${rest.join('/') || 'index'}.ts`),
+              };
+            });
           },
         },
       ],

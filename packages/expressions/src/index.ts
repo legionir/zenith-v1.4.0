@@ -120,7 +120,7 @@ export { getCacheSize, configureCache, getCacheStats } from './cache';
  * Validator سطح پایین — در حالت عادی نباید مستقیماً استفاده شود.
  * (به طور خودکار توسط `compile` فراخوانی می‌شود.)
  */
-export { validate } from './validator';
+export { validateAst, validate } from './validator';
 
 // ── Internal modules (برای توسعه‌دهندگان فریم‌ورک) ──
 

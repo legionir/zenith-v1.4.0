@@ -28,6 +28,7 @@
 
 import { effect } from '@zenith/state';
 import { logger } from '@zenith/logger';
+import { parseJsonAttr } from '@zenith/schema/attr';
 import type { I18n, I18nParams, TCallOptions } from './types';
 
 // ─────────────────────────────────────────────────────────────
@@ -78,17 +79,18 @@ function companionAttr(el: HTMLElement, name: string): string | null {
   return v === null ? null : v;
 }
 
-/** JSON.parse tolerant با هشدار dev — برای zen-t-params/zen-t-count. */
-function parseJsonAttr<T>(value: string | null, fallback: T, attrName: string): T {
-  if (value === null || value.trim() === '') return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch (err) {
-    logger.warn(
-      `[zenith:i18n] ${attrName}: JSON نامعتبر (${(err as Error).message}) — از مقدار پیش‌فرض استفاده شد.`,
-    );
-    return fallback;
-  }
+/**
+ * #120 — خواندن tolerant JSON از attribute با گزارش خطای ZEN به logger.
+ * پیاده‌سازی مشترک در `@zenith/schema` است (`parseJsonAttr`)؛ این wrapper فقط
+ * سیاست لاگ i18n را تزریق می‌کند (هیچ `JSON.parse` مستقیمی در این فایل نمی‌ماند).
+ */
+function readJsonAttr<T>(el: HTMLElement, attrName: string, fallback: T): T {
+  return parseJsonAttr<T>(el, attrName, {
+    fallback,
+    onError: (err) => {
+      logger.warn(`[zenith:i18n] ${attrName}: ${err.message} — از مقدار پیش‌فرض استفاده شد.`);
+    },
+  });
 }
 
 /**
@@ -103,11 +105,10 @@ function readTranslationInputs(el: HTMLElement): {
   callOpts: () => TCallOptions;
 } {
   const key = companionAttr(el, 'zen-t') ?? companionAttr(el, 'zen-t-html') ?? '';
-  const paramsAttr = companionAttr(el, 'zen-t-params');
   const countAttr = companionAttr(el, 'zen-t-count');
   const defaultAttr = companionAttr(el, 'zen-t-default');
 
-  const baseParams = parseJsonAttr<I18nParams>(paramsAttr, {}, 'zen-t-params');
+  const baseParams = readJsonAttr<I18nParams>(el, 'zen-t-params', {});
   let countParsed: number | undefined;
   if (countAttr !== null && countAttr.trim() !== '') {
     const num = Number(countAttr);
@@ -192,11 +193,7 @@ export function createI18nDirectives(
     priority: 600,
     bind(el) {
       const spec = companionAttr(el, 'zen-t-attr') ?? '';
-      const params = parseJsonAttr<I18nParams>(
-        companionAttr(el, 'zen-t-params'),
-        {},
-        'zen-t-params',
-      );
+      const params = readJsonAttr<I18nParams>(el, 'zen-t-params', {});
       const pairs = spec
         .split(';')
         .map((part) => part.trim())

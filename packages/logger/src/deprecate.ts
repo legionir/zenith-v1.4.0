@@ -22,7 +22,7 @@ export interface OnceOptions {
   logger?: Logger;
 }
 
-export function deprecate(
+export function warnDeprecated(
   oldName: string,
   newName: string,
   since: string,
@@ -59,4 +59,19 @@ export function warnOnce(key: string, msg: string, opts?: OnceOptions): void {
 export function resetOnceWarnings(): void {
   warnedCodes.clear();
   warnedKeys.clear();
+}
+
+/**
+ * @deprecated #119 — نام `deprecate` با `@zenith/errors.deprecate(code, old, new)`
+ * (که کد رجیستری می‌گیرد، نه نام) هم‌نام و مبهم بود. از `warnDeprecated(old, new, since)`
+ * استفاده کنید (ZEN-DEPR-050؛ حذف در ۲.۰).
+ */
+export function deprecate(
+  oldName: string,
+  newName: string,
+  since: string,
+  opts?: OnceOptions,
+): void {
+  warnOnce('ZEN-DEPR-050', '[ZEN-DEPR-050] warnDeprecated', opts);
+  warnDeprecated(oldName, newName, since, opts);
 }

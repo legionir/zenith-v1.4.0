@@ -1,7 +1,9 @@
 // packages/ssr/src/server-component.ts
-import { developerError, ErrorCode } from '@zenith/errors';
+import { developerError, ErrorCode, deprecate } from '@zenith/errors';
 import { logger } from '@zenith/logger';
+import { parseJsonValue } from '@zenith/schema/attr';
 import { getDOMGlobals } from './dom-context';
+import { onGlobalReset } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
 // رندر می‌شوند و در کلاینت hydrate نمی‌شوند. این مزیت بزرگ Zenith نسبت
@@ -149,8 +151,18 @@ export function listServerComponents(): string[] {
  * عمدتاً برای تست‌ها.
  */
 export function clearServerComponents(): void {
+  deprecate('ZEN-DEPR-060', 'clearServerComponents', 'resetForTesting() (@zenith/testing)');
+  clearServerComponentsInternal();
+}
+
+/**
+ * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ */
+export function clearServerComponentsInternal(): void {
   serverComponentRegistry.clear();
 }
+
+/* @__PURE__ */ onGlobalReset(clearServerComponentsInternal);
 
 // ── RENDER ──
 
@@ -404,29 +416,11 @@ function resolvePropValue(raw: string, state: Record<string, any>): any {
     return resolveStateExpression(trimmed, state);
   }
 
-  // Literals
-  if (trimmed === 'true') return true;
-  if (trimmed === 'false') return false;
-  if (trimmed === 'null') return null;
-  if (trimmed === 'undefined') return undefined;
-
-  // Number
-  if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-    const num = Number(trimmed);
-    if (!Number.isNaN(num)) return num;
-  }
-
-  // JSON (object یا array)
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      // اگر parse نشد، string اصلی را برگردان.
-      return raw;
-    }
-  }
-
-  return raw;
+  // #120: literal/JSON با helper مشترک `@zenith/schema` تبدیل می‌شود
+  // (boolean/number/JSON یک‌جا؛ JSON خراب ⇒ رشتهٔ اصلی با کد ZEN-1003).
+  return parseJsonValue(raw, {
+    onError: (err) => logger.warn(`[zenith:ssr] ${err.message}`),
+  });
 }
 
 /**

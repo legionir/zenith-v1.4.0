@@ -6,9 +6,15 @@
 
 ## ۱. اعتبارسنجی فرم واکنشی با `@zenith/form` و `@zenith/schema`
 
-```ts
-import { createForm, required, email, minLength } from '@zenith/form';
+```ts test-run
+import { createForm, defineRule } from '@zenith/form';
 import { s } from '@zenith/schema';
+
+// قواعد رشته‌ای (`'required|email'`) یا قاعدهٔ سفارشی با پیام فارسی
+defineRule('phone', (value) => ({
+  valid: /^09\d{9}$/.test(String(value)),
+  error: 'شمارهٔ موبایل نامعتبر است',
+}));
 
 export const userSchema = s.object({
   email: s.string(),
@@ -17,28 +23,33 @@ export const userSchema = s.object({
 
 export const loginForm = createForm({
   initialValues: { email: '', password: '' },
-  validators: {
-    email: [required('ایمیل الزامی است'), email('فرمت ایمیل نامعتبر است')],
-    password: [required('رمز عبور الزامی است'), minLength(8, 'حداقل ۸ کاراکتر')],
+  rules: {
+    email: 'required|email',
+    password: 'required|min:8',
   },
 });
+
+// دسترسی واکنشی به مقادیر و خطاها (بدون کپی)
+export const emailError = () => loginForm.errors.get().email ?? null;
+export const emailValue = () => loginForm.values.get().email;
 ```
 
 ---
 
 ## ۲. احراز هویت امن + محافظ مسیر (`@zenith/auth` + `@zenith/router`)
 
-```ts
-import { configureAuth, isAuthenticated } from '@zenith/auth';
+```ts test
+import { auth, configureAuth } from '@zenith/auth';
 import { beforeEach, navigate } from '@zenith/router';
 
 configureAuth({
-  storage: 'memory', // ایمن در برابر XSS (#62)
-  refreshUrl: '/api/auth/refresh',
+  endpoints: { login: '/api/auth/login', refresh: '/api/auth/refresh', me: '/api/auth/me' },
+  loginPath: '/login', // مسیر ریدایرکتِ گارد
+  autoRefresh: true,
 });
 
 beforeEach((to) => {
-  if (to.startsWith('/dashboard') && !isAuthenticated()) {
+  if (to.startsWith('/dashboard') && !auth.isAuthenticated) {
     navigate('/login');
     return false;
   }
@@ -50,7 +61,7 @@ beforeEach((to) => {
 
 ## ۳. رندر سمت سرور (SSR) و جریان Web `ReadableStream` (`@zenith/ssr`)
 
-```ts
+```ts test
 import { renderToString, renderToReadableStream } from '@zenith/ssr';
 
 // رندر رشته‌ای با timeout و کش قالب (#91)
@@ -76,7 +87,7 @@ export function handleStreamRequest(reqSignal: AbortSignal): ReadableStream<Uint
 
 ## ۴. لیست مجازی ۱۰۰٬۰۰۰ ردیفه با پشتیبانی افقی و RTL (`@zenith/virtual-list`)
 
-```ts
+```ts test
 import { createVirtualList } from '@zenith/virtual-list';
 
 export function mountLargeList(container: HTMLElement) {
@@ -103,7 +114,7 @@ export function mountLargeList(container: HTMLElement) {
 
 ## ۵. جدول داده با مرتب‌سازی، فیلتر و صفحه‌بندی (`@zenith/data-table`)
 
-```ts
+```ts test
 import { createDataTable } from '@zenith/data-table';
 
 export const ordersTable = createDataTable({
@@ -116,7 +127,8 @@ export const ordersTable = createDataTable({
     { key: 'customer', title: 'مشتری', sortable: true, filterable: true },
     { key: 'total', title: 'مبلغ (تومان)', sortable: true },
   ],
-  pageSize: 10,
+  pagination: { enabled: true, pageSize: 10 }, // صفحه‌بندی با اندازهٔ صفحه
+  sorting: { enabled: true }, // مرتب‌سازی سمت کلاینت روی ستون‌های sortable
 });
 ```
 
@@ -124,25 +136,30 @@ export const ordersTable = createDataTable({
 
 ## ۶. عملیات CRUD خوش‌بینانه و صف آفلاین (`@zenith/crud` + `@zenith/service-worker`)
 
-```ts
-import { createCrud } from '@zenith/crud';
+```ts test
+import { getResource, registerCrudActions } from '@zenith/crud';
 
-export const productsCrud = createCrud<{ id: number; name: string }>({
-  baseUrl: '/api/products',
-  optimistic: true,
-});
+// اکشن‌های crud-* را یک‌بار در رجیستری @zenith/actions ثبت می‌کند
+registerCrudActions();
+
+// رِسورس ثبت‌شدهٔ برنامه را می‌گیرد (دکمه‌ها با zen-action="crud-update" و… وصل می‌شوند)
+export const products = getResource('products');
+export function optimisticUpdate(id: number, patch: Record<string, unknown>) {
+  // به‌روزرسانی خوش‌بینانه روی رِسورس ثبت‌شده (rollback در صورت شکست HTTP)
+  return products?.updateOptimistic(id, patch);
+}
 ```
 
 ---
 
 ## ۷. تقویم جلالی رسمی و فرمت‌بندی دوجهته (`@zenith/jalali` + `@zenith/i18n`)
 
-```ts
+```ts test
 import { toJalaliParts, formatJalali, addMonths } from '@zenith/jalali';
 import { formatCurrency, isolateBidi, applyDocumentDirection } from '@zenith/i18n';
 
 applyDocumentDirection('fa-IR'); // تنظیم lang="fa-IR" و dir="rtl"
-const nextMonth = addMonths(new Date(), 1);
+const nextMonth = addMonths(toJalaliParts(new Date()), 1); // ماه جلالی بعدی
 export const invoiceDate = formatJalali(nextMonth, 'DD MMMM YYYY');
 export const invoiceTotal = formatCurrency(1850000, 'fa-IR', 'IRT');
 export const supportPhone = isolateBidi('+98 21 8877 6655', 'ltr');
@@ -152,7 +169,7 @@ export const supportPhone = isolateBidi('+98 21 8877 6655', 'ltr');
 
 ## ۸. اعلان‌ها و دیالوگ‌های دسترس‌پذیر WCAG 2.2 AA (`@zenith/notifications`)
 
-```ts
+```ts test
 import { toasts, confirm, renderAccessibleToast, notificationsAPI } from '@zenith/notifications';
 
 export async function confirmDelete() {
@@ -174,34 +191,47 @@ export async function confirmDelete() {
 
 ## ۹. مدیریت متمرکز خطا با مرز خطا (`@zenith/error-boundary` + `@zenith/errors`)
 
-```ts
-import { createErrorBoundary } from '@zenith/error-boundary';
-import { onError } from '@zenith/errors';
+```ts test
+import { onError, showFallback } from '@zenith/error-boundary';
 
 export const unsubscribeErrorLog = onError((err) => {
-  // ارسال ساختاریافته به سامانهٔ مانیتورینگ
+  // ارسال ساختاریافته به سامانهٔ مانیتورینگ (کد، دسته، source)
   void err.code;
 });
 
-export const boundary = createErrorBoundary({
-  fallback: (error) => `<div role="alert">خطایی رخ داد: ${error.message}</div>`,
-});
+// نمایش fallback دسترس‌پذیر روی یک المان (به‌جای رندر دستی HTML)
+export function renderFallback(el: HTMLElement, message: string) {
+  showFallback(el, `<div role="alert">خطایی رخ داد: ${message}</div>`);
+}
 ```
 
 ---
 
 ## ۱۰. تست‌نویسی واحد و DOM برای کامپوننت‌ها (`@zenith/testing`)
 
-```ts
-import { createTestRoot, flushReactive } from '@zenith/testing';
-import { signal } from '@zenith/state';
+```ts test-dom
+import { createTestHarness } from '@zenith/testing';
+import { render } from '@zenith/testing';
 
-export async function verifyCounterRender() {
-  const count = signal(5);
-  const ctx = createTestRoot('<span id="val" zen-text="$count"></span>', { count });
-  await flushReactive();
-  const text = ctx.container.querySelector('#val')?.textContent;
-  ctx.dispose();
-  return text; // "5"
+export function verifyCounterRender() {
+  const test = createTestHarness(); // root ایزوله + dispose خودکار
+  const count = test.signal(5);
+
+  let rendered = 0;
+  test.effect(() => {
+    count.get();
+    rendered++;
+  });
+
+  count.set(6);
+  test.flush(); // flushSync زمان‌بند
+
+  // render یک قالب HTML-First را در container ایزوله mount می‌کند
+  const result = render('<span id="val" zen-text="$count"></span>', { count });
+  const text = result.query('#val')?.textContent;
+
+  result.unmount();
+  test.dispose();
+  return { text, rendered }; // { text: "6", rendered: 2 }
 }
 ```

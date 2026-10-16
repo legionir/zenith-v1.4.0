@@ -6,7 +6,7 @@
 
 import { signal, effect, type Signal, type ReadonlySignal } from '@zenith/state';
 import { s, defineOptions, type Schema } from '@zenith/schema';
-import type { Disposable } from '@zenith/shared';
+import { prefersReducedMotion, type Disposable } from '@zenith/shared';
 
 export type ChartType = 'line' | 'area' | 'bar' | 'pie' | 'scatter';
 
@@ -91,17 +91,9 @@ function escapeXml(value: string): string {
     .replace(/"/g, '&#x22;');
 }
 
-export function prefersReducedMotion(doc?: Document): boolean {
-  const view = doc?.defaultView ?? (typeof window !== 'undefined' ? window : null);
-  if (view && typeof view.matchMedia === 'function') {
-    try {
-      return view.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch {
-      /* fall through */
-    }
-  }
-  return false;
-}
+// #119: پیاده‌سازی یکتا در @zenith/shared (media.ts) است؛ اینجا فقط
+// re-export می‌شود تا نام عمومی پکیج حفظ شود (بدون پیاده‌سازی تکراری).
+export { prefersReducedMotion };
 
 function toNum(value: unknown): number {
   if (typeof value === 'number') return value;

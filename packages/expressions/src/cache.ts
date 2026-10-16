@@ -13,7 +13,7 @@
 import { createCache, type Cache } from '@zenith/cache';
 
 import { Parser, type ASTNode } from './parser';
-import { validate } from './validator';
+import { validateAst } from './validator';
 import { sanitizeExpression } from './security-constants';
 
 /**
@@ -53,7 +53,7 @@ export function compile(expression: string): ASTNode {
   const ast = parser.parse();
 
   // اعتبارسنجی امنیتی (اگر شکست بخورد، cache نمی‌شود)
-  validate(ast);
+  validateAst(ast);
 
   // ── ۳. اضافه به Cache؛ trim داخلی همان LRU با MAX_CACHE_SIZE است ──
   cache.set(safeExpression, ast);

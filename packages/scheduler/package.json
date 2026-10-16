@@ -1,7 +1,7 @@
 {
   "name": "@zenith/scheduler",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 Microtask-based Effect Scheduler (Phase 7). Automatically batches multiple Signal updates into a single DOM update via queueMicrotask.",
+  "description": "Zenith framework — Microtask-based Effect Scheduler (Phase 7). Automatically batches multiple Signal updates into a single DOM update via queueMicrotask.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

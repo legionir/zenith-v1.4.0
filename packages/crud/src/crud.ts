@@ -30,6 +30,7 @@
 //   </form>
 
 import { getResource, type Resource } from '@zenith/resource';
+import { parseJsonAttr } from '@zenith/schema/attr';
 import { logger } from '@zenith/logger';
 import { Zen } from '@zenith/runtime';
 
@@ -214,15 +215,12 @@ Zen.action('crudUpdate', async ({ element }) => {
     return;
   }
 
-  // body می‌تواند از data-body attribute خوانده شود.
-  let body: any = bodyAttr;
-  if (bodyAttr) {
-    try {
-      body = JSON.parse(bodyAttr);
-    } catch {
-      /* keep as string */
-    }
-  }
+  // body می‌تواند از data-body attribute خوانده شود (#120: helper مشترک schema،
+  // tolerant — JSON خراب ⇒ همان رشته با گزارش ZEN-1003).
+  const body: unknown = parseJsonAttr<unknown>(element, 'data-body', {
+    fallback: bodyAttr,
+    onError: (err) => logger.warn(err.message),
+  });
 
   const result = await resource.update(id, body);
   if (result.success) {
@@ -319,13 +317,12 @@ Zen.action('crudBulkDelete', async ({ element }) => {
     return;
   }
 
-  let ids: string[];
-  try {
-    ids = JSON.parse(idsAttr);
-  } catch {
-    logger.error('[crudBulkDelete] data-ids must be a valid JSON array');
-    return;
-  }
+  // #120: attribute از مسیر مشترک schema خوانده می‌شود (کنترل شکل با Array.isArray).
+  const ids = parseJsonAttr<unknown>(element, 'data-ids', {
+    fallback: null,
+    onError: () => logger.error('[crudBulkDelete] data-ids must be a valid JSON array'),
+  });
+  if (ids === null) return;
   if (!Array.isArray(ids) || ids.length === 0) {
     logger.error('[crudBulkDelete] data-ids must be a non-empty array');
     return;

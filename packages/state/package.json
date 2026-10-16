@@ -1,7 +1,7 @@
 {
   "name": "@zenith/state",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 Reactive state engine (Phase 1 + 7). DOM-free, environment-agnostic. Uses Microtask Scheduler for automatic batching.",
+  "description": "Zenith framework — Reactive state engine (Phase 1 + 7). DOM-free, environment-agnostic. Uses Microtask Scheduler for automatic batching.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

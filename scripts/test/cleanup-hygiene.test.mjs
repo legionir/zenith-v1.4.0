@@ -8,6 +8,7 @@ import {
   checkCleanupHygiene,
   BEHAVIORAL_ALLOWLIST,
   PROCESS_NAME_ALLOWLIST,
+  LIFECYCLE_HOOK_ALLOWLIST,
 } from '../cleanup-hygiene.mjs';
 
 let tmp;
@@ -34,6 +35,56 @@ function makeFixture(root, files) {
 }
 
 const pkgs = (root) => join(root, 'packages');
+
+describe('checkCleanupHygiene — rule 1b: on* registration APIs return Cleanup (#118/DEC-032)', () => {
+  it('passes an exported on* returning Cleanup and flags one returning void', () => {
+    const root = join(tmp, 'r1b-on');
+    const read = makeFixture(root, {
+      'packages/foo/src/index.ts': [
+        'export function onThing(cb: () => void): () => void { return () => void cb; }',
+        'export function onOther(cb: () => void): void { void cb; }',
+      ].join('\n'),
+    });
+    const { errors, processChecked } = checkCleanupHygiene(pkgs(root), read);
+    expect(processChecked).toBe(2);
+    expect(errors).toEqual([
+      expect.stringContaining('packages/foo/src/index.ts: onOther — نوع بازگشتی "void"'),
+    ]);
+  });
+
+  it('honours the lifecycle-hook allowlist (register-only hooks in a scope) and requires the DEC-032 comment', () => {
+    expect(Object.keys(LIFECYCLE_HOOK_ALLOWLIST['packages/runtime-core/src/index.ts'])).toEqual([
+      'onMount',
+      'onUnmount',
+      'onUpdate',
+    ]);
+    // هر سه ردیف allowlist این فایل باید وجود داشته باشند (ردیف بی‌استفاده گیت را قرمز می‌کند).
+    const lifecycleHooks = ['onMount', 'onUnmount', 'onUpdate']
+      .map((n) => `export function ${n}(fn: () => void): void { void fn; }`)
+      .join('\n');
+    const withComment = makeFixture(join(tmp, 'r1b-life'), {
+      'packages/runtime-core/src/index.ts': [
+        '// DEC-032: lifecycle hooks are scope-bound, not unsubscribe handles.',
+        lifecycleHooks,
+      ].join('\n'),
+    });
+    expect(checkCleanupHygiene(pkgs(join(tmp, 'r1b-life')), withComment).errors).toEqual([]);
+
+    const withoutComment = makeFixture(join(tmp, 'r1b-life2'), {
+      'packages/runtime-core/src/index.ts': lifecycleHooks + '\n',
+    });
+    const res = checkCleanupHygiene(pkgs(join(tmp, 'r1b-life2')), withoutComment);
+    expect(res.errors).toEqual([expect.stringContaining('DEC-032')]);
+  });
+
+  it('flags a stale lifecycle-allowlist file (hook renamed away)', () => {
+    const read = makeFixture(join(tmp, 'r1b-life3'), {
+      'packages/runtime-core/src/index.ts': '// DEC-032\nexport const x = 1;\n',
+    });
+    const res = checkCleanupHygiene(pkgs(join(tmp, 'r1b-life3')), read);
+    expect(res.errors.some((e) => e.includes('LIFECYCLE_HOOK_ALLOWLIST'))).toBe(true);
+  });
+});
 
 describe('checkCleanupHygiene — rule 1: process*/bind* return Cleanup', () => {
   it('passes an exported process* with explicit () => void return', () => {

@@ -14,6 +14,7 @@
 //   - constructor, __proto__, prototype          → Prototype Pollution
 //   - arguments, caller, callee                   → Function internals
 
+import { deprecate } from '@zenith/errors';
 import { type ASTNode } from './parser';
 // FIX (v1.2.8): P1-1 — Import the shared FORBIDDEN_PROPERTIES list so the
 // validator and evaluator stay in sync. Previously the validator only
@@ -65,7 +66,7 @@ import { FORBIDDEN_PROPERTIES, isForbiddenIdentifier } from './security-constant
  *
  * @throws Error اگر دسترسی ممنوعه‌ای یافت شود.
  */
-export function validate(node: ASTNode): void {
+export function validateAst(node: ASTNode): void {
   switch (node.type) {
     // ───────────────────────────────────────────────
     // Identifier: بررسی نام متغیر در Context
@@ -95,7 +96,7 @@ export function validate(node: ASTNode): void {
     //   حمله‌ی رایج برای Prototype Pollution است و باید بلاک شود.
     // ───────────────────────────────────────────────
     case 'MemberExpression':
-      validate(node.object);
+      validateAst(node.object);
 
       // فقط برای dot notation (a.b) نام پراپرتی را چک می‌کنیم.
       if (!node.computed && node.property.type === 'Identifier') {
@@ -125,7 +126,7 @@ export function validate(node: ASTNode): void {
       // در حالت computed، خود expression پراپرتی را validate می‌کنیم
       // (این شامل Literal هم می‌شود، اما validate روی Literal no-op است).
       if (node.computed) {
-        validate(node.property);
+        validateAst(node.property);
       }
       break;
 
@@ -135,7 +136,7 @@ export function validate(node: ASTNode): void {
     // هم callee و هم args باید validate شوند.
     // ───────────────────────────────────────────────
     case 'CallExpression':
-      validate(node.callee);
+      validateAst(node.callee);
       node.args.forEach(validate);
       break;
 
@@ -145,24 +146,24 @@ export function validate(node: ASTNode): void {
     case 'BinaryExpression':
     case 'LogicalExpression':
     case 'NullishCoalescing':
-      validate(node.left);
-      validate(node.right);
+      validateAst(node.left);
+      validateAst(node.right);
       break;
 
     // ───────────────────────────────────────────────
     // UnaryExpression: یک عملوند
     // ───────────────────────────────────────────────
     case 'UnaryExpression':
-      validate(node.argument);
+      validateAst(node.argument);
       break;
 
     // ───────────────────────────────────────────────
     // ConditionalExpression: سه بخش (test, consequent, alternate)
     // ───────────────────────────────────────────────
     case 'ConditionalExpression':
-      validate(node.test);
-      validate(node.consequent);
-      validate(node.alternate);
+      validateAst(node.test);
+      validateAst(node.consequent);
+      validateAst(node.alternate);
       break;
 
     // ───────────────────────────────────────────────
@@ -172,7 +173,7 @@ export function validate(node: ASTNode): void {
     // و نمی‌توانند expression باشند.
     // ───────────────────────────────────────────────
     case 'ArrayExpression':
-      node.elements.forEach((el) => validate(el));
+      node.elements.forEach((el) => validateAst(el));
       break;
 
     case 'ArrowFunction':
@@ -188,10 +189,10 @@ export function validate(node: ASTNode): void {
           );
         }
       });
-      validate(node.body);
+      validateAst(node.body);
       break;
     case 'ObjectExpression':
-      node.properties.forEach((prop) => validate(prop.value));
+      node.properties.forEach((prop) => validateAst(prop.value));
       break;
 
     // Literal: هیچ نود فرزندی ندارد، نیازی به validate نیست
@@ -202,4 +203,14 @@ export function validate(node: ASTNode): void {
     default:
       throw new Error(`Unknown AST node type during validation: '${(node as any).type}'`);
   }
+}
+
+/**
+ * @deprecated #119 — نام `validate` با `@zenith/schema.validate(schema, input)`
+ * هم‌نام و مبهم بود (این یکی AST را برای sandbox بررسی می‌کند). از `validateAst`
+ * استفاده کنید (ZEN-DEPR-049؛ حذف در ۲.۰).
+ */
+export function validate(node: ASTNode): void {
+  deprecate('ZEN-DEPR-049', 'validate (@zenith/expressions)', 'validateAst');
+  validateAst(node);
 }

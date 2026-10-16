@@ -5,6 +5,28 @@
 //   4. Effect Viewer — active/disposed effects with dependencies
 //   5. Graph Viewer  — opens the live dependency-graph viewer in a new tab
 
+// #67 (SEC): همهٔ داده‌ای که از صفحهٔ بازدید‌شده می‌آید از این schema رد می‌شود و
+// رندر — بدون استثنا — با DOM API (`textContent`) انجام می‌شود؛ هیچ رشتهٔ HTML
+// ساخته نمی‌شود، پس هیچ `innerHTML` با دادهٔ غیرقابل‌اعتماد نداریم.
+const schema = globalThis.ZenithDevtoolsSchema;
+if (!schema) {
+  throw new Error('[Zenith DevTools] message-schema.js must be loaded before popup.js');
+}
+
+/** ساخت یک element سادهٔ متن‌محور (بدون HTML). */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+/** جایگزینی کامل محتوای یک container با گره‌های ساخته‌شده. */
+function replaceChildren(container, nodes) {
+  container.replaceChildren();
+  for (const node of nodes) container.appendChild(node);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const statusBar = document.getElementById('status-bar');
   const clearBtn = document.getElementById('clear');
@@ -152,19 +174,28 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // #67: پاسخ content script پیش از هر رندری schema-check می‌شود
+        // (فیلدهای ناشناخته حذف، متن‌ها سقف‌دار، اعداد clamp).
+        const data = schema.sanitizeInspectionResponse(response);
+        if (!data || !data.installed) {
+          statusBar.textContent = '❌ پاسخ نامعتبر از content script (schema)';
+          statusBar.className = 'status-bar disconnected';
+          return;
+        }
+
         statusBar.textContent =
-          '✅ Zenith v' + response.version + ' — ' + (response.signalCount || 0) + ' signals';
+          '✅ Zenith v' + data.version + ' — ' + data.signalCount + ' signals';
         statusBar.className = 'status-bar connected';
-        document.getElementById('version').textContent = 'v' + response.version;
-        renderSignals(response.signals || []);
-        renderTimeline(response.timeline || []);
-        renderComponents(response.components || []);
-        renderEffects(response.effects || []);
+        document.getElementById('version').textContent = 'v' + data.version;
+        renderSignals(data.signals);
+        renderTimeline(data.timeline);
+        renderComponents(data.components);
+        renderEffects(data.effects);
         // FEATURE (v1.0.0): lazy render — فقط در صورت فعال بودن تب v1 رندر کن
         // در غیر این صورت داده رو ذخیره کن تا وقتی تب فعال شد رندر بشه
-        window._v1Data = response;
+        window._v1Data = data;
         if (activeTab === 'v1') {
-          renderV1Features(response);
+          renderV1Features(data);
         }
       });
     });
@@ -204,14 +235,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statusEl) statusEl.textContent = '❌ تزریق اسکریپت ناموفق بود';
             return;
           }
-          const data = results[0].result;
-          if (!data) {
+          const raw = results[0].result;
+          if (!raw) {
             if (statusEl) statusEl.textContent = '❌ Zenith در این صفحه فعال نیست';
+            return;
+          }
+          // #67: دادهٔ صفحهٔ میزبان قبل از رمزگذاری اعتبارسنجی می‌شود؛ گراف ناسازگار
+          // هرگز به `graph-viewer.html` نمی‌رسد (سقف node/edge + نوع فیلدها).
+          const check = schema.sanitizeGraphPayload(raw);
+          if (!check.ok) {
+            if (statusEl) statusEl.textContent = '❌ دادهٔ گراف نامعتبر (' + check.reason + ')';
             return;
           }
           let json;
           try {
-            json = JSON.stringify(data);
+            json = JSON.stringify(check.value);
           } catch (e) {
             json = '{}';
           }
@@ -231,13 +269,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!signals || signals.length === 0) {
       empty.style.display = 'block';
-      list.innerHTML = '';
+      replaceChildren(list, []);
       return;
     }
     empty.style.display = 'none';
 
-    list.innerHTML = signals
-      .map((s) => {
+    replaceChildren(
+      list,
+      signals.map((s) => {
         let valStr;
         try {
           valStr = typeof s.value === 'object' ? JSON.stringify(s.value, null, 2) : String(s.value);
@@ -246,20 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (valStr.length > 200) valStr = valStr.substring(0, 200) + '...';
 
-        return `
-        <div class="signal-item">
-          <div class="signal-header">
-            <span>
-              <span class="signal-id">#${s.id}</span>
-              ${s.name ? `<span class="signal-name">${s.name}</span>` : ''}
-            </span>
-            <span class="signal-count">${s.subscriberCount} subs</span>
-          </div>
-          <div class="signal-value">${escapeHtml(valStr)}</div>
-        </div>
-      `;
-      })
-      .join('');
+        const item = el('div', 'signal-item');
+        const header = el('div', 'signal-header');
+        const left = el('span', null);
+        left.appendChild(el('span', 'signal-id', '#' + s.id));
+        if (s.name) left.appendChild(el('span', 'signal-name', s.name));
+        header.appendChild(left);
+        header.appendChild(el('span', 'signal-count', s.subscriberCount + ' subs'));
+        item.appendChild(header);
+        item.appendChild(el('div', 'signal-value', valStr));
+        return item;
+      }),
+    );
   }
 
   function renderTimeline(timeline) {
@@ -268,28 +305,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!timeline || timeline.length === 0) {
       empty.style.display = 'block';
-      list.innerHTML = '';
+      replaceChildren(list, []);
       return;
     }
     empty.style.display = 'none';
 
     const recent = timeline.slice(-20).reverse();
-    list.innerHTML = recent
-      .map((c) => {
+    replaceChildren(
+      list,
+      recent.map((c) => {
         const time = new Date(c.timestamp).toLocaleTimeString();
         const oldStr = formatVal(c.oldValue);
         const newStr = formatVal(c.newValue);
-        return `
-        <div class="timeline-item">
-          <div class="timeline-time">${time} — Signal #${c.signalId}${c.signalName ? ` (${c.signalName})` : ''}</div>
-          <div class="timeline-change">
-            <span class="timeline-old">${oldStr}</span> →
-            <span class="timeline-new">${newStr}</span>
-          </div>
-        </div>
-      `;
-      })
-      .join('');
+
+        const item = el('div', 'timeline-item');
+        const label =
+          time + ' — Signal #' + c.signalId + (c.signalName ? ' (' + c.signalName + ')' : '');
+        item.appendChild(el('div', 'timeline-time', label));
+        const change = el('div', 'timeline-change');
+        change.appendChild(el('span', 'timeline-old', oldStr));
+        change.appendChild(document.createTextNode(' → '));
+        change.appendChild(el('span', 'timeline-new', newStr));
+        item.appendChild(change);
+        return item;
+      }),
+    );
   }
 
   function renderComponents(components) {
@@ -298,21 +338,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!components || components.length === 0) {
       empty.style.display = 'block';
-      tree.innerHTML = '';
+      replaceChildren(tree, []);
       return;
     }
     empty.style.display = 'none';
 
-    tree.innerHTML = components
-      .map((c) => {
-        return `
-        <div class="tree-node">
-          <span class="tree-tag">&lt;${c.name}&gt;</span>
-          ${c.used ? `<span class="tree-attr">used ${c.used}x</span>` : ''}
-        </div>
-      `;
-      })
-      .join('');
+    replaceChildren(
+      tree,
+      components.map((c) => {
+        const node = el('div', 'tree-node');
+        node.appendChild(el('span', 'tree-tag', '<' + c.name + '>'));
+        if (c.used) node.appendChild(el('span', 'tree-attr', 'used ' + c.used + 'x'));
+        return node;
+      }),
+    );
   }
 
   function renderEffects(effects) {
@@ -321,29 +360,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!effects || effects.length === 0) {
       empty.style.display = 'block';
-      list.innerHTML = '';
+      replaceChildren(list, []);
       return;
     }
     empty.style.display = 'none';
 
-    list.innerHTML = effects
-      .map((e) => {
-        return `
-        <div class="effect-item">
-          <div class="signal-header">
-            <span>
-              <span class="effect-id">Effect #${e.id}</span>
-              ${e.source ? `<span class="effect-deps">${e.source}</span>` : ''}
-            </span>
-            <span class="effect-status ${e.disposed ? 'disposed' : 'active'}">
-              ${e.disposed ? 'Disposed' : 'Active'}
-            </span>
-          </div>
-          ${e.dependencies ? `<div class="effect-deps">Deps: ${e.dependencies.join(', ')}</div>` : ''}
-        </div>
-      `;
-      })
-      .join('');
+    replaceChildren(
+      list,
+      effects.map((e) => {
+        const item = el('div', 'effect-item');
+        const header = el('div', 'signal-header');
+        const left = el('span', null);
+        left.appendChild(el('span', 'effect-id', 'Effect #' + e.id));
+        if (e.source) left.appendChild(el('span', 'effect-deps', e.source));
+        header.appendChild(left);
+        header.appendChild(
+          el(
+            'span',
+            'effect-status ' + (e.disposed ? 'disposed' : 'active'),
+            e.disposed ? 'Disposed' : 'Active',
+          ),
+        );
+        item.appendChild(header);
+        if (e.dependencies && e.dependencies.length > 0) {
+          item.appendChild(el('div', 'effect-deps', 'Deps: ' + e.dependencies.join(', ')));
+        }
+        return item;
+      }),
+    );
   }
 
   // ─── FEATURE (v1.0.0): v1.0 Features Rendering ──────────────
@@ -357,21 +401,21 @@ document.addEventListener('DOMContentLoaded', () => {
         : 'لیست‌های فقط‌خواندنی با fast path';
 
     const staticList = document.getElementById('static-list');
-    staticList.innerHTML = staticFors
-      .map(
-        (f) => `
-      <div class="signal-item" style="border-color: #166534;">
-        <div class="signal-header">
-          <span>
-            <span class="badge-static">STATIC</span>
-            <span class="signal-name">${escapeHtml(f.expr)}</span>
-          </span>
-          <span class="signal-count">${f.itemCount} items</span>
-        </div>
-      </div>
-    `,
-      )
-      .join('');
+    replaceChildren(
+      staticList,
+      staticFors.map((f) => {
+        const item = el('div', 'signal-item');
+        item.style.borderColor = '#166534';
+        const header = el('div', 'signal-header');
+        const left = el('span', null);
+        left.appendChild(el('span', 'badge-static', 'STATIC'));
+        left.appendChild(el('span', 'signal-name', f.expr));
+        header.appendChild(left);
+        header.appendChild(el('span', 'signal-count', f.itemCount + ' items'));
+        item.appendChild(header);
+        return item;
+      }),
+    );
 
     // Resource Destroyed
     const destroyed = response.destroyedResources || [];
@@ -382,25 +426,26 @@ document.addEventListener('DOMContentLoaded', () => {
         : 'Resource های teardown شده';
 
     const destroyedList = document.getElementById('destroyed-list');
-    destroyedList.innerHTML = destroyed
-      .slice(-10)
-      .reverse()
-      .map((r) => {
-        const time = new Date(r.destroyedAt).toLocaleTimeString();
-        return `
-        <div class="resource-item">
-          <div class="signal-header">
-            <span>
-              <span class="badge-destroyed">DESTROYED</span>
-              <span class="resource-name">${escapeHtml(r.name)}</span>
-            </span>
-            <span class="resource-time">${time}</span>
-          </div>
-          <div class="resource-url">${escapeHtml(r.url)}</div>
-        </div>
-      `;
-      })
-      .join('');
+    replaceChildren(
+      destroyedList,
+      destroyed
+        .slice(-10)
+        .reverse()
+        .map((r) => {
+          const item = el('div', 'resource-item');
+          const header = el('div', 'signal-header');
+          const left = el('span', null);
+          left.appendChild(el('span', 'badge-destroyed', 'DESTROYED'));
+          left.appendChild(el('span', 'resource-name', r.name));
+          header.appendChild(left);
+          header.appendChild(
+            el('span', 'resource-time', new Date(r.destroyedAt).toLocaleTimeString()),
+          );
+          item.appendChild(header);
+          item.appendChild(el('div', 'resource-url', r.url));
+          return item;
+        }),
+    );
 
     // compileExpression Cache Stats
     const cache = response.cacheStats;
@@ -421,13 +466,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ssrStores.length > 0 ? 'درخواست‌های SSR concurrent فعال' : 'درخواست‌های SSR concurrent';
 
     const ssrList = document.getElementById('ssr-list');
-    ssrList.innerHTML = ssrStores
-      .map(
-        (id) => `
-      <div class="ssr-store-item">🌐 Request: ${escapeHtml(id)}</div>
-    `,
-      )
-      .join('');
+    replaceChildren(
+      ssrList,
+      ssrStores.map((store) => el('div', 'ssr-store-item', '🌐 Request: ' + store.id)),
+    );
   }
 
   function formatVal(val) {
@@ -441,11 +483,5 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     return String(val).substring(0, 50);
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 });

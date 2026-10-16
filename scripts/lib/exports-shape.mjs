@@ -48,3 +48,78 @@ export function distName(target) {
   const m = /^\.\/dist\/(.+?)\.(?:d\.)?c?m?[jt]s$/.exec(target ?? '');
   return m ? m[1] : null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Subpath entry points (#142, #120, DEC-036 §پیوست الف)
+//
+// The 11 public subpaths of the workspace used to be hand-written JSON in three
+// package.json files — a shape that could silently drift from what the build,
+// the audits and the tests assume. They now come from ONE table, exactly like
+// `entryFor` does for the `.` entry: `scripts/test/exports-shape.test.mjs`
+// fails CI when a package declares a subpath this table does not know about,
+// when a tabled source file is missing, or when a declared entry drifts from
+// the generated shape.
+//
+// Subpaths are ESM-only (`entryFor(name, { dual: false })`): they exist to keep
+// the *main* entry inside its size budget (e.g. `@zenith/schema/attr` keeps
+// `@zenith/schema` itself under the frozen 4 KB of #142), and the packages that
+// own subpaths are ESM-only by DEC-027.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * پکیج → زیرمسیرهای عمومی (`src/<name>.ts` ⇒ `exports["./<name>"]`).
+ * ترتیب کلیدها همان ترتیبی است که در package.json نوشته می‌شود.
+ */
+export const PUBLIC_SUBPATHS = {
+  '@zenith/schema': ['zod', 'json-schema', 'attr'],
+  '@zenith/storage': ['signal'],
+  zenith: ['core', 'ssr', 'testing', 'presets/minimal', 'presets/spa', 'presets/full', 'browser'],
+};
+
+/** `presets/minimal` → `./presets/minimal`. */
+export function subpathKey(name) {
+  return `./${name}`;
+}
+
+/** `./presets/minimal` → `presets/minimal` (null when the key is not a subpath). */
+export function subpathName(key) {
+  if (typeof key !== 'string' || !key.startsWith('./')) return null;
+  const name = key.slice(2);
+  if (name === '' || name === 'package.json') return null;
+  return name;
+}
+
+/** نام‌های زیرمسیر یک پکیج (کپی؛ هرگز به جدول بیرون دست نده). */
+export function subpathNames(pkgName) {
+  return [...(PUBLIC_SUBPATHS[pkgName] ?? [])];
+}
+
+/** شیء `exports` برای زیرمسیرها — با همین تابع، build و audits هم تغذیه می‌شوند. */
+export function subpathExports(pkgName) {
+  /** @type {Record<string, unknown>} */
+  const out = {};
+  for (const name of subpathNames(pkgName)) {
+    out[subpathKey(name)] = entryFor(name, { dual: false });
+  }
+  return out;
+}
+
+/**
+ * `exports` کامل یک پکیج: `.` (شکل موجود)، سپس زیرمسیرهای جدول، سپس
+ * `./package.json`. زیرمسیرهای خارج از جدول حذف می‌شوند تا «منبع یکتا» واقعاً
+ * یکتا بماند — تست exports-shape همان لحظه قرمز می‌شود.
+ */
+export function exportsFor(pkgName, dotEntry) {
+  return {
+    '.': dotEntry,
+    ...subpathExports(pkgName),
+    './package.json': './package.json',
+  };
+}
+
+/** همهٔ زیرمسیرهای اعلام‌شده در ورک‌اسپیس (package.json واقعی) → نام پکیج. */
+export function declaredSubpaths(pkgJson) {
+  return Object.keys(pkgJson?.exports ?? {})
+    .map((key) => subpathName(key))
+    .filter((name) => name !== null);
+}

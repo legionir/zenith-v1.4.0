@@ -46,7 +46,7 @@ import { signal, effect, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 // #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
 import { createCache } from '@zenith/cache';
-import { resourceHttpError } from '@zenith/errors';
+import { deprecate, resourceHttpError } from '@zenith/errors';
 import { logger } from '@zenith/logger';
 
 /**
@@ -140,7 +140,7 @@ export function registerInvalidateHook(fn: (tags: string[]) => void): () => void
 /**
  * #130: باطل‌سازی سراسری کش بر اساس تگ‌ها (`invalidate(tags)`).
  */
-export function invalidate(tags?: string | string[]): void {
+export function invalidateFetchCache(tags?: string | string[]): void {
   if (!tags) {
     _fetchCache.clear();
     for (const hook of _invalidateHooks) hook([]);
@@ -166,7 +166,29 @@ export function invalidate(tags?: string | string[]): void {
  * @param ttl زمان اعتبار کش به میلی‌ثانیه (پیش‌فرض: ۳۰ ثانیه).
  * @returns Promise داده.
  */
-export function processFetchWithCache(url: string, ttl: number = 30000): Promise<any> {
+export interface ProcessFetchWithCacheOptions {
+  /** زمان اعتبار کش به میلی‌ثانیه. @default 30000 */
+  ttl?: number;
+}
+
+export function processFetchWithCache(
+  url: string,
+  options?: ProcessFetchWithCacheOptions,
+): Promise<unknown>;
+/** @deprecated #55 — امضای positional؛ از `processFetchWithCache(url, { ttl })` استفاده کنید (ZEN-DEPR-066). */
+export function processFetchWithCache(url: string, ttl?: number): Promise<unknown>;
+export function processFetchWithCache(
+  url: string,
+  ttlOrOptions: number | ProcessFetchWithCacheOptions = {},
+): Promise<unknown> {
+  if (typeof ttlOrOptions === 'number') {
+    deprecate(
+      'ZEN-DEPR-066',
+      'processFetchWithCache(url, ttl)',
+      'processFetchWithCache(url, { ttl })',
+    );
+  }
+  const ttl = typeof ttlOrOptions === 'number' ? ttlOrOptions : (ttlOrOptions.ttl ?? 30000);
   const cached = getCachedData(url, ttl);
   if (cached !== null) {
     // بازگشت فوری داده + به‌روزرسانی در پس‌زمینه
@@ -263,16 +285,32 @@ function buildFetchContext(
  * @param retryCount      تعداد تلاش مجدد (برای 429).
  * @returns Promise<void>.
  */
-async function performFetch(
-  url: string,
-  signal: Signal<FetchState>,
-  fetchId: number,
-  getCurrentFetchId: () => number,
-  abortController: AbortController,
-  method: string = 'GET',
-  body: string | null = null,
-  retryCount: number = 0,
-): Promise<void> {
+interface PerformFetchOptions {
+  url: string;
+  signal: Signal<FetchState>;
+  fetchId: number;
+  getCurrentFetchId: () => number;
+  abortController: AbortController;
+  /** متد HTTP. @default 'GET' */
+  method?: string;
+  /** بدنهٔ درخواست (POST/PUT). @default null */
+  body?: string | null;
+  /** تعداد تلاش‌های مجدد انجام‌شده (برای 429). @default 0 */
+  retryCount?: number;
+}
+
+// #55: امضای داخلی هم options-object است (هیچ پارامتر positional پیکربندی نمی‌ماند).
+async function performFetch(options: PerformFetchOptions): Promise<void> {
+  const {
+    url,
+    signal,
+    fetchId,
+    getCurrentFetchId,
+    abortController,
+    method = 'GET',
+    body = null,
+    retryCount = 0,
+  } = options;
   const MAX_RETRIES = 3;
 
   // فقط اگر این fetch هنوز آخرین fetch است.
@@ -302,16 +340,16 @@ async function performFetch(
       await new Promise((resolve) => setTimeout(resolve, delay));
       // اگر در حین تأخیر، fetch دیگری شروع شده، تلاش مجدد را لغو کن.
       if (fetchId !== getCurrentFetchId()) return;
-      return performFetch(
+      return performFetch({
         url,
         signal,
         fetchId,
         getCurrentFetchId,
-        new AbortController(),
+        abortController: new AbortController(),
         method,
         body,
-        retryCount + 1,
-      );
+        retryCount: retryCount + 1,
+      });
     }
 
     if (!res.ok) {
@@ -517,15 +555,15 @@ export function processFetch(
     const abortController = new AbortController();
     currentAbortController = abortController;
 
-    void performFetch(
-      finalUrl,
-      fetchStateSignal,
+    void performFetch({
+      url: finalUrl,
+      signal: fetchStateSignal,
       fetchId,
-      () => currentFetchId,
+      getCurrentFetchId: () => currentFetchId,
       abortController,
       method,
       body,
-    );
+    });
   });
 
   // ── ۶. ثبت dispose ──
@@ -564,4 +602,14 @@ export function processFetch(
   };
   disposes.push(idempotentCleanup);
   return idempotentCleanup;
+}
+
+/**
+ * @deprecated #119 — نام `invalidate` با `@zenith/resource.invalidate`
+ * (باطل‌سازی Resourceها) هم‌نام و مبهم بود. از `invalidateFetchCache`
+ * استفاده کنید (ZEN-DEPR-046؛ حذف در ۲.۰).
+ */
+export function invalidate(tags?: string | string[]): void {
+  deprecate('ZEN-DEPR-046', 'invalidate (@zenith/data)', 'invalidateFetchCache');
+  invalidateFetchCache(tags);
 }

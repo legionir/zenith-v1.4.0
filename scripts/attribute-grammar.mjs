@@ -9,6 +9,14 @@
 //   ۳) جدول دست‌کم ۱۰ directive را طبقه‌بندی کرده باشد (معیار پذیرش #173).
 //   ۴) هر قاعدهٔ §۱.۱..۱.۱۰ در سند حداقل یک نمونهٔ کد (```) داشته باشد.
 //
+// #120 (ادامهٔ همین گیت):
+//   ۵) «هیچ `JSON.parse` مستقیم روی مقدار attribute» — مقدار attribute فقط از
+//      مسیر مشترک `@zenith/schema/attr` (parseConfigAttr/parseJsonAttr/parseJsonValue)
+//      خوانده می‌شود؛ در غیر این صورت گیت قرمز می‌شود.
+//   ۶) «جدول §۴ همهٔ directiveهای موجود را پوشش می‌دهد» — نام‌های گرفته‌شده از
+//      سطح attribute واقعی کد (`ZenithAttributes` + `defineDirective({name})`)
+//      باید ردیفی در جدول §۴ داشته باشند.
+//
 // تابع خالص `checkAttributeGrammar(docText, seed)` export شده تا در
 // scripts/test/attribute-grammar.test.mjs با fixture تست شود.
 
@@ -100,10 +108,143 @@ export function checkAttributeGrammar(docText, seed) {
   return errors;
 }
 
+// ── #120: استخراج سطح attribute از کد ──
+
+/**
+ * نام‌های `zen-*` از اینترفیس `ZenithAttributes` (منبع حقیقت attribute سطح DOM).
+ * `zen-bind:class` → `zen-bind`؛ propهای بدون پیشوند (config/action) نادیده.
+ *
+ * @param {string} srcText محتوای packages/runtime/src/attributes.ts
+ * @returns {string[]} نام‌های یکتا و مرتب
+ */
+export function extractAttributeSurface(srcText) {
+  const start = srcText.indexOf('export interface ZenithAttributes');
+  if (start === -1) return [];
+  const end = srcText.indexOf('\n}', start);
+  const body = srcText.slice(start, end === -1 ? srcText.length : end);
+  const names = new Set();
+  for (const m of body.matchAll(/^\s*'(zen-[^']+)'\??:/gm)) {
+    names.add(m[1].split(':')[0]);
+  }
+  for (const m of body.matchAll(/^\s*(zen-[a-z0-9-]+)\??:/gm)) {
+    names.add(m[1]);
+  }
+  return [...names].sort();
+}
+
+/**
+ * نام directiveهای ثبت‌شده در کد: `defineDirective({ name: 'zen-…' })` و
+ * رجیستری‌های صریح `{ name: 'zen-…', handler }` (کامپوننت‌های اعلانی).
+ *
+ * @param {Array<{path: string, text: string}>} files فایل‌های src (مسیر + محتوا)
+ * @returns {Array<{name: string, file: string}>}
+ */
+export function extractRegisteredDirectives(files) {
+  const out = [];
+  for (const { path, text } of files) {
+    for (const m of text.matchAll(/\bname:\s*'(zen-[a-z0-9-]+)'/g)) {
+      // فقط تعریف واقعی دایرکتیو: آبجکت حاویِ `bind(`/`handler:`/`priority:`/`attr:`.
+      // (فهرست snippetهای افزونهٔ VS Code `snippet:` دارد و دایرکتیو نیست.)
+      const start = text.lastIndexOf('{', m.index);
+      const end = text.indexOf('}', m.index);
+      const objectText = text.slice(start === -1 ? 0 : start, end === -1 ? text.length : end + 1);
+      if (!/\bbind\s*\(|\bhandler\s*:|\bpriority\s*:|\battr\s*:/.test(objectText)) continue;
+      out.push({ name: m[1], file: path });
+    }
+  }
+  const seen = new Set();
+  return out.filter((d) => (seen.has(d.name) ? false : (seen.add(d.name), true)));
+}
+
+/**
+ * نام‌های `zen-*` جدول §۴ سند.
+ *
+ * @param {string} docText محتوای docs/ATTRIBUTE-GRAMMAR.md
+ */
+export function extractTabledNames(docText) {
+  const names = new Set();
+  for (const line of docText.split('\n')) {
+    if (!line.startsWith('|')) continue;
+    const cell = line.split('|')[1] ?? '';
+    const m = /`(zen-[a-z0-9-]+)`/.exec(cell);
+    if (m) names.add(m[1]);
+  }
+  return names;
+}
+
+/** سیگنال‌های «مقدار attribute» در یک expression جاوااسکریپت. */
+const ATTRIBUTE_SIGNAL = /getAttribute\(|\battrs?\b|Attribute\b|\bAttr\b/;
+
+/**
+ * #120 — ممیزی `JSON.parse` روی مقدار attribute در src پکیج‌ها.
+ *
+ * هر `JSON.parse(...)` که آرگومانش از `getAttribute`/متغیر `*Attr*` بیاید تخلف
+ * است، مگر داخل یکی از helperهای مشترک زیرمسیر `@zenith/schema/attr` باشد.
+ * خطوط انتهای فایل با کامنت `attribute-json-allowlist:` معاف می‌شوند (با دلیل).
+ *
+ * @param {Array<{path: string, text: string}>} files
+ * @returns {Array<{file: string, line: number, snippet: string}>}
+ */
+export function auditAttributeJsonParsing(files) {
+  const violations = [];
+  for (const { path, text } of files) {
+    // فایل‌هایی که خودشان helper مشترک را پیاده می‌کنند مجازند.
+    if (path.endsWith('packages/schema/src/attr.ts')) continue;
+    if (path.endsWith('packages/schema/src/validate.ts')) continue; // parseConfigAttr
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      if (!line.includes('JSON.parse')) return;
+      const stripped = line.trim();
+      // خطوط کامنت (JSDoc///) کد نیستند.
+      if (stripped.startsWith('*') || stripped.startsWith('//') || stripped.startsWith('/*'))
+        return;
+      const window = lines.slice(Math.max(0, i - 3), i + 4).join(' ');
+      const hasAllowlist = /attribute-json-allowlist:/.test(
+        lines.slice(Math.max(0, i - 4), i + 2).join(' '),
+      );
+      if (hasAllowlist) return;
+      if (!ATTRIBUTE_SIGNAL.test(window)) return;
+      violations.push({ file: path, line: i + 1, snippet: line.trim().slice(0, 120) });
+    });
+  }
+  return violations;
+}
+
+/**
+ * #120 — پوشش جدول §۴ نسبت به سطح attribute واقعی کد + رجیستری directiveها.
+ *
+ * @param {string} docText سند
+ * @param {string[]} surfaceNames نام‌های attribute سطح
+ * @param {Array<{name: string, file: string}>} registered directiveهای ثبت‌شده
+ * @param {{directives: Array<{name: string}>}} seed رجیستری متادیتا
+ * @returns {string[]} خطاها
+ */
+export function auditDirectiveCoverage(docText, surfaceNames, registered, seed) {
+  const errors = [];
+  const tabled = extractTabledNames(docText);
+  const seedNames = new Set((seed.directives ?? []).map((d) => d.name));
+  const skip = new Set(['zen-state']); // گزینهٔ مشترک zen-fetch/zen-resource، خودش directive نیست
+  for (const name of surfaceNames) {
+    if (skip.has(name)) continue;
+    if (!tabled.has(name)) {
+      errors.push(`«${name}» در سطح attribute کد هست ولی ردیفی در جدول §۴ سند ندارد (#120).`);
+    }
+    if (!seedNames.has(name)) {
+      errors.push(`«${name}» در سطح attribute کد هست ولی در seed متادیتا ثبت نشده (#120).`);
+    }
+  }
+  for (const d of registered) {
+    if (!tabled.has(d.name)) {
+      errors.push(`directive «${d.name}» در سند نیست (${d.file}) — جدول §۴ ناقص است (#120).`);
+    }
+  }
+  return errors;
+}
+
 // ── CLI ──
 const isCli = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
 if (isCli) {
-  const { readFileSync } = await import('node:fs');
+  const { readFileSync, existsSync } = await import('node:fs');
   const { join, dirname } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -112,12 +253,49 @@ if (isCli) {
     readFileSync(join(root, 'docs', 'meta', 'zenith.meta.seed.json'), 'utf8'),
   );
   const errs = checkAttributeGrammar(doc, seed);
+
+  // #120: پوشش کامل جدول + ممنوعیت JSON.parse روی attribute.
+  const { readdirSync, statSync } = await import('node:fs');
+  const srcFiles = [];
+  for (const pkg of readdirSync(join(root, 'packages'))) {
+    const srcDir = join(root, 'packages', pkg, 'src');
+    if (!existsSync(srcDir) || !statSync(srcDir).isDirectory()) continue;
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (entry.startsWith('tmp-') || entry.startsWith('dist.')) continue;
+        if (statSync(full).isDirectory()) walk(full);
+        else if (entry.endsWith('.ts') && !entry.endsWith('.d.ts')) {
+          srcFiles.push({
+            path: full.split('\\').join('/').split('zenith-v1.4.0/').pop(),
+            text: readFileSync(full, 'utf8'),
+          });
+        }
+      }
+    };
+    walk(srcDir);
+  }
+  const attributesSrc = readFileSync(
+    join(root, 'packages', 'runtime', 'src', 'attributes.ts'),
+    'utf8',
+  );
+  const surface = extractAttributeSurface(attributesSrc);
+  const registered = extractRegisteredDirectives(srcFiles);
+  errs.push(...auditDirectiveCoverage(doc, surface, registered, seed));
+  for (const v of auditAttributeJsonParsing(srcFiles)) {
+    errs.push(
+      `JSON.parse روی مقدار attribute: ${v.file}:${v.line} — «${v.snippet}»؛ ` +
+        'از parseConfigAttr/parseJsonAttr/parseJsonValue در @zenith/schema/attr استفاده کنید (#120).',
+    );
+  }
+
   if (errs.length) {
-    console.error('❌ attribute-grammar (#173):');
+    console.error('❌ attribute-grammar (#120/#173):');
     for (const e of errs) console.error(`  - ${e}`);
     process.exit(1);
   }
   console.log(
-    `✅ attribute-grammar (#173): جدول §۴ با seed رجیستری سازگار؛ ${seed.directives.length} directive ثبت‌شده.`,
+    `✅ attribute-grammar (#120/#173): جدول §۴ با seed سازگار، ${seed.directives.length} directive ثبت‌شده، ` +
+      `${surface.length} نام سطح attribute و بدون JSON.parse روی attribute.`,
   );
 }
