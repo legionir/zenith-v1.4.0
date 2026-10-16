@@ -725,7 +725,12 @@ function createAbortError(): Error {
 
 async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) return promise;
-  if (signal.aborted) throw createAbortError();
+  if (signal.aborted) {
+    // The caller may have aborted synchronously while creating this promise.
+    // Observe its eventual rejection even though cancellation wins immediately.
+    void promise.catch(() => {});
+    throw createAbortError();
+  }
   let onAbort: (() => void) | undefined;
   const abortPromise = new Promise<never>((_resolve, reject) => {
     onAbort = () => reject(createAbortError());

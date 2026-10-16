@@ -308,6 +308,38 @@ describe('SSR rendering cancellation (#156, #157)', () => {
     }
   });
 
+  it.each(['node', 'fetch'] as const)(
+    'handles a state promise that synchronously aborts %s before rejecting',
+    async (kind) => {
+      const controller = new AbortController();
+      const req = Object.assign(new EventEmitter(), { url: '/' });
+      const res = nodeResponse();
+      const state = () => {
+        if (kind === 'node') req.emit('aborted');
+        else controller.abort();
+        return Promise.reject(new Error('cancelled state failure'));
+      };
+      const unhandled = vi.fn();
+      process.on('unhandledRejection', unhandled);
+      try {
+        if (kind === 'node') {
+          await createNodeHandler({ template: TEMPLATE, state })(req, res);
+          expect(res.end).not.toHaveBeenCalled();
+        } else {
+          await expect(
+            createFetchHandler({ template: TEMPLATE, state })(
+              new Request('https://example.test/', { signal: controller.signal }),
+            ),
+          ).rejects.toMatchObject({ name: 'AbortError' });
+        }
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
+    },
+  );
+
   it('propagates Fetch request cancellation during state loading', async () => {
     const controller = new AbortController();
     const entered = deferred<void>();
