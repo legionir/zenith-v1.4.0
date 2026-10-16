@@ -298,7 +298,7 @@ export async function compileTemplate(
       effectCount++;
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
-      codeLines.push(`    const v = evalExpr(dir.value, ctx);`);
+      codeLines.push(`    const v = evalExpr(${JSON.stringify(dir.value)}, ctx);`);
       codeLines.push(
         `    ${varName}.textContent = (v === null || v === undefined) ? '' : String(v);`,
       );
@@ -310,7 +310,7 @@ export async function compileTemplate(
       effectCount++;
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
-      codeLines.push(`    const cond = Boolean(evalExpr(dir.value, ctx));`);
+      codeLines.push(`    const cond = Boolean(evalExpr(${JSON.stringify(dir.value)}, ctx));`);
       codeLines.push(`    if (cond) {`);
       codeLines.push(`      if (${varName}.parentNode !== ${parentVar}) {`);
       codeLines.push(`        ${parentVar}.appendChild(${varName});`);
@@ -328,7 +328,7 @@ export async function compileTemplate(
       effectCount++;
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
-      codeLines.push(`    const v = evalExpr(dir.value, ctx);`);
+      codeLines.push(`    const v = evalExpr(${JSON.stringify(dir.value)}, ctx);`);
       codeLines.push(`    ${varName}.style.display = v ? '' : 'none';`);
       codeLines.push(`  });`);
       return true;
@@ -345,7 +345,7 @@ export async function compileTemplate(
       effectCount++;
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
-      codeLines.push(`    const v = evalExpr(dir.value, ctx);`);
+      codeLines.push(`    const v = evalExpr(${JSON.stringify(dir.value)}, ctx);`);
       codeLines.push(`    if (v === null || v === undefined) {`);
       codeLines.push(`      ${varName}.innerHTML = '';`);
       codeLines.push(`    } else {`);
@@ -374,7 +374,7 @@ export async function compileTemplate(
       effectCount++;
       allExprs.push(dir.value);
       codeLines.push(`  effect(() => {`);
-      codeLines.push(`    const v = evalExpr(dir.value, ctx);`);
+      codeLines.push(`    const v = evalExpr(${JSON.stringify(dir.value)}, ctx);`);
       codeLines.push(`    if (v === null || v === undefined) {`);
       codeLines.push(`      ${varName}.innerHTML = '';`);
       codeLines.push(`    } else if (typeof sanitizeHTMLTrusted === 'function') {`);
