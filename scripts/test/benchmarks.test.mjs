@@ -278,7 +278,7 @@ describe('#86 — گیت بازتولیدپذیری', () => {
   // چند‌پاسی = هر پاس در فرایند فرزندِ `node` ⇒ به dist بیلدشدهٔ مخزن نیاز دارد
   // (قرارداد مخزن: تست‌های workspace-wide روی workspace بیلد‌نشده skip می‌شوند).
   it.skipIf(!isFullyBuilt(ROOT))(
-    'merges passes by minimum and records the observed reproducibility',
+    'merges passes by best observation and records the observed reproducibility',
     async () => {
       const { metrics } = await runPasses({
         passes: 2,
@@ -290,8 +290,12 @@ describe('#86 — گیت بازتولیدپذیری', () => {
       expect(metric.id).toBe('reactive.zenith.signal-read');
       expect(metric.passes).toBe(2);
       expect(metric.value).toBeGreaterThan(0);
+      expect(Number.isFinite(metric.reproPct)).toBe(true);
       expect(metric.reproPct).toBeGreaterThanOrEqual(0);
-      expect(metric.reproPct).toBeLessThan(100);
+      // سقفِ سختی نمی‌گذاریم: پاسِ اول روی ماشین مشترک می‌تواند چند برابر کندتر
+      // باشد (اندازه‌گیری‌شده: تا ۳۷۷٪ روی همین مخزن) — همین پراکندگی است که
+      // متریک را «⚠️ اطلاعاتی» می‌کند و از گیت بیرون می‌آورد.
+      expect(metric.reproPct).toBeLessThan(1000);
     },
     30_000,
   );
