@@ -1,5 +1,5 @@
 ---
-'@zenith/vite-plugin': minor
+'@zenith/vite-plugin': major
 ---
 
 Support patched Vite ^6.4.4 and ^7.3.7; drop Vite 5 and vulnerable earlier patches.
@@ -10,3 +10,7 @@ Run HTML compilation before Vite processes module scripts so virtual compiled
 modules are actually bundled. Distinguish build command from a development
 server started under NODE_ENV=production. Add real build/dev-server integration
 coverage for both supported majors and reject incompatible peer installations.
+
+Dropping the previously accepted Vite 5 peer is a breaking tooling-support change.
+Do not publish or apply the fixed-group version bump without release-owner
+coordination; this batch changes no package versions and performs no publication.

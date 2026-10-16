@@ -516,7 +516,9 @@ const formatted = formatJalali(new Date(), 'YYYY/MM/DD');
   compatibility jobs do not promise old-Node dev-tool support.
 - Upgrade Vite 5 / unpatched Vite 6 or 7 to `^6.4.4` or `^7.3.7` before updating
   `@zenith/vite-plugin`. Its peer range now rejects the former insecure chain.
-  Vite 8 support remains pending in #110, not implicitly enabled by this change.
+  Dropping Vite 5 is a breaking tooling-support change (major changeset); no
+  package version is bumped or published in this batch. Coordinate the fixed-group
+  release with the release owner. Vite 8 support remains pending in #110.
 - CSP nonce values are no longer static. Never depend on `zen-ssr-nonce` or
   `zen-edge-nonce`. A custom adapter CSP should use `'nonce-{{nonce}}'` so header
   and script agree. Do not reuse full nonce-bearing response HTML across requests.
