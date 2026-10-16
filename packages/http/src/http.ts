@@ -884,7 +884,9 @@ export interface RealtimeClient {
 }
 
 /**
- * #154: کلاینت ارتباط بلادرنگ (WebSocket/SSE) با صف آفلاین، reconnect با backoff+jitter و بررسی امنیت پروتکل.
+ * Experimental in-memory prototype (#154), NOT a production WebSocket/SSE transport.
+ * open() only changes local state; send() does not transmit network frames.
+ * Actual transport, reconnect/backoff, parsing and backpressure remain unimplemented.
  */
 export function createRealtime(options: RealtimeOptions): RealtimeClient {
   const { url, autoConnect = true, allowInsecure = false, history = 50 } = options;

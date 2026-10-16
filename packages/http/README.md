@@ -121,3 +121,23 @@ previous defaults (idempotent; a newer config is not clobbered).
 `cancelRequest`/`cancelAllRequests` keep their names on purpose — they abort an
 *in-flight request* (run-scoped), not an instance lifecycle, and are documented
 as behavioral names in DEC-032.
+
+## Realtime: experimental prototype, not production transport (#154)
+
+`createRealtime`, `createWebSocket` and `createSSE` currently model local status,
+subscriptions and buffering only. **They do not open a WebSocket/EventSource or
+send frames to a server.** `open` status and `receiveMockMessage` tests are not
+transport evidence. Reconnect, parsing and backpressure are not implemented.
+Do not use these APIs for production network delivery until #154 is completed.
+
+Reproduce against a real loopback echo server after `npm run build`:
+
+```bash
+node scripts/repro/realtime-transport.mjs
+```
+
+The control WebSocket echoes successfully; the Zenith client currently reports
+`open` while the server receives zero frames. The probe intentionally exits 1 on
+that defect and is kept separate from the unit suite, not skipped or counted as
+a passing transport acceptance test. W5 must make the unchanged delivery
+assertion pass and promote it into a required integration gate.
