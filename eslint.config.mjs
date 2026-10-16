@@ -103,6 +103,9 @@ export default tseslint.config(
       'browser-bundles/**',
       'artifacts/**',
       'coverage/**',
+      // Generated Playwright reports contain vendored JS, not project sources.
+      'playwright-report/**',
+      'test-results/**',
       'docs/**',
       '.docexamples/**',
       '.tsbuild/**',
