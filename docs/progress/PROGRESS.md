@@ -1,5 +1,36 @@
 # Progress Tracker (AGENT-INSTRUCTIONS §2)
 
+## snapshot زنده — remediation W0/W1، ۲۰۲۶-۱۰-۱۶
+
+- آخرین batch: اصلاح خطر فوری از #13/#155/#156/#157؛ **هیچ issue بسته نشده**.
+- baseline: `734f80b`؛ hotfix: `e416261` + `1845e41`؛ toolchain: `7561995`؛ شاخهٔ فعال:
+  `arena/ff992be5-zenith-v1-4-0` (شاخهٔ نشست، نه شاخهٔ تاریخی متن پایین).
+- نتیجهٔ معلوم: audit کل ۱۰ → **۰**، prod **۰**؛ ۱۶ تست جدید SSR و ۵ تست analytics سبز؛
+  build/dev-server واقعی Vite 6.4.4 و 7.3.7 و ۴ peer-install منفی سبز.
+- compiler (`f57d806`): ۱۴ تست اجرای واقعی خروجی، رفع پنج ارجاع اشتباه `dir.value`؛
+  گیت coverage جدید ابتدا با 79.62% compiler شکست خورد و **آستانه کم نشد**.
+- گیت محلی نهایی پس از fix compiler: **۲۲۰ فایل / ۱۸۸۱ تست پاس**؛ core statements
+  88.69% (compiler 94.70 / expressions 89.70 / scheduler 88.57 / state 83.42)، حد ۸۰٪ حفظ شد.
+- lint پس از جداسازی vendor reportهای تولیدی (`a401bdf`) مجدداً ۰ error/۹۳۸ warning؛ typecheck ۵۰؛ build ۴۹/۰ شکست + compile جداگانهٔ vscode؛
+  browser-bundle، size/deps/format، ATTW/pack-audit، نصب واقعی ۴۹ tarball و ESM+CJS پاس.
+- در حال انجام: push و CI همین snapshot؛ نتیجهٔ محلی جای CI جدید نیست.
+- browser محلی: Playwright به‌علت نبود executable مرورگر launch نشد؛ تأیید مرورگر نداریم.
+- #154: پروب transport واقعی **شکست** دارد؛ control echo موفق، Zenith بدون frame؛
+  prototype بودن API مستند است، transport production تکمیل نشده.
+- بعدی: خاتمهٔ شواهد W1، سپس W2 (#51، bootstrap #56/#57/#38، #159/#166، #39/#40).
+- نیازمند مالک: #61/#66/#77/#80/#107؛ تلاش کامنت GitHub با خطای مجوز رد شد، **هیچ
+  درخواست/برچسبی در GitHub ثبت نشد**. متن آماده در
+  [OWNER-REQUESTS](./OWNER-REQUESTS-2026-10-16.md)، وضعیت در [MANUAL-STEPS](../MANUAL-STEPS.md).
+- آخرین run موفق **تاریخی** پیش از این batch:
+  https://github.com/legionir/zenith-v1.4.0/actions/runs/38894573919 روی baseline؛
+  این run شاهد تغییرات جدید نیست. run جدید هنوز ثبت نشده است.
+- جزئیات تست، دامنهٔ ناقص، advisoryها و شواهد:
+  [REMEDIATION-W1](./REMEDIATION-W1-2026-10-16.md).
+
+---
+
+## ثبت تاریخی اجراهای پیشین (عددها و «انجام شد»های زیر وضعیت جاری نیستند)
+
 آخرین issue کامل: #9 (همراه با #29، #15، #12، #73، #77، #61 — تکمیل موج ۳)
 issueهای باز (جزئی): #117 و #173 — کد/سند/گیت هر دو کامیت شده؛ بقایا:
 lint plugin واقعی → #159 و لینک CONTRIBUTING → #107 (هر دو موج ۴)

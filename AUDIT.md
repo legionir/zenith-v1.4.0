@@ -1,5 +1,15 @@
 # Zenith v1.4.0 — گزارش یکپارچهٔ Code Review و ممیزی
 
+> **snapshot زندهٔ remediation — ۲۰۲۶-۱۰-۱۶:** متن و جدول‌های زیر baseline تاریخی
+> ممیزی اولیه‌اند، نه وضعیت جاری یا فهرست کامل بدهی‌ها. مبنای تازهٔ تطبیق ۶۳ issue
+> [گزارش تطبیق](docs/progress/ISSUE-RECONCILIATION-2026-10-16.md) و
+> [گزارش اجرای W0/W1](docs/progress/REMEDIATION-W1-2026-10-16.md) است.
+> audit کامل تازه پس از ارتقا **صفر** است (قبل: ۱۰؛ prod در هر دو صفر). nonce ثابت و
+> analytics reject اصلاح شده‌اند؛ realtime transport هنوز ناقص است. گیت/CI و محدودیت
+> دسترسی دقیق در گزارش batch ثبت می‌شود. این snapshot گواهی امنیت یا آمادگی انتشار نیست.
+
+## baseline تاریخی ممیزی اولیه (حفظ‌شده، غیرجاری)
+
 این فایل جایگزین همهٔ گزارش‌ها و ممیزی‌های قبلی است
 (`BUG_REPORT`، `DEEP_BUG_REPORT`، `NEW_FINDINGS`، `FINAL_AUDIT`، `BUILD-REPORT`،
 `ACTION_PLAN`، `COMPREHENSIVE_PLAN`، `ELEVATION_PLAN` و `dashboard/EXPERIENCE`).

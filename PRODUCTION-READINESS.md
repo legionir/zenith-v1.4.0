@@ -1,5 +1,16 @@
 # Zenith v1.4.0 — چک‌لیست Production Readiness
 
+> **وضعیت زندهٔ remediation — ۲۰۲۶-۱۰-۱۶:** چک‌لیست زیر baseline/هدف تاریخی است؛
+> تعدادهای build/test و ادعاهای دسترسی آن وضعیت جاری نیستند. وضعیت هر معیار را از
+> [تطبیق issueها](docs/progress/ISSUE-RECONCILIATION-2026-10-16.md)،
+> [پلن مرحله‌ای](docs/progress/REMEDIATION-EXECUTION-PLAN-2026-10-16.md) و
+> [اجرای W0/W1](docs/progress/REMEDIATION-W1-2026-10-16.md) بخوانید.
+> audit کامل پس از ارتقا صفر است؛ hotfix nonce/abort/provider انجام شده، اما transport
+> realtime و پکیج‌های کامل analytics/adapterها آماده نیستند. ممیزی مستقل، scope npm،
+> دو نگه‌دارنده و تنظیم واقعی protection/OIDC **تأییدنشده‌اند**. انتشار تأیید نشده است.
+
+## baseline و چک‌لیست تاریخی (نه اعلام readiness جاری)
+
 این چک‌لیست جدا از رفع باگ‌های `AUDIT.md` است و معماری را در `ARCHITECTURE.md` می‌بینید.
 اولویت‌ها: **P0** مانع انتشار · **P1** قبل از نسخهٔ پایدار · **P2** برای بلوغ محصول.
 
