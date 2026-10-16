@@ -1,5 +1,5 @@
 // packages/runtime/src/directives/track.ts
-
+import { createReservedError } from '@zenith/errors';
 import { logger } from '@zenith/logger';
 //
 // FEATURE (v1.2.0): zen-track — Analytics tracking directive.
@@ -202,13 +202,23 @@ export function createAnalytics(options: AnalyticsOptions = {}): AnalyticsInstan
     return true;
   };
 
+  // Provider exceptions can contain tokens, event props or user identifiers.
+  // Report a catalog error only; do not forward the payload/name/cause to sinks.
+  const reportFailure = (): void => {
+    try {
+      logger.error(createReservedError('ZEN-1901'));
+    } catch {
+      /* Reporting must not break dispatch. */
+    }
+  };
+
   const dispatch = (event: AnalyticsEvent): void => {
     if (!canSend()) return;
     for (const provider of providers) {
       try {
-        void provider.send(event);
+        void Promise.resolve(provider.send(event)).catch(reportFailure);
       } catch {
-        // provider errors must never break application flow
+        reportFailure();
       }
     }
   };

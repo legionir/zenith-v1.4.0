@@ -16,6 +16,7 @@
 //
 // محدودیت: zen-fetch در SSR پشتیبانی نمی‌شود — داده باید از قبل آماده باشد.
 
+import { randomBytes } from 'node:crypto';
 import { flushSync } from '@zenith/scheduler';
 import { logger } from '@zenith/logger';
 import { inlineServerComponents, type ServerComponent } from './server-component';
@@ -195,6 +196,8 @@ export function runOnClient<T>(fn: () => T): T | undefined {
  * state به اشتراک گذاشته شود اما بین درخواست‌ها ایزوله بماند.
  */
 export interface RenderOptions {
+  /** Cancel pending rendering; no DOM/App work starts after cancellation. */
+  signal?: AbortSignal;
   route?: string;
   serializeState?: boolean;
   /** #92 / #148 / #174: نمونهٔ مستقل App یا کارخانهٔ per-request (`() => App`) */
@@ -416,6 +419,7 @@ export async function renderToString(
   state: Record<string, any>,
   options: RenderOptions = {},
 ): Promise<SSRResult> {
+  if (options.signal?.aborted) throw createAbortError();
   setEffectContextStoreOnce();
 
   // #92: کپی سطحی state برای جلوگیری از نشت تغییرات به آبجکت ورودی مشترک
@@ -470,8 +474,14 @@ export async function renderToString(
   let pooledEntry: PooledDOMEntry | null = null;
 
   const executeIsolatedRender = async (): Promise<SSRResult> => {
+    if (options.signal?.aborted) throw createAbortError();
     // اجرای pre-pass کامپوننت‌های سرور در بستر ایزولهٔ درخواست (#92)
-    const processedHtml = await inlineServerComponents(html, renderState);
+    const processedHtml = await raceWithAbort(
+      inlineServerComponents(html, renderState),
+      options.signal,
+    );
+    // A completed prepass may race with abort in the same microtask turn.
+    if (options.signal?.aborted) throw createAbortError();
 
     if (options.createDOM) {
       domInstance = options.createDOM(
@@ -1042,6 +1052,7 @@ export interface SSRAdapterOptions {
   timeout?: number;
   health?: string | false;
   cacheControl?: string;
+  /** Use {{nonce}} in a custom policy to reference the per-response nonce. */
   csp?: { nonce?: boolean; policy?: string };
   head?: SSRHeadInput | ((url: string) => SSRHeadInput);
   i18n?: SSRI18nInput | ((url: string) => SSRI18nInput);
@@ -1055,11 +1066,20 @@ export function createNodeHandler(options: SSRAdapterOptions) {
   const cacheControl = options.cacheControl ?? 'no-store';
 
   return async (
-    req: { url?: string; method?: string; on?: (ev: string, fn: () => void) => void },
+    req: {
+      url?: string;
+      method?: string;
+      aborted?: boolean;
+      on?: (ev: string, fn: () => void) => void;
+      off?: (ev: string, fn: () => void) => void;
+    },
     res: {
       statusCode?: number;
       setHeader?: (name: string, value: string) => void;
       end?: (body?: string) => void;
+      writableEnded?: boolean;
+      on?: (ev: string, fn: () => void) => void;
+      off?: (ev: string, fn: () => void) => void;
     },
   ): Promise<void> => {
     const rawUrl = req.url || '/';
@@ -1073,11 +1093,24 @@ export function createNodeHandler(options: SSRAdapterOptions) {
     }
 
     const abortController = new AbortController();
-    req.on?.('close', () => abortController.abort());
+    const abort = () => abortController.abort();
+    // IncomingMessage 'close' also fires on normal request completion. Only an
+    // aborted request or an unfinished response closing signals a disconnect.
+    const onClose = () => {
+      if (!res.writableEnded) abort();
+    };
+    req.on?.('aborted', abort);
+    res.on?.('close', onClose);
+    if (req.aborted) abort();
 
     try {
-      const reqState =
-        typeof options.state === 'function' ? await options.state(rawUrl) : (options.state ?? {});
+      if (abortController.signal.aborted) return;
+      const reqState = await raceWithAbort(
+        Promise.resolve(
+          typeof options.state === 'function' ? options.state(rawUrl) : (options.state ?? {}),
+        ),
+        abortController.signal,
+      );
       const headInput = typeof options.head === 'function' ? options.head(rawUrl) : options.head;
       const i18nInput = typeof options.i18n === 'function' ? options.i18n(rawUrl) : options.i18n;
 
@@ -1087,9 +1120,11 @@ export function createNodeHandler(options: SSRAdapterOptions) {
         timeout: options.timeout ?? 10_000,
         head: headInput,
         i18n: i18nInput,
+        signal: abortController.signal,
       });
+      if (abortController.signal.aborted) return;
 
-      const nonce = options.csp?.nonce ? 'zen-ssr-nonce' : undefined;
+      const nonce = options.csp?.nonce ? randomBytes(16).toString('base64') : undefined;
       const fullHtml = generateFullPage(ssrRes, '', nonce);
       res.statusCode = 200;
       res.setHeader?.('Content-Type', 'text/html; charset=utf-8');
@@ -1097,14 +1132,19 @@ export function createNodeHandler(options: SSRAdapterOptions) {
       if (nonce) {
         res.setHeader?.(
           'Content-Security-Policy',
-          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`,
+          options.csp?.policy?.replaceAll('{{nonce}}', nonce) ??
+            `default-src 'self'; script-src 'self' 'nonce-${nonce}'`,
         );
       }
       res.end?.(fullHtml);
     } catch (err: any) {
+      if (abortController.signal.aborted) return;
       res.statusCode = err?.code === 'ZEN-1801' ? 503 : 500;
       res.setHeader?.('Content-Type', 'text/plain; charset=utf-8');
       res.end?.(err?.message || 'Internal Server Error');
+    } finally {
+      req.off?.('aborted', abort);
+      res.off?.('close', onClose);
     }
   };
 }
@@ -1128,10 +1168,15 @@ export function createFetchHandler(options: SSRAdapterOptions) {
     }
 
     try {
-      const reqState =
-        typeof options.state === 'function'
-          ? await options.state(parsedUrl.pathname + parsedUrl.search)
-          : (options.state ?? {});
+      if (request.signal.aborted) throw createAbortError();
+      const reqState = await raceWithAbort(
+        Promise.resolve(
+          typeof options.state === 'function'
+            ? options.state(parsedUrl.pathname + parsedUrl.search)
+            : (options.state ?? {}),
+        ),
+        request.signal,
+      );
       const headInput = typeof options.head === 'function' ? options.head(cleanPath) : options.head;
       const i18nInput = typeof options.i18n === 'function' ? options.i18n(cleanPath) : options.i18n;
 
@@ -1141,9 +1186,11 @@ export function createFetchHandler(options: SSRAdapterOptions) {
         timeout: options.timeout ?? 10_000,
         head: headInput,
         i18n: i18nInput,
+        signal: request.signal,
       });
+      if (request.signal.aborted) throw createAbortError();
 
-      const nonce = options.csp?.nonce ? 'zen-edge-nonce' : undefined;
+      const nonce = options.csp?.nonce ? randomBytes(16).toString('base64') : undefined;
       const fullHtml = generateFullPage(ssrRes, '', nonce);
       const headers: Record<string, string> = {
         'Content-Type': 'text/html; charset=utf-8',
@@ -1151,10 +1198,12 @@ export function createFetchHandler(options: SSRAdapterOptions) {
       };
       if (nonce) {
         headers['Content-Security-Policy'] =
-          options.csp?.policy ?? `default-src 'self'; script-src 'self' 'nonce-${nonce}'`;
+          options.csp?.policy?.replaceAll('{{nonce}}', nonce) ??
+          `default-src 'self'; script-src 'self' 'nonce-${nonce}'`;
       }
       return new Response(fullHtml, { status: 200, headers });
     } catch (err: any) {
+      if (request.signal.aborted) throw createAbortError();
       const status = err?.code === 'ZEN-1801' ? 503 : 500;
       return new Response(err?.message || 'Internal Server Error', {
         status,

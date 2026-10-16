@@ -570,7 +570,8 @@ export const RESERVED_ERROR_CODES: Readonly<Record<string, ReservedErrorMeta>> =
     domain: 'analytics',
     category: 'Runtime',
     message: 'ارائه‌دهندهٔ آنالیتیکس شکست خورد (خطا بلعیده نمی‌شود؛ جدا از برنامه گزارش شد).',
-    suggestion: 'provider را موقتاً غیرفعال کنید؛ خطای اصلی در cause است.',
+    suggestion:
+      'provider را بررسی یا موقتاً غیرفعال کنید؛ دادهٔ رویداد و خطای اصلی برای حفظ حریم خصوصی گزارش نمی‌شوند.',
   },
   'ZEN-1902': {
     domain: 'analytics',
@@ -1017,7 +1018,8 @@ export const ERROR_MESSAGES_EN: Readonly<Record<string, { message: string; sugge
     },
     'ZEN-1901': {
       message: 'Analytics provider failed (error not swallowed; reported separately).',
-      suggestion: 'Temporarily disable the provider; the original error is in cause.',
+      suggestion:
+        'Check or temporarily disable the provider; event data and the original error are omitted for privacy.',
     },
     'ZEN-1902': {
       message: 'User consent required.',
