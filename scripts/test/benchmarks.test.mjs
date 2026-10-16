@@ -34,6 +34,7 @@ import {
   toleranceFor,
 } from '../bench.mjs';
 import { generateBenchmarksDoc } from '../generate-benchmarks-doc.mjs';
+import { isFullyBuilt } from '../lib/workspace.mjs';
 
 const ROOT = process.cwd();
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
@@ -274,20 +275,26 @@ describe('#86 — گیت بازتولیدپذیری', () => {
     expect(isHigherBetter('bytes')).toBe(false);
   });
 
-  it('merges passes by minimum and records the observed reproducibility', async () => {
-    const { metrics } = await runPasses({
-      passes: 2,
-      options: { ...QUICK_OPTIONS, groups: ['reactive'] },
-      only: ['reactive.zenith.signal-read'],
-    });
-    expect(metrics).toHaveLength(1);
-    const [metric] = metrics;
-    expect(metric.id).toBe('reactive.zenith.signal-read');
-    expect(metric.passes).toBe(2);
-    expect(metric.value).toBeGreaterThan(0);
-    expect(metric.reproPct).toBeGreaterThanOrEqual(0);
-    expect(metric.reproPct).toBeLessThan(100);
-  }, 30_000);
+  // چند‌پاسی = هر پاس در فرایند فرزندِ `node` ⇒ به dist بیلدشدهٔ مخزن نیاز دارد
+  // (قرارداد مخزن: تست‌های workspace-wide روی workspace بیلد‌نشده skip می‌شوند).
+  it.skipIf(!isFullyBuilt(ROOT))(
+    'merges passes by minimum and records the observed reproducibility',
+    async () => {
+      const { metrics } = await runPasses({
+        passes: 2,
+        options: { ...QUICK_OPTIONS, groups: ['reactive'] },
+        only: ['reactive.zenith.signal-read'],
+      });
+      expect(metrics).toHaveLength(1);
+      const [metric] = metrics;
+      expect(metric.id).toBe('reactive.zenith.signal-read');
+      expect(metric.passes).toBe(2);
+      expect(metric.value).toBeGreaterThan(0);
+      expect(metric.reproPct).toBeGreaterThanOrEqual(0);
+      expect(metric.reproPct).toBeLessThan(100);
+    },
+    30_000,
+  );
 });
 
 describe('#86 — baseline و سند تولیدشده', () => {

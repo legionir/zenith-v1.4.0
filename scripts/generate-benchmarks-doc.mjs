@@ -14,13 +14,16 @@
  * می‌شود، نه ادعای بی‌پایه می‌گیرد).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DOM_SUITE_OPERATIONS } from '../benchmarks/dom-suite.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE_PATH = join(ROOT, 'benchmarks', 'results', 'baseline.json');
 const DOC_PATH = join(ROOT, 'docs', 'BENCHMARKS.md');
+// مسیر سند در متن باید همیشه با «/» چاپ شود؛ `relative()` روی ویندوز «\» می‌دهد و
+// سند تولیدشده با فایل کامیت‌شده فرق می‌کرد (CI ویندوز قرمز می‌شد).
+const DOC_REL = 'docs/BENCHMARKS.md';
 const REPO_URL = 'https://github.com/legionir/zenith-v1.4.0';
 
 /** گروه‌ها به ترتیب نمایش، با عنوان و توضیح. */
@@ -263,7 +266,7 @@ export function buildBenchmarksDoc(baseline) {
   lines.push('---');
   lines.push('');
   lines.push(
-    `بازتولید کامل: \`npm run bench\` · گیت بودجهٔ عملکرد CI: \`npm run bench:ci\` (\`benchmarks/budgets.json\`) · سند: \`${relative(ROOT, DOC_PATH)}\``,
+    `بازتولید کامل: \`npm run bench\` · گیت بودجهٔ عملکرد CI: \`npm run bench:ci\` (\`benchmarks/budgets.json\`) · سند: \`${DOC_REL}\``,
   );
   lines.push('');
   return `${lines.join('\n')}`;
