@@ -1,3 +1,4 @@
+export type { EffectSubscriber } from './effect-subscriber';
 // packages/state/src/index.ts
 //
 // نقطه ورود عمومی پکیج `state` — تمام APIهای سطح عمومی از اینجا export می‌شوند.
@@ -11,10 +12,11 @@
 export { signal, Signal, untrack, type ReadonlySignal } from './signal';
 // #141: import type-only برای alias محلی MaybeSignal (پایین همین فایل).
 import type { Readable } from './readable';
-// BUG-22 FIX (v1.2.2): export setEffectContextStore و EffectContext برای SSR.
+// Legacy integration names remain for compatibility; hosts use @zenith/state/internal.
 // BUG-05 FIX (v1.3.0): Re-export از ./context برای شکستن circular dependency.
 export {
   setEffectContextStore,
+  isGlobalObservationEnabled,
   type EffectContext,
   createOwner,
   disposeOwner,
@@ -50,7 +52,7 @@ export {
   type AsyncSignal,
 } from './async';
 // #187 FIX: brand و type-guard برای مقادیر واکنش‌گرای قابل‌خواندن (Signal/Computed).
-export { isReadable, isWritable, ZENITH_READABLE, type Readable } from './readable';
+export { isReadable, isWritable, ZENITH_READABLE, type Readable, type WritableCapability } from './readable';
 // #141 / DEC-021 — «مقدار یا ظرف خواندنی» با نام قراردادی SPEC:
 //   MaybeSignal ≡ MaybeReactive در @zenith/shared (بند ۲.۱).
 //   عمداً **local alias** است نه import از shared: state یک singleton
@@ -58,6 +60,7 @@ export { isReadable, isWritable, ZENITH_READABLE, type Readable } from './readab
 //   dependency اعلام‌نشده در نصب تمیز peer-single-instance (#46) منجر می‌شد.
 //   هر دو تعریف ساختاراً یکی‌اند (`T | { get(): T }`) و تست نوعِ
 //   packages/shared/test/types.test-d.ts همین هم‌ارزی دوطرفه را قفل می‌کند.
+/** @public */
 export type MaybeSignal<T> = T | Readable<T>;
 export { createRoot } from './root';
 export { batch } from './batch';
@@ -95,12 +98,14 @@ export {
   nameSignal,
   clearRegistry,
   type SignalInfo,
+  type InspectedSignal,
   type StateChange,
 } from './registry';
 
 /**
  * #53: پیش‌فرض‌های منجمد برای `@zenith/state` (`AsyncOptions` / `WatchOptions`).
  * @default { immediate: true, flush: 'sync' }
+ * @public
  * @since 1.4.0
  */
 export const DEFAULTS = /* @__PURE__ */ Object.freeze({

@@ -1,3 +1,4 @@
+import type { EffectSubscriber } from './effect-subscriber';
 // packages/state/src/effect.ts
 //
 // ماژول Effect: مسئول ردیابی وابستگی‌ها و اجرای مجدد توابع واکنش‌گرا.
@@ -29,12 +30,10 @@
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با signal.ts.
 import {
-  setActiveEffect,
-  setActiveCleanupRegistration,
   createOwner,
   disposeOwner,
-  setOwner,
-  onCleanup,
+  _getMutableContext,
+  _bindToEffectContext,
   type Owner,
   // #141 — یک منبع حقیقت برای type تابع پاکسازی در state: context.CleanupFn
   // (معادل ساختاری `Cleanup` در @zenith/shared؛ از import مستقیم shared خودداری
@@ -44,6 +43,7 @@ import {
 } from './context';
 import { Priority, setEffectDisposal } from '@zenith/scheduler';
 import { emitError } from './error';
+import { _getStateRuntime } from './runtime-state';
 // #115 (DEC-031): علامت routed تا scheduler خطای rethrowشدهٔ effect را دوباره
 // emit نکند (history تکراری نشود).
 import { markErrorRouted } from '@zenith/errors';
@@ -55,7 +55,7 @@ import { markErrorRouted } from '@zenith/errors';
  * فرستاده می‌شوند و Effect از گراف واکنش‌گرا خارج می‌شود (بدون اینکه
  * بقیه اپلیکیشن را خراب کند).
  */
-let globalEffectErrorHandler: ((err: unknown, effect: Function) => void) | null = null;
+const runtime = _getStateRuntime();
 
 /**
  * IMP-07 (v1.3.0): تنظیم Error Boundary برای Effectها.
@@ -67,28 +67,31 @@ let globalEffectErrorHandler: ((err: unknown, effect: Function) => void) | null 
  * @param handler تابع handler یا null برای پاک کردن.
  * @returns #116 cleanup protocol: یک `Cleanup` idempotent که اگر هنوز همین
  *           handler فعال باشد، آن را پاک می‌کند (handler=null بدون اثر قبلی).
+ * @public
  */
 export function onEffectError(
-  handler: ((err: unknown, effect: Function) => void) | null,
+  handler: ((err: unknown, effect: EffectSubscriber) => void) | null,
 ): () => void {
-  globalEffectErrorHandler = handler;
+  const registration = { handler };
+  runtime.effectError = registration;
   let cleared = false;
   return () => {
     if (cleared) return;
     cleared = true;
-    if (handler !== null && globalEffectErrorHandler === handler) {
-      globalEffectErrorHandler = null;
-    }
+    if (runtime.effectError === registration) runtime.effectError = null;
+    registration.handler = null;
   };
 }
 
 /**
  * نوع تابع Effect.
+ * @public
  */
-export type EffectFn = () => void | (() => void);
+export type EffectFn = EffectSubscriber;
 
 /**
  * Options for effect creation.
+ * @public
  */
 export type EffectOptions = {
   priority?: Priority | string;
@@ -102,7 +105,7 @@ export type EffectOptions = {
  * این metadata شامل priority است که توسط signal.set() خوانده می‌شود
  * تا بداند با چه اولویتی scheduleEffect را صدا بزند.
  */
-const effectPriorityMap = new WeakMap<Function, Priority>();
+const effectPriorityMap = runtime.priorities;
 
 /**
  * اولویت پیش‌فرض فعلی برای Effectهای جدید.
@@ -118,7 +121,7 @@ const effectPriorityMap = new WeakMap<Function, Priority>();
  *
  * این الگو مشابه Vue's setCurrentScope است.
  */
-let currentDefaultPriority: Priority = Priority.normal;
+// The default is stored on EffectContext, not on this module/format.
 
 /**
  * تنظیم اولویت پیش‌فرض برای Effectهای جدید.
@@ -134,9 +137,11 @@ let currentDefaultPriority: Priority = Priority.normal;
  *
  * @param priority اولویت پیش‌فرض جدید.
  * @returns اولویت قبلی (برای restore کردن).
+ * @public
  */
 export function setCurrentPriority(priority: Priority | string): Priority {
-  const old = currentDefaultPriority;
+  const context = _getMutableContext();
+  const old = context.priority ?? Priority.normal;
   // Normalize string priorities for backward compatibility
   if (typeof priority === 'string') {
     const map: Record<string, Priority> = {
@@ -146,18 +151,19 @@ export function setCurrentPriority(priority: Priority | string): Priority {
       low: Priority.low,
       idle: Priority.idle,
     };
-    currentDefaultPriority = map[priority] ?? Priority.normal;
+    context.priority = map[priority] ?? Priority.normal;
   } else {
-    currentDefaultPriority = priority;
+    context.priority = priority;
   }
   return old;
 }
 
 /**
  * دریافت اولویت پیش‌فرض فعلی.
+ * @public
  */
 export function getCurrentPriority(): Priority {
-  return currentDefaultPriority;
+  return _getMutableContext().priority ?? Priority.normal;
 }
 
 /**
@@ -172,154 +178,92 @@ export function getCurrentPriority(): Priority {
  *                 'normal' — آپدیت DOM معمولی
  *                 'idle'   — analytics، logging، pre-render
  * @returns تابع Dispose برای پاکسازی کامل.
+ * @public
  */
-export function effect(fn: () => void, options?: Priority | EffectOptions): () => void {
-  // اگر priority صریحاً مشخص نشده، از currentDefaultPriority استفاده کن.
-  // این به event handlers اجازه می‌دهد با setCurrentPriority('urgent')
-  // اولویت urgent را به همه‌ی Effectهای جدید اعمال کنند.
-  let actualPriority: Priority;
-  let ownerOption: Owner | null = null;
-
-  const normalizePriority = (p: Priority | string): Priority => {
-    if (typeof p === 'number') return p;
-    const map: Record<string, Priority> = {
-      urgent: Priority.urgent,
-      high: Priority.high,
-      normal: Priority.normal,
-      low: Priority.low,
-      idle: Priority.idle,
-    };
-    return map[p] ?? Priority.normal;
+export function effect(fn: EffectFn, options?: Priority | EffectOptions): () => void {
+  const normalizePriority = (priority: Priority | string): Priority => {
+    if (typeof priority === 'number') return priority;
+    const named: Record<string, Priority> = { urgent: Priority.urgent, high: Priority.high, normal: Priority.normal, low: Priority.low, idle: Priority.idle };
+    return named[priority] ?? Priority.normal;
   };
-
-  if (typeof options === 'number' || typeof options === 'string') {
-    actualPriority = normalizePriority(options);
-  } else if (options) {
-    actualPriority = options.priority
-      ? normalizePriority(options.priority)
-      : currentDefaultPriority;
-    ownerOption = options.owner ?? null;
-  } else {
-    actualPriority = currentDefaultPriority;
+  let priority = getCurrentPriority();
+  let parent: Owner | null | undefined;
+  if (typeof options === 'number' || typeof options === 'string') priority = normalizePriority(options);
+  else if (options) {
+    if (options.priority !== undefined) priority = normalizePriority(options.priority);
+    parent = options.owner;
   }
-
-  // Create owner for this effect
-  const owner = createOwner(ownerOption);
-  setOwner(owner);
-
-  /**
-   * صف پاکسازی اختصاصی این Effect.
-   */
+  const executionContext = _getMutableContext();
+  const owner = createOwner(parent);
+  if (owner.disposed) return () => {};
   let cleanupQueue: CleanupFn[] = [];
-
-  /**
-   * تابع داخلی که اجرای واقعی Effect را بر عهده دارد.
-   */
-  const runEffect = () => {
-    setOwner(owner);
-
-    // ۱. پاکسازی وابستگی‌های قبلی
-    cleanupQueue.forEach((cleanup) => cleanup());
-    cleanupQueue = [];
-
-    // ۲. تنظیم Effect فعلی به عنوان activeEffect
-    setActiveEffect(runEffect);
-
-    // ۳. تنظیم مکانیزم ثبت Cleanup
-    // #116: تابع ثبت، یک Cleanup برای حذف cleanup از صف قبل از اجرا برمی‌گرداند.
-    setActiveCleanupRegistration((cleanup) => {
-      cleanupQueue.push(cleanup);
-      let removed = false;
-      return () => {
-        if (removed) return;
-        removed = true;
-        const idx = cleanupQueue.indexOf(cleanup);
-        if (idx !== -1) cleanupQueue.splice(idx, 1);
-      };
-    });
-
+  const drain = (): void => {
+    const pending = cleanupQueue; cleanupQueue = [];
+    let failure: { error: unknown } | undefined;
+    for (const cleanup of pending) {
+      try { cleanup(); } catch (error) { failure ??= { error }; }
+    }
+    if (failure) throw failure.error;
+  };
+  const execute = (): void => {
+    if (owner.disposed) return;
+    const context = _getMutableContext();
+    const previousOwner = context.owner;
+    const previousEffect = context.activeEffect;
+    const previousRegistration = context.activeCleanupRegistration;
+    context.owner = owner;
+    context.activeEffect = null;
+    context.activeCleanupRegistration = null;
     try {
-      // IMP-07 (v1.3.0): اگر globalEffectErrorHandler تنظیم شده باشد،
-      // خطاها به جای throw شدن به handler فرستاده می‌شوند و Effect از
-      // گراف واکنش‌گرا خارج می‌شود. این کار از خراب شدن بقیه اپلیکیشن
-      // توسط یک Effect خطادیده جلوگیری می‌کند.
+      // Child scopes belong to the preceding execution, not to its next run.
+      for (const child of Array.from(owner.children)) disposeOwner(child);
+      drain();
+      if (owner.disposed) return;
+      context.activeEffect = runEffect;
+      context.activeCleanupRegistration = cleanup => {
+        // The body can dispose its own scope and then continue synchronously.
+        // Signal.get adds before registering cleanup, so unlink immediately.
+        if (owner.disposed) { cleanup(); return () => {}; }
+        cleanupQueue.push(cleanup); let removed = false;
+        return () => {
+          if (removed) return; removed = true;
+          const index = cleanupQueue.indexOf(cleanup);
+          if (index !== -1) cleanupQueue.splice(index, 1);
+        };
+      };
       fn();
-    } catch (err) {
-      // FIX (v1.2.4): If `fn()` throws partway through, run any cleanups that
-      // were registered during the partial execution (e.g. via onCleanup
-      // inside the effect body). Without this, those cleanups would leak —
-      // they were pushed onto `cleanupQueue` but the next run would clear
-      // the queue (running them) only if the effect re-ran, and a thrown
-      // error typically takes the effect out of the reactive graph.
-      cleanupQueue.forEach((cleanup) => {
-        try {
-          cleanup();
-        } catch {
-          /* ignore cleanup errors during error path */
-        }
-      });
-      cleanupQueue = [];
-
-      // Route through the unified error hub (#115 / DEC-031).
-      if (typeof options === 'object' && options?.onError) {
-        options.onError(err instanceof Error ? err : new Error(String(err)));
-      }
-      emitError({
-        message: err instanceof Error ? err.message : String(err),
-        category: 'reactivity',
-        severity: 'error',
-        stack: err instanceof Error ? err.stack : undefined,
-        context: { effectOwnerId: owner.id },
-      });
-      // علامت routed: اگر این Effect از flush سنتزالی scheduler صدا زده شده
-      // و خطا را rethrow کنیم، scheduler دوباره همان را emit نمی‌کند (#115).
-      markErrorRouted(err);
-
-      // IMP-07: اگر global error handler تنظیم شده، خطا را به آن بده و
-      // Effect را از گراف حذف کن (به جای throw کردن).
-      if (globalEffectErrorHandler) {
-        globalEffectErrorHandler(err, runEffect);
-        // Effect را از priority map حذف کن تا دوباره اجرا نشود.
-        effectPriorityMap.delete(runEffect);
-        // subscribers از طریق clean-up قبلی حذف شده‌اند.
-      } else {
-        throw err;
-      }
+    } catch (error) {
+      // A failed effect cannot retain partial subscriptions or live children.
+      try { drain(); } catch { /* retain the original execution failure */ }
+      disposeOwner(owner);
+      if (typeof options === 'object' && options.onError) options.onError(error instanceof Error ? error : new Error(String(error)));
+      emitError({ message: error instanceof Error ? error.message : String(error), category: 'reactivity', severity: 'error', stack: error instanceof Error ? error.stack : undefined, context: { effectOwnerId: owner.id } });
+      markErrorRouted(error);
+      const handler = runtime.effectError?.handler;
+      if (handler) handler(error, runEffect);
+      else throw error;
     } finally {
-      setActiveEffect(null);
-      setActiveCleanupRegistration(null);
+      context.activeEffect = previousEffect;
+      context.activeCleanupRegistration = previousRegistration;
+      context.owner = previousOwner;
     }
   };
-
-  // Register effect's own cleanup in the owner tree
-  onCleanup(() => {
-    cleanupQueue.forEach((cleanup) => cleanup());
-    cleanupQueue = [];
-    effectPriorityMap.delete(runEffect);
-  });
-
-  // ── Bug Fix #2: ذخیره‌ی priority روی runEffect ──
-  // این metadata توسط signal.set() خوانده می‌شود تا scheduleEffect
-  // را با اولویت درست صدا بزند.
-  effectPriorityMap.set(runEffect, actualPriority);
-
-  // Register disposal callback with scheduler so disposed effects are skipped
-  setEffectDisposal(runEffect, () => owner.disposed);
-
-  // ── اجرای اولیه برای ثبت وابستگی‌ها ──
-  runEffect();
-
-  /**
-   * تابع Dispose.
-   */
-  return () => {
-    if (owner.disposed) return;
-    cleanupQueue.forEach((cleanup) => cleanup());
-    cleanupQueue = [];
-    effectPriorityMap.delete(runEffect);
+  let runEffect: EffectSubscriber;
+  try {
+    runEffect = _bindToEffectContext(executionContext, execute);
+  } catch (error) {
     disposeOwner(owner);
-    setOwner(null);
-  };
+    throw error;
+  }
+  if (owner.disposed) return () => {};
+  owner.cleanup.add(() => {
+    try { drain(); } finally { effectPriorityMap.delete(runEffect); }
+  });
+  effectPriorityMap.set(runEffect, priority);
+  setEffectDisposal(runEffect, () => owner.disposed);
+  // runEffect restores ambient tracking and ownership even on first-run failure.
+  runEffect();
+  return () => disposeOwner(owner);
 }
 
 /**
@@ -331,7 +275,7 @@ export function effect(fn: () => void, options?: Priority | EffectOptions): () =
  *
  * @internal این تابع فقط برای استفاده‌ی داخلی signal.ts است.
  */
-export function getEffectPriority(effectFn: Function): Priority {
+export function getEffectPriority(effectFn: EffectSubscriber): Priority {
   return effectPriorityMap.get(effectFn) ?? Priority.normal;
 }
 
@@ -345,7 +289,7 @@ export function getEffectPriority(effectFn: Function): Priority {
  * @deprecated این تابع فقط برای backward compatibility نگه داشته شده.
  *             در فاز ۷، signal.set() از scheduleEffect استفاده می‌کند.
  */
-export function triggerEffects(effects: Set<Function>): void {
+export function triggerEffects(effects: Set<EffectSubscriber>): void {
   const toRun = [...effects];
   toRun.forEach((effect) => effect());
 }

@@ -42,8 +42,8 @@ export function processOptimistic(
   el: HTMLElement,
   optimisticExpr: string,
   rollbackExpr: string | null,
-  context: Record<string, any>,
-  state: Record<string, any>,
+  context: Record<string, unknown>,
+  state: Record<string, unknown>,
 ): () => void {
   const optimisticFn = compileExpression(optimisticExpr);
   const rollbackFn = rollbackExpr ? compileExpression(rollbackExpr) : null;

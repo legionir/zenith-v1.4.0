@@ -103,7 +103,7 @@ export class ZenithError extends Error {
     this.docsUrl = opts.docsUrl ?? errorDocsUrl(opts.code);
     this.timestamp = Date.now();
     this.isDevMode =
-      typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ !== false;
+      typeof globalThis !== 'undefined' && Reflect.get(globalThis, '__ZENITH_DEV__') !== false;
 
     // Maintain proper stack trace (V8 only).
     if (typeof Error.captureStackTrace === 'function') {
@@ -570,7 +570,8 @@ export const RESERVED_ERROR_CODES: Readonly<Record<string, ReservedErrorMeta>> =
     domain: 'analytics',
     category: 'Runtime',
     message: 'ارائه‌دهندهٔ آنالیتیکس شکست خورد (خطا بلعیده نمی‌شود؛ جدا از برنامه گزارش شد).',
-    suggestion: 'provider را موقتاً غیرفعال کنید؛ خطای اصلی در cause است.',
+    suggestion:
+      'provider را بررسی یا موقتاً غیرفعال کنید؛ دادهٔ رویداد و خطای اصلی برای حفظ حریم خصوصی گزارش نمی‌شوند.',
   },
   'ZEN-1902': {
     domain: 'analytics',
@@ -1017,7 +1018,8 @@ export const ERROR_MESSAGES_EN: Readonly<Record<string, { message: string; sugge
     },
     'ZEN-1901': {
       message: 'Analytics provider failed (error not swallowed; reported separately).',
-      suggestion: 'Temporarily disable the provider; the original error is in cause.',
+      suggestion:
+        'Check or temporarily disable the provider; event data and the original error are omitted for privacy.',
     },
     'ZEN-1902': {
       message: 'User consent required.',
@@ -1292,6 +1294,40 @@ export function createReservedError(
 export const DEPRECATION_CODES: Readonly<
   Record<string, { api: string; replacement: string; removedIn: string }>
 > = {
+  'ZEN-DEPR-072': { api: 'getCachedData(url, ttl)', replacement: 'getCachedData(url, { ttl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-073': { api: 'setCachedData(url, data, tags)', replacement: 'setCachedData(url, data, { tags })', removedIn: '2.0.0' },
+  'ZEN-DEPR-074': { api: 'formatLocaleNumber(value, locale, options)', replacement: 'formatLocaleNumber(value, { locale, intl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-075': { api: 'formatCurrency(value, locale, currency, options)', replacement: 'formatCurrency(value, { locale, currency, intl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-076': { api: 'formatRelativeTime(value, unit, locale, options)', replacement: 'formatRelativeTime(value, unit, { locale, intl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-077': { api: 'formatDateTime(value, locale, options)', replacement: 'formatDateTime(value, { locale, intl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-078': { api: 'formatList(value, locale, options)', replacement: 'formatList(value, { locale, intl })', removedIn: '2.0.0' },
+  'ZEN-DEPR-079': { api: 'cacheFirst(request, cacheName)', replacement: 'cacheFirst(request, { cacheName })', removedIn: '2.0.0' },
+  'ZEN-DEPR-080': { api: 'networkFirst(request, cacheName, timeout)', replacement: 'networkFirst(request, { cacheName, timeout })', removedIn: '2.0.0' },
+  'ZEN-DEPR-081': { api: 'cacheThenNetwork(request, cacheName, onUpdate)', replacement: 'cacheThenNetwork(request, { cacheName, onUpdate })', removedIn: '2.0.0' },
+  'ZEN-DEPR-082': { api: 'applyStrategy(name, request, cacheName, timeout)', replacement: 'applyStrategy(name, request, { cacheName, timeout })', removedIn: '2.0.0' },
+  'ZEN-DEPR-083': { api: 'staleWhileRevalidate(request, cacheName)', replacement: 'staleWhileRevalidate(request, { cacheName })', removedIn: '2.0.0' },
+  'ZEN-DEPR-084': { api: 'cacheOnly(request, cacheName)', replacement: 'cacheOnly(request, { cacheName })', removedIn: '2.0.0' },
+  'ZEN-DEPR-085': { api: 'zenAnimate(el, keyframes, options)', replacement: 'zenAnimate(el, { keyframes, ...options })', removedIn: '2.0.0' },
+  'ZEN-DEPR-086': { api: 'registerCustomDirective(tag, handler, attribute)', replacement: 'registerCustomDirective(tag, { handler, attributeName })', removedIn: '2.0.0' },
+  'ZEN-DEPR-087': { api: 'reportParityDivergence(directive, description, hint)', replacement: 'reportParityDivergence(directive, { description, hint })', removedIn: '2.0.0' },
+  'ZEN-DEPR-095': { api: 'validateField(value, rules, allValues)', replacement: 'validateField(value, { rules, allValues })', removedIn: '2.0.0' },
+  'ZEN-DEPR-096': { api: 'validateFieldAsync(value, rules, allValues, signal)', replacement: 'validateFieldAsync(value, { rules, allValues, signal })', removedIn: '2.0.0' },
+  'ZEN-DEPR-097': { api: 'validateFormAsync(values, rules, signal)', replacement: 'validateFormAsync({ values, rules, signal })', removedIn: '2.0.0' },
+  'ZEN-DEPR-098': { api: 'validateWithLifecycle(values, rules, lifecycle, async)', replacement: 'validateWithLifecycle(values, { rules, lifecycle, async })', removedIn: '2.0.0' },
+  'ZEN-DEPR-099': { api: 'moveItem(fieldName, from, to)', replacement: 'moveItem(fieldName, { from, to })', removedIn: '2.0.0' },
+  'ZEN-DEPR-101': { api: 'addSignal(id, name, value)', replacement: 'addSignal(id, { name, value })', removedIn: '2.0.0' },
+  'ZEN-DEPR-104': { api: 'addStaticFor(id, expr, itemCount)', replacement: 'addStaticFor(id, { expr, itemCount })', removedIn: '2.0.0' },
+  'ZEN-DEPR-105': { api: 'recordResourceDestroy(name, url, stack)', replacement: 'recordResourceDestroy(name, { url, stack })', removedIn: '2.0.0' },
+  'ZEN-DEPR-103': { api: 'recordPanelStateChange(id, old, next, name)', replacement: 'recordPanelStateChange(id, { oldValue, newValue, signalName })', removedIn: '2.0.0' },
+  'ZEN-DEPR-102': { api: 'addDirective(id, type, selector, expression)', replacement: 'addDirective(id, { directiveType, elementSelector, expression })', removedIn: '2.0.0' },
+  'ZEN-DEPR-100': { api: 'addField(name, initial, rules)', replacement: 'addField({ name, initial, rules })', removedIn: '2.0.0' },
+  'ZEN-DEPR-093': { api: 'render(template, state, options)', replacement: 'render({ template, state, attachToBody })', removedIn: '2.0.0' },
+  'ZEN-DEPR-094': { api: 'testDirective(directive, html, state)', replacement: 'testDirective(directive, { html, state })', removedIn: '2.0.0' },
+  'ZEN-DEPR-090': { api: 'runParityTest(suite, runtimeRunner, compilerRunner)', replacement: 'runParityTest(suite, { runtimeRunner, compilerRunner })', removedIn: '2.0.0' },
+  'ZEN-DEPR-091': { api: 'runAllParityTests(runtimeRunner, compilerRunner)', replacement: 'runAllParityTests({ runtimeRunner, compilerRunner })', removedIn: '2.0.0' },
+  'ZEN-DEPR-092': { api: 'setSafeInnerHTML(el, html, trusted)', replacement: 'setSafeInnerHTML(el, { html, trusted })', removedIn: '2.0.0' },
+  'ZEN-DEPR-089': { api: 'setColumnFilter(key, value, operator)', replacement: 'setColumnFilter(key, { value, operator })', removedIn: '2.0.0' },
+  'ZEN-DEPR-088': { api: 'assertParity(directive, runtime, expected, description)', replacement: 'assertParity(directive, { runtimeValue, expectedCompilerValue, description })', removedIn: '2.0.0' },
   'ZEN-DEPR-001': {
     api: 'processVirtualList',
     replacement: 'createVirtualList',
@@ -1645,11 +1681,10 @@ export const DEPRECATION_CODES: Readonly<
  * @param hint راهنمای اضافی اختیاری
  */
 export function deprecate(code: string, oldName: string, replacement: string, hint?: string): void {
-  if (typeof globalThis !== 'undefined' && (globalThis as any).__ZENITH_DEV__ === false) return;
+  if (typeof globalThis !== 'undefined' && Reflect.get(globalThis, '__ZENITH_DEV__') === false) return;
   if (warnedDeprecations.has(code)) return;
   warnedDeprecations.add(code);
-  // #39: deprecate از print.ts (مرز رسمی) استفاده می‌کند تا نام صریح console
-  // در این ماژول دیده نشود و چرخه‌ی core↔hub ساخته نشود (hub خود core را می‌خواند).
+  // Diagnostics are dependency-inverted through the installed logger transport.
   printToHost(
     'warning',
     `[Zenith] ${code}: \`${oldName}\` is deprecated and will be removed in the next major ` +

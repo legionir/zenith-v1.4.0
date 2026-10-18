@@ -60,7 +60,8 @@ export function distName(target) {
 // when a tabled source file is missing, or when a declared entry drifts from
 // the generated shape.
 //
-// Subpaths are ESM-only (`entryFor(name, { dual: false })`): they exist to keep
+// Size-isolation subpaths are ESM-only; explicit dual Node/worker entries below
+// preserve separate import/require declarations. They exist to keep
 // the *main* entry inside its size budget (e.g. `@zenith/schema/attr` keeps
 // `@zenith/schema` itself under the frozen 4 KB of #142), and the packages that
 // own subpaths are ESM-only by DEC-027.
@@ -71,8 +72,18 @@ export function distName(target) {
  * ترتیب کلیدها همان ترتیبی است که در package.json نوشته می‌شود.
  */
 export const PUBLIC_SUBPATHS = {
+  '@zenith/errors': ['internal'],
+  '@zenith/state': ['internal'],
+  '@zenith/router': ['node'],
+  '@zenith/service-worker': ['sw', 'strategies'],
+  '@zenith/ssr': ['edge'],
+  '@zenith/ui': ['position', 'dialog', 'popover', 'tooltip', 'tabs', 'menu', 'accordion', 'combobox', 'date-picker', 'portal'],
+  '@zenith/mock': ['worker'],
   '@zenith/schema': ['zod', 'json-schema', 'attr'],
   '@zenith/storage': ['signal'],
+  '@zenith/realtime': ['testing', 'legacy'],
+  '@zenith/analytics': ['legacy'],
+  '@zenith/testing-e2e': ['browser'],
   zenith: ['core', 'ssr', 'testing', 'presets/minimal', 'presets/spa', 'presets/full', 'browser'],
 };
 
@@ -99,7 +110,7 @@ export function subpathExports(pkgName) {
   /** @type {Record<string, unknown>} */
   const out = {};
   for (const name of subpathNames(pkgName)) {
-    out[subpathKey(name)] = entryFor(name, { dual: false });
+    out[subpathKey(name)] = entryFor(name, { dual: ['@zenith/errors', '@zenith/state', '@zenith/router', '@zenith/service-worker'].includes(pkgName) });
   }
   return out;
 }

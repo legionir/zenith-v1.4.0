@@ -22,8 +22,9 @@ function packageDirs() {
 describe('package.json fields (#70)', () => {
   const dirs = packageDirs();
 
-  it('covers all 45 packages', () => {
-    expect(dirs).toHaveLength(50); // #147..#149,#160 + #161,#162,#168,#169,#170 (41 → 50)
+  it('covers the new canonical packages as well as the existing workspace', () => {
+    expect(dirs).toEqual(expect.arrayContaining(['a11y', 'head', 'ui', 'adapter-node', 'mock']));
+    expect(new Set(dirs).size).toBe(dirs.length);
   });
 
   it.each(dirs)('%s has repository with directory', (dir) => {

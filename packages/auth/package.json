@@ -49,7 +49,10 @@
   "engines": {
     "node": ">=18.19"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/index.cjs"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

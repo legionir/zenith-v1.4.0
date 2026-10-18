@@ -89,3 +89,16 @@ npx vitest run packages/shared  # unit + env + layering + size + type test
 - DEC-021 — `Readable` ساختاری روی برند DEC-009 + الزام تست نوع
 - DEC-026/DEC-027 — نسخهٔ `1.5.0`، ESM-only، engines ≥ 18.19
 - DEC-020/#171 — کد `ZEN-1090` از catalog رزورشده
+
+### Registry references and owner adapters
+
+`createReferenceRegistry<T>()` implements token-owned register/get/has/list/entries/
+unregister/subscribe/dispose. Same-object replacements receive different tokens.
+Values are borrowed references: registry disposal does not dispose arbitrary values.
+`createScopedRegistry` and `registerRegistryOwnerProvider` are integration APIs used
+by runtime/SSR and lower-layer packages, avoiding an upward dependency on runtime.
+A resolved owner never falls back to the process registry for a missing key.
+Lifecycle creators explicitly attach their cleanup to the resolved owner; teardown
+uses the captured registration, not whichever owner happens to be current later.
+`legacyMap` is a compatibility bridge only; mutate canonical registries through
+register/unregister, not direct backing-map writes.

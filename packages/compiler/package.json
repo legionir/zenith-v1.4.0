@@ -53,12 +53,23 @@
     "provenance": true
   },
   "dependencies": {
-    "@zenith/dependency-graph": "1.4.0"
+    "@zenith/dependency-graph": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/schema": "1.5.0"
   },
   "devDependencies": {
     "jsdom": "^24.0.0"
   },
   "zenith": {
     "target": "universal"
+  },
+  "peerDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    }
   }
 }

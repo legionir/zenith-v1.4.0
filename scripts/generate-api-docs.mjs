@@ -16,16 +16,8 @@ import ts from 'typescript';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectPublicExports } from './lib/public-exports.mjs';
 import { PUBLIC_SUBPATHS, subpathKey } from './lib/exports-shape.mjs';
-
-function extractReleaseTag(node, sourceText) {
-  const ranges = ts.getLeadingCommentRanges(sourceText, node.pos) || [];
-  const comments = ranges.map((r) => sourceText.slice(r.pos, r.end)).join('\n');
-  if (/@internal\b/.test(comments)) return 'internal';
-  if (/@experimental\b|@beta\b/.test(comments)) return 'experimental';
-  if (/@deprecated\b/.test(comments)) return 'deprecated';
-  return 'public';
-}
 
 /** بازصادرات از پکیج‌های ورک‌اسپیس (`export * from '@zenith/ssr'`). */
 export function collectWorkspaceReexports(entryFile) {
@@ -44,100 +36,16 @@ export function collectWorkspaceReexports(entryFile) {
   return out;
 }
 
-function resolveLocalModulePath(fromFile, spec) {
-  if (!spec.startsWith('.')) return null;
-  const base = resolve(dirname(fromFile), spec);
-  for (const cand of [base, `${base}.ts`, join(base, 'index.ts')]) {
-    if (existsSync(cand) && !cand.endsWith('.d.ts')) return cand;
-  }
-  return null;
-}
-
-export function extractPackageExports(entryFile, visited = new Set()) {
-  if (!existsSync(entryFile) || visited.has(entryFile)) return new Map();
-  visited.add(entryFile);
-
-  const sourceText = readFileSync(entryFile, 'utf8');
-  const sf = ts.createSourceFile(entryFile, sourceText, ts.ScriptTarget.ES2022, true);
-  const symbols = new Map();
-
-  const hasExportModifier = (node) =>
-    Boolean(node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
-
-  for (const stmt of sf.statements) {
-    if (ts.isFunctionDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      symbols.set(stmt.name.text, {
-        name: stmt.name.text,
-        kind: 'function',
-        tag: extractReleaseTag(stmt, sourceText),
-      });
-    } else if (ts.isClassDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      symbols.set(stmt.name.text, {
-        name: stmt.name.text,
-        kind: 'class',
-        tag: extractReleaseTag(stmt, sourceText),
-      });
-    } else if (ts.isInterfaceDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      symbols.set(stmt.name.text, {
-        name: stmt.name.text,
-        kind: 'interface',
-        tag: extractReleaseTag(stmt, sourceText),
-      });
-    } else if (ts.isTypeAliasDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      symbols.set(stmt.name.text, {
-        name: stmt.name.text,
-        kind: 'type',
-        tag: extractReleaseTag(stmt, sourceText),
-      });
-    } else if (ts.isEnumDeclaration(stmt) && stmt.name && hasExportModifier(stmt)) {
-      symbols.set(stmt.name.text, {
-        name: stmt.name.text,
-        kind: 'enum',
-        tag: extractReleaseTag(stmt, sourceText),
-      });
-    } else if (ts.isVariableStatement(stmt) && hasExportModifier(stmt)) {
-      const tag = extractReleaseTag(stmt, sourceText);
-      for (const decl of stmt.declarationList.declarations) {
-        if (ts.isIdentifier(decl.name)) {
-          symbols.set(decl.name.text, {
-            name: decl.name.text,
-            kind: 'const',
-            tag,
-          });
-        }
-      }
-    } else if (ts.isExportDeclaration(stmt)) {
-      const spec =
-        stmt.moduleSpecifier && ts.isStringLiteral(stmt.moduleSpecifier)
-          ? stmt.moduleSpecifier.text
-          : null;
-      const targetFile = spec ? resolveLocalModulePath(entryFile, spec) : null;
-      const targetSymbols = targetFile
-        ? extractPackageExports(targetFile, new Set(visited))
-        : new Map();
-
-      if (!stmt.exportClause) {
-        // export * from './...'
-        for (const [k, v] of targetSymbols.entries()) {
-          if (!symbols.has(k)) symbols.set(k, v);
-        }
-      } else if (ts.isNamedExports(stmt.exportClause)) {
-        const isTypeOnly = stmt.isTypeOnly;
-        for (const el of stmt.exportClause.elements) {
-          const exportedName = el.name.text;
-          const origName = (el.propertyName ?? el.name).text;
-          const fromTarget = targetSymbols.get(origName);
-          symbols.set(exportedName, {
-            name: exportedName,
-            kind: isTypeOnly || el.isTypeOnly ? 'type' : (fromTarget?.kind ?? 'value'),
-            tag: fromTarget?.tag ?? extractReleaseTag(stmt, sourceText),
-          });
-        }
-      }
-    }
-  }
-
-  return symbols;
+/** One source collector for docs and export audits; untagged is not public. */
+export function extractPackageExports(entryFile) {
+  let workspace = dirname(entryFile);
+  while (dirname(workspace) !== workspace && !existsSync(join(workspace, 'packages'))) workspace = dirname(workspace);
+  const exports = collectPublicExports(entryFile, (slug, spec) => {
+    const suffix = spec?.startsWith('@zenith/') ? spec.split('/').slice(2).join('/') : spec?.startsWith('zenith/') ? spec.slice(7) : '';
+    const candidate = join(workspace, 'packages', slug, 'src', suffix ? `${suffix}.ts` : 'index.ts');
+    return existsSync(candidate) ? candidate : null;
+  });
+  return new Map([...exports].map(([name, info]) => [name, { name, kind: info.kind, tag: info.tag, deprecated: info.deprecated }]));
 }
 
 export function buildApiSurfaceSnapshot(rootDir = process.cwd()) {
@@ -248,7 +156,7 @@ export function generateApiDocs(rootDir = process.cwd(), { checkOnly = false } =
         '',
         '| نام نماد | نوع (Kind) | سطح پایداری |',
         '|----------|------------|-------------|',
-        ...info.exports.map((s) => `| \`${s.name}\` | \`${s.kind}\` | \`@${s.tag}\` |`),
+        ...info.exports.map((s) => `| \`${s.name}\` | \`${s.kind}\` | \`@${s.tag}${s.deprecated ? " + @deprecated" : ""}\` |`),
         '',
       ];
       writeFileSync(docPath, pkgLines.join('\n'), 'utf8');
@@ -287,7 +195,7 @@ export function generateApiDocs(rootDir = process.cwd(), { checkOnly = false } =
           ? [
               '| نام نماد | نوع (Kind) | سطح پایداری |',
               '|----------|------------|-------------|',
-              ...info.exports.map((s) => `| \`${s.name}\` | \`${s.kind}\` | \`@${s.tag}\` |`),
+              ...info.exports.map((s) => `| \`${s.name}\` | \`${s.kind}\` | \`@${s.tag}${s.deprecated ? " + @deprecated" : ""}\` |`),
             ]
           : [
               'این زیرمسیر چیزی خودش تعریف نمی‌کند؛ همهٔ نمادها از پکیج',

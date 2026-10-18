@@ -84,6 +84,18 @@ npx zenith check --strict   # rule violation`,
 
 /** نمونهٔ دقیق برای کدهای پرکاربرد (override قالب دامنه). */
 export const CODE_SAMPLES = {
+  'ZEN-1901': `import { createAnalytics } from '@zenith/runtime';
+
+// A provider rejection is isolated and reported as ZEN-1901 via @zenith/logger.
+// Raw errors, event props and identifiers are deliberately not forwarded.
+const analytics = createAnalytics({
+  consent: { default: true },
+  respectDNT: false,
+  providers: [{ name: 'failing-demo', send: async () => { throw new Error('provider offline'); } }],
+});
+analytics.track('demo');
+analytics.dispose();`,
+
   'ZEN-1003': `<!-- ❌ JSON خراب در attribute (کاما/نقل‌قول نامعتبر) -->\n<zen-crud zen-crud-options='{"url": "/api/items",}'>`,
   'ZEN-1201': `import { createCache } from '@zenith/cache';\n\n// ❌ ttl باید عدد صحیح ≥ ۰ باشد\ncreateCache({ ttl: -1 });`,
   'ZEN-1401': `import { createFocusTrap } from '@zenith/a11y';\n\nconst trap = createFocusTrap(document.createElement('div'));\ntrap.activate(); // ❌ هیچ المان focusable داخل container نیست`,

@@ -179,3 +179,17 @@ usersTable.reset();
 - `getState()` — Get serializable state
 - `loadState(state)` — Restore state
 - `reset()` — Reset to defaults
+
+### Candidate API migration (unvalidated)
+
+Column filters accept one validated configuration object:
+
+```ts
+table.setColumnFilter('role', { value: 'admin', operator: 'equals' });
+```
+
+The former `(key, value, operator?)` overload remains as a deprecated bridge
+(`ZEN-DEPR-089`). Cell/editor values and dynamic row keys are `unknown`; narrow
+cell values before using them as a particular type. Concrete row types remain
+inferred from `data`, including named interfaces. These are candidate source
+contract changes, not a released API or a passing validation result.

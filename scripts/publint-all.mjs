@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { publint } from 'publint';
 
 // Directories that are not npm packages or not published from CI today.
-const SKIP = new Set(['devtools-extension']); // no package.json (raw extension)
+const SKIP = new Set(); // tools/ is built and packaged separately (#51)
 
 const packagesDir = join(process.cwd(), 'packages');
 let failed = false;

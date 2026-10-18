@@ -1,4 +1,7 @@
 // packages/service-worker/src/strategies.ts
+import { resolveStrategyOptions, legacyStrategyOptions, type CacheStrategyOptions } from './strategy-options';
+import { deprecate } from '@zenith/errors';
+export { cacheStrategyOptionsSchema, type CacheStrategyOptions } from './strategy-options';
 import { ZenithError, developerError, ErrorCode } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): استراتژی‌های کشِ Service Worker (بدون وابستگی).
@@ -70,7 +73,13 @@ function offlineResponse(request: Request, message: string): Response {
  * @param cacheName نام cache.
  * @returns Promise<Response>.
  */
-export async function cacheFirst(request: Request, cacheName: string): Promise<Response> {
+/** @public */
+export function cacheFirst(request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use cacheFirst(request, { cacheName }). */
+export function cacheFirst(request: Request, cacheName: string): Promise<Response>;
+export async function cacheFirst(request: Request, options: CacheStrategyOptions | string): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-079', 'cacheFirst(request, cacheName)', 'cacheFirst(request, { cacheName })');
+  const { cacheName } = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options }) : options);
   // SECURITY (v0.5.0): POST guard — جلوگیری از تطبیقِ cache GET با درخواست POST.
   // `cache.match(request)` می‌تواند یک response مربوط به GET را برای POST هم match
   // کند که خطرناک است. mutationها مستقیماً به شبکه می‌روند (networkOnly fallback).
@@ -116,11 +125,13 @@ export async function cacheFirst(request: Request, cacheName: string): Promise<R
  * @param cacheName نام cache.
  * @param timeout   مدت timeout به میلی‌ثانیه (پیش‌فرض: 3000).
  */
-export async function networkFirst(
-  request: Request,
-  cacheName: string,
-  timeout = 3000,
-): Promise<Response> {
+/** @public */
+export function networkFirst(request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use networkFirst(request, { cacheName, timeout }). */
+export function networkFirst(request: Request, cacheName: string, timeout?: number): Promise<Response>;
+export async function networkFirst(request: Request, options: CacheStrategyOptions | string, legacyTimeout = 3000): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-080', 'networkFirst(request, cacheName, timeout)', 'networkFirst(request, { cacheName, timeout })');
+  const { cacheName, timeout = 3000 } = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options, timeout: legacyTimeout }) : options);
   // SECURITY (v0.5.0): POST guard — جلوگیری از fallback به cache GET برای mutationها.
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return fetch(request);
@@ -172,7 +183,13 @@ export async function networkFirst(
  * @param request   درخواست.
  * @param cacheName نام cache.
  */
-export async function staleWhileRevalidate(request: Request, cacheName: string): Promise<Response> {
+/** @public */
+export function staleWhileRevalidate(request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use staleWhileRevalidate(request, { cacheName }). */
+export function staleWhileRevalidate(request: Request, cacheName: string): Promise<Response>;
+export async function staleWhileRevalidate(request: Request, options: CacheStrategyOptions | string): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-083', 'staleWhileRevalidate(request, cacheName)', 'staleWhileRevalidate(request, { cacheName })');
+  const { cacheName } = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options }) : options);
   // SECURITY (v0.5.0): POST guard — جلوگیری از بازگشتِ cache GET برای درخواست POST.
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return fetch(request);
@@ -242,7 +259,13 @@ export async function networkOnly(request: Request): Promise<Response> {
  * @param request   درخواست.
  * @param cacheName نام cache.
  */
-export async function cacheOnly(request: Request, cacheName: string): Promise<Response> {
+/** @public */
+export function cacheOnly(request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use cacheOnly(request, { cacheName }). */
+export function cacheOnly(request: Request, cacheName: string): Promise<Response>;
+export async function cacheOnly(request: Request, options: CacheStrategyOptions | string): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-084', 'cacheOnly(request, cacheName)', 'cacheOnly(request, { cacheName })');
+  const { cacheName } = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options }) : options);
   const cacheStore = getCaches();
   if (!cacheStore) {
     return offlineResponse(request, 'Cache API unavailable (cacheOnly).');
@@ -276,11 +299,13 @@ export async function cacheOnly(request: Request, cacheName: string): Promise<Re
  * @param onUpdate  callback اختیاری که با response تازه صدا زده می‌شود.
  * @returns Promise<Response>.
  */
-export async function cacheThenNetwork(
-  request: Request,
-  cacheName: string,
-  onUpdate?: (fresh: Response) => void,
-): Promise<Response> {
+/** @public */
+export function cacheThenNetwork(request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use cacheThenNetwork(request, { cacheName, onUpdate }). */
+export function cacheThenNetwork(request: Request, cacheName: string, onUpdate?: (fresh: Response) => void): Promise<Response>;
+export async function cacheThenNetwork(request: Request, options: CacheStrategyOptions | string, legacyUpdate?: (fresh: Response) => void): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-081', 'cacheThenNetwork(request, cacheName, onUpdate)', 'cacheThenNetwork(request, { cacheName, onUpdate })');
+  const { cacheName, onUpdate } = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options, onUpdate: legacyUpdate }) : options);
   // SECURITY (v0.5.0): POST guard — mutationها نباید از cache بخوانند.
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return fetch(request);
@@ -353,25 +378,26 @@ export async function cacheThenNetwork(
  * @param cacheName    نام cache.
  * @param timeout      timeout برای networkFirst.
  */
-export async function applyStrategy(
-  strategyName: CacheStrategyName,
-  request: Request,
-  cacheName: string,
-  timeout?: number,
-): Promise<Response> {
+/** @public */
+export function applyStrategy(strategyName: CacheStrategyName, request: Request, options: CacheStrategyOptions): Promise<Response>;
+/** @public @deprecated Use applyStrategy(strategyName, request, { cacheName, timeout }). */
+export function applyStrategy(strategyName: CacheStrategyName, request: Request, cacheName: string, timeout?: number): Promise<Response>;
+export async function applyStrategy(strategyName: CacheStrategyName, request: Request, options: CacheStrategyOptions | string, legacyTimeout?: number): Promise<Response> {
+  if (typeof options === 'string') deprecate('ZEN-DEPR-082', 'applyStrategy(strategyName, request, cacheName, timeout)', 'applyStrategy(strategyName, request, { cacheName, timeout })');
+  const config = resolveStrategyOptions(typeof options === 'string' ? legacyStrategyOptions({ cacheName: options, timeout: legacyTimeout }) : options);
   switch (strategyName) {
     case 'cacheFirst':
-      return cacheFirst(request, cacheName);
+      return cacheFirst(request, config);
     case 'networkFirst':
-      return networkFirst(request, cacheName, timeout);
+      return networkFirst(request, config);
     case 'staleWhileRevalidate':
-      return staleWhileRevalidate(request, cacheName);
+      return staleWhileRevalidate(request, config);
     case 'networkOnly':
       return networkOnly(request);
     case 'cacheOnly':
-      return cacheOnly(request, cacheName);
+      return cacheOnly(request, config);
     case 'cacheThenNetwork':
-      return cacheThenNetwork(request, cacheName);
+      return cacheThenNetwork(request, config);
     default: {
       // TypeScript exhaustiveness check — اگر در آینده نوع استراتژی اضافه شد،
       // اینجا خطای compile-time بگیرد.

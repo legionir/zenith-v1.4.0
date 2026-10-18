@@ -85,7 +85,8 @@ describe('exports-shape: the subpath table is the single source', () => {
     names.push('bogus');
     expect(subpathNames('@zenith/schema')).toEqual(['zod', 'json-schema', 'attr']);
     // پکیج ناشناس = بدون زیرمسیر (نه خطا).
-    expect(subpathExports('@zenith/errors')).toEqual({});
+    expect(subpathExports('@zenith/errors')).toEqual({ './internal': entryFor('internal', { dual: true }) });
+    expect(subpathExports('@zenith/state')).toEqual({ './internal': entryFor('internal', { dual: true }) });
   });
 
   it('every tabled subpath has a matching src/<name>.ts (a stale row fails CI)', () => {

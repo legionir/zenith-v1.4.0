@@ -72,8 +72,8 @@ const buttonStates = new WeakMap<HTMLElement, ButtonState>();
 export function processActionButton(
   el: HTMLElement,
   configAttr: string | null,
-  _context: Record<string, any>,
-  state?: Record<string, any>,
+  _context: Record<string, unknown>,
+  state?: Record<string, unknown>,
 ): () => void {
   // SSR-safe guard.
   if (typeof document === 'undefined') {

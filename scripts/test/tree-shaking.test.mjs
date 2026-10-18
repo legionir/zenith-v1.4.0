@@ -3,6 +3,7 @@ import { gzipSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import esbuild from 'esbuild';
+import { runInNewContext } from 'node:vm';
 
 const ROOT = process.cwd();
 
@@ -88,6 +89,27 @@ describe('Real tree-shaking verification (#87)', () => {
     );
     expect(gzipBytes).toBeLessThanOrEqual(3 * 1024);
     expect(text).not.toContain('zen-virtual-list');
+    expect(text).not.toContain('zenith:legacy-auth-owner');
+    expect(text).not.toContain('Authentication reset failed.');
+  });
+
+  it('keeps lazy Auth ownership and observable reset registration in a minified consumer', async () => {
+    const { text } = await measureBundleGzipBytes(`
+      import { configureAuth, defaultApp } from '@zenith/runtime';
+      import { getDefaultAuth } from '@zenith/auth';
+      import { runGlobalResets } from '@zenith/errors';
+      configureAuth({ autoRefresh: false });
+      const previous = getDefaultAuth();
+      const owner = defaultApp();
+      globalThis.ownerChecks = [owner.registries.auth.get('default') === previous];
+      runGlobalResets();
+      globalThis.ownerChecks.push(owner.registries.auth.list().length === 0);
+      globalThis.ownerChecks.push(defaultApp() !== owner);
+      globalThis.ownerChecks.push(getDefaultAuth() !== previous);
+    `);
+    const sandbox = { console, setTimeout, clearTimeout, queueMicrotask, URL, AbortController, __ZENITH_DEV__: false };
+    runInNewContext(text, sandbox, { timeout: 2000 });
+    expect(Array.from(sandbox.ownerChecks)).toEqual([true, true, true, true]);
   });
 
   it('importing only `navigate` from `@zenith/router` produces <= 4KB gzip', async () => {

@@ -9,10 +9,18 @@ import { join } from 'node:path';
 const packagesDir = join(process.cwd(), 'packages');
 type AliasEntry = { find: RegExp; replacement: string };
 const alias: AliasEntry[] = [
+  { find: /^@zenith\/state\/internal$/, replacement: join(packagesDir, 'state/src/internal.ts') },
+  { find: /^@zenith\/router\/node$/, replacement: join(packagesDir, 'router/src/node.ts') },
+  { find: /^@zenith\/ssr\/edge$/, replacement: join(packagesDir, 'ssr/src/edge.ts') },
+  { find: /^@zenith\/errors\/internal$/, replacement: join(packagesDir, 'errors/src/internal.ts') },
+  { find: /^@zenith\/ui\/(position|dialog|popover|tooltip|tabs|menu|accordion|combobox|date-picker|portal)$/, replacement: join(packagesDir, 'ui/src/$1.ts') },
+  { find: /^@zenith\/analytics\/legacy$/, replacement: join(packagesDir, 'analytics/src/legacy.ts') },
+  { find: /^@zenith\/testing-e2e\/browser$/, replacement: join(packagesDir, 'testing-e2e/src/browser.ts') },
+  { find: /^@zenith\/realtime\/(testing|legacy)$/, replacement: join(packagesDir, 'realtime/src/$1.ts') },
   // subpath first: @zenith/service-worker/sw
   {
-    find: /^@zenith\/service-worker\/sw$/,
-    replacement: join(packagesDir, 'service-worker/src/sw.ts'),
+    find: /^@zenith\/service-worker\/(sw|strategies)$/,
+    replacement: join(packagesDir, 'service-worker/src/$1.ts'),
   },
   // #142 — زیرمسیرهای SPEC §۲.۲: @zenith/schema/zod و @zenith/schema/json-schema
   {
@@ -63,6 +71,8 @@ export default defineConfig({
     include: [
       'packages/*/test/**/*.test.ts',
       'packages/*/test/**/*.test.mjs',
+      'tools/*/test/**/*.test.ts',
+      'tools/*/test/**/*.test.mjs',
       'scripts/test/**/*.test.mjs',
     ],
     globals: false,

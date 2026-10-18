@@ -1,3 +1,4 @@
+import { createScopedRegistry } from '@zenith/shared';
 // packages/permission/src/permission.ts
 //
 // @zenith/permission — Authorization Runtime (Phase 4).
@@ -348,7 +349,7 @@ export class PermissionManager {
 /**
  * Registry از PermissionManager instances.
  */
-const permissionRegistry = new Map<string, PermissionManager>();
+const permissionRegistry = createScopedRegistry<PermissionManager>('permissions');
 
 /**
  * ساخت یک PermissionManager.
@@ -378,15 +379,7 @@ export function getPermissionManager(name: string = 'default'): PermissionManage
 
 /** #118 / #135: ثبت PermissionManager در رجیستری با بازگشت Cleanup idempotent. */
 export function registerPermissionManager(name: string, manager: PermissionManager): () => void {
-  permissionRegistry.set(name, manager);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (permissionRegistry.get(name) === manager) {
-      permissionRegistry.delete(name);
-    }
-  };
+  return permissionRegistry.register(name, manager);
 }
 
 /** #118 / #135: بررسی وجود PermissionManager در رجیستری (`hasX`). */

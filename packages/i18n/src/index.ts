@@ -316,11 +316,7 @@ export const RTL_LOCALES: readonly string[] = /* @__PURE__ */ Object.freeze([
   'dv',
 ]);
 
-export const DEFAULTS = /* @__PURE__ */ Object.freeze({
-  locale: 'fa-IR',
-  direction: 'rtl' as 'rtl' | 'ltr',
-  currency: 'IRT',
-});
+export { DEFAULTS } from './defaults';
 
 const RTL_STRONG_CHAR_RE = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 const LTR_STRONG_CHAR_RE = /[A-Za-z\u00C0-\u02B8\u0370-\u052F]/;
@@ -374,73 +370,8 @@ export function isolateBidi(text: string, dir: 'rtl' | 'ltr' | 'auto' = 'auto'):
   return `${prefix}${text}\u2069`;
 }
 
-/**
- * #100: فرمت‌بندی عدد بر اساس `Intl.NumberFormat` و locale (با پشتیبانی از ارقام بومی و منفی دوجهته).
- */
-export function formatLocaleNumber(
-  value: number,
-  locale: string = DEFAULTS.locale,
-  options?: Intl.NumberFormatOptions,
-): string {
-  return new Intl.NumberFormat(locale, options).format(value);
-}
-
-/**
- * #100: فرمت‌بندی واحد پول دوجهته (`IRT`/تومان، `IRR`/ریال، `USD`، `EUR`، `SAR` و ...).
- */
-export function formatCurrency(
-  value: number,
-  locale: string = DEFAULTS.locale,
-  currency: string = DEFAULTS.currency,
-  options?: Intl.NumberFormatOptions,
-): string {
-  if (currency.toUpperCase() === 'IRT') {
-    const formatted = new Intl.NumberFormat(locale, {
-      maximumFractionDigits: 0,
-      ...options,
-    }).format(value);
-    return locale.toLowerCase().startsWith('fa') ? `${formatted} تومان` : `${formatted} IRT`;
-  }
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    ...options,
-  }).format(value);
-}
-
-/**
- * #100: فرمت‌بندی زمان نسبی (`۳ روز پیش`، `in 2 hours` و ...) با `Intl.RelativeTimeFormat`.
- */
-export function formatRelativeTime(
-  value: number,
-  unit: Intl.RelativeTimeFormatUnit,
-  locale: string = DEFAULTS.locale,
-  options: Intl.RelativeTimeFormatOptions = { numeric: 'auto' },
-): string {
-  return new Intl.RelativeTimeFormat(locale, options).format(value, unit);
-}
-
-/**
- * #100: فرمت‌بندی تاریخ و ساعت بر اساس `Intl.DateTimeFormat` (در `fa-IR` به‌طور پیش‌فرض تقویم شمسی).
- */
-export function formatDateTime(
-  date: Date | number,
-  locale: string = DEFAULTS.locale,
-  options?: Intl.DateTimeFormatOptions,
-): string {
-  return new Intl.DateTimeFormat(locale, options).format(date);
-}
-
-/**
- * #100: فرمت‌بندی لیست بومی (`علی، سارا و رضا` / `A, B, and C`) با `Intl.ListFormat`.
- */
-export function formatList(
-  items: readonly string[],
-  locale: string = DEFAULTS.locale,
-  options?: Intl.ListFormatOptions,
-): string {
-  return new Intl.ListFormat(locale, options).format(items);
-}
+export { formatLocaleNumber, formatCurrency, formatRelativeTime, formatDateTime, formatList } from './formatters';
+export type { LocaleFormatOptions, CurrencyFormatOptions } from './formatters';
 
 /**
  * #100: محاسبهٔ گام حرکت افقی کلیدهای جهت‌نما (`ArrowLeft` / `ArrowRight`)

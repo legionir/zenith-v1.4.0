@@ -45,7 +45,6 @@ import { signal, effect, type Signal } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 // #144: لایهٔ کش روی @zenith/cache (L0) — LRU/ظرفیت/پاک‌سازی centrally.
-import { createCache } from '@zenith/cache';
 import { deprecate, resourceHttpError } from '@zenith/errors';
 import { logger } from '@zenith/logger';
 
@@ -56,7 +55,7 @@ import { logger } from '@zenith/logger';
  * @property error   پیام خطا در صورت شکست، یا `null`.
  * @property data    داده‌های دریافت‌شده در صورت موفقیت، یا `null`.
  */
-export interface FetchState<T = any> {
+export interface FetchState<T = unknown> {
   loading: boolean;
   error: string | null;
   data: T | null;
@@ -73,139 +72,9 @@ function initialFetchState(): FetchState {
 // Cache Layer (IMP-DAT-02: SWR-like caching) — #144: روی @zenith/cache
 // ═══════════════════════════════════════════════════════════════════════
 
-interface CacheEntry {
-  data: any;
-  timestamp: number;
-}
-
-/** حداکثر تعداد entries در کش (eviction policy ساده). */
-const _CACHE_MAX_SIZE = 100;
-
-// ظرفیت و پاک‌سازی LRU به عهدهٔ @zenith/cache؛ TTL همچنان پارامتری است
-// ( getCachedData(url, ttl) معنی قدیمی را حفظ می‌کند: entry از ttl
-// گذشته باشد ⇒ null). entry در @zenith/cache با ttl='never' ذخیره می‌شود
-// و اعتبارسنجی سن همین‌جا انجام می‌گیرد تا معیار دقیقاً مثل قبل بماند.
-const _fetchCache = createCache<CacheEntry>({ ttl: 'never', maxSize: _CACHE_MAX_SIZE });
-
-/**
- * دریافت داده از کش در صورت معتبر بودن (داخل TTL).
- *
- * @param url کلید کش (معمولاً URL کامل).
- * @param ttl  زمان اعتبار به میلی‌ثانیه.
- * @returns داده‌ی کش‌شده یا `null`.
- */
-export function getCachedData(url: string, ttl: number): any | null {
-  // peek: بدون تغییر ترتگی؛ انقضای پارامتری اینجاست (entry خودش never است)
-  const entry = _fetchCache.peek(url);
-  if (entry && Date.now() - entry.timestamp < ttl) {
-    return entry.data;
-  }
-  return null;
-}
-
-/**
- * ذخیره‌سازی داده در کش.
- * اگر کش از حداکثر ظرفیت بیشتر شود، @zenith/cache قدیمی‌ترین را حذف می‌کند.
- *
- * @param url  کلید کش.
- * @param data داده‌ای که کش می‌شود.
- */
-export function setCachedData(url: string, data: any, tags?: string[]): void {
-  const autoTags = tags ?? url.split('/').filter(Boolean);
-  _fetchCache.set(url, { data, timestamp: Date.now() }, { tags: autoTags });
-}
-
-/**
- * پاک کردن کامل کش.
- */
-export function clearFetchCache(): void {
-  _fetchCache.clear();
-}
-
-const _invalidateHooks = new Set<(tags: string[]) => void>();
-
-/**
- * #130: ثبت یک قلاب باطل‌سازی سراسری برای هماهنگ‌سازی کش‌های `data`، `resource` و `http`.
- */
-export function registerInvalidateHook(fn: (tags: string[]) => void): () => void {
-  _invalidateHooks.add(fn);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    _invalidateHooks.delete(fn);
-  };
-}
-
-/**
- * #130: باطل‌سازی سراسری کش بر اساس تگ‌ها (`invalidate(tags)`).
- */
-export function invalidateFetchCache(tags?: string | string[]): void {
-  if (!tags) {
-    _fetchCache.clear();
-    for (const hook of _invalidateHooks) hook([]);
-    return;
-  }
-  const tagList = Array.isArray(tags) ? tags : [tags];
-  _fetchCache.invalidate(tagList);
-  for (const key of _fetchCache.keys()) {
-    if (tagList.some((t) => key.includes(t))) {
-      _fetchCache.delete(key);
-    }
-  }
-  for (const hook of _invalidateHooks) hook(tagList);
-}
-
-/**
- * تابع کمکی برای fetch با کش (مشابه SWR).
- *
- * اگر در TTL داده موجود باشد، بلافاصله Promise.resolve برمی‌گرداند و هم‌زمان
- * یک درخواست مجدد در پس‌زمینه انجام می‌دهد (stale-while-revalidate).
- *
- * @param url URL درخواست.
- * @param ttl زمان اعتبار کش به میلی‌ثانیه (پیش‌فرض: ۳۰ ثانیه).
- * @returns Promise داده.
- */
-export interface ProcessFetchWithCacheOptions {
-  /** زمان اعتبار کش به میلی‌ثانیه. @default 30000 */
-  ttl?: number;
-}
-
-export function processFetchWithCache(
-  url: string,
-  options?: ProcessFetchWithCacheOptions,
-): Promise<unknown>;
-/** @deprecated #55 — امضای positional؛ از `processFetchWithCache(url, { ttl })` استفاده کنید (ZEN-DEPR-066). */
-export function processFetchWithCache(url: string, ttl?: number): Promise<unknown>;
-export function processFetchWithCache(
-  url: string,
-  ttlOrOptions: number | ProcessFetchWithCacheOptions = {},
-): Promise<unknown> {
-  if (typeof ttlOrOptions === 'number') {
-    deprecate(
-      'ZEN-DEPR-066',
-      'processFetchWithCache(url, ttl)',
-      'processFetchWithCache(url, { ttl })',
-    );
-  }
-  const ttl = typeof ttlOrOptions === 'number' ? ttlOrOptions : (ttlOrOptions.ttl ?? 30000);
-  const cached = getCachedData(url, ttl);
-  if (cached !== null) {
-    // بازگشت فوری داده + به‌روزرسانی در پس‌زمینه
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => setCachedData(url, data))
-      .catch(() => {
-        /* سکوت — داده قدیمی هنوز موجود است */
-      });
-    return Promise.resolve(cached);
-  }
-  return fetch(url).then(async (res) => {
-    const data = await res.json();
-    setCachedData(url, data);
-    return data;
-  });
-}
+export { getCachedData, setCachedData, clearFetchCache, registerInvalidateHook, invalidateFetchCache, processFetchWithCache } from './fetch-cache';
+export type { ProcessFetchWithCacheOptions, FetchCacheReadOptions, FetchCacheWriteOptions } from './fetch-cache';
+import { readFetchCache, invalidateFetchCache } from './fetch-cache';
 
 // ═══════════════════════════════════════════════════════════════════════
 // URL validation (BUG-DAT-04)
@@ -470,7 +339,7 @@ export function processFetch(
     // چرا parentContext؟ چون URL ممکن است به `$route` وابسته باشد که در
     // parentContext موجود است. اگر در localContext ارزیابی کنیم، ممکن است
     // به `$product` (که خودمان ساختیم) دسترسی پیدا کند که منطقی نیست.
-    let url: string;
+    let url: unknown;
     try {
       url = evalFn(context);
     } catch (err) {
@@ -536,7 +405,7 @@ export function processFetch(
 
     // IMP-DAT-02: بررسی کش — اگر داده معتبر در کش هست، skip fetch
     if (cacheTtl > 0) {
-      const cached = getCachedData(finalUrl, cacheTtl);
+      const cached = readFetchCache(finalUrl, cacheTtl);
       if (cached !== null) {
         fetchStateSignal.set({ loading: false, error: null, data: cached });
         return; // از fetch صرف‌نظر کن

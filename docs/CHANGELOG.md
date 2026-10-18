@@ -653,7 +653,7 @@ six missing compiler directives) از قبل در v1.2.6/v1.2.7 رفع شده ب
 ### Infrastructure
 
 - All **31** `packages/*/package.json` bumped `1.2.7` → `1.2.8`.
-- `packages/devtools-extension/manifest.json` bumped `1.2.7` → `1.2.8`.
+- `tools/devtools-extension/manifest.json` bumped `1.2.7` → `1.2.8`.
 - `index.html`: title → `v1.2.8`, all 3 download links →
   `zenith-v1.2.8.zip`, footer button text → `v1.2.8`.
 - `mobile.html`: download link → `zenith-v1.2.8.zip`, text → `v1.2.8`.
@@ -799,7 +799,7 @@ six missing compiler directives) از قبل در v1.2.6/v1.2.7 رفع شده ب
 ### Infrastructure
 
 - همه‌ی ۳۱ `package.json` از `1.2.6` به `1.2.7` bump شدند.
-- `packages/devtools-extension/manifest.json` به `1.2.7`.
+- `tools/devtools-extension/manifest.json` به `1.2.7`.
 - `index.html`: title → `v1.2.7`، هر ۳ download link →
   `download/zenith-v1.2.7.zip`، footer button text → `v1.2.7`.
 - `mobile.html`: download link → `zenith-v1.2.7.zip`، text → `v1.2.7`.
@@ -941,7 +941,7 @@ six missing compiler directives) از قبل در v1.2.6/v1.2.7 رفع شده ب
 ### Infrastructure
 
 - تمام **۳۱** `packages/*/package.json` از `1.2.5` به `1.2.6` بامپ شدند.
-- `packages/devtools-extension/manifest.json` از `1.2.5` به `1.2.6` بامپ شد.
+- `tools/devtools-extension/manifest.json` از `1.2.5` به `1.2.6` بامپ شد.
 - `index.html`: title به `v1.2.6`، هر ۳ download link به `zenith-v1.2.6.zip`.
 - `mobile.html`: download link به `zenith-v1.2.6.zip` و متن به `v1.2.6`.
 - `docs/CHANGELOG.md`: این بخش `## [1.2.6]` اضافه شد.
@@ -1039,7 +1039,7 @@ if (!isInContext || isProtoBuiltin) {
 
 ### 📦 زیرساخت
 - همه‌ی ۳۱ `package.json` از `1.2.3` به `1.2.4` bump شدند.
-- `packages/devtools-extension/manifest.json` به `1.2.4` bump شد.
+- `tools/devtools-extension/manifest.json` به `1.2.4` bump شد.
 - `index.html` title به `v1.2.4` و download links به `zenith-v1.2.4.zip` به‌روزرسانی شد.
 - `mobile.html` download link و text به `v1.2.4`/`zenith-v1.2.4.zip` به‌روزرسانی شد.
 - `docs/README.md` version badge به `1.2.4`.
@@ -1089,7 +1089,7 @@ if (!isInContext || isProtoBuiltin) {
 
 ### 📦 زیرساخت
 - همه‌ی ۳۱ `package.json` از `1.2.2` به `1.2.3` bump شدند.
-- `packages/devtools-extension/manifest.json` به `1.2.3` bump شد.
+- `tools/devtools-extension/manifest.json` به `1.2.3` bump شد.
 - `index.html` title به `v1.2.3` و download links به `zenith-v1.2.3.zip` به‌روزرسانی شد.
 - `mobile.html` download link به `zenith-v1.2.3.zip` به‌روزرسانی شد.
 - `docs/README.md` version badge به `1.2.3`.
@@ -1178,7 +1178,7 @@ if (!isInContext || isProtoBuiltin) {
 ### 📦 زیرساخت
 
 - همه‌ی ۳۰ `package.json` از نسخه‌ی فعلی به `1.2.2` bump شدند.
-- `packages/devtools-extension/manifest.json` به `1.2.2` bump شد.
+- `tools/devtools-extension/manifest.json` به `1.2.2` bump شد.
 - `index.html` download link به `zenith-v1.2.2.zip` به‌روزرسانی شد.
 - `mobile.html` download link به `zenith-v1.2.2.zip` به‌روزرسانی شد.
 - ZIP v1.2.2 ساخته شد.

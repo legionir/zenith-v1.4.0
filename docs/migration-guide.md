@@ -508,3 +508,24 @@ const formatted = formatJalali(new Date(), 'YYYY/MM/DD');
 - [Performance Tuning Guide](./performance-tuning.md)
 - [Changelog v1.0.0](../CHANGELOG.md)
 - [Security Audit Report](../../tests/v1.0/security-audit/README.md)
+
+## 2026-10-16 remediation: development toolchain and CSP
+
+- For this checkout's test runner and hooks, use Node 22 LTS >=22.12. The
+  published libraries' Node >=18.19 floor is unchanged (DEC-040); old build-only
+  compatibility jobs do not promise old-Node dev-tool support.
+- Upgrade Vite 5 / unpatched Vite 6 or 7 to `^6.4.4` or `^7.3.7` before updating
+  `@zenith/vite-plugin`. Its peer range now rejects the former insecure chain.
+  Dropping Vite 5 is a breaking tooling-support change (major changeset); no
+  package version is bumped or published in this batch. Coordinate the fixed-group
+  release with the release owner. Vite 8 support remains pending in #110.
+- Newly generated CLI manifests now select `vite: ^6.4.4`, matching the patched
+  plugin peer range. This does not fix the other scaffold/workspace gaps in #109/#158.
+- CSP nonce values are no longer static. Never depend on `zen-ssr-nonce` or
+  `zen-edge-nonce`. A custom adapter CSP should use `'nonce-{{nonce}}'` so header
+  and script agree. Do not reuse full nonce-bearing response HTML across requests.
+- Fetch handler cancellation now rejects with `AbortError` instead of continuing
+  the render; Node handlers do not write a disconnected response. Code already
+  executing inside a user async function is not forcibly cancelled.
+- Analytics send rejections are now reported as sanitized `ZEN-1901` errors;
+  no raw exception or event payload is included. See the runtime README.

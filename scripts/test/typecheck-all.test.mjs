@@ -195,3 +195,10 @@ describe('typecheck-all (#26)', () => {
     expect(result.output).toContain("Type 'number' is not assignable to type 'string'");
   });
 });
+
+it('maps State internal and its self-root facade to source for implementation and type-test passes', () => {
+  for (const config of [typecheckConfigFor('state'), typecheckConfigFor('ssr'), typeTestConfigFor()]) {
+    expect(config.compilerOptions.paths['@zenith/state/internal']).toEqual(['../packages/state/src/internal.ts']);
+    expect(config.compilerOptions.paths['@zenith/*']).toEqual(['../packages/*/src']);
+  }
+});

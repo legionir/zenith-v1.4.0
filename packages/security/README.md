@@ -120,3 +120,27 @@ CSS می‌تواند حاوی `expression()` (در IE قدیمی) یا `url(jav
   کامل، از یک کتابخانه‌ی تخصصی مثل DOMPurify استفاده کنید.
 - در محیط‌های بدون DOM (مثل Node.js بدون jsdom)، `DOMParser` موجود نیست.
   در این موارد، باید یک polyfill یا کتابخانه‌ی server-side استفاده کنید.
+
+## Shared HTML sink migration candidate (unvalidated)
+
+```ts
+setSafeInnerHTML(element, { html: '<p>untrusted content</p>' });
+```
+
+The canonical bag validates `html`/`trusted` through the shared schema. The
+positional `(element, html, trusted?)` bridge remains with once-only
+`ZEN-DEPR-092` (proposed removal in 2.0). `trusted: true` is an explicit escape
+hatch when no Trusted Types policy is active; it is not a way to make untrusted
+content safe. An installed policy continues to sanitize its input, including
+when the trusted marker is requested.
+
+`createTrustedTypesPolicy()` exposes only consumed browser capabilities. Policy
+outputs are `unknown`, since native TrustedHTML/TrustedScriptURL may be opaque
+objects rather than strings. The HTML sink passes the native value directly to
+the DOM setter. The policy cache remains shared by established import routes.
+
+The historical non-DOM regex fallback remains limited and is **not equivalent
+to a DOM sanitizer**. Owner extraction does not certify additional attack
+coverage or real-browser Trusted Types/CSP enforcement. Runtime/type fixtures
+have been authored but not executed; compatibility/size/release approval remain
+open in the [migration ledger](../../docs/API-MIGRATION-CANDIDATE-2026-10-17.md).

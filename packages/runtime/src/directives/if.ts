@@ -45,7 +45,7 @@ import { createTransition, type TransitionController } from '@zenith/transition'
 export function processIf(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   manageChildren: () => (() => void)[],
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.

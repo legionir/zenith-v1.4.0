@@ -210,8 +210,8 @@ function parseActionCall(actionAttr: string): ParsedActionCall {
  * @param state آبجکت State کاربر.
  * @returns Context قابل استفاده در evaluateExpression.
  */
-function createContextForEval(state: Record<string, any>): Record<string, any> {
-  const context: Record<string, any> = {};
+function createContextForEval(state: Record<string, unknown>): Record<string, unknown> {
+  const context: Record<string, unknown> = {};
   for (const key in state) {
     const ctxKey = key.startsWith('$') ? key : `$${key}`;
     const item = state[key];
@@ -463,7 +463,7 @@ type TimedHandlerCache = Map<HTMLElement, Map<string, TimedHandler & { cancel: (
  */
 function delegateEvent(
   event: Event,
-  state: Record<string, any>,
+  state: Record<string, unknown>,
   eventName: DelegatedEventName,
   timedHandlerCache: TimedHandlerCache,
   root: Document | ShadowRoot | HTMLElement,
@@ -526,7 +526,7 @@ function delegateEvent(
   if (actionFn) {
     const invokeAction = (ev: Event) => {
       // FEATURE (v1.3.0): ارزیابی آرگومان‌های Parameterized Action.
-      let args: any[] | undefined;
+      let args: unknown[] | undefined;
       if (parsed.argExprs) {
         try {
           const ctx = createContextForEval(state);
@@ -678,7 +678,7 @@ export interface InitEventDelegationOptions {
  * @returns تابع teardown برای حذف تمام Listenerها.
  */
 export function initEventDelegation(
-  state: Record<string, any>,
+  state: Record<string, unknown>,
   options?: InitEventDelegationOptions,
 ): () => void {
   // FEATURE (v1.3.0): Custom root.

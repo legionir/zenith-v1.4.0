@@ -1,3 +1,4 @@
+import { output } from './output';
 // packages/cli/src/check.ts
 //
 // دستور `zenith check` — Production Readiness #30
@@ -569,8 +570,8 @@ function printFinding(finding: Finding): void {
 
   const location = colorize(`${finding.file}:${finding.line}:${finding.column}`, 'gray');
   const rule = colorize(finding.rule, 'bold');
-  console.log(`  ${severityLabel}  ${rule}  ${finding.message}`);
-  console.log(`            ${location}`);
+  output.line(`  ${severityLabel}  ${rule}  ${finding.message}`);
+  output.line(`            ${location}`);
 }
 
 /**
@@ -584,7 +585,7 @@ export function runCheck(
   options: { strict?: boolean; ci?: boolean; quiet?: boolean } = {},
 ): number {
   if (!fs.existsSync(target)) {
-    console.error(colorize(`❌ Path not found: ${target}`, 'red'));
+    output.error(colorize(`❌ Path not found: ${target}`, 'red'));
     return 2;
   }
 
@@ -596,20 +597,20 @@ export function runCheck(
   } else if (stat.isFile() && (target.endsWith('.html') || target.endsWith('.htm'))) {
     files.push(target);
   } else {
-    console.error(colorize(`❌ Not an HTML file: ${target}`, 'red'));
+    output.error(colorize(`❌ Not an HTML file: ${target}`, 'red'));
     return 2;
   }
 
   if (files.length === 0) {
-    console.log(colorize('ℹ️  No HTML files found.', 'blue'));
+    output.line(colorize('ℹ️  No HTML files found.', 'blue'));
     return 0;
   }
 
   if (!options.quiet) {
-    console.log(
+    output.line(
       colorize(`🔍 Checking ${files.length} HTML file${files.length === 1 ? '' : 's'}...`, 'bold'),
     );
-    console.log('');
+    output.line('');
   }
 
   let totalErrors = 0;
@@ -623,7 +624,7 @@ export function runCheck(
 
     filesWithIssues++;
     if (!options.quiet) {
-      console.log(colorize(`━━━ ${file} ━━━`, 'bold'));
+      output.line(colorize(`━━━ ${file} ━━━`, 'bold'));
     }
     for (const finding of findings) {
       if (finding.severity === 'error') totalErrors++;
@@ -634,17 +635,19 @@ export function runCheck(
       }
     }
     if (!options.quiet) {
-      console.log('');
+      output.line('');
     }
   }
 
+  output.result({ filesChecked: files.length, filesWithIssues, errors: totalErrors, warnings: totalWarnings, infos: totalInfos });
+
   // ── Summary ──
-  console.log(colorize('━━━ Summary ━━━', 'bold'));
-  console.log(`  Files checked:   ${files.length}`);
-  console.log(`  Files with issues: ${filesWithIssues}`);
-  console.log(`  ${colorize('Errors:', 'red')}   ${totalErrors}`);
-  console.log(`  ${colorize('Warnings:', 'yellow')} ${totalWarnings}`);
-  console.log(`  ${colorize('Info:', 'blue')}      ${totalInfos}`);
+  output.line(colorize('━━━ Summary ━━━', 'bold'));
+  output.line(`  Files checked:   ${files.length}`);
+  output.line(`  Files with issues: ${filesWithIssues}`);
+  output.line(`  ${colorize('Errors:', 'red')}   ${totalErrors}`);
+  output.line(`  ${colorize('Warnings:', 'yellow')} ${totalWarnings}`);
+  output.line(`  ${colorize('Info:', 'blue')}      ${totalInfos}`);
 
   // کد exit:
   //   0 → موفقیت (no errors)
@@ -652,17 +655,17 @@ export function runCheck(
   //   2 → مشکلات اجرایی (مثلاً فایل پیدا نشد)
   const strictMode = options.strict || options.ci;
   if (totalErrors > 0) {
-    console.log(colorize('\n❌ Check failed with errors.', 'red'));
+    output.line(colorize('\n❌ Check failed with errors.', 'red'));
     return 1;
   }
   if (strictMode && totalWarnings > 0) {
-    console.log(colorize('\n⚠️  Check failed with warnings (--strict mode).', 'yellow'));
+    output.line(colorize('\n⚠️  Check failed with warnings (--strict mode).', 'yellow'));
     return 1;
   }
   if (totalWarnings > 0 || totalInfos > 0) {
-    console.log(colorize('\n✅ Check passed with warnings.', 'green'));
+    output.line(colorize('\n✅ Check passed with warnings.', 'green'));
   } else {
-    console.log(colorize('\n✅ All checks passed!', 'green'));
+    output.line(colorize('\n✅ All checks passed!', 'green'));
   }
   return 0;
 }

@@ -1,4 +1,4 @@
-// Tests for packages/devtools-extension manifest & CSP (#8)
+// Tests for tools/devtools-extension manifest & CSP (#8)
 // Covers BUG-DEVTEXT-01, BUG-DEVTEXT-02, BUG-DEVTEXT-03, BUG-DEVTEXT-05,
 // BUG-DEVTEXT-06, BUG-DEVTEXT-07, BUG-DEVTEXT-08, IMP-DEVTEXT-01, IMP-DEVTEXT-05,
 // BUG-DEV-04, BUG-DEV-07
@@ -6,7 +6,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const EXT_DIR = join(process.cwd(), 'packages', 'devtools-extension');
+const EXT_DIR = join(process.cwd(), 'tools', 'devtools-extension');
 
 describe('devtools-extension manifest & CSP (#8)', () => {
   it('manifest.json is valid strict JSON without comments and uses MV3', () => {

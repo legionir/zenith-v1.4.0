@@ -17,6 +17,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./internal": {
+      "import": {
+        "types": "./dist/internal.d.ts",
+        "default": "./dist/internal.js"
+      },
+      "require": {
+        "types": "./dist/internal.d.cts",
+        "default": "./dist/internal.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -59,6 +69,9 @@
     "@zenith/scheduler": "1.4.0"
   },
   "zenith": {
-    "target": "universal"
+    "target": "universal",
+    "entryLevels": {
+      "./internal": "internal"
+    }
   }
 }

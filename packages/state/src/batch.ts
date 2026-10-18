@@ -1,3 +1,4 @@
+import type { EffectSubscriber } from './effect-subscriber';
 // packages/state/src/batch.ts
 //
 // ماژول Batch — نسخه‌ی فاز ۷ (Compatibility Layer).
@@ -41,6 +42,7 @@
 import { logger } from '@zenith/logger';
 import { isDevtoolsEnabled } from './devtools';
 
+/** @public @deprecated Scheduler batching is automatic; this compatibility helper only invokes fn. */
 export function batch(fn: () => void): void {
   // IMP-05 (v1.3.0): به‌جای دسترسی مستقیم به globalThis از isDevtoolsEnabled استفاده کن.
   // #39: هشدار یک‌بار از طریق logger.warnOnce (به‌جای پلیگل سراسری دستی).
@@ -75,7 +77,7 @@ export function isBatching(): boolean {
  *
  * این تابع فقط برای backward compatibility نگه‌داشته شده است.
  */
-export function addEffectToBatch(_effect: Function): void {
+export function addEffectToBatch(_effect: EffectSubscriber): void {
   // No-op: Scheduler به‌طور خودکار Effectها را schedule می‌کند.
   // پارامتر `_effect` با underscore شروع می‌شود تا نشان دهیم عمداً استفاده نمی‌شود.
 }

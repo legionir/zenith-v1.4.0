@@ -19,7 +19,7 @@
 - **TB-3**: مرز شبکه و ذخیره‌گاه کلاینت در `@zenith/auth` و `@zenith/http`.
 - **TB-4**: مرز ایزولاسیون درخواست‌های هم‌زمان در `@zenith/ssr` (`renderToString`, `renderToStream`).
 - **TB-5**: مرز کش و چرخهٔ عمر Service Worker در `@zenith/service-worker`.
-- **TB-6**: مرز ارتباطی صفحهٔ وب و افزونهٔ مرورگر در `@zenith/devtools` و `packages/devtools-extension`.
+- **TB-6**: مرز ارتباطی صفحهٔ وب و افزونهٔ مرورگر در `@zenith/devtools` و `tools/devtools-extension`.
 
 ---
 
@@ -59,13 +59,13 @@
 | **Tampering (Cache Poisoning)** | کش شدن پاسخ‌های خطا یا درخواست‌های غیر `GET` | کش کردن صرفاً درخواست‌های `GET` با `response.ok === true` و پیشوند نسخه‌دار `zenith-v{cacheVersion}-*` در [`packages/service-worker/src/sw.ts`](../../packages/service-worker/src/sw.ts) | [`packages/service-worker/test/sw-listeners.test.ts`](../../packages/service-worker/test/sw-listeners.test.ts) |
 | **Denial of Service (Stale SW Lock-in)** | قفل شدن کاربران روی نسخهٔ معیوب Service Worker | حذف خودکار کش‌های قدیمی در `activate`، تابع `unregisterSW({ clearCaches: true })` و Kill Switch اضطراری `setupKillSwitchSW()` / [`packages/service-worker/sw-kill.js`](../../packages/service-worker/sw-kill.js) (`#96`) | [`packages/service-worker/test/upgrade-killswitch.test.ts`](../../packages/service-worker/test/upgrade-killswitch.test.ts) |
 
-### سطح ۶: افزونهٔ DevTools و پلاگین‌ها (`packages/devtools-extension`, `@zenith/devtools-core`, `@zenith/error-boundary`)
+### سطح ۶: افزونهٔ DevTools و پلاگین‌ها (`tools/devtools-extension`, `@zenith/devtools-core`, `@zenith/error-boundary`)
 | دستهٔ STRIDE | تهدید | کنترل پیاده‌سازی‌شده در کد | تست متناظر |
 |---|---|---|---|
 | **Information Disclosure** | نشت توکن‌ها، رمزهای عبور و ایمیل‌ها به DevTools یا گزارش‌دهنده‌های خطای خارجی | پالایش خودکار کلیدهای حساس (`redact`) در [`packages/devtools-core/src/index.ts`](../../packages/devtools-core/src/index.ts) و `redactPIIValue()` در [`packages/error-boundary/src/boundary.ts`](../../packages/error-boundary/src/boundary.ts) (`#93`) | [`packages/error-boundary/test/external-reporter.test.ts`](../../packages/error-boundary/test/external-reporter.test.ts) |
-| **Elevation of Privilege** | دسترسی بیش‌ازحد افزونهٔ مرورگر به تمام سایت‌ها یا اجرای اسکریپت inline | حذف `<all_urls>` و `tabs` از [`packages/devtools-extension/manifest.json`](../../packages/devtools-extension/manifest.json) و اعمال CSP `script-src 'self'; object-src 'none'` (`#8`) | [`scripts/test/devtools-extension.test.mjs`](../../scripts/test/devtools-extension.test.mjs) |
-| **Tampering / Spoofing (پیام‌های جعلی)** | صفحهٔ بازدیدشده پیام `chrome.runtime` جعلی می‌فرستد تا popup را وادار به رندر دادهٔ خودش کند یا با `innerHTML` اسکریپت اجرا کند | Allowlist سخت‌گیرانه در [`packages/devtools-extension/message-schema.js`](../../packages/devtools-extension/message-schema.js): plain object، نوع مجاز (`ZENITH_CHECK/REFRESH/CLEAR/NOTIFICATION`)، بدون کلید ناامن (`__proto__`/`constructor`), سقف طول، فرستندهٔ معتبر (`isTrustedSender`) و پاک‌سازی کامل payload گراف/بازرسی؛ popup و graph-viewer **صفر `innerHTML`** (رندر فقط با `textContent`/DOM API) (`#67`) | [`scripts/test/devtools-message-schema.test.mjs`](../../scripts/test/devtools-message-schema.test.mjs) |
-| **Cross-Site Scripting (webview در VS Code)** | اسکریپت inline در `getDevToolsHtml` یا تزریق دادهٔ صفحهٔ میزبان از طریق `onclick=`/`innerHTML` | webview با nonce تازه در هر panel، CSP `default-src 'none'; script-src 'nonce-…'` ساخته‌شده از `webview.cspSource` و بدون `localResourceRoots`؛ اسکریپت سمت webview پیام‌های host را دوباره اعتبارسنجی می‌کند و فقط با `textContent` رندر می‌کند (`#67`) | [`packages/vscode-extension/test/webview.test.ts`](../../packages/vscode-extension/test/webview.test.ts) |
+| **Elevation of Privilege** | دسترسی بیش‌ازحد افزونهٔ مرورگر به تمام سایت‌ها یا اجرای اسکریپت inline | حذف `<all_urls>` و `tabs` از [`tools/devtools-extension/manifest.json`](../../tools/devtools-extension/manifest.json) و اعمال CSP `script-src 'self'; object-src 'none'` (`#8`) | [`scripts/test/devtools-extension.test.mjs`](../../scripts/test/devtools-extension.test.mjs) |
+| **Tampering / Spoofing (پیام‌های جعلی)** | صفحهٔ بازدیدشده پیام `chrome.runtime` جعلی می‌فرستد تا popup را وادار به رندر دادهٔ خودش کند یا با `innerHTML` اسکریپت اجرا کند | Allowlist سخت‌گیرانه در [`tools/devtools-extension/message-schema.js`](../../tools/devtools-extension/message-schema.js): plain object، نوع مجاز (`ZENITH_CHECK/REFRESH/CLEAR/NOTIFICATION`)، بدون کلید ناامن (`__proto__`/`constructor`), سقف طول، فرستندهٔ معتبر (`isTrustedSender`) و پاک‌سازی کامل payload گراف/بازرسی؛ popup و graph-viewer **صفر `innerHTML`** (رندر فقط با `textContent`/DOM API) (`#67`) | [`scripts/test/devtools-message-schema.test.mjs`](../../scripts/test/devtools-message-schema.test.mjs) |
+| **Cross-Site Scripting (webview در VS Code)** | اسکریپت inline در `getDevToolsHtml` یا تزریق دادهٔ صفحهٔ میزبان از طریق `onclick=`/`innerHTML` | webview با nonce تازه در هر panel، CSP `default-src 'none'; script-src 'nonce-…'` ساخته‌شده از `webview.cspSource` و بدون `localResourceRoots`؛ اسکریپت سمت webview پیام‌های host را دوباره اعتبارسنجی می‌کند و فقط با `textContent` رندر می‌کند (`#67`) | [`tools/vscode-extension/test/webview.test.ts`](../../tools/vscode-extension/test/webview.test.ts) |
 
 ---
 

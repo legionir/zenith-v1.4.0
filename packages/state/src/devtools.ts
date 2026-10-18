@@ -20,7 +20,6 @@
  * @returns true اگر DevTools فعال باشد.
  */
 export function isDevtoolsEnabled(): boolean {
-  return (
-    (globalThis as any).__ZENITH_DEVTOOLS__ === true || (globalThis as any).__ZENITH_DEV__ !== false
-  );
+  const explicit: unknown = Reflect.get(globalThis, '__ZENITH_DEVTOOLS__');
+  return explicit !== false && (explicit === true || Reflect.get(globalThis, '__ZENITH_DEV__') !== false);
 }

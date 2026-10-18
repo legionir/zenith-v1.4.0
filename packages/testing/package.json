@@ -58,7 +58,9 @@
     "@zenith/scheduler": "^1.4.0"
   },
   "dependencies": {
-    "@zenith/errors": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/mock": "1.5.0",
+    "@zenith/schema": "1.5.0"
   },
   "zenith": {
     "target": "universal"

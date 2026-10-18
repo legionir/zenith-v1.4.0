@@ -8,7 +8,7 @@
 //   • import در سطح ماژول به window/document دسترسی ندارد (env-import).
 //   • بودجه ≤ ۲KB gzip (size-budget + .size-limit.json).
 //   • تنها مصرف‌کنندهٔ console در کل ورک‌اسپیس: sinks.ts (consoleSink).
-import { logger } from './default';
+import { logger, installDiagnosticLogger } from './default';
 import type { LogLevel, LogSink } from './types';
 import type { Cleanup } from '@zenith/shared';
 
@@ -29,9 +29,11 @@ export { createLogger } from './logger';
 export { consoleSink, bufferSink, beaconSink } from './sinks';
 export { deprecate, warnDeprecated, warnOnce } from './deprecate';
 
-export { logger };
+export { logger, installDiagnosticLogger };
 
+let globalBridgeInstalled = false;
 export function setLogLevel(level: LogLevel): void {
+  if (!globalBridgeInstalled) { globalBridgeInstalled = true; installDiagnosticLogger(); }
   logger.setLevel(level);
 }
 

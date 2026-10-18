@@ -82,3 +82,19 @@ npm test
 ## مجوز
 
 MIT
+
+
+## Code-first contract update (#38/#120; not validated)
+
+`createBindingContext(state, locals?)` provides a lazy, read-only expression view:
+locals win, structural `get()` signals are unwrapped at read time, and `name` /
+`$name` aliases preserve reactive tracking. Existing reactive parent contexts and
+getters are not eagerly copied; explicit dollar names retain precedence. It is
+shared by runtime-core and the new realtime/analytics bindings.
+
+`compileExpression` now returns `unknown`, matching `evaluateExpression`. Consumers
+must narrow with `typeof`, `Array.isArray` or a domain validator before using the
+result; replacing the uncertainty with `as any` is not migration. Runtime parsing
+and expression semantics are unchanged by that return-type correction. Written
+runtime/type-consumer tests await final validation; the broader declaration-any
+inventory and internal-root-export migration are still incomplete.

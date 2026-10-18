@@ -19,7 +19,8 @@ describe('Dependabot, npm audit (prod+dev), and secret scanning (#65)', () => {
   it('configures CI workflow with prod+dev npm audit and gitleaks secret-scan job', () => {
     const wf = readFileSync(join(ROOT, '.github/workflows/main.yml'), 'utf8');
     expect(wf).toContain('npm audit --omit=dev --audit-level=high');
-    expect(wf).toContain('npm audit --audit-level=high || true');
+    expect(wf).toContain('npm audit --audit-level=low');
+    expect(wf).not.toContain('npm audit --audit-level=high || true');
     expect(wf).toContain('gitleaks/gitleaks-action@v2');
     expect(wf).toContain('node scripts/secret-scan.mjs');
     expect(existsSync(join(ROOT, '.gitleaks.toml'))).toBe(true);

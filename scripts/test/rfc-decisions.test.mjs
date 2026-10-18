@@ -38,13 +38,24 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     expect(text).toMatch(/#\d{2,3}/);
   });
 
-  it('DEC numbering has no duplicates and reaches 039', () => {
+  it('DEC numbering has no duplicates and reaches 040', () => {
     const files = readdirSync(DEC).filter((f) => /^DEC-\d{3}-/.test(f));
     const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
     expect(new Set(nums).size).toBe(nums.length);
-    expect(Math.max(...nums)).toBe(39); // #86: DEC-039 (روش‌شناسی بنچمارک + گیت بازتولیدپذیری); #67: DEC-038 (extension message schema + nonce CSP); #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    expect(Math.max(...nums)).toBe(40); // #13: DEC-040 secure development toolchain
+    // #86: DEC-039 (روش‌شناسی بنچمارک + گیت بازتولیدپذیری); #67: DEC-038 (extension message schema + nonce CSP); #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
     // پوشه باید دقیقاً از ۱ تا max پیوسته باشد (شمارهٔ جاافتاده = تصمیم گم‌شده).
-    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 39 }, (_, i) => i + 1));
+    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 40 }, (_, i) => i + 1));
+  });
+
+  it('DEC-040 distinguishes secure development tools from the unchanged library floor', () => {
+    const text = readFileSync(join(DEC, 'DEC-040-secure-development-toolchain.md'), 'utf8');
+    expect(text).toContain('22.12');
+    expect(text).toContain('>=18.19');
+    expect(text).toContain('#13');
+    expect(text).toContain('#110');
+    expect(text).toContain('^6.4.4 || ^7.3.7');
+    expect(text).toContain('--audit-level=low');
   });
 
   it('DEC-039 records the benchmark methodology, the gate policy and its honest limits', () => {
@@ -79,7 +90,7 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
   it('docs/decisions/README.md (DEC index) lists every decision — drift fails CI', () => {
     const { rows, stale } = generateDecIndex({ checkOnly: true });
     expect(stale).toBe(false);
-    expect(rows.length).toBeGreaterThanOrEqual(39);
+    expect(rows.length).toBeGreaterThanOrEqual(40);
     const index = readFileSync(join(DEC, 'README.md'), 'utf8');
     for (const row of rows) {
       expect(index).toContain(`[\`${row.file}\`](./${row.file})`);
@@ -87,6 +98,7 @@ describe('RFC #175 — eight open design decisions are closed with ADRs', () => 
     expect(index).toContain('DEC-037');
     expect(index).toContain('DEC-038');
     expect(index).toContain('DEC-039');
+    expect(index).toContain('DEC-040');
   });
 
   it('DEC-036 appendix records the two owner-approved placements and links DEC-037', () => {

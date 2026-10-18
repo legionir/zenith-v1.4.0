@@ -28,20 +28,22 @@
 //     const html = await renderToString(...);
 //   });
 
-import { signal, type Signal } from '@zenith/state';
-import { getRouteAsyncLocalStorage } from './als-holder';
+import { installRouteAnnouncer as installA11yRouteAnnouncer, createLiveRegion, type LiveRegion, type LiveRegionOptions } from '@zenith/a11y';
+import { titleFromRoute, type HeadManager, type HeadEntry } from '@zenith/head';
+import { browserRouteSignal, routeSignal } from './route-state';
+export { browserRouteSignal, routeSignal, type RouteState } from './route-state';
 
 /**
  * Route definition interface.
  */
 export interface Route {
   path: string;
-  component?: string | (() => Promise<any>);
+  component?: string | (() => Promise<unknown>);
   lazy?: boolean;
   prefetch?: boolean;
   guard?: (params: Record<string, string>) => boolean | Promise<boolean>;
   /** Arbitrary metadata for the route (e.g. auth guards, page title). */
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
   children?: Route[];
 }
 
@@ -73,122 +75,6 @@ export function useRoute(): RouteContext {
     query: {},
   };
 }
-
-// ── AsyncLocalStorage برای SSR concurrency safety ──
-// در Node.js موجود است. در مرورگر undefined است (که مشکلی نیست چون
-// مرورگر فقط یک client دارد).
-//
-// نکته: این ماژول باید هم به ESM و هم به CJS باندل شود، بنابراین اینجا
-// نه می‌توانیم از top-level await استفاده کنیم (در CJS پشتیبانی نمی‌شود)
-// و نه از require() (در ESM موجود نیست).
-//
-// راه‌حل: `process.getBuiltinModule` (Node 18.19+/20.16+) که دسترسی
-// sync به ماژول‌های داخلی می‌دهد بدون آنکه bundler آن را به‌عنوان
-// وابستگی resolve کند. اگر در دسترس نباشد (مرورگر یا Node قدیمی‌تر)،
-// مقدار null می‌ماند و کد به browserRouteSignal برمی‌گردد.
-//
-// این مقداردهی باید sync باشد چون routeSignal.get/set و
-// runWithRouteSync هر دو API همزمان (sync) هستند.
-/**
- * وضعیت مسیر فعلی.
- *
- * @property path   مسیر فعلی (مثل `/products/101`).
- * @property params پارامترهای استخراج‌شده از مسیر (مثل `{ id: '101' }`).
- */
-export interface RouteState {
-  path: string;
-  params: Record<string, string>;
-}
-
-/**
- * Signal سراسری مسیر فعلی (برای مرورگر).
- *
- * در مرورگر، این singleton است چون فقط یک client وجود دارد.
- * در SSR، از `runWithRoute()` استفاده کنید تا context per-request ایجاد شود.
- * در آن case، `routeSignal.get()` و `routeSignal.set()` به context فعلی اشاره می‌کنند.
- */
-export const browserRouteSignal: Signal<RouteState> = signal<RouteState>({
-  path: typeof window !== 'undefined' ? window.location.pathname : '/',
-  params: {},
-});
-
-/**
- * Proxy Signal که در SSR به context فعلی اشاره می‌کند.
- *
- * این Proxy interface همانند یک Signal واقعی عمل می‌کند:
- *   - get(): اگر در SSR context است، از AsyncLocalStorage می‌خواند.
- *            در غیر این صورت، از browserRouteSignal.
- *   - set(): اگر در SSR context است، در AsyncLocalStorage می‌نویسد.
- *            در غیر این صورت، در browserRouteSignal.
- *
- * این الگو به navigate() و setRouteParams() اجازه می‌دهد بدون تغییر،
- * هم در مرورگر و هم در SSR کار کنند — با isolation کامل در SSR.
- */
-export const routeSignal: Signal<RouteState> = {
-  get(): RouteState {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) {
-        return store.signal.get();
-      }
-    }
-    return browserRouteSignal.get();
-  },
-  set(value: RouteState): void {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) {
-        store.signal.set(value);
-        return;
-      }
-    }
-    browserRouteSignal.set(value);
-  },
-  // متدهای داخلی Signal (برای dependency tracking)
-  addSubscriber(effect: Function): void {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) {
-        (store.signal as any).addSubscriber(effect);
-        return;
-      }
-    }
-    (browserRouteSignal as any).addSubscriber(effect);
-  },
-  removeSubscriber(effect: Function): void {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) {
-        (store.signal as any).removeSubscriber(effect);
-        return;
-      }
-    }
-    (browserRouteSignal as any).removeSubscriber(effect);
-  },
-  get subscriberCount(): number {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) {
-        return (store.signal as any).subscriberCount;
-      }
-    }
-    return (browserRouteSignal as any).subscriberCount;
-  },
-  // Helper برای تست‌ها
-  _getUnderlyingSignal(): Signal<RouteState> {
-    const als = getRouteAsyncLocalStorage();
-    if (als) {
-      const store = als.getStore() as { signal: Signal<RouteState> } | undefined;
-      if (store) return store.signal;
-    }
-    return browserRouteSignal;
-  },
-} as any;
 
 /**
  * تطبیق یک الگوی مسیر با یک مسیر واقعی.
@@ -493,7 +379,7 @@ export async function navigate(path: string, options?: NavigateOptions): Promise
   const reducedMotion =
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const docAny = typeof document !== 'undefined' ? (document as any) : null;
+  const docAny = typeof document !== 'undefined' ? document as Document & { startViewTransition?: (update: () => void | Promise<void>) => { finished: Promise<void> } } : null;
   if (
     options?.transition &&
     !reducedMotion &&
@@ -546,6 +432,7 @@ const _routerCleanups: Array<() => void> = [];
  *           cleanups حذف می‌کند (تا cleanupRouter دیگر آن را اجرا نکند).
  */
 export function registerRouterCleanup(fn: () => void): () => void {
+  if (cleaningRouter) { fn(); return () => {}; }
   _routerCleanups.push(fn);
   let removed = false;
   return () => {
@@ -594,93 +481,96 @@ installPopstateListener();
  *
  * ⚠️ در Production استفاده نکنید.
  */
+let cleaningRouter = false;
 export function cleanupRouter(): void {
-  // listener را واقعاً remove می‌کنیم (با همان reference).
-  if (
-    popstateHandler &&
-    typeof window !== 'undefined' &&
-    typeof window.removeEventListener === 'function'
-  ) {
-    window.removeEventListener('popstate', popstateHandler);
-    popstateHandler = null;
-  }
-  popstateListenerInstalled = false;
-
-  // BUG-RTR-03 (v1.3.0): Run all registered external cleanups (prefetch
-  // handlers, link-click handlers, route cache, route definitions, etc.)
-  // registered by outlet.ts via registerRouterCleanup().
-  for (const cleanup of _routerCleanups) {
-    try {
-      cleanup();
-    } catch {
-      /* one bad cleanup must not break the rest */
+  if (cleaningRouter) return; cleaningRouter = true;
+  try {
+    // listener را واقعاً remove می‌کنیم (با همان reference).
+    if (
+      popstateHandler &&
+      typeof window !== 'undefined' &&
+      typeof window.removeEventListener === 'function'
+    ) {
+      window.removeEventListener('popstate', popstateHandler);
+      popstateHandler = null;
     }
-  }
-  _routerCleanups.length = 0;
-  _guards.length = 0;
-  _afterHooks.length = 0;
-  _savedScrollPositions.clear();
-  _scrollBehavior = null;
+    popstateListenerInstalled = false;
 
-  // reset browser route signal (در SSR، context signals به‌طور خودکار
-  // با تمام شدن runWithRoute پاک می‌شوند).
-  browserRouteSignal.set({ path: '/', params: {} });
+    // BUG-RTR-03 (v1.3.0): Run all registered external cleanups (prefetch
+    // handlers, link-click handlers, route cache, route definitions, etc.)
+    // registered by outlet.ts via registerRouterCleanup().
+    for (const cleanup of _routerCleanups.splice(0)) {
+      try {
+        cleanup();
+      } catch {
+        /* one bad cleanup must not break the rest */
+      }
+    }
+
+    _guards.length = 0;
+    _afterHooks.length = 0;
+    _savedScrollPositions.clear();
+    _scrollBehavior = null;
+
+    // reset browser route signal (در SSR، context signals به‌طور خودکار
+    // با تمام شدن runWithRoute پاک می‌شوند).
+    browserRouteSignal.set({ path: '/', params: {} });
+  } finally { cleaningRouter = false; }
 }
 
-export interface RouteAnnouncerOptions {
+/** Shared a11y/head adapter; legacy option names remain supported. @public */
+export interface RouteAnnouncerOptions extends LiveRegionOptions {
+  mainSelector?: string;
+  title?: (to: string) => string;
+  message?: (title: string) => string;
+  focusMain?: boolean;
+  /** Optional explicit owner for reactive route titles. */
+  head?: HeadManager;
+  routes?: readonly Route[];
+  titleTemplate?: string;
+  /** @deprecated Use mainSelector. */
   focusSelector?: string;
+  /** @deprecated Use title or message. */
   formatAnnouncement?: (to: string) => string;
 }
-
-/**
- * #126: نصب خودکار اعلام‌کنندهٔ مسیر برای صفحه‌خوان‌ها (`aria-live`)، همگام‌سازی `aria-current="page"`
- * و انتقال فوکوس به عنصر اصلی صفحه (`main, [role="main"], h1`).
- */
+/** One owned shared live region and route hook; explicit cleanup also releases the head entry. @public */
 export function installRouteAnnouncer(options: RouteAnnouncerOptions = {}): () => void {
-  const focusSelector = options.focusSelector ?? 'main, [role="main"], h1';
-  return afterEach((to) => {
-    if (typeof document === 'undefined') return;
-    const message = options.formatAnnouncement
-      ? options.formatAnnouncement(to)
-      : document.title || `Navigated to ${to}`;
-    announceRouteChange(message, document);
-    syncActiveRouteLinks(to, document);
-    const target = document.querySelector(focusSelector) as HTMLElement | null;
-    if (target && typeof target.focus === 'function') {
-      if (!target.hasAttribute('tabindex')) {
-        target.setAttribute('tabindex', '-1');
-      }
-      target.focus({ preventScroll: true });
-    }
+  const doc = options.doc ?? (typeof document === 'undefined' ? undefined : document);
+  if (!doc || (doc as Document & { __zenithSSR__?: boolean }).__zenithSSR__) return () => {};
+  let active = true, entry: HeadEntry | undefined, unregister = () => {};
+  const release = installA11yRouteAnnouncer({ ...options, doc,
+    router: { afterEach: callback => afterEach(to => { if (active) callback(to); }) },
+    mainSelector: options.mainSelector ?? options.focusSelector ?? '[data-zen-main], main',
+    message: options.message ?? (options.formatAnnouncement ? title => title : undefined),
+    title: route => {
+      const to = typeof route === 'string' ? route : route.path;
+      syncActiveRouteLinks(to, doc);
+      const matched = options.routes ? findMatchingRoute([...options.routes], to.split('?')[0]!.split('#')[0]!) : undefined;
+      const title = options.title?.(to) ?? (matched || options.head || options.titleTemplate ? titleFromRoute({ path: to, meta: matched?.route.meta }, options.titleTemplate) : doc.title || titleFromRoute({ path: to }));
+      if (!active) return title;
+      if (options.head) { if (entry) entry.patch({ title }); else { const acquired = options.head.push({ title }); if (!active) acquired.dispose(); else entry = acquired; } }
+      return options.formatAnnouncement?.(to) ?? options.head?.resolve().title ?? title;
+    },
   });
+  const dispose = () => { if (!active) return; active = false; unregister(); try { release(); } finally { entry?.dispose(); entry = undefined; } };
+  unregister = registerRouterCleanup(dispose);
+  return dispose;
 }
-
-/**
- * #98 (WCAG 2.2 AA 2.4.2 / 4.1.3): اعلان تغییر مسیر SPA برای صفحه‌خوان‌ها
- * با استفاده از ناحیهٔ زندهٔ `aria-live="polite"` و `aria-atomic="true"`.
- */
+const legacyRouteRegions = new WeakMap<Document, LiveRegion>();
+/** Compatibility facade backed by the shared live-region primitive; cleanupRouter releases it. @public */
 export function announceRouteChange(
   titleOrPath: string,
   doc: Document | undefined = typeof document !== 'undefined' ? document : undefined,
 ): HTMLElement | null {
-  if (!doc || !doc.body) return null;
-  let region = doc.getElementById('zen-route-announcer') as HTMLElement | null;
-  if (!region) {
-    region = doc.createElement('div');
-    region.id = 'zen-route-announcer';
-    region.setAttribute('role', 'status');
-    region.setAttribute('aria-live', 'polite');
-    region.setAttribute('aria-atomic', 'true');
-    region.style.position = 'absolute';
-    region.style.width = '1px';
-    region.style.height = '1px';
-    region.style.overflow = 'hidden';
-    region.style.clip = 'rect(0 0 0 0)';
-    region.style.whiteSpace = 'nowrap';
-    doc.body.appendChild(region);
+  if (!doc?.body || (doc as Document & { __zenithSSR__?: boolean }).__zenithSSR__) return null;
+  let region = legacyRouteRegions.get(doc);
+  if (!region?.element?.isConnected) {
+    region?.dispose(); region = createLiveRegion({ doc, clearAfter: 0 });
+    if (!doc.getElementById('zen-route-announcer') && region.element) region.element.id = 'zen-route-announcer';
+    const owned = region; legacyRouteRegions.set(doc, owned);
+    registerRouterCleanup(() => { owned.dispose(); if (legacyRouteRegions.get(doc) === owned) legacyRouteRegions.delete(doc); });
   }
-  region.textContent = titleOrPath;
-  return region;
+  region.announce(titleOrPath); return region.element;
 }
 
 /**

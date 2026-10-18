@@ -32,7 +32,7 @@ describe('runParityTest', () => {
     // Leading/trailing + inter-tag whitespace is normalized away → match.
     const rt = (_: ParityTestContext) => '  <div>a</div>\n ';
     const cp = (_: ParityTestContext) => '<div>a</div>';
-    const results = runParityTest(suite, rt, cp);
+    const results = runParityTest(suite, { runtimeRunner: rt, compilerRunner: cp });
     expect(results).toHaveLength(1);
     expect(results[0]!.match).toBe(true);
   });
@@ -41,8 +41,7 @@ describe('runParityTest', () => {
     const suite = STANDARD_TEST_SUITES[0]!;
     const results = runParityTest(
       suite,
-      () => 'AAA',
-      () => 'BBB',
+      { runtimeRunner: () => 'AAA', compilerRunner: () => 'BBB' },
     );
     for (const r of results) {
       expect(r.match).toBe(false);
@@ -54,7 +53,7 @@ describe('runParityTest', () => {
 describe('runAllParityTests + report', () => {
   it('aggregates all suites and counts total/passed/failed', () => {
     const sameRunner = (c: ParityTestContext) => c.html;
-    const report = runAllParityTests(sameRunner, sameRunner);
+    const report = runAllParityTests({ runtimeRunner: sameRunner, compilerRunner: sameRunner });
     expect(report.total).toBe(STANDARD_TEST_SUITES.reduce((n, s) => n + s.cases.length, 0));
     expect(report.failed).toBe(0);
     expect(report.passed).toBe(report.total);
@@ -62,8 +61,7 @@ describe('runAllParityTests + report', () => {
 
   it('generateParityReport renders a summary with status line', () => {
     const report = runAllParityTests(
-      () => 'a',
-      () => 'b',
+      { runtimeRunner: () => 'a', compilerRunner: () => 'b' },
     );
     const text = generateParityReport(report);
     expect(text).toContain('PARITY REPORT');
@@ -73,7 +71,7 @@ describe('runAllParityTests + report', () => {
 
   it('generateParityReport shows ALL PASSED when no mismatches', () => {
     const r = (c: ParityTestContext) => c.html;
-    const report = runAllParityTests(r, r);
+    const report = runAllParityTests({ runtimeRunner: r, compilerRunner: r });
     expect(generateParityReport(report)).toMatch(/ALL PARITY CHECKS PASSED/);
   });
 });

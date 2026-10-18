@@ -33,6 +33,10 @@ export type Disposer = Disposable & {
   add(cleanup: Cleanup | Disposable): void;
   /** اجرای تمام cleanupهای ثبت‌شده به ترتیب LIFO و خالی‌کردن فهرست. */
   run(): void;
+  /** Detach an exact registration without invoking it. Optional for legacy adapters. */
+  remove?(cleanup: Cleanup | Disposable): boolean;
+  /** Whether this ownership scope has permanently closed. */
+  isDisposed?(): boolean;
 };
 
 /**
@@ -69,6 +73,12 @@ export function createDisposer(): Disposer {
       if (disposed || !cleanup) return;
       cleanups.push(cleanup);
     },
+    remove(cleanup: Cleanup | Disposable): boolean {
+      if (disposed) return false;
+      const index = cleanups.indexOf(cleanup); if (index < 0) return false;
+      cleanups.splice(index, 1); return true;
+    },
+    isDisposed: () => disposed,
     run,
     dispose: run,
   };

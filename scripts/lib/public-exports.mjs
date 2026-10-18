@@ -12,7 +12,8 @@
 // (`export * from './x'`) را تا ته دنبال می‌کند.
 
 import ts from 'typescript';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { releaseMetadata, mergeDeclarationMetadata, exposureMetadata } from './release-tags.mjs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 /** نام پکیج workspace از روی specifier بیرونی (null اگر بیرونی نباشد). */
@@ -25,9 +26,9 @@ export function zenithPackageOf(spec) {
 
 /** مسیر فایل ماژول محلی از specifier نسبی. */
 function resolveLocal(fromFile, spec) {
-  const base = resolve(dirname(fromFile), spec);
-  for (const cand of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
-    if (existsSync(cand) && !cand.endsWith('.d.ts')) return cand;
+  const base = resolve(dirname(fromFile), spec.replace(/\.(?:mjs|cjs|js)$/, ''));
+  for (const cand of [base, `${base}.ts`, `${base}.tsx`, `${base}.mts`, `${base}.cts`, join(base, 'index.ts')]) {
+    if (existsSync(cand) && statSync(cand).isFile() && !cand.endsWith('.d.ts')) return cand;
   }
   return null;
 }
@@ -39,9 +40,7 @@ function hasExportModifier(node) {
 function releaseTag(node, sourceText) {
   const ranges = ts.getLeadingCommentRanges(sourceText, node.pos) ?? [];
   const comments = ranges.map((r) => sourceText.slice(r.pos, r.end)).join('\n');
-  if (/@internal\b/.test(comments)) return 'internal';
-  if (/@deprecated\b/.test(comments)) return 'deprecated';
-  return 'public';
+  return releaseMetadata([...comments.matchAll(/@(public|beta|alpha|experimental|internal|deprecated)\b/g)].map(match => match[1]));
 }
 
 function kindOf(node) {
@@ -71,6 +70,7 @@ export function collectPublicExports(entryFile, resolveWorkspace) {
   const walk = (file) => {
     if (cache.has(file)) return cache.get(file);
     const result = new Map();
+    const priorities = new Map();
     cache.set(file, result); // پیش از بازگشت، تا چرخه نسازد
     if (!file || !existsSync(file)) return result;
 
@@ -90,28 +90,37 @@ export function collectPublicExports(entryFile, resolveWorkspace) {
       const external = zenithPackageOf(spec);
       const localFile = !external && spec.startsWith('.') ? resolveLocal(file, spec) : null;
       const clause = stmt.importClause;
-      if (clause.name) imports.set(clause.name.text, { external, localFile });
+      if (clause.name) imports.set(clause.name.text, { external, localFile, spec });
       const bindings = clause.namedBindings;
       if (bindings && ts.isNamedImports(bindings)) {
         for (const el of bindings.elements) {
           imports.set(el.name.text, {
             external,
             localFile,
+            spec,
             importedName: el.propertyName?.text ?? el.name.text,
           });
         }
       }
     }
 
-    const add = (name, kind, tag, origin, from) => {
+    const add = (name, kind, metadata, origin, from, priority = 3) => {
+      if (typeof metadata === 'string') metadata = { tag: metadata, deprecated: false };
       const existing = result.get(name);
       // تعریف محلی بر re-export اولویت دارد.
-      if (existing && existing.origin === 'local') return;
-      result.set(name, { name, kind, tag, origin, from });
+      const previousPriority = priorities.get(name) ?? 0;
+      if (existing && previousPriority > priority) return;
+      if (existing && previousPriority === priority && existing.origin === 'local') {
+        if (origin === 'local' && existing.kind === 'function' && kind === 'function') Object.assign(existing, mergeDeclarationMetadata([existing, metadata]));
+        return;
+      }
+      priorities.set(name, priority);
+      result.set(name, { name, kind, ...metadata, origin, from });
     };
 
     for (const stmt of sf.statements) {
       if (hasExportModifier(stmt) && !ts.isExportDeclaration(stmt)) {
+        if (ts.isFunctionDeclaration(stmt) && stmt.body && sf.statements.some(other => ts.isFunctionDeclaration(other) && !other.body && other.name?.text === stmt.name?.text)) continue;
         if (ts.isVariableStatement(stmt)) {
           for (const decl of stmt.declarationList.declarations) {
             if (ts.isIdentifier(decl.name)) {
@@ -132,18 +141,25 @@ export function collectPublicExports(entryFile, resolveWorkspace) {
       const external = spec ? zenithPackageOf(spec) : null;
       const localFile = spec && !external && spec.startsWith('.') ? resolveLocal(file, spec) : null;
 
+      if (stmt.exportClause && ts.isNamespaceExport(stmt.exportClause)) {
+        add(stmt.exportClause.name.text, 'namespace', releaseTag(stmt, sourceText), external ? 'facade' : 'local', external ?? undefined);
+        continue;
+      }
+
       if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
         for (const el of stmt.exportClause.elements) {
           const exported = el.name.text;
           const localName = el.propertyName?.text ?? exported;
           if (external) {
-            add(exported, 'value', 'public', 'facade', external);
+            const other = resolveWorkspace(external, spec);
+            const inner = other ? walk(other).get(localName) : undefined;
+            add(exported, inner?.kind ?? 'value', inner ? exposureMetadata(inner, releaseTag(stmt, sourceText)) : releaseTag(stmt, sourceText), 'facade', external);
           } else if (localFile) {
             const inner = walk(localFile).get(localName);
             add(
               exported,
               inner?.kind ?? 'value',
-              inner?.tag ?? 'public',
+              inner ? exposureMetadata(inner, releaseTag(stmt, sourceText)) : releaseTag(stmt, sourceText),
               inner?.origin ?? 'local',
               inner?.from,
             );
@@ -151,19 +167,22 @@ export function collectPublicExports(entryFile, resolveWorkspace) {
             // `export { X }` (بدون specifier): binding واردشده در همین فایل.
             const imported = imports.get(localName);
             if (imported?.external) {
-              add(exported, 'value', 'public', 'facade', imported.external);
+              const other = resolveWorkspace(imported.external, imported.spec);
+              const inner = other ? walk(other).get(imported.importedName ?? localName) : undefined;
+              add(exported, inner?.kind ?? 'value', inner ? exposureMetadata(inner, releaseTag(stmt, sourceText)) : releaseTag(stmt, sourceText), 'facade', imported.external);
             } else if (imported?.localFile) {
               const inner = walk(imported.localFile).get(imported.importedName ?? localName);
               add(
                 exported,
                 inner?.kind ?? 'value',
-                inner?.tag ?? 'public',
+                inner ? exposureMetadata(inner, releaseTag(stmt, sourceText)) : releaseTag(stmt, sourceText),
                 inner?.origin ?? 'local',
                 inner?.from,
               );
             } else {
               // تعریف‌شده در همین فایل (مثلاً تابع wrapper) — local.
-              add(exported, 'value', 'public', 'local');
+              const declaration = sf.statements.find(candidate => candidate.name?.text === localName || (ts.isVariableStatement(candidate) && candidate.declarationList.declarations.some(d => d.name?.text === localName)));
+              add(exported, declaration ? kindOf(declaration) : 'value', releaseTag(declaration ?? stmt, sourceText), 'local');
             }
           }
         }
@@ -172,15 +191,15 @@ export function collectPublicExports(entryFile, resolveWorkspace) {
 
       // `export * from …`
       if (external) {
-        const otherEntry = resolveWorkspace(external);
+        const otherEntry = resolveWorkspace(external, spec);
         if (otherEntry) {
-          for (const [name, info] of collectPublicExports(otherEntry, resolveWorkspace)) {
-            add(name, info.kind, info.tag, 'facade', external);
+          for (const [name, info] of walk(otherEntry)) {
+            add(name, info.kind, { tag: info.tag, deprecated: info.deprecated }, 'facade', external, 1);
           }
         }
       } else if (localFile) {
         for (const [name, info] of walk(localFile)) {
-          add(name, info.kind, info.tag, info.origin, info.from);
+          add(name, info.kind, { tag: info.tag, deprecated: info.deprecated }, info.origin, info.from, 1);
         }
       }
     }
@@ -202,8 +221,9 @@ export function collectWorkspaceExports(root = process.cwd()) {
     .filter((d) => existsSync(join(packagesDir, d, 'src/index.ts')))
     .sort();
 
-  const resolveWorkspace = (pkg) => {
-    const entry = join(packagesDir, pkg, 'src/index.ts');
+  const resolveWorkspace = (pkg, spec) => {
+    const suffix = spec?.startsWith('@zenith/') ? spec.split('/').slice(2).join('/') : spec?.startsWith('zenith/') ? spec.slice(7) : '';
+    const entry = join(packagesDir, pkg, 'src', suffix ? `${suffix}.ts` : 'index.ts');
     return existsSync(entry) ? entry : null;
   };
 

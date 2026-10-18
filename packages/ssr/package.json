@@ -1,7 +1,7 @@
 {
   "name": "@zenith/ssr",
   "version": "1.4.0",
-  "description": "Zenith framework — Server-Side Rendering (Phase 11). Render-to-string with hydration support.",
+  "description": "Zenith framework \u2014 Server-Side Rendering (Phase 11). Render-to-string with hydration support.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -16,6 +16,11 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./edge": {
+      "types": "./dist/edge.d.ts",
+      "import": "./dist/edge.js",
+      "default": "./dist/edge.js"
     },
     "./package.json": "./package.json"
   },
@@ -58,7 +63,10 @@
     "@zenith/logger": "1.5.0",
     "@zenith/router": "1.4.0",
     "@zenith/runtime": "1.4.0",
-    "@zenith/schema": "1.5.0"
+    "@zenith/schema": "1.5.0",
+    "@zenith/head": "1.5.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/runtime-core": "1.5.0"
   },
   "peerDependencies": {
     "jsdom": "^24.0.0",
@@ -66,6 +74,14 @@
     "@zenith/scheduler": "^1.4.0"
   },
   "zenith": {
-    "target": "node"
+    "target": "node",
+    "entryTargets": {
+      "./edge": "worker"
+    }
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    }
   }
 }

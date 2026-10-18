@@ -1,290 +1,59 @@
-// packages/runtime/src/directives/track.ts
-
-import { logger } from '@zenith/logger';
-//
-// FEATURE (v1.2.0): zen-track — Analytics tracking directive.
-//
-// Wires up an element to fire an analytics event in response to either a
-// user click or the element entering the viewport. The tracking handler is
-// configurable via `configureAnalytics`.
-//
-// Attribute format:
-//   zen-track="click:purchase"
-//   zen-track="visible:product-impression"
-//
-// The first token (before the colon) is the trigger type ("click" or
-// "visible"), and the second token is the event name to send to the
-// analytics handler. If no colon is present, the entire value is treated
-// as the event name and the trigger defaults to "click".
-//
-// SSR safety:
-//   - All DOM access is guarded. The directive is a no-op when `document`
-//     is unavailable. IntersectionObserver is feature-detected.
-
-/**
- * The analytics handler signature. Receives the event name and the source
- * element. Override via `configureAnalytics`.
- */
-export type AnalyticsHandler = (eventName: string, el: HTMLElement) => void;
-
-let analyticsHandler: AnalyticsHandler | null = null;
-
-// FIX (v1.2.4): Module-level WeakSet to de-duplicate visible-tracking
-// firings for the same element. If `processTrack` is re-invoked on the same
-// element (e.g. during re-hydration or a walker re-pass), we skip firing a
-// second time. Entries are dropped in the dispose path so a re-attached
-// element can fire again.
-const seenVisibleElements = new WeakSet<HTMLElement>();
-
-/**
- * Configure the global analytics handler. Pass `null` to disable.
- *
- * @example
- *   import { configureAnalytics } from '@zenith/runtime';
- *   configureAnalytics((name, el) => {
- *     gtag('event', name, { label: el.dataset.label });
- *   });
- */
-export function configureAnalytics(handler: AnalyticsHandler | null): void {
-  analyticsHandler = handler;
+import { createAnalytics as createEngine, bindTrack, doNotTrack, type Analytics } from '@zenith/analytics';
+import { defaultApp, type App } from '@zenith/runtime-core';
+/** Trusted legacy callback: the element stays in the local closure, never in analytics payloads. @public */
+export type AnalyticsHandler = (eventName: string, el: HTMLElement) => void | Promise<void>;
+/** Explicit privacy grant; merely installing a handler is not consent. @public */
+export interface LegacyAnalyticsOptions { consent?: boolean; }
+const HANDLER = Symbol.for('zenith.legacyAnalytics.handler');
+const CONSENT = Symbol.for('zenith.legacyAnalytics.consent');
+const BINDINGS = Symbol.for('zenith.legacyAnalytics.bindings');
+const ENGINES = Symbol.for('zenith.legacyAnalytics.engines');
+const CANCEL_PENDING = Symbol.for('zenith.legacyAnalytics.cancelPending');
+function legacyOwner(): App {
+  const owner = defaultApp();
+  owner.use({ name: 'zenith:legacy-analytics', install(app) {
+    const bindings = new Set<() => void>(); const engines = new Set<Analytics>();
+    app.provide(BINDINGS, bindings); app.provide(ENGINES, engines); app.provide(CANCEL_PENDING, new Set<() => void>()); app.provide(CONSENT, false);
+    return () => { for (const release of [...bindings]) release(); for (const engine of engines) engine.dispose(); engines.clear(); bindings.clear(); };
+  } });
+  return owner;
 }
-
-/**
- * Process the `zen-track` directive.
- *
- * @param el        Element carrying `zen-track`.
- * @param trackAttr The raw attribute value, e.g. "click:purchase".
- * @param context   The current reactive context (unused but kept for API
- *                  symmetry with other directive processors).
- * @returns Dispose function — removes listeners / observers.
- */
-export function processTrack(
-  el: HTMLElement,
-  trackAttr: string,
-  // Part of the directive signature; tracking payload comes from attributes.
-  _context: Record<string, any>,
-): () => void {
-  // Parse the attribute: "<trigger>:<eventName>" or just "<eventName>".
-  let trigger = 'click';
-  let eventName = trackAttr;
-  const colonIdx = trackAttr.indexOf(':');
-  if (colonIdx > 0) {
-    const t = trackAttr.slice(0, colonIdx).trim().toLowerCase();
-    if (t === 'click' || t === 'visible') {
-      trigger = t;
-      eventName = trackAttr.slice(colonIdx + 1).trim();
-    }
-  }
-
-  el.removeAttribute('zen-track');
-
-  const fire = (): void => {
-    if (!analyticsHandler) return;
-    try {
-      analyticsHandler(eventName, el);
-    } catch (err) {
-      logger.error(
-        `[Zenith zen-track] analytics handler threw: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
+/** Legacy API backed by the canonical consent/DNT/queue/failure policy. @public */
+export function configureAnalytics(handler: AnalyticsHandler | null, options: LegacyAnalyticsOptions = {}): void {
+  const owner = legacyOwner(); setAnalyticsConsent(false); owner.provide(HANDLER, handler); setAnalyticsConsent(handler !== null && options.consent === true);
+}
+/** Withdrawal cancels queued engine events; scheduled legacy callbacks recheck before dispatch. @public */
+export function setAnalyticsConsent(granted: boolean): void {
+  const owner = legacyOwner(); owner.provide(CONSENT, Boolean(granted));
+  if (!granted) for (const cancel of owner.inject<Set<() => void>>(CANCEL_PENDING)!) cancel();
+  for (const engine of owner.inject<Set<Analytics>>(ENGINES)!) engine.setConsent(Boolean(granted));
+}
+/** @deprecated Use bindTrack or analyticsPlugin; retained as the same engine adapter. @public */
+export function processTrack(el: HTMLElement, trackAttr: string, context: Record<string, unknown>): () => void {
+  if (typeof window === 'undefined' || (el.ownerDocument as Document & { __zenithSSR__?: boolean }).__zenithSSR__) return () => {};
+  const owner = legacyOwner(); const bindings = owner.inject<Set<() => void>>(BINDINGS)!; const engines = owner.inject<Set<Analytics>>(ENGINES)!;
+  const pending = new Map<ReturnType<typeof setTimeout>, () => void>(); let disposed = false;
+  const cancellers = owner.inject<Set<() => void>>(CANCEL_PENDING)!;
+  const cancelPending = () => { for (const [timer, resolve] of pending) { clearTimeout(timer); resolve(); } pending.clear(); }; cancellers.add(cancelPending);
+  const engine = createEngine({ consent: { required: true, default: owner.inject<boolean>(CONSENT) ?? false }, respectDNT: true, autoPageViews: false, batch: { size: 1, interval: 0 }, providers: [{ name: 'legacy-callback', send(event) {
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pending.delete(timer);
+        if (disposed || !engine.hasConsent() || !owner.inject<boolean>(CONSENT) || doNotTrack()) { resolve(); return; }
+        const handler = owner.inject<AnalyticsHandler | null>(HANDLER);
+        try { Promise.resolve(handler?.(event.name, el)).then(resolve, reject); } catch (error) { reject(error); }
+      }, 0);
+      pending.set(timer, resolve);
+    });
+  } }] });
+  engines.add(engine);
+  let stop: () => void = () => {};
+  const release = () => {
+    if (disposed) return; disposed = true; bindings.delete(release); engines.delete(engine); cancellers.delete(cancelPending);
+    try { stop(); } finally { cancelPending(); engine.dispose(); }
   };
-
-  if (trigger === 'click') {
-    // FIX (v1.2.4): Defer the actual `fire()` call to the next macrotask.
-    // Click handlers that synchronously invoke analytics (which may do
-    // network/XHR work) can interfere with the browser's natural click
-    // handling — e.g. navigating away before the event finishes propagating,
-    // or causing input/checkbox state changes to be visually delayed.
-    // Wrapping in setTimeout(..., 0) lets the click event finish dispatching
-    // first.
-    const onClick = (): void => {
-      setTimeout(() => fire(), 0);
-    };
-    el.addEventListener('click', onClick);
-    return () => {
-      el.removeEventListener('click', onClick);
-    };
-  }
-
-  // trigger === 'visible'
-  if (typeof IntersectionObserver === 'undefined') {
-    // SSR or unsupported — fire once on the next tick (best-effort).
-    return () => {};
-  }
-  let observer: IntersectionObserver | null = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          // FIX (v1.2.4): Skip if this element has already fired a visible
-          // event (de-duplication across re-hydration passes).
-          if (!seenVisibleElements.has(el)) {
-            seenVisibleElements.add(el);
-            fire();
-          }
-          if (observer) {
-            observer.disconnect();
-            observer = null;
-          }
-          break;
-        }
-      }
-    },
-    { threshold: 0.5 },
-  );
-  observer.observe(el);
-
-  return () => {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-    // FIX (v1.2.4): Clear the entry so the element can fire again if it is
-    // re-attached to the DOM later.
-    seenVisibleElements.delete(el);
-  };
+  try { stop = bindTrack(el, { analytics: engine, context, expression: trackAttr, onDispose: reason => { if (reason === 'once') void engine.flush().then(release, release); else release(); } }); bindings.add(release); return release; }
+  catch (error) { release(); throw error; }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// #155 — Analytics Engine with Consent, DNT, and Providers
-// ═══════════════════════════════════════════════════════════════════════════
-
-export interface AnalyticsEvent {
-  type: 'track' | 'page' | 'identify';
-  name: string;
-  props?: Record<string, unknown>;
-  timestamp: number;
-}
-
-export interface AnalyticsProvider {
-  name: string;
-  send: (event: AnalyticsEvent) => void | Promise<void>;
-}
-
-export interface AnalyticsOptions {
-  providers?: AnalyticsProvider[];
-  consent?: { required?: boolean; default?: boolean };
-  respectDNT?: boolean;
-}
-
-export interface AnalyticsInstance {
-  track(name: string, props?: Record<string, unknown>): void;
-  page(path?: string, props?: Record<string, unknown>): void;
-  identify(userId: string, traits?: Record<string, unknown>): void;
-  setConsent(granted: boolean): void;
-  hasConsent(): boolean;
-  use(provider: AnalyticsProvider): () => void;
-  dispose(): void;
-}
-
-function isDntEnabled(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return (
-    (navigator as any).doNotTrack === '1' ||
-    (navigator as any).doNotTrack === 'yes' ||
-    (globalThis as any).doNotTrack === '1'
-  );
-}
-
-/**
- * #155: موتور تحلیل رویداد با رعایت کامل رضایت کاربر (`consent`) و `Do Not Track` (`DNT`).
- */
-export function createAnalytics(options: AnalyticsOptions = {}): AnalyticsInstance {
-  const providers = new Set<AnalyticsProvider>(options.providers ?? []);
-  const consentRequired = options.consent?.required ?? true;
-  let consentGranted = options.consent?.default ?? false;
-  const respectDNT = options.respectDNT ?? true;
-  let disposed = false;
-
-  const canSend = (): boolean => {
-    if (disposed) return false;
-    if (respectDNT && isDntEnabled()) return false;
-    if (consentRequired && !consentGranted) return false;
-    return true;
-  };
-
-  const dispatch = (event: AnalyticsEvent): void => {
-    if (!canSend()) return;
-    for (const provider of providers) {
-      try {
-        void provider.send(event);
-      } catch {
-        // provider errors must never break application flow
-      }
-    }
-  };
-
-  return {
-    track(name, props) {
-      dispatch({ type: 'track', name, props, timestamp: Date.now() });
-    },
-    page(path = '/', props) {
-      dispatch({ type: 'page', name: path, props, timestamp: Date.now() });
-    },
-    identify(userId, traits) {
-      dispatch({ type: 'identify', name: userId, props: traits, timestamp: Date.now() });
-    },
-    setConsent(granted: boolean) {
-      consentGranted = Boolean(granted);
-    },
-    hasConsent() {
-      return consentGranted;
-    },
-    use(provider: AnalyticsProvider) {
-      providers.add(provider);
-      let removed = false;
-      return () => {
-        if (removed) return;
-        removed = true;
-        providers.delete(provider);
-      };
-    },
-    dispose() {
-      disposed = true;
-      providers.clear();
-    },
-  };
-}
-
-export function consoleProvider(sink: (ev: AnalyticsEvent) => void = () => {}): AnalyticsProvider {
-  return {
-    name: 'console',
-    send(ev) {
-      sink(ev);
-    },
-  };
-}
-
-export function beaconProvider(options: { url: string }): AnalyticsProvider {
-  return {
-    name: 'beacon',
-    send(ev) {
-      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        navigator.sendBeacon(options.url, JSON.stringify(ev));
-      }
-    },
-  };
-}
-
-export function gtagProvider(options: { id: string }): AnalyticsProvider {
-  return {
-    name: `gtag:${options.id}`,
-    send(ev) {
-      const gtag = (globalThis as any).gtag;
-      if (typeof gtag === 'function') {
-        gtag('event', ev.name, ev.props ?? {});
-      }
-    },
-  };
-}
-
-export function plausibleProvider(options: { domain: string }): AnalyticsProvider {
-  return {
-    name: `plausible:${options.domain}`,
-    send(ev) {
-      const plausible = (globalThis as any).plausible;
-      if (typeof plausible === 'function') {
-        plausible(ev.name, { props: ev.props ?? {} });
-      }
-    },
-  };
-}
+export { createAnalytics, consoleProvider, beaconProvider, gtagProvider, plausibleProvider } from '@zenith/analytics/legacy';
+export type { AnalyticsEvent, AnalyticsProvider, AnalyticsOptions, AnalyticsInstance } from '@zenith/analytics/legacy';

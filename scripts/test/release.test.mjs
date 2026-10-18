@@ -116,9 +116,11 @@ describe('scripts/release.mjs safe release pipeline (#73)', () => {
       // Simulate failure on @zenith/state — must halt before @zenith/runtime
       const failRes = runRelease({
         rootDir: root,
-        skipChecks: true,
+        skipChecks: false,
         dryRun: false,
+        env: { GITHUB_ACTIONS: 'true', GITHUB_EVENT_NAME: 'push', GITHUB_REF_TYPE: 'tag', GITHUB_REF: 'refs/tags/v1.4.0', ACTIONS_ID_TOKEN_REQUEST_URL: 'unit-fixture', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'unit-fixture' },
         exec: (cmd, args, opts) => {
+          if (cmd === 'npm' && args[0] === '--version') return { status: 0, stdout: '11.21.1', stderr: '' };
           // Windows: cwd بک‌اسلش دارد — پیش از مقایسه نرمال شود.
           if (
             cmd === 'npm' &&

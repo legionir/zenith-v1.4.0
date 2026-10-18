@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
-const EXT_DIR = join(process.cwd(), 'packages', 'devtools-extension');
+const EXT_DIR = join(process.cwd(), 'tools', 'devtools-extension');
 const RUNTIME_ID = 'abcdefghijklmnopabcdefghijklmnop';
 
 // `runInThisContext` (نه یک context جدا) تا همان Object.prototype دامنهٔ تست

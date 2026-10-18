@@ -21,6 +21,7 @@ import { registerStateContextToken } from './context';
 /**
  * #34: Register a module instance of @zenith/state and emit a one-time ZEN-0301
  * warning if more than one module copy is loaded in the same process.
+ * @internal
  */
 export function registerStateInstance(token?: object): number {
   return registerStateContextToken(token, (count) => {
@@ -56,6 +57,7 @@ export {
  * @deprecated #115: interface محلی state حذف شد؛ مدل واحد، کلاس
  * `ZenithError` از `@zenith/errors` است. این alias فقط برای سازگاری نام
  * type باقی مانده و در ۲.۰ حذف می‌شود (DEC-026).
+ * @public
  */
 export type ZenithError = ZenithErrorClass;
 
@@ -94,6 +96,7 @@ function mapCategory(c: string | undefined): ErrorCategory {
  * @deprecated #115: نام helper قدیمی state؛ semantic معادل `try/catch` +
  * `emitError` است و بعداً به `@zenith/errors` منتقل می‌شود (یا در #134
  * error-boundary retry بازنویسی می‌شود). موقتاً رفتار قبلی حفظ شده.
+ * @public
  */
 export function errorBoundary<T extends (...args: never[]) => unknown>(
   fn: T,

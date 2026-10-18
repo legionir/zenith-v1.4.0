@@ -73,6 +73,9 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # Public-any tests inspect real emitted entries, not source barrels.
+      - name: Build library declarations and consumer artifacts
+        run: npm run build:libraries
       # #29: vitest with the >=80% statement coverage gate on core packages.
       # اگر run شکست بخورد، ۸۰ خط آخر خروجی به‌صورت annotation غنی می‌شود تا بدون
       # دسترسی به لاگ خام CI هم علت دقیق روشن شود (no-op در موفقیت).
@@ -118,7 +121,25 @@ jobs:
       # کلاس کاملِ وابستگی‌های محیطی را بدون حدس حذف می‌کند (هزینه: چند دقیقه).
       - name: Build all packages
         run: npm run build
-      - run: npx vitest run scripts/test/
+      - run: npx vitest run scripts/test/ packages/cli/test/lifecycle.test.ts packages/cli/test/scaffold-manifest.test.ts
+
+  # #13: test the real plugin HTML pipeline, not direct hook invocations.
+  vite-integration:
+    name: Vite ${{ matrix.vite }} integration
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vite: [6, 7]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/vite-plugin-integration.mjs ${{ matrix.vite }}
 
   # #84: benchmark خودکار CI با بودجهٔ عملکرد (benchmarks/budgets.json) —
   # رگرسیون هر متریک (بدتر از بودجه×۰٫۶) جریان را قرمز می‌کند.
@@ -148,9 +169,9 @@ jobs:
       # #65: fail on high/critical advisories in production dependencies
       - name: npm audit (production, high)
         run: npm audit --omit=dev --audit-level=high
-      # #65: report dev-dependency advisories in CI logs
-      - name: npm audit (dev report)
-        run: npm audit --audit-level=high || true
+      # #13: dev tooling is an attack surface too; any advisory blocks the gate
+      - name: npm audit (production + development)
+        run: npm audit --audit-level=low
       # #65: secret scan across tracked repository files
       - name: Secret scan (gitleaks rules)
         run: node scripts/secret-scan.mjs
@@ -268,15 +289,11 @@ jobs:
         with:
           path: |
             packages/*/dist
-            packages/vscode-extension/out
+            tools/vscode-extension/out
           key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
         run: npm run build
-      # vscode-extension's publint entry (out/extension.js) is compiled here,
-      # not by the esbuild pipeline (it has no src/index.ts).
-      - name: Compile vscode extension
-        run: npm run compile -w zenith-vscode
       # #70: uniform repository/homepage/bugs/publishConfig/sideEffects.
       - name: Validate package fields
         run: node scripts/validate-package-fields.mjs
@@ -299,6 +316,25 @@ jobs:
       - name: .d.ts ↔ ESM ↔ CJS export parity
         run: npm run dts-parity
 
+  tools:
+    name: Build and package editor/browser tools (#51)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:tools
+      - run: npm run package:tools
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editor-browser-tools
+          path: artifacts/tools/*
+          if-no-files-found: error
+          retention-days: 14
+
   peer-single-instance:
     name: Peer single instance (#46)
     runs-on: ubuntu-latest
@@ -317,7 +353,7 @@ jobs:
         with:
           path: |
             packages/*/dist
-            packages/vscode-extension/out
+            tools/vscode-extension/out
           key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
@@ -373,7 +409,7 @@ jobs:
         with:
           path: |
             packages/*/dist
-            packages/vscode-extension/out
+            tools/vscode-extension/out
           key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'scripts/**', 'playwright.config.ts', 'e2e/**') }}
       - name: Build all packages (cache miss)
         if: steps.dist.outputs.cache-hit != 'true'
@@ -477,11 +513,36 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  api-contracts:
+    name: Declaration API contracts (#38/#56)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:libraries
+      # Fail closed: absent baselines, signature drift, public any and missing
+      # release classifications must not silently become a passing bootstrap.
+      - run: npm run api:strict
+      - name: Check published callables, methods and factories (#55)
+        run: npm run check:positional-config:published
+      - name: Upload API review evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: declaration-api-reports
+          path: artifacts/api-reports/
+          if-no-files-found: error
+          retention-days: 14
+
   # Publishing a tarball per tag is handled separately so it runs once,
   # not once per Node version in the matrix.
   release:
     name: Attach bundles to release
-    needs: build
+    needs: [lint, format, typecheck, unit, unit-os-matrix, vite-integration, benchmark, audit, secret-scan, deps, package-lint, tools, peer-single-instance, size, e2e, build, api-contracts]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:

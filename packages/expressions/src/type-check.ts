@@ -5,6 +5,7 @@
  * This module can be extended later to integrate with TypeScript type checking.
  */
 
+/** @public */
 export type ExpressionType =
   | 'string'
   | 'number'
@@ -16,6 +17,7 @@ export type ExpressionType =
   | 'function'
   | 'unknown';
 
+/** @public */
 export interface TypeCheckResult {
   type: ExpressionType;
   valid: boolean;
@@ -23,6 +25,7 @@ export interface TypeCheckResult {
   warnings: string[];
 }
 
+/** @public */
 export interface TypeContext {
   /** Known variable types in scope */
   variables: Record<string, ExpressionType>;
@@ -30,8 +33,9 @@ export interface TypeContext {
 
 /**
  * Infer a simple type from a JavaScript value at runtime.
+ * @public
  */
-export function inferType(value: any): ExpressionType {
+export function inferType(value: unknown): ExpressionType {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
   if (Array.isArray(value)) return 'array';
@@ -50,8 +54,9 @@ export function inferType(value: any): ExpressionType {
 
 /**
  * Check if a value is assignable to an expected type.
+ * @public
  */
-export function isAssignableTo(value: any, expected: ExpressionType): boolean {
+export function isAssignableTo(value: unknown, expected: ExpressionType): boolean {
   const actual = inferType(value);
   if (actual === expected) return true;
   // Loose compatibility rules
@@ -63,9 +68,10 @@ export function isAssignableTo(value: any, expected: ExpressionType): boolean {
 
 /**
  * Validate an expression value against an expected type.
+ * @public
  */
 export function validateType(
-  value: any,
+  value: unknown,
   expected: ExpressionType,
   expression: string,
 ): TypeCheckResult {
@@ -93,6 +99,7 @@ export function validateType(
 
 /**
  * Create a type context for template scope.
+ * @public
  */
 export function createTypeContext(variables: Record<string, ExpressionType> = {}): TypeContext {
   return { variables: { ...variables } };
@@ -100,20 +107,22 @@ export function createTypeContext(variables: Record<string, ExpressionType> = {}
 
 /**
  * Assert that a value is of a specific type (for internal runtime checks).
+ * @public
  */
-export function assertType<T>(value: any, guard: (v: any) => v is T): value is T {
+export function assertType<T>(value: unknown, guard: (v: unknown) => v is T): value is T {
   return guard(value);
 }
 
 /**
  * Common type guards.
+ * @public
  */
 export const TypeGuards = {
-  isString: (v: any): v is string => typeof v === 'string',
-  isNumber: (v: any): v is number => typeof v === 'number' && !Number.isNaN(v),
-  isBoolean: (v: any): v is boolean => typeof v === 'boolean',
-  isObject: (v: any): v is Record<string, any> =>
+  isString: (v: unknown): v is string => typeof v === 'string',
+  isNumber: (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v),
+  isBoolean: (v: unknown): v is boolean => typeof v === 'boolean',
+  isObject: (v: unknown): v is Record<string, unknown> =>
     v !== null && typeof v === 'object' && !Array.isArray(v),
-  isArray: (v: any): v is any[] => Array.isArray(v),
-  isFunction: (v: any): v is (...args: any[]) => any => typeof v === 'function',
+  isArray: (v: unknown): v is unknown[] => Array.isArray(v),
+  isFunction: (v: unknown): v is (...args: never[]) => unknown => typeof v === 'function',
 };

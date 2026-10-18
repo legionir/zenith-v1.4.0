@@ -71,7 +71,7 @@ const _processingStack = new Set<string>();
 export interface ComponentLifecycle {
   onMount?: () => void | (() => void);
   onDestroy?: () => void;
-  onUpdate?: (props: Record<string, any>) => void;
+  onUpdate?: (props: Record<string, unknown>) => void;
 }
 
 const lifecycleHooks = new Map<string, ComponentLifecycle>();
@@ -149,13 +149,13 @@ function normalizePropName(name: string): string {
  */
 function buildComponentContext(
   el: HTMLElement,
-  parentContext: Record<string, any>,
-): Record<string, any> {
+  parentContext: Record<string, unknown>,
+): Record<string, unknown> {
   // ساخت Context با ارث‌بری از parent.
   // Object.create(parentContext) یک prototype chain می‌سازد که تمام getter های
   // والد (مثل `$product` از zen-for یا `$user` از createContext) را در دسترس
   // نگه می‌دارد.
-  const localContext: Record<string, any> = Object.create(parentContext);
+  const localContext: Record<string, unknown> = Object.create(parentContext);
 
   for (const attr of Array.from(el.attributes)) {
     const attrName = attr.name;
@@ -317,10 +317,10 @@ function buildSlotContents(el: HTMLElement): Map<string, HTMLElement[]> {
  */
 export function processComponent(
   el: HTMLElement,
-  parentContext: Record<string, any>,
+  parentContext: Record<string, unknown>,
   processChildren: (
     node: HTMLElement,
-    context: Record<string, any>,
+    context: Record<string, unknown>,
     disposes: (() => void)[],
     isSlotContent: boolean,
   ) => void,

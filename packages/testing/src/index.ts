@@ -27,6 +27,7 @@ export type {
   TrackedEffect,
   MockResource,
   RenderResult,
+  RenderOptions,
   A11yImpact,
   A11yViolation,
   A11yAuditOptions,
@@ -36,4 +37,6 @@ export type {
   MockHttpController,
   MockRouterController,
   DirectiveTestResult,
+  DirectiveTestOptions,
+  TestDirectiveDefinition,
 } from './testing';

@@ -13,6 +13,8 @@
 
 // ── API سطح بالا: ساده‌ترین راه استفاده ──
 
+export { createBindingContext } from './binding-context';
+
 import { compile } from './cache';
 import { evaluate } from './evaluator';
 import { type ASTNode } from './parser';
@@ -74,7 +76,7 @@ export function evaluateExpression(expr: string, context: object): unknown {
  *   fn({ $user: { age: 25 } }) // → true
  *   fn({ $user: { age: 15 } }) // → false
  */
-export function compileExpression(expr: string): (context: object) => any {
+export function compileExpression(expr: string): (context: object) => unknown {
   const ast = compile(expr);
   return (context: object) => evaluate(ast, context);
 }

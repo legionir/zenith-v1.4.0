@@ -12,8 +12,11 @@
 import { createReservedError, deprecate } from '@zenith/errors';
 import { s, defineOptions } from '@zenith/schema';
 import type { Cleanup, Disposable } from '@zenith/shared';
-import { setSignalObserver, type Signal } from '@zenith/state';
+import { setSignalObserver, untrack } from '@zenith/state';
+import { isGlobalDiagnosticsAllowed } from './observation-policy';
+import { resetRuntimeGraphInternal } from './graph';
 import { onGlobalReset } from '@zenith/errors';
+import { resolveInspectedWriter } from './signal-mutation';
 
 export {
   RuntimeGraph,
@@ -27,6 +30,8 @@ export {
   recordRead,
   recordWrite,
   recordDomUpdate,
+  type GraphSignalOptions,
+  type GraphDirectiveOptions,
   type GraphNode,
   type GraphEdge,
   type GraphSnapshot,
@@ -34,10 +39,12 @@ export {
   type GraphEdgeType,
 } from './graph';
 
+/** @public */
 export const DEVTOOLS_HOOK_VERSION = '1.5.0';
 
 const DEFAULT_REDACT_KEYS = ['token', 'password', 'authorization', 'secret', 'cookie'] as const;
 
+/** @public */
 export interface DevtoolsCoreOptions {
   /** فعال بودن ردیابی؛ پیش‌فرض: `__ZENITH_DEV__ !== false`. */
   enabled?: boolean;
@@ -51,6 +58,7 @@ export interface DevtoolsCoreOptions {
   captureValues?: boolean;
 }
 
+/** Source integration helper; root bridge awaits public-only export migration. @internal */
 export const devtoolsCoreOptions = defineOptions<Required<DevtoolsCoreOptions>>(
   'DevtoolsCoreOptions',
   s.object({
@@ -62,18 +70,22 @@ export const devtoolsCoreOptions = defineOptions<Required<DevtoolsCoreOptions>>(
   }),
 );
 
+/** @public */
 export const DEVTOOLS_CORE_DEFAULTS = devtoolsCoreOptions.DEFAULTS;
+/** @public */
 export const devtoolsCoreOptionsSchema = devtoolsCoreOptions.schema;
+/** @public */
 export const resolveDevtoolsCoreOptions = (opts?: unknown): Required<DevtoolsCoreOptions> =>
   devtoolsCoreOptions.resolve(opts);
 
-export interface UntypedSignal {
-  get(): unknown;
-  set(value: never): void;
-  peek?(): unknown;
+/** Read-only heterogeneous inspection view; it is not a writable Signal<unknown>. @public */
+export interface UntypedSignal<T = unknown> {
+  get(): T;
+  peek?(): T;
   subscriberCount?: number;
 }
 
+/** @public */
 export interface SignalInfo {
   /** شناسهٔ رشته‌ای یکتا (مثلاً `'sig-1'`). */
   id: string;
@@ -91,6 +103,7 @@ export interface SignalInfo {
   signalRef: WeakRef<UntypedSignal>;
 }
 
+/** @public */
 export interface StateChange {
   /** شناسهٔ یکتای رخداد تغییر. */
   id: string;
@@ -106,11 +119,13 @@ export interface StateChange {
   timestamp: number;
 }
 
+/** @public */
 export interface SnapshotSignalEntry {
   name?: string;
   value: unknown;
 }
 
+/** @public */
 export interface Snapshot {
   version: string;
   timestamp: number;
@@ -118,6 +133,7 @@ export interface Snapshot {
   timelineLength: number;
 }
 
+/** @public */
 export interface DevtoolsHookEventMap {
   'signal:create': SignalInfo;
   'signal:change': StateChange;
@@ -127,6 +143,7 @@ export interface DevtoolsHookEventMap {
   [event: string]: unknown;
 }
 
+/** @public */
 export interface ZenithDevtoolsCoreHook {
   readonly version: string;
   emit<K extends keyof DevtoolsHookEventMap>(event: K, payload: DevtoolsHookEventMap[K]): void;
@@ -148,12 +165,20 @@ const idToInfo = new Map<string, SignalInfo>();
 let nextSignalSeq = 1;
 let nextChangeSeq = 1;
 const timeline: StateChange[] = [];
-const stateChangeListeners = new Set<(change: StateChange) => void>();
-let isRestoring = false;
+interface StateChangeListener { callback: ((change: StateChange) => void) | null; }
+const stateChangeListeners = new Set<StateChangeListener>();
+const pendingRegistrations = new WeakSet<UntypedSignal>();
+let registryGeneration = 0;
+const restoringOperations = new Set<object>();
+// The shared State observer can have several live scoped installations. One
+// older disposer must not unpublish the hook still used by another installation.
+const activeInstallations = new Set<object>();
 
-const registeredCaches = new Map<string, unknown>();
-const registeredStores = new Map<string, unknown>();
-const registeredApps = new Map<string, unknown>();
+interface PanelRegistration { value: unknown; }
+const registeredCaches = new Map<string, PanelRegistration>();
+const registeredStores = new Map<string, PanelRegistration>();
+const registeredApps = new Map<string, PanelRegistration>();
+const noopCleanup: Cleanup = () => {};
 
 const finalizationRegistry: FinalizationRegistry<string> | null =
   typeof FinalizationRegistry !== 'undefined'
@@ -162,17 +187,7 @@ const finalizationRegistry: FinalizationRegistry<string> | null =
       })
     : null;
 
-function isSSRContext(): boolean {
-  const g = globalThis as Record<string, unknown>;
-  if (g.__ZENITH_SSR__ === true) return true;
-  if (
-    typeof document !== 'undefined' &&
-    (document as unknown as Record<string, unknown>).__zenithSSR__ === true
-  ) {
-    return true;
-  }
-  return false;
-}
+function isSSRContext(): boolean { return !isGlobalDiagnosticsAllowed(); }
 
 function isTrackingEnabled(): boolean {
   if (isSSRContext()) return false;
@@ -216,27 +231,31 @@ function cleanupDeadSignals(): void {
 
 const hookListeners = new Map<string, Set<(payload: unknown) => void>>();
 
+/** @public */
 export const hook: ZenithDevtoolsCoreHook = {
   version: DEVTOOLS_HOOK_VERSION,
   emit(event, payload) {
+    if (isSSRContext()) return;
     const set = hookListeners.get(String(event));
     if (!set) return;
-    for (const fn of set) {
+    for (const fn of Array.from(set)) {
+      if (!set.has(fn)) continue;
       try {
-        fn(payload);
+        untrack(() => fn(payload));
       } catch {
         // خطای listener خارجی نباید جریان برنامه را بشکند
       }
     }
   },
   on(event, handler) {
+    if (isSSRContext()) return noopCleanup;
     const key = String(event);
     let set = hookListeners.get(key);
     if (!set) {
       set = new Set();
       hookListeners.set(key, set);
     }
-    const wrapped = handler as (payload: unknown) => void;
+    const wrapped = (payload: unknown): void => { Reflect.apply(handler, undefined, [payload]); };
     set.add(wrapped);
     let removed = false;
     return () => {
@@ -250,6 +269,7 @@ export const hook: ZenithDevtoolsCoreHook = {
 /**
  * بررسی سازگاری نسخهٔ hook؛ در صورت عدم تطابق، خطای `ZEN-2401` پرتاب می‌کند.
  */
+/** @public */
 export function assertHookVersion(
   version: unknown,
   expected: string = DEVTOOLS_HOOK_VERSION,
@@ -265,45 +285,46 @@ export function assertHookVersion(
 
 /**
  * ثبت یک سیگنال و بازگرداندن شناسهٔ رشته‌ای یکتا (`sig-N`).
+ * @public
  */
-export function registerSignal<T = unknown>(sig: Signal<T>, name?: string): string {
+export function registerSignal<T = unknown>(sig: UntypedSignal<T>, name?: string): string {
   if (!isTrackingEnabled()) return '';
-
-  const untyped = sig as unknown as UntypedSignal;
+  const untyped: UntypedSignal = sig;
   const existing = signalToId.get(untyped);
   if (existing !== undefined) {
     if (name !== undefined) {
-      const info = idToInfo.get(existing);
-      if (info) info.name = name;
+      const info = idToInfo.get(existing); if (info) info.name = name;
     }
     return existing;
   }
-
-  const id = `sig-${nextSignalSeq++}`;
-  const rawVal = typeof sig.peek === 'function' ? sig.peek() : sig.get();
-  const info: SignalInfo = {
-    id,
-    name,
-    value: formatCapturedValue(rawVal),
-    subscriberCount: sig.subscriberCount ?? 0,
-    computed: Boolean((sig as unknown as { _computed?: boolean })._computed),
-    createdAt: Date.now(),
-    signalRef: new WeakRef(untyped),
-  };
-
-  signalToId.set(untyped, id);
-  idToInfo.set(id, info);
-  finalizationRegistry?.register(sig, id);
-  hook.emit('signal:create', info);
-  return id;
+  if (pendingRegistrations.has(untyped)) return '';
+  const generation = registryGeneration;
+  pendingRegistrations.add(untyped);
+  try {
+    // The declared capability is readable inspection, not a nominal writable
+    // Signal. Keep the real object and do not track diagnostic getters.
+    const inspected = untrack(() => ({
+      value: formatCapturedValue(typeof sig.peek === 'function' ? sig.peek() : sig.get()),
+      subscriberCount: sig.subscriberCount ?? 0,
+      computed: Boolean(Reflect.get(sig, '_computed')),
+    }));
+    if (generation !== registryGeneration || !isTrackingEnabled()) return '';
+    const id = `sig-${nextSignalSeq++}`;
+    const info: SignalInfo = { id, name, ...inspected, createdAt: Date.now(), signalRef: new WeakRef(untyped) };
+    signalToId.set(untyped, id); idToInfo.set(id, info); finalizationRegistry?.register(sig, id);
+    hook.emit('signal:create', info);
+    return id;
+  } finally { pendingRegistrations.delete(untyped); }
 }
 
 /**
  * نام‌گذاری یا تغییر نام یک سیگنال ثبت‌شده.
+ * @public
  */
-export function nameSignal<T = unknown>(sig: Signal<T>, name: string): void {
+export function nameSignal<T = unknown>(sig: UntypedSignal<T>, name: string): void {
   if (!isTrackingEnabled()) return;
-  const untyped = sig as unknown as UntypedSignal;
+  const generation = registryGeneration;
+  const untyped: UntypedSignal = sig;
   let id = signalToId.get(untyped);
   if (id === undefined) {
     id = registerSignal(sig, name);
@@ -311,20 +332,21 @@ export function nameSignal<T = unknown>(sig: Signal<T>, name: string): void {
     const info = idToInfo.get(id);
     if (info) info.name = name;
   }
-  if (id) {
+  if (id && generation === registryGeneration && idToInfo.has(id) && isTrackingEnabled()) {
     hook.emit('signal:name', { id, name });
   }
 }
 
 /**
  * ثبت یک تغییر مقدار سیگنال در Timeline.
+ * @public
  */
 export function recordStateChange<T = unknown>(
-  sig: Signal<T>,
+  sig: UntypedSignal<T>,
   oldValue: unknown,
   newValue: unknown,
 ): StateChange | undefined {
-  if (!isTrackingEnabled() || isRestoring) return undefined;
+  if (!isTrackingEnabled() || restoringOperations.size > 0) return undefined;
 
   if (currentConfig.sampleRate < 1) {
     // NON-SECURITY: probabilistic devtools telemetry sampling (#64)
@@ -334,7 +356,7 @@ export function recordStateChange<T = unknown>(
     }
   }
 
-  const untyped = sig as unknown as UntypedSignal;
+  const untyped: UntypedSignal = sig;
   let id = signalToId.get(untyped);
   if (id === undefined) {
     id = registerSignal(sig);
@@ -342,18 +364,19 @@ export function recordStateChange<T = unknown>(
   if (!id) return undefined;
 
   const info = idToInfo.get(id);
-  const capturedOld = formatCapturedValue(oldValue);
-  const capturedNew = formatCapturedValue(newValue);
-
-  if (info) {
-    info.value = capturedNew;
-    info.subscriberCount = sig.subscriberCount ?? 0;
-  }
+  if (!info) return undefined;
+  const generation = registryGeneration;
+  const { capturedOld, capturedNew, subscriberCount } = untrack(() => ({
+    capturedOld: formatCapturedValue(oldValue), capturedNew: formatCapturedValue(newValue),
+    subscriberCount: sig.subscriberCount ?? 0,
+  }));
+  if (generation !== registryGeneration || idToInfo.get(id) !== info || !isTrackingEnabled()) return undefined;
+  info.value = capturedNew; info.subscriberCount = subscriberCount;
 
   const change: StateChange = {
     id: `chg-${nextChangeSeq++}`,
     signalId: id,
-    signalName: info?.name,
+    signalName: info.name,
     oldValue: capturedOld,
     newValue: capturedNew,
     timestamp: Date.now(),
@@ -364,23 +387,23 @@ export function recordStateChange<T = unknown>(
     timeline.shift();
   }
 
-  for (const listener of stateChangeListeners) {
-    try {
-      listener(change);
-    } catch {
-      // ignore listener errors
-    }
+  for (const listener of Array.from(stateChangeListeners)) {
+    if (generation !== registryGeneration) break;
+    const callback = listener.callback; if (!callback) continue;
+    try { untrack(() => callback(change)); } catch { /* isolate external listeners */ }
   }
-  hook.emit('signal:change', change);
+  if (generation === registryGeneration) hook.emit('signal:change', change);
   return change;
 }
 
+/** @public */
 export function getAllSignals(): SignalInfo[] {
   if (!isTrackingEnabled()) return [];
   cleanupDeadSignals();
   return Array.from(idToInfo.values());
 }
 
+/** @public */
 export function getSignalInfo(id: string): SignalInfo | undefined {
   if (!isTrackingEnabled()) return undefined;
   const info = idToInfo.get(id);
@@ -391,6 +414,7 @@ export function getSignalInfo(id: string): SignalInfo | undefined {
   return info;
 }
 
+/** @public */
 export function getTimeline(limit?: number): StateChange[] {
   if (!isTrackingEnabled()) return [];
   if (limit === undefined) return timeline.slice();
@@ -398,19 +422,20 @@ export function getTimeline(limit?: number): StateChange[] {
   return timeline.slice(-limit);
 }
 
+/** @public */
 export const getStateTimeline = getTimeline;
 
+/** Subscribe to diagnostic events without adding reactive dependencies. @public */
 export function onStateChange(cb: (change: StateChange) => void): Cleanup {
-  stateChangeListeners.add(cb);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    stateChangeListeners.delete(cb);
-  };
+  if (isSSRContext()) return noopCleanup;
+  const listener: StateChangeListener = { callback: cb };
+  stateChangeListeners.add(listener);
+  return () => { listener.callback = null; stateChangeListeners.delete(listener); };
 }
 
+/** @public @deprecated Use resetForTesting() for an explicit process reset (ZEN-DEPR-064). */
 export function clearRegistry(): void {
+  if (isSSRContext()) return;
   deprecate(
     'ZEN-DEPR-064',
     'clearRegistry (@zenith/devtools-core)',
@@ -421,197 +446,186 @@ export function clearRegistry(): void {
 
 /**
  * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
+ * This explicit process reset is not a request-local diagnostic API.
+ * @internal
  */
 export function clearDevtoolsRegistryInternal(): void {
+  registryGeneration++;
+  resetRuntimeGraphInternal();
+  restoringOperations.clear();
   signalToId = new WeakMap<UntypedSignal, string>();
   idToInfo.clear();
   timeline.length = 0;
+  for (const listener of stateChangeListeners) listener.callback = null;
   stateChangeListeners.clear();
   // رجیستری‌های پنل (#119 نام‌گذاری صریح)
-  registeredCaches.clear();
-  registeredStores.clear();
-  registeredApps.clear();
+  for (const registry of [registeredCaches, registeredStores, registeredApps]) {
+    for (const entry of registry.values()) entry.value = undefined;
+    registry.clear();
+  }
 }
 
-/* @__PURE__ */ onGlobalReset(clearDevtoolsRegistryInternal);
+onGlobalReset(clearDevtoolsRegistryInternal);
 
+/** @public @deprecated Use resetForTesting() for an explicit process reset (ZEN-DEPR-064). */
 export const clearDevtoolsRegistry = clearRegistry;
 
 // ── Time-Travel: snapshot / restore / replay ──
 
-/**
- * گرفتن اسنپ‌شات از وضعیت فعلی همهٔ سیگنال‌های زنده.
- */
+/** Capture actual readable values without attaching reactive dependencies. @public */
 export function snapshot(): Snapshot {
-  cleanupDeadSignals();
-  const signals: Record<string, SnapshotSignalEntry> = {};
-  for (const [id, info] of idToInfo) {
-    const sig = info.signalRef.deref();
-    if (!sig) continue;
-    const raw = typeof sig.peek === 'function' ? sig.peek() : sig.get();
-    signals[id] = {
-      name: info.name,
-      value: structuredClone(raw),
-    };
-  }
+  const generation = registryGeneration;
+  const entries: Array<[string, SnapshotSignalEntry]> = [];
+  if (isTrackingEnabled()) untrack(() => {
+    cleanupDeadSignals();
+    for (const [id, info] of Array.from(idToInfo)) {
+      if (generation !== registryGeneration || !isTrackingEnabled()) break;
+      const sig = info.signalRef.deref();
+      if (!sig) continue;
+      const value = structuredClone(typeof sig.peek === 'function' ? sig.peek() : sig.get());
+      if (generation !== registryGeneration || idToInfo.get(id) !== info || !isTrackingEnabled()) continue;
+      entries.push([id, { name: info.name, value }]);
+    }
+  });
+  const current = generation === registryGeneration && isTrackingEnabled();
   return {
-    version: DEVTOOLS_HOOK_VERSION,
-    timestamp: Date.now(),
-    signals,
-    timelineLength: timeline.length,
+    version: DEVTOOLS_HOOK_VERSION, timestamp: Date.now(),
+    signals: current ? Object.fromEntries(entries) : {}, timelineLength: current ? timeline.length : 0,
   };
 }
 
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * بازگردانی وضعیت سیگنال‌ها از روی یک `Snapshot`.
- * ساختار نامعتبر ⇒ `ZEN-2402`؛ نسخهٔ ناسازگار ⇒ `ZEN-2401`.
- */
-export function restore(snap: unknown): void {
-  if (
-    !isPlainObject(snap) ||
-    typeof snap.timestamp !== 'number' ||
-    !Number.isFinite(snap.timestamp) ||
-    !isPlainObject(snap.signals)
-  ) {
-    throw createReservedError('ZEN-2402', {
-      details: { snapshot: snap },
-    });
+// A concrete decoder constructs a Snapshot. It neither casts unknown into an
+// arbitrary T nor forwards an unvalidated object as a typed hook event.
+function decodeSnapshot(input: unknown): Snapshot {
+  const invalid = (reason: string): never => { throw createReservedError('ZEN-2402', { details: { reason } }); };
+  if (!isPlainObject(input)) return invalid('snapshot must be an object');
+  const timestamp = input.timestamp, version = input.version, signals = input.signals;
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) return invalid('invalid timestamp');
+  if (typeof version !== 'string') return invalid('missing version');
+  assertHookVersion(version);
+  if (!isPlainObject(signals)) return invalid('signals must be an object');
+  const rawLength = input.timelineLength;
+  // Historical restore accepted snapshots without timeline metadata. Normalize
+  // that legacy omission explicitly, rather than pretending it was validated.
+  const timelineLength = rawLength === undefined ? 0 : rawLength;
+  if (typeof timelineLength !== 'number' || !Number.isSafeInteger(timelineLength) || timelineLength < 0) return invalid('invalid timeline length');
+  const entries: Array<[string, SnapshotSignalEntry]> = [];
+  for (const [id, entry] of Object.entries(signals)) {
+    if (!isPlainObject(entry) || !('value' in entry)) return invalid('invalid signal entry');
+    const name = entry.name, value = entry.value;
+    if (name !== undefined && typeof name !== 'string') return invalid('invalid signal name');
+    entries.push([id, name === undefined ? { value } : { name, value }]);
   }
+  return { timestamp, version, timelineLength, signals: Object.fromEntries(entries) };
+}
 
-  if (typeof snap.version !== 'string') {
-    throw createReservedError('ZEN-2402', {
-      details: { snapshot: snap, reason: 'missing version' },
-    });
-  }
-
-  assertHookVersion(snap.version);
-
-  const signalsMap = snap.signals as Record<string, unknown>;
-  for (const [id, entry] of Object.entries(signalsMap)) {
-    if (!isPlainObject(entry) || !('value' in entry)) {
-      throw createReservedError('ZEN-2402', {
-        details: { id, entry },
-      });
-    }
-  }
-
-  isRestoring = true;
+/** Validate and restore a concrete Snapshot; readonly setters remain unsupported. @public */
+export function restore(input: unknown): void {
+  if (!isTrackingEnabled()) return;
+  const generation = registryGeneration;
+  const decoded = untrack(() => decodeSnapshot(input));
+  if (generation !== registryGeneration || !isTrackingEnabled()) return;
+  const operation = {}; restoringOperations.add(operation);
   try {
-    for (const [id, entry] of Object.entries(signalsMap) as Array<[string, SnapshotSignalEntry]>) {
-      const info = idToInfo.get(id);
-      const sig = info?.signalRef.deref();
+    for (const [id, entry] of Object.entries(decoded.signals)) {
+      if (generation !== registryGeneration || !isTrackingEnabled()) break;
+      const info = idToInfo.get(id), sig = untrack(() => info?.signalRef.deref());
       if (!sig || !info) continue;
       try {
-        (sig.set as (v: unknown) => void)(structuredClone(entry.value));
-        info.value = formatCapturedValue(entry.value);
-      } catch {
-        // سیگنال readonly را نادیده بگیر
-      }
+        const value = untrack(() => structuredClone(entry.value));
+        const write = untrack(() => resolveInspectedWriter(sig));
+        if (generation !== registryGeneration || idToInfo.get(id) !== info || !isTrackingEnabled()) break;
+        untrack(() => write(value));
+        const captured = untrack(() => formatCapturedValue(value));
+        if (generation === registryGeneration && idToInfo.get(id) === info) info.value = captured;
+      } catch { /* reject unsupported clone/setter without fabricating writability */ }
     }
-  } finally {
-    isRestoring = false;
-  }
-
-  hook.emit('snapshot:restore', snap as unknown as Snapshot);
+  } finally { restoringOperations.delete(operation); }
+  if (generation === registryGeneration && isTrackingEnabled()) hook.emit('snapshot:restore', decoded);
 }
 
-/**
- * بازپخش گام‌به‌گام بازه‌ای از Timeline بر اساس اندیس (`from` تا `to`).
- */
+/** Replay stable event data; reset invalidates sleeping work without reviving it. @public */
 export async function replay(from: number, to: number, opts?: { speed?: number }): Promise<void> {
-  const speed = opts?.speed ?? 1;
-  if (typeof speed !== 'number' || !Number.isFinite(speed) || speed <= 0) {
-    throw createReservedError('ZEN-1004', {
-      details: { path: 'speed', expected: '> 0', received: speed },
-    });
+  if (!isTrackingEnabled()) return;
+  const generation = registryGeneration;
+  const speed = untrack(() => opts?.speed ?? 1);
+  if (typeof speed !== 'number' || !Number.isFinite(speed) || speed <= 0 || !Number.isFinite(from) || !Number.isFinite(to)) {
+    throw createReservedError('ZEN-1004', { details: { path: 'replay', expected: 'finite indexes and speed > 0' } });
   }
-  if (timeline.length === 0) return;
-
-  const clamp = (idx: number) => Math.max(0, Math.min(timeline.length - 1, Math.trunc(idx)));
-  const start = clamp(from);
-  const end = clamp(to);
-  const step = start <= end ? 1 : -1;
-
-  isRestoring = true;
+  if (generation !== registryGeneration || !isTrackingEnabled()) return;
+  const steps = timeline.slice(); if (steps.length === 0) return;
+  const clamp = (index: number) => Math.max(0, Math.min(steps.length - 1, Math.trunc(index)));
+  const start = clamp(from), end = clamp(to), step = start <= end ? 1 : -1;
+  const operation = {}; restoringOperations.add(operation);
   try {
-    for (let i = start; step > 0 ? i <= end : i >= end; i += step) {
-      const entry = timeline[i];
-      if (!entry) continue;
-      const info = idToInfo.get(entry.signalId);
-      const sig = info?.signalRef.deref();
-      if (sig && info) {
-        const targetVal = step > 0 ? entry.newValue : entry.oldValue;
-        try {
-          (sig.set as (v: unknown) => void)(targetVal);
-          info.value = formatCapturedValue(targetVal);
-        } catch {
-          // ignore readonly signal
-        }
-      }
-      if (i !== end && speed < 100) {
+    for (let index = start; step > 0 ? index <= end : index >= end; index += step) {
+      if (generation !== registryGeneration || !isTrackingEnabled()) break;
+      const entry = steps[index]; if (!entry) continue;
+      const info = idToInfo.get(entry.signalId), sig = untrack(() => info?.signalRef.deref());
+      if (sig && info) try {
+        const target = untrack(() => step > 0 ? entry.newValue : entry.oldValue);
+        const write = untrack(() => resolveInspectedWriter(sig));
+        if (generation !== registryGeneration || idToInfo.get(entry.signalId) !== info || !isTrackingEnabled()) break;
+        untrack(() => write(target));
+        const captured = untrack(() => formatCapturedValue(target));
+        if (generation === registryGeneration && idToInfo.get(entry.signalId) === info) info.value = captured;
+      } catch { /* readonly setter */ }
+      if (index !== end && speed < 100) {
         const delayMs = Math.min(20, Math.max(0, Math.round(5 / speed)));
-        if (delayMs > 0) {
-          await new Promise((r) => setTimeout(r, delayMs));
-        }
+        if (delayMs > 0) await new Promise<void>(resolve => setTimeout(resolve, delayMs));
       }
     }
-  } finally {
-    isRestoring = false;
-  }
+  } finally { restoringOperations.delete(operation); }
 }
 
 // ── Panel Registries (`registerCache`, `registerStore`, `registerApp`) ──
 
+// Replacement and reset release old payloads; equal values are not equal leases.
+function registerPanel(registry: Map<string, PanelRegistration>, name: string, value: unknown): Cleanup {
+  if (isSSRContext()) return noopCleanup;
+  const old = registry.get(name); if (old) old.value = undefined;
+  const entry: PanelRegistration = { value }; registry.set(name, entry);
+  let removed = false;
+  return () => {
+    if (removed) return;
+    removed = true;
+    if (registry.get(name) === entry) registry.delete(name);
+    entry.value = undefined;
+  };
+}
+function readPanels(registry: Map<string, PanelRegistration>): ReadonlyMap<string, unknown> {
+  const view = new Map<string, unknown>();
+  if (!isSSRContext()) for (const [name, entry] of registry) view.set(name, entry.value);
+  return view;
+}
+
+/** @public */
 export function registerDevtoolsCache(name: string, cache: unknown): Cleanup {
-  registeredCaches.set(name, cache);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (registeredCaches.get(name) === cache) {
-      registeredCaches.delete(name);
-    }
-  };
+  return registerPanel(registeredCaches, name, cache);
 }
-
+/** @public */
 export function getRegisteredCaches(): ReadonlyMap<string, unknown> {
-  return new Map(registeredCaches);
+  return readPanels(registeredCaches);
 }
-
+/** @public */
 export function registerDevtoolsStore(name: string, store: unknown): Cleanup {
-  registeredStores.set(name, store);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (registeredStores.get(name) === store) {
-      registeredStores.delete(name);
-    }
-  };
+  return registerPanel(registeredStores, name, store);
 }
-
+/** @public */
 export function getRegisteredStores(): ReadonlyMap<string, unknown> {
-  return new Map(registeredStores);
+  return readPanels(registeredStores);
 }
-
+/** @public */
 export function registerApp(name: string, app: unknown): Cleanup {
-  registeredApps.set(name, app);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (registeredApps.get(name) === app) {
-      registeredApps.delete(name);
-    }
-  };
+  return registerPanel(registeredApps, name, app);
 }
-
+/** @public */
 export function getRegisteredApps(): ReadonlyMap<string, unknown> {
-  return new Map(registeredApps);
+  return readPanels(registeredApps);
 }
 
 // ── installDevtoolsCore ──
@@ -620,32 +634,29 @@ export function getRegisteredApps(): ReadonlyMap<string, unknown> {
  * نصب هستهٔ DevTools و اتصال به `setSignalObserver` در `@zenith/state`.
  * در SSR به‌طور کامل no-op است.
  */
+/** @public */
 export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
+  return untrack(() => installCore(opts));
+}
+function installCore(opts?: DevtoolsCoreOptions): Disposable {
+  if (isSSRContext()) return { dispose: noopCleanup };
   const resolved = devtoolsCoreOptions.resolve(opts);
   const g = globalThis as Record<string, unknown>;
   const defaultEnabled = g.__ZENITH_DEV__ !== false;
   const effectiveEnabled = opts?.enabled !== undefined ? resolved.enabled : defaultEnabled;
 
-  currentConfig = {
-    ...resolved,
-    enabled: effectiveEnabled,
-    redact: [...resolved.redact],
-  };
+  const nextConfig = { ...resolved, enabled: effectiveEnabled, redact: [...resolved.redact] };
+  if (!effectiveEnabled) { currentConfig = nextConfig; return { dispose: noopCleanup }; }
 
-  if (isSSRContext() || !effectiveEnabled) {
-    return {
-      dispose() {
-        /* SSR / disabled no-op */
-      },
-    };
-  }
-
-  // بررسی سازگاری hook از پیش نصب‌شده روی globalThis / window
-  const existingHook = g.__ZENITH_DEVTOOLS_HOOK__ as { version?: unknown } | undefined;
-  if (existingHook && existingHook.version !== undefined) {
-    assertHookVersion(existingHook.version);
+  // Read only a proven object capability; a failed installation must not apply
+  // its new config to an already-live outside observer.
+  const existingHook: unknown = g.__ZENITH_DEVTOOLS_HOOK__;
+  if (existingHook !== null && (typeof existingHook === 'object' || typeof existingHook === 'function')) {
+    const version: unknown = Reflect.get(existingHook, 'version');
+    if (version !== undefined) assertHookVersion(version);
   }
   g.__ZENITH_DEVTOOLS_HOOK__ = hook;
+  currentConfig = nextConfig;
 
   const detachObserver = setSignalObserver({
     onCreate(sig, name) {
@@ -655,9 +666,9 @@ export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
       recordStateChange(sig, oldValue, newValue);
     },
     onDispose(sig) {
-      const id = signalToId.get(sig as unknown as UntypedSignal);
+      const id = signalToId.get(sig);
       if (id !== undefined) {
-        idToInfo.delete(id);
+        signalToId.delete(sig); idToInfo.delete(id);
         hook.emit('signal:dispose', { id });
       }
     },
@@ -666,15 +677,22 @@ export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
     },
   });
 
+  const installation = {};
+  activeInstallations.add(installation);
   let disposed = false;
   return {
     dispose() {
       if (disposed) return;
       disposed = true;
       detachObserver();
-      if (g.__ZENITH_DEVTOOLS_HOOK__ === hook) {
-        delete g.__ZENITH_DEVTOOLS_HOOK__;
-      }
+      activeInstallations.delete(installation);
+      untrack(() => {
+        try {
+          if (activeInstallations.size === 0 && g.__ZENITH_DEVTOOLS_HOOK__ === hook) {
+            if (!Reflect.deleteProperty(g, '__ZENITH_DEVTOOLS_HOOK__') && g.__ZENITH_DEVTOOLS_HOOK__ === hook) Reflect.set(g, '__ZENITH_DEVTOOLS_HOOK__', undefined);
+          }
+        } catch { /* observer/token teardown must survive hostile global accessors */ }
+      });
     },
   };
 }
@@ -684,6 +702,7 @@ export function installDevtoolsCore(opts?: DevtoolsCoreOptions): Disposable {
  * (رجیستری واقعی کش) هم‌نام و مبهم بود؛ این تابع رجیستری **پنل devtools** است.
  * از `registerDevtoolsCache` استفاده کنید (ZEN-DEPR-042؛ حذف در ۲.۰).
  */
+/** @public */
 export function registerCache(name: string, cache: unknown): Cleanup {
   deprecate('ZEN-DEPR-042', 'registerCache (@zenith/devtools-core)', 'registerDevtoolsCache');
   return registerDevtoolsCache(name, cache);
@@ -694,6 +713,7 @@ export function registerCache(name: string, cache: unknown): Cleanup {
  * (رجیستری واقعی storeها) هم‌نام و مبهم بود؛ این تابع رجیستری **پنل devtools**
  * است. از `registerDevtoolsStore` استفاده کنید (ZEN-DEPR-043؛ حذف در ۲.۰).
  */
+/** @public */
 export function registerStore(name: string, store: unknown): Cleanup {
   deprecate('ZEN-DEPR-043', 'registerStore (@zenith/devtools-core)', 'registerDevtoolsStore');
   return registerDevtoolsStore(name, store);

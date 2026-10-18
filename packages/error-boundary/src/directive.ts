@@ -23,6 +23,15 @@ import { logger } from '@zenith/logger';
 import { parseJsonAttr } from '@zenith/schema/attr';
 import { clearError, onError } from './boundary';
 
+/** Private host metadata; optional slots reflect unbound/recovered elements. */
+interface BoundaryElement extends HTMLElement {
+  __zenithFallback__?: string;
+  __zenithFallbackFn__?: ((error: unknown) => string) | null;
+  __zenithOriginalHTML__?: string;
+  __zenithProcessChildren__?: (node: HTMLElement, disposes: (() => void)[]) => void;
+  __zenithRetryCount__?: number;
+}
+
 /**
  * #134: گزینه‌های Error Boundary محلی شامل تلاش مجدد خودکار با backoff و fallback قابل‌پیکربندی.
  */
@@ -67,8 +76,8 @@ export function processErrorBoundary(
     fallbackContent = fallbackTemplate.innerHTML;
     fallbackTemplate.remove();
   }
-  (el as any).__zenithFallback__ = fallbackContent;
-  (el as any).__zenithFallbackFn__ =
+  (el as BoundaryElement).__zenithFallback__ = fallbackContent;
+  (el as BoundaryElement).__zenithFallbackFn__ =
     typeof options.fallback === 'function' ? options.fallback : null;
 
   const retryAttr = el.getAttribute('zen-error-retry');
@@ -95,9 +104,9 @@ export function processErrorBoundary(
     }
   }
 
-  (el as any).__zenithOriginalHTML__ = el.innerHTML;
-  (el as any).__zenithProcessChildren__ = processChildren;
-  (el as any).__zenithRetryCount__ = 0;
+  (el as BoundaryElement).__zenithOriginalHTML__ = el.innerHTML;
+  (el as BoundaryElement).__zenithProcessChildren__ = processChildren;
+  (el as BoundaryElement).__zenithRetryCount__ = 0;
 
   const childDisposes: (() => void)[] = [];
   const retryTimers = new Set<ReturnType<typeof setTimeout>>();
@@ -123,9 +132,9 @@ export function processErrorBoundary(
       }
       childDisposes.length = 0;
 
-      const currentAttempt = ((el as any).__zenithRetryCount__ ?? 0) as number;
+      const currentAttempt = ((el as BoundaryElement).__zenithRetryCount__ ?? 0) as number;
       if (currentAttempt < retryConfig.attempts) {
-        (el as any).__zenithRetryCount__ = currentAttempt + 1;
+        (el as BoundaryElement).__zenithRetryCount__ = currentAttempt + 1;
         const waitMs = retryConfig.delay * Math.pow(retryConfig.factor, currentAttempt);
         const timer = setTimeout(() => {
           retryTimers.delete(timer);
@@ -135,7 +144,7 @@ export function processErrorBoundary(
         return;
       }
 
-      const customFn = (el as any).__zenithFallbackFn__ as ((e: unknown) => string) | null;
+      const customFn = (el as BoundaryElement).__zenithFallbackFn__ as ((e: unknown) => string) | null;
       const renderedFallback = customFn ? customFn(zenithError) : fallbackContent;
       showFallback(el, renderedFallback);
     }
@@ -183,11 +192,11 @@ export function showFallback(el: HTMLElement, fallback: string): void {
  */
 export function recoverFromError(el: HTMLElement): void {
   clearError();
-  const originalHTML = (el as any).__zenithOriginalHTML__;
+  const originalHTML = (el as BoundaryElement).__zenithOriginalHTML__;
   if (typeof originalHTML === 'string') {
     el.innerHTML = originalHTML;
   }
-  const proc = (el as any).__zenithProcessChildren__ as
+  const proc = (el as BoundaryElement).__zenithProcessChildren__ as
     ((node: HTMLElement, disposes: (() => void)[]) => void) | undefined;
   if (typeof proc === 'function') {
     const tempDisposes: (() => void)[] = [];
@@ -204,6 +213,6 @@ export function recoverFromError(el: HTMLElement): void {
  * #134: بازنشانی کامل وضعیت Error Boundary (شمارندهٔ تلاش مجدد و محتوای اصلی).
  */
 export function resetErrorBoundary(el: HTMLElement): void {
-  (el as any).__zenithRetryCount__ = 0;
+  (el as BoundaryElement).__zenithRetryCount__ = 0;
   recoverFromError(el);
 }

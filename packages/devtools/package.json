@@ -1,7 +1,7 @@
 {
   "name": "@zenith/devtools",
   "version": "1.4.0",
-  "description": "Zenith framework \u2014 DevTools Hook (Phase 10). Browser extension bridge for inspecting State, Components, and State change timeline.",
+  "description": "Zenith framework — DevTools Hook (Phase 10). Browser extension bridge for inspecting State, Components, and State change timeline.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -56,7 +56,8 @@
   "dependencies": {
     "@zenith/components": "1.4.0",
     "@zenith/devtools-core": "1.5.0",
-    "@zenith/logger": "1.5.0"
+    "@zenith/logger": "1.5.0",
+    "@zenith/errors": "1.4.0"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"

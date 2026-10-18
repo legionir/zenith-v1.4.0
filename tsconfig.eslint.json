@@ -12,11 +12,17 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@zenith/state": ["./packages/state/src/index.ts"],
+      "@zenith/state/internal": ["./packages/state/src/internal.ts"]
+    }
   },
   "include": [
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts",
+    "tools/*/src/**/*.ts",
+    "tools/*/test/**/*.ts",
     "scripts/**/*.mjs",
     "vitest.config.ts",
     "eslint.config.mjs"

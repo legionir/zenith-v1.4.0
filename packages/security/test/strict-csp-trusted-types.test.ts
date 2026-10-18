@@ -8,6 +8,7 @@ import {
   resetTrustedTypesPolicyCache,
   setSafeInnerHTML,
   secureId,
+  type TrustedTypePolicyFactory,
 } from '../src';
 import { evaluateExpression, compileExpression } from '../../expressions/src';
 
@@ -17,7 +18,7 @@ describe('Strict CSP (no unsafe-eval/unsafe-inline) & TrustedTypes (#63)', () =>
   });
 
   afterEach(() => {
-    delete (window as any).trustedTypes;
+    delete window.trustedTypes;
     vi.restoreAllMocks();
   });
 
@@ -60,15 +61,15 @@ describe('Strict CSP (no unsafe-eval/unsafe-inline) & TrustedTypes (#63)', () =>
 
   it('enforces TrustedTypes policy on HTML sinks via createTrustedTypesPolicy and setSafeInnerHTML', () => {
     const createdHTML: string[] = [];
-    (window as any).trustedTypes = {
-      createPolicy: vi.fn((name: string, rules: { createHTML: (s: string) => string }) => ({
+    window.trustedTypes = {
+      createPolicy: vi.fn((name: string, rules: Parameters<TrustedTypePolicyFactory['createPolicy']>[1]) => ({
         name,
         createHTML: (input: string) => {
-          const clean = rules.createHTML(input);
+          const clean = rules.createHTML?.(input) ?? input;
           createdHTML.push(clean);
           return clean;
         },
-        createScriptURL: rules.createHTML,
+        createScriptURL: rules.createScriptURL ?? ((value: string) => value),
       })),
     };
 
@@ -76,12 +77,12 @@ describe('Strict CSP (no unsafe-eval/unsafe-inline) & TrustedTypes (#63)', () =>
     const policy2 = createTrustedTypesPolicy();
     expect(policy1).not.toBeNull();
     expect(policy1).toBe(policy2);
-    expect((window as any).trustedTypes.createPolicy).toHaveBeenCalledTimes(1);
+    expect(window.trustedTypes?.createPolicy).toHaveBeenCalledTimes(1);
 
     const container = document.createElement('div');
     setSafeInnerHTML(
       container,
-      '<p onclick="alert(1)">Hello <b>World</b></p><script>evil()</script>',
+      { html: '<p onclick="alert(1)">Hello <b>World</b></p><script>evil()</script>' },
     );
 
     expect(createdHTML).toHaveLength(1);

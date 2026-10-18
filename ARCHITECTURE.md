@@ -328,6 +328,41 @@ node_modules حاصل می‌شود و یک getter store به signal بیرون�
 8. **اعتبارسنجی گزینه‌ها:** schema برای `AuthConfig`، `HttpRequestOptions`، `SWConfig`، `ZenithPluginOptions`، `ZenStartOptions`، با پیام خطای ZEN-xxx.
 9. **API عمومی رسمی:** TSDoc با `@public/@internal`، `api-extractor` و snapshot در CI، `exports` شرطی (`development`/`production`، `browser`/`node`/`worker`).
 10. **پکیج‌های ابزار** (`vscode-extension`، `devtools-extension`) به `tools/` منتقل شوند.
-11. **پیشگیری از Dual-Package Hazard (#75، DEC-027):** پکیج‌های جدید ۱.۵+ (`schema`, `cache`, `jalali`, `devtools-core`, `runtime-core`, `zenith`) فقط ESM منتشر می‌شوند (`DEC-027`). در پکیج‌های هستهٔ موجود (`@zenith/state` و `@zenith/scheduler`) که برای سازگاری ۱.x خروجی dual ESM/CJS دارند، تمام وضعیت‌های singleton (`EffectContext`، درخت `Owner`، و صف `Scheduler`) روی `globalThis` با کلیدهای `Symbol.for('zenith.state.context.v1')` و `Symbol.for('zenith.scheduler.state.v1')` نگهداری می‌شوند تا حتی در صورت ترکیب `import` و `require()` تنها یک نمونهٔ وضعیت واکنش‌گرا در کل فرآیند فعال باشد.
+11. **پیشگیری از Dual-Package Hazard (#75، DEC-027):** پکیج‌های جدید ۱.۵+ (`schema`, `cache`, `jalali`, `devtools-core`, `runtime-core`, `zenith`) فقط ESM منتشر می‌شوند (`DEC-027`). هسته‌های dual فعلی tracking/owner-disposer context و صف scheduler را با `Symbol.for('zenith.state.context.v1')` و `Symbol.for('zenith.scheduler.state.v1')` مشترک می‌کنند. این به‌تنهایی برابری constructorهای Signal/Computed را ثابت نمی‌کند. candidate جدید `zenith.state.runtime.v1` کانال‌های observer، خطا، metadata اولویت و رجیستری legacy را به‌صورت دادهٔ مشترک نگه می‌دارد؛ رجیستری و اولویت پیش‌فرض هر context جداست. fixtureهای دو ترتیب بارگذاری نوشته شده‌اند اما اجرا نشده‌اند؛ این بدهی هنوز پذیرفته/بسته نشده است. candidate جدید `@zenith/state/internal` از self-package root ارجاع می‌دهد تا owner/implementation دیگری در هر format نسازد، نه اینکه همهٔ خطرهای قدیمی را حل‌شده فرض کند. Node SSR نیز DOM ALS و App claimهای formatها را با `Symbol.for('zenith.ssr.dom-context.v1')` مشترک می‌کند؛ داده و owner هر درخواست جدا می‌ماند. کد و fixtureهای این ادامه هنوز اجرا/اعتبارسنجی نشده‌اند.
 
 تصمیم‌های باز این معماری در #175 بسته شدند (۸ ADR): فضای کد خطا DEC-020، `Readable<T>`/shared DEC-021، تعویق adapter-edge DEC-022، ترتیب ui DEC-023، charts/icons جامعه DEC-024، تقسیم runtime-core با parity DEC-025، نسخه‌گذاری lockstep DEC-026، حداقل Node و فرمت ESM-first DEC-027 — همه در `docs/decisions/`.
+
+## Tool workspaces (#51)
+
+Publishable libraries live in `packages/`. Browser and VS Code extensions live in
+`tools/devtools-extension` and `tools/vscode-extension` and are private npm workspaces.
+`npm run build` explicitly builds libraries **and** tools; `build:libraries` and
+`build:tools` are the scoped entry points. `package:tools` produces Chrome/Firefox ZIPs
+and a VSIX in ignored `artifacts/tools/`. No store publication is performed. Tool
+compilation or packaging failure is fatal, including in the dedicated CI tools job.
+
+### Diagnostic boundary continuation (2026-10-18; not validated)
+
+State's private runtime holder contains shared channels/weak metadata only. The
+legacy registry and default priority belong to EffectContext; host disposal retires
+that view. Node SSR installs this scope and blocks global diagnostics before route
+construction, retaining local legacy diagnostics until retirement. Modern Core
+consumes the internal observation-policy getter but retains module-local registry/
+config; its install tokens do not imply config isolation. Readable capabilities do
+not unify constructors. Actual mixed-format runtime and packaged type fixtures are
+authored, not executed. Old published peer compatibility/root export separation
+still require release review; the new source integration is not release evidence.
+
+### Diagnostic graph/browser consumer follow-through (candidate, 2026-10-18)
+
+The realm graph and compatibility Devtools panel/browser hook now consume the same
+native State host policy. A local RuntimeGraph remains caller-owned. Graph/panel
+snapshots copy metadata only; opaque values are not decoded/cloned into false
+application types. Foreign globals are checked native capabilities, not asserted
+interfaces. Walker weak IDs/pending element guards share private realm data under
+`zenith.runtime.telemetry.v1`, not constructors. Browser hooks own exact publication
+and listener resources; stale HMR/cleanup cannot remove an external replacement.
+Options 101–105 preserve deprecated bridges with an explicit graph transport marker.
+Process reset owns global diagnostic teardown and cannot be pure-eliminated. All
+fixtures and size/declaration/consumer effects remain unvalidated; root internals,
+peer floors, constructor/Core duplicate-module hazards and Edge parity stay open.

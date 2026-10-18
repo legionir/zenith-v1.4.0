@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PUBLIC_SUBPATHS } from '../lib/exports-shape.mjs';
 import { generateApiDocs } from '../generate-api-docs.mjs';
 import { auditPublicEntrypointAny, auditSrcAnyTotals } from '../check-public-any.mjs';
 
@@ -12,7 +13,7 @@ describe('Public API surface snapshot, TypeDoc reference, conditional exports & 
     // 49 پکیج (#147..#149 + #160,#161,#162,#168,#169,#170 ⇒ 41 → 49) + 11 زیرمسیر عمومی
     // (#142/#120: zod/json-schema/attr + storage/signal + core/ssr/testing/presets×3/browser).
     expect(keys.length - subpaths.length).toBe(49);
-    expect(subpaths.length).toBe(11);
+    expect(subpaths.length).toBe(Object.values(PUBLIC_SUBPATHS).reduce((sum, entries) => sum + entries.length, 0));
     expect(existsSync(join(process.cwd(), 'docs/api/INDEX.md'))).toBe(true);
 
     for (const [, info] of Object.entries(res.surface)) {
@@ -85,13 +86,9 @@ describe('Public API surface snapshot, TypeDoc reference, conditional exports & 
     expect(buildScript).toContain("__ZENITH_DEV__: 'false'");
   });
 
-  it('enforces zero public entrypoint any across all package entrypoints (#38)', () => {
-    // #38 (2026-10-15): همهٔ ۳۱ any باقی‌ماندهٔ public entrypoint صفر شد
-    // (expressions: evaluateExpression→unknown؛ service-worker: ZenLikeForSW
-    // structural؛ runtime-core/runtime: تایپ‌های ambient محلی به‌جای cast های
-    // untyped برای __zenMemoUnchanged/__zenithDelegationTeardown/__ZENITH_RELOAD__
-    // و options?: unknown). سقف کلی entrypoint: صفر مطلق — هر فایل جدید یا
-    // هر بازگشت any خطای این تست است.
+  it('enforces zero public any across published declarations and referenced workspace types (#38)', () => {
+    // Requires a fresh library build. Missing conditions/declarations fail closed;
+    // barrel-only zero counts are not evidence for this assertion.
     const res = auditPublicEntrypointAny(process.cwd());
     expect(res.violations).toEqual([]);
     expect(res.zeroAnyPackagesCount).toBeGreaterThanOrEqual(22);

@@ -268,5 +268,55 @@
     "name": "zenith (preset: full)",
     "path": "packages/zenith/dist/presets/full.js",
     "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/realtime",
+    "path": "packages/realtime/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/analytics",
+    "path": "packages/analytics/dist/index.js",
+    "limit": "3 kb"
+  },
+  {
+    "name": "@zenith/eslint-plugin",
+    "path": "packages/eslint-plugin/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/testing-e2e",
+    "path": "packages/testing-e2e/dist/index.js",
+    "limit": "4 kb"
+  },
+  {
+    "name": "@zenith/a11y",
+    "path": "packages/a11y/dist/index.js",
+    "limit": "5 kb"
+  },
+  {
+    "name": "@zenith/head",
+    "path": "packages/head/dist/index.js",
+    "limit": "3 kb"
+  },
+  {
+    "name": "@zenith/ui",
+    "path": "packages/ui/dist/index.js",
+    "limit": "15 kb"
+  },
+  {
+    "name": "@zenith/adapter-node",
+    "path": "packages/adapter-node/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/mock",
+    "path": "packages/mock/dist/index.js",
+    "limit": "6 kb"
+  },
+  {
+    "name": "@zenith/adapter-edge",
+    "path": "packages/adapter-edge/dist/index.js",
+    "limit": "6 kb"
   }
 ]

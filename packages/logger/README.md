@@ -84,3 +84,14 @@ node scripts/test/no-console-ratchet.test.mjs # دروازهٔ ratchet (بخش �
 - DEC-021/#141 — الگوی لایه: بدون یال به پکیج بالاتر (duck روی reportError)
 - DEC-003 — `no-console`؛ این issue (SPEC §۲.۳) آن را به `'error'` با
   ratchet ۶۲ فایلِ بدهی ارتقا داد؛ مهاجرت کامل در #39.
+
+### Errors transport
+
+`installDiagnosticLogger(logger?)` explicitly bridges `@zenith/errors` diagnostics
+(including legacy deprecations) into the selected logger's filter/redaction/sinks.
+It returns a replacement-safe cleanup, including out-of-order removal. Runtime App
+initialization installs the default bridge; merely importing primitive exports
+has no bridge-installation effect. Standalone errors consumers choose this bridge
+or `setErrorLogger`; without a host policy errors retains history/throws silently.
+The bridge uses no errors→logger import, and root/subpath or ESM/CJS copies share
+its transport. This standalone behavior change needs release-owner review.

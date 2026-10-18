@@ -1,0 +1,68 @@
+{
+  "name": "@zenith/mock",
+  "version": "1.5.0",
+  "description": "Owned REST and WebSocket mocking for fetch tests and Service Workers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "./dist/worker.js"
+  ],
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs mock",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/mock"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/main/packages/mock",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/shared": "1.5.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0"
+  },
+  "peerDependencies": {},
+  "zenith": {
+    "target": "universal",
+    "entryTargets": {
+      "./worker": "worker"
+    }
+  },
+  "devDependencies": {
+    "@zenith/http": "1.4.0",
+    "@zenith/resource": "1.4.0"
+  }
+}

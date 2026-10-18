@@ -10,6 +10,7 @@
 
 export {
   sanitizeHTML,
+  sanitizeHTMLInDocument,
   sanitizeHTMLWithOptions,
   // FIX (v1.2.3): sanitizeHTMLTrusted قبلاً فقط در dist/index.js export می‌شد
   // ولی در src/index.ts فراموش شده بود. حالا برای هماهنگی src و dist، از source
@@ -30,6 +31,9 @@ export {
   createTrustedTypesPolicy,
   resetTrustedTypesPolicyCache,
   setSafeInnerHTML,
+  type SafeInnerHTMLOptions,
+  type TrustedTypePolicy,
+  type TrustedTypePolicyFactory,
 } from './sanitizer';
 
 // #64: شناسه‌ی امن با CSPRNG (crypto.getRandomValues)
@@ -39,6 +43,7 @@ export { secureId } from './secure-id';
  * #53: پیش‌فرض‌های منجمد برای `@zenith/security` (`SanitizeOptions` / `CSPOptions`).
  * @default { allowDataAttributes: true, strictDynamic: false, requireTrustedTypes: false }
  * @since 1.4.0
+ * @public
  */
 export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   allowDataAttributes: true,

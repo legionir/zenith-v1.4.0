@@ -4,92 +4,28 @@
 // - no-explicit-any is a *warning* until #38 zeroes out the ~240 remaining
 //   `any`s in public APIs (documented in DEC-003). All other errors are
 //   enforced (lint fails the build on them).
-// - no-console: 'error' for package src since #143 (@zenith/logger); the
-//   the legacy files listed in scripts/no-console-ratchet.mjs stay exempt
-//   until their migration in #39 (the ratchet only shrinks — enforced by
-//   scripts/test/no-console-ratchet.test.mjs). DEC-003's «off until #39»
-//   row is superseded by this two-step: rule ON now, code migrated in #39.
+// - no-console is enforced for package/tool source; only the actual logger sink
+//   owns the host console. CLI/IDE data uses explicit output writers.
+import { createJiti } from 'jiti';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
-import { NO_CONSOLE_RATCHET } from './scripts/no-console-ratchet.mjs';
-import {
-  loadAllowlist,
-  isOptionsParamText,
-  ALLOWLIST_PATH,
-} from './scripts/positional-config-audit.mjs';
+import { loadAllowlist } from './scripts/positional-config-audit.mjs';
+import { createOptionsObjectRule } from './packages/eslint-plugin/src/rules/options-object.js';
 
-// ── #55 — قاعدهٔ `options-object` ──
-//
-// API-CONVENTIONS §۱.۱/§۴: تابع عمومی با بیش از دو پارامتر باید
-// `fn(main, options?)` باشد. این قاعده در زمان lint همان چیزی را می‌گیرد که
-// `npm run check:positional-config` در CI می‌گیرد، تا «پیکربندی positional
-// جدید» همان‌جا که نوشته می‌شود رد شود. امضاهای موجودِ بازبینی‌شده در
-// scripts/positional-config.allowlist.json (دسته‌محور و با دلیل) معاف‌اند.
-const POSITIONAL_ALLOW = new Set(loadAllowlist(process.cwd()).map((e) => `${e.pkg}:${e.name}`));
-
-const optionsObjectRule = {
-  meta: {
-    type: 'problem',
-    docs: {
-      description:
-        'public functions take `(main, options?)` — positional config is frozen in ' +
-        `${ALLOWLIST_PATH} and may not grow (#55)`,
-    },
-    schema: [],
-    messages: {
-      optionsObject:
-        '`{{name}}` پارامتر پیکربندی positional دارد؛ امضای `fn(main, options?)` بسازید ' +
-        '(overload قدیمی با @deprecated + deprecate()) یا دلیل را در ' +
-        `${ALLOWLIST_PATH} ثبت کنید (#55).`,
-    },
-  },
-  create(context) {
-    const filename = context.filename ?? context.getFilename();
-    const m = /packages[\\/]([^\\/]+)[\\/]src[\\/]/.exec(filename.split('\\').join('/'));
-    if (!m) return {};
-    const pkg = m[1];
-
-    // همان predicate گیت #55 (تک منبع حقیقت — واگرایی غیرممکن).
-    const isOptionsParam = (param) => isOptionsParamText(context.sourceCode.getText(param));
-    // @deprecated روی JSDocِ خودِ export است (والد declaration) و باید همان‌جا دیده شود.
-    const isDeprecated = (node) => {
-      const target =
-        node.parent && node.parent.type === 'ExportNamedDeclaration' ? node.parent : node;
-      return context.sourceCode.getCommentsBefore(target).some((c) => /@deprecated/.test(c.value));
-    };
-
-    const check = (node, name) => {
-      const params = node.params.filter((p) => !(p.type === 'Identifier' && p.name === 'this'));
-      if (params.length <= 2) return;
-      if (params.some(isOptionsParam)) return;
-      if (POSITIONAL_ALLOW.has(`${pkg}:${name}`)) return;
-      if (isDeprecated(node)) return;
-      context.report({ node, messageId: 'optionsObject', data: { name } });
-    };
-
-    return {
-      ExportNamedDeclaration(node) {
-        const decl = node.declaration;
-        if (!decl) return;
-        if (decl.type === 'FunctionDeclaration' && decl.id) check(decl, decl.id.name);
-        if (decl.type === 'VariableDeclaration') {
-          for (const d of decl.declarations) {
-            if (d.id.type !== 'Identifier') continue;
-            if (
-              d.init &&
-              (d.init.type === 'ArrowFunctionExpression' || d.init.type === 'FunctionExpression')
-            ) {
-              check(d.init, d.id.name);
-            }
-          }
-        }
-      },
-    };
-  },
-};
-
-const zenithPlugin = { rules: { 'options-object': optionsObjectRule } };
+// Published implementation, scoped to package sources. The existing reviewed
+// debt remains explicit; it is not an exemption for new names or consumer apps.
+const optionsObjectRule = createOptionsObjectRule({ allowlist: loadAllowlist(process.cwd()), workspaceOnly: true });
+const sourceAliases = Object.fromEntries(readdirSync('packages').filter(name => existsSync(`packages/${name}/package.json`)).flatMap(name => {
+  const manifest = JSON.parse(readFileSync(`packages/${name}/package.json`, 'utf8'));
+  return Object.keys(manifest.exports ?? {}).filter(key => key !== './package.json').map(key => [key === '.' ? manifest.name : `${manifest.name}/${key.slice(2)}`, resolve(`packages/${name}/src/${key === '.' ? 'index' : key.slice(2)}.ts`)]).filter(([, file]) => existsSync(file));
+}).sort(([a], [b]) => b.length - a.length));
+const sourceLoader = createJiti(import.meta.url, { alias: sourceAliases });
+const { default: publishedPlugin } = await sourceLoader.import('./packages/eslint-plugin/src/index.ts');
+const zenithPlugin = { ...publishedPlugin, rules: { ...publishedPlugin.rules, 'options-object': optionsObjectRule } };
+const templateContractRules = Object.fromEntries(Object.keys(publishedPlugin.rules).filter(name => name.startsWith('template/')).map(name => [`zenith/${name}`, 'error']));
 
 export default tseslint.config(
   {
@@ -103,6 +39,9 @@ export default tseslint.config(
       'browser-bundles/**',
       'artifacts/**',
       'coverage/**',
+      // Generated Playwright reports contain vendored JS, not project sources.
+      'playwright-report/**',
+      'test-results/**',
       'docs/**',
       '.docexamples/**',
       '.tsbuild/**',
@@ -126,7 +65,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['packages/**/src/**/*.ts', 'packages/**/test/**/*.ts', 'vitest.config.ts'],
+    files: ['packages/**/src/**/*.ts', 'packages/**/test/**/*.ts', 'tools/**/src/**/*.ts', 'tools/**/test/**/*.ts', 'vitest.config.ts'],
     plugins: { zenith: zenithPlugin },
     languageOptions: {
       ecmaVersion: 2022,
@@ -205,13 +144,18 @@ export default tseslint.config(
   // consoleSink داخل logger با eslint-disable سطرِ فایل استثنا شده است.
   // ──
   {
-    files: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.mts'],
+    files: ['packages/*/src/**/*.ts', 'packages/*/src/**/*.mts', 'tools/*/src/**/*.ts'],
     rules: { 'no-console': 'error' },
   },
+
+
   {
-    files: NO_CONSOLE_RATCHET,
-    rules: { 'no-console': 'off' }, // بدهی ثبت‌شدهٔ #39 — با هر مهاجرت یک فایل حذف شود
+    files: ['packages/*/src/**/*.ts', 'tools/*/src/**/*.ts'],
+    ignores: ['packages/logger/src/sinks.ts'],
+    rules: { 'zenith/no-console': 'error', 'zenith/no-deprecated-api': 'warn', ...templateContractRules },
   },
+  { files: ['**/*.html'], plugins: { zenith: zenithPlugin }, processor: 'zenith/html' },
+  { files: ['**/*.html/*.js'], plugins: { zenith: zenithPlugin }, rules: templateContractRules },
 
   // ── Security code deliberately matches control chars (\x00 NUL-stripping
   // guards in sanitizer/bind). The rule is disabled for these two files only,
@@ -256,7 +200,7 @@ export default tseslint.config(
 
   // ── Browser extension plain JS (untyped) ──
   {
-    files: ['packages/devtools-extension/**/*.js', 'packages/vscode-extension/**/*.js'],
+    files: ['tools/devtools-extension/**/*.js', 'tools/vscode-extension/**/*.js'],
     languageOptions: {
       parserOptions: { project: null },
       ecmaVersion: 2022,

@@ -1,3 +1,4 @@
+import { logger } from '@zenith/logger';
 // packages/vite-plugin/src/compile.ts
 //
 // Compiler Integration برای Vite Plugin — Production Readiness #13
@@ -300,8 +301,8 @@ export async function transformHtml(
         const errMsg = `Expression error in ${name}="${value}" at offset ${match.index}: ${(e as Error).message}`;
         warnings.push(errMsg);
         if (resolvedOptions.strict) {
-          console.error(`[Zenith Compile] ❌ ${errMsg}`);
-          console.error(e);
+          logger.error(`[Zenith Compile] ❌ ${errMsg}`);
+          logger.error('Compilation failed.');
           throw e;
         }
       }
@@ -324,8 +325,8 @@ export async function transformHtml(
     const errMsg = `Compiler error: ${(e as Error).message}`;
     warnings.push(errMsg);
     if (resolvedOptions.strict) {
-      console.error(`[Zenith Compile] ❌ ${errMsg}`);
-      console.error(e);
+      logger.error(`[Zenith Compile] ❌ ${errMsg}`);
+      logger.error('Compilation failed.');
       throw e;
     }
     // در حالت غیر strict، fallback به runtime walker
@@ -448,6 +449,7 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
     }
   }
   lines.push('');
+  lines.push(`import { logger } from '@zenith/logger';`);
   lines.push(`import { effect, signal } from '@zenith/state';`);
   lines.push(`import { evaluateExpression } from '@zenith/expressions';`);
   // SECURITY (v7.0): sanitizeHTML همیشه import می‌شود چون render() آن را
@@ -458,7 +460,7 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
   // آن را به‌عنوان پارامتر هشتم برای zen-html-trusted دریافت می‌کند. حتی اگر
   // قالب فعلی zen-html-trusted نداشته باشد، امضای render ثابت می‌ماند.
   // این تابع یک Identity function است (هیچ پاکسازی‌ای نمی‌کند) اما در Dev یک
-  // console.warn چاپ می‌کند تا escape hatch ها قابل‌حسابرسی باشند.
+  // logger.warn چاپ می‌کند تا escape hatch ها قابل‌حسابرسی باشند.
   lines.push(`import { sanitizeHTMLTrusted } from '@zenith/security';`);
   // v0.3.0: Zen همیشه import می‌شود چون processChildren (پارامتر هفتم render)
   // از Zen.start برای پردازش فرزندان zen-for cloneها استفاده می‌کرد.
@@ -497,7 +499,7 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
   lines.push(`      if (typeof walkAndBind === 'function') {`);
   lines.push(`        try { return walkAndBind(node, localState || {}); }`);
   lines.push(
-    `        catch (e) { console.error('[Zenith] processChildren failed for zen-for clone:', e); }`,
+    `        catch (e) { logger.error('[Zenith] processChildren failed for zen-for clone:', e); }`,
   );
   lines.push(`      } else if (typeof Zen !== 'undefined' && Zen.start) {`);
   lines.push(`        // Fallback: اگر walkAndBind در دسترس نبود (runtime قدیمی)، از`);
@@ -505,13 +507,13 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
   lines.push(`        // حافظه‌ی قدیمی باقی می‌ماند (پیام هشدار چاپ می‌شود).`);
   lines.push(`        try { Zen.start(node, localState || {}); }`);
   lines.push(
-    `        catch (e) { console.error('[Zenith] processChildren fallback (Zen.start) failed:', e); }`,
+    `        catch (e) { logger.error('[Zenith] processChildren fallback (Zen.start) failed:', e); }`,
   );
   lines.push(`      }`);
   lines.push(`      return null;`);
   lines.push(`    };`);
   lines.push(
-    `    render(root, ctx, effect, signal, sanitizeHTML, window.__ZENITH_STATE__ || null, processChildren, sanitizeHTMLTrusted, evaluateExpression);`,
+    `    render(root, ctx, effect, signal, sanitizeHTML, window.__ZENITH_STATE__ || null, processChildren, sanitizeHTMLTrusted, evaluateExpression, logger);`,
   );
   if (hasRuntimeDirectives) {
     lines.push(`    // FEATURE (v1.0.0): Level 3 Walker Elimination.`);
@@ -534,22 +536,22 @@ function generateModule(compiled: CompiledTemplate, moduleName: string): string 
     lines.push(
       `      try { Zen.start(dummy, window.__ZENITH_STATE__ || {}, { devtools: false }); }`,
     );
-    lines.push(`      catch (e) { console.error('[Zenith] One-time setup failed:', e); }`);
+    lines.push(`      catch (e) { logger.error('[Zenith] One-time setup failed:', e); }`);
     lines.push(`      // 2. Per-element: walkAndBind (lightweight, no re-init).`);
     lines.push(`      const runtimeEls = root.querySelectorAll('[data-zenith-runtime="true"]');`);
     lines.push(`      for (const el of runtimeEls) {`);
     lines.push(`        try { walkAndBind(el, window.__ZENITH_STATE__ || {}); }`);
     lines.push(
-      `        catch (e) { console.error('[Zenith] walkAndBind failed for runtime element:', e); }`,
+      `        catch (e) { logger.error('[Zenith] walkAndBind failed for runtime element:', e); }`,
     );
     lines.push(`      }`);
     lines.push(`    }`);
   }
   lines.push(
-    `    console.log('[Zenith] Compiled template executed:', '${moduleName}'${hasRuntimeDirectives ? ` + ' (with ' + ${compiled.runtimeDirectives.length} + ' runtime directives)'` : ''});`,
+    `    logger.debug('[Zenith] Compiled template executed:', { module: ${JSON.stringify(moduleName)}, runtimeDirectives: ${compiled.runtimeDirectives.length} });`,
   );
   lines.push(`  } catch (e) {`);
-  lines.push(`    console.error('[Zenith] Failed to execute compiled template:', e);`);
+  lines.push(`    logger.error('[Zenith] Failed to execute compiled template:', e);`);
   lines.push(`  }`);
   lines.push(`}`);
   lines.push('');

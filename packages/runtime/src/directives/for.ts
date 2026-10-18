@@ -1,327 +1,26 @@
-// packages/runtime/src/directives/for.ts
-//
-// دایرکتیو zen-for: رندر لیست‌ها با Keyed Diffing و Fine-Grained Reactivity.
-//
-// سینتکس:
-//   <li zen-for="item in $items" zen-key="item.id">...</li>
-//   <li zen-for="(item, index) in $items" zen-key="item.id">...</li>
-//
-// ویژگی‌ها:
-//   1) Keyed Diffing: اگر ترتیب آیتم‌ها تغییر کند، DOM node ها جابجا می‌شوند
-//      نه نابود و دوباره ساخته شوند. این باعث حفظ focus اینپوت‌ها، انیمیشن‌ها،
-//      و state داخلی می‌شود.
-//   2) Fine-Grained Reactivity: برای هر آیتم یک Signal محلی (`itemSignal` و
-//      `indexSignal`) ساخته می‌شود. اگر یک آیتم در آرایه تغییر کند، فقط
-//      همان ردیف در DOM آپدیت می‌شود، نه کل لیست.
-//   3) Memory Leak Prevention: هنگام unmount یک آیتم، تمام Effectهای فرزندانش
-//      dispose می‌شوند.
-//
-// معماری:
-//   - الگوریتم اصلی: در یک Effect اجرا می‌شود تا هر بار که آرایه تغییر می‌کند،
-//     Diffing دوباره اجرا شود.
-//   - داخل Effect، نباید `itemSignal.set` باعث re-trigger این Effect شود — برای
-//     جلوگیری، `itemSignal` فقط در آیتم‌های تازه ساخته‌شده به Signal آرایه
-//     وابسته نیست (هر آیتم Effectهای فرزندان خودش را دارد).
-
 import { effect, signal, type Signal } from '@zenith/state';
-// FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
-// listExpr و keyExpr هر کدام فقط یک‌بار parse می‌شوند.
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
 import { logger } from '@zenith/logger';
-// FEATURE (v1.0.0): کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
-import {
-  zenForNoZenKeyError,
-  zenForInvalidSyntaxError,
-  ZenithError,
-  ErrorCode,
-} from '@zenith/errors';
+import { zenForNoZenKeyError, ZenithError, ErrorCode } from '@zenith/errors';
+import { parseForSyntax } from './for-syntax';
+import { createLoopContext, createStaticLoopContext, computeKey } from './for-context';
 
-/**
- * اطلاعات هر آیتم رندرشده در حلقه.
- *
- * @property node        عنصر DOM که در document قرار دارد.
- * @property itemSignal  Signal محلی برای مقدار آیتم — هر بار که آرایه
- *                       تغییر کند، set می‌شود و Effectهای فرزندان re-run می‌شوند.
- *                       در حالت fast path (zen-static)، این Signal ساخته نمی‌شود.
- * @property indexSignal Signal محلی برای index آیتم.
- *                       در حالت fast path، این Signal ساخته نمی‌شود.
- * @property disposes    لیست dispose functions مربوط به Effectهای فرزندان.
- *                       هنگام unmount این آیتم، همه‌ی آن‌ها فراخوانی می‌شوند.
- */
 interface LoopItem {
   node: HTMLElement;
-  itemSignal?: Signal<any>;
+  itemSignal?: Signal<unknown>;
   indexSignal?: Signal<number>;
   disposes: (() => void)[];
 }
 
-/**
- * نتیجه‌ی پارس کردن سینتکس `zen-for`.
- */
-interface ParsedForSyntax {
-  /** نام متغیر آیتم (مثلاً "item"). */
-  itemName: string;
-  /** نام متغیر ایندکس (مثلاً "index"). پیش‌فرض "index". */
-  indexName: string;
-  /** Expression ارزیابی‌شده برای گرفتن آرایه (مثلاً "$items"). */
-  listExpr: string;
-}
-
-/**
- * پارس کردن سینتکس `zen-for`.
- *
- * سینتکس‌های پشتیبانی‌شده:
- *   "item in $items"
- *   "(item, index) in $items"
- *   "item in $items.filter(x => x.active)"
- *
- * @param expr رشته‌ی expression از attribute `zen-for`.
- */
-function parseForSyntax(expr: string): ParsedForSyntax {
-  const match = expr.match(
-    /^\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*)\s*)?\)?\s+in\s+(.+)$/,
-  );
-  if (!match) {
-    // FEATURE (v1.0.0): پیام خطای بهبودیافته با مثال.
-    throw zenForInvalidSyntaxError(expr);
-  }
-  return {
-    itemName: match[1]!,
-    indexName: match[2] || 'index',
-    listExpr: match[3]!.trim(),
-  };
-}
-
-/**
- * ساخت Context محلی برای یک آیتم حلقه.
- *
- * این Context:
- *   - تمام کلیدهای Context والد را به ارث می‌برد (با prototype chain).
- *   - چهار کلید جدید اضافه می‌کند:
- *       $<itemName>  و  <itemName>      → هر دو به itemSignal اشاره می‌کنند
- *       $<indexName> و  <indexName>     → هر دو به indexSignal اشاره می‌کنند
- *
- * چرا هم با `$` و هم بدون `$`؟
- *   - برای سازگاری با Context اصلی که از State ساخته می‌شود (جایی که
- *     `state.user` به `$user` تبدیل می‌شود)، نسخه‌ی `$` ضروری است.
- *   - اما برای راحتی کاربر در HTML، می‌خواهیم `zen-for="item in $items"`
- *     و `zen-text="item.name"` هم کار کند (بدون نیاز به `$item`).
- *   - پس هر دو سینتکس را پشتیبانی می‌کنیم.
- *
- * نکته: getter ها باعث می‌شوند وقتی Expression Engine به `$item` یا `item`
- * دسترسی پیدا می‌کند، Signal.get() فراخوانی شود و dependency tracking فعال شود.
- *
- * چرا Object.create به جای spread؟
- *   - spread ({ ...parent }) مقادیر فعلی را کپی می‌کند، نه getter ها را.
- *   - Object.create(parent) یک prototype chain می‌سازد که getter های والد
- *     همچنان فعال می‌مانند (مثل getter های `$user` که Signal.get می‌زنند).
- */
-function createLoopContext(
-  parentContext: Record<string, any>,
-  itemName: string,
-  indexName: string,
-  itemSignal: Signal<any>,
-  indexSignal: Signal<number>,
-): Record<string, any> {
-  // یک آبجکت جدید با prototype = parentContext.
-  // به این ترتیب تمام کلیدهای والد (از جمله getter های `$user` و غیره)
-  // به ارث می‌رسند و هنوز reactive می‌مانند.
-  const child: Record<string, any> = Object.create(parentContext);
-
-  // تعریف getter برای `$item` و `item` (هر دو به itemSignal).
-  // این getter ها Signal.get() را فراخوانی می‌کنند تا dependency tracking
-  // فعال شود.
-  const itemKey = `$${itemName}`;
-  const itemKeyBare = itemName;
-  Object.defineProperty(child, itemKey, {
-    get: () => itemSignal.get(),
-    enumerable: true,
-    configurable: true,
-  });
-  // فقط اگر نام bare با چیزی در parent تداخل نداشت (جلوگیری از override
-  // متغیرهای والد). در حالت عادی، parent context فقط `$xxx` دارد، پس
-  // `item` و `index` آزاد هستند.
-  if (!(itemKeyBare in parentContext)) {
-    Object.defineProperty(child, itemKeyBare, {
-      get: () => itemSignal.get(),
-      enumerable: true,
-      configurable: true,
-    });
-  }
-
-  // تعریف getter برای `$index` و `index`.
-  const indexKey = `$${indexName}`;
-  const indexKeyBare = indexName;
-  Object.defineProperty(child, indexKey, {
-    get: () => indexSignal.get(),
-    enumerable: true,
-    configurable: true,
-  });
-  if (!(indexKeyBare in parentContext)) {
-    Object.defineProperty(child, indexKeyBare, {
-      get: () => indexSignal.get(),
-      enumerable: true,
-      configurable: true,
-    });
-  }
-
-  // ── ثبت reference به Signal های محلی (برای zen-model) ──
-  // این کار به zen-model اجازه می‌دهد در داخل zen-for، Signal محلی item
-  // را پیدا کرده و set کند. بدون این، zen-model روی متغیرهای محلی کار نمی‌کند.
-  //
-  // ساختار: { itemName → itemSignal, indexName → indexSignal }
-  // نکته: اگر parentContext هم signals map داشت، آن را به ارث می‌بریم.
-  const parentSignals = (parentContext as any).__zenith_signals__ as
-    Map<string, Signal<any>> | undefined;
-  const signalsMap = parentSignals ? new Map(parentSignals) : new Map<string, Signal<any>>();
-  signalsMap.set(itemName, itemSignal);
-  signalsMap.set(indexName, indexSignal as Signal<any>);
-  // non-enumerable تا در iteration ظاهر نشود.
-  Object.defineProperty(child, '__zenith_signals__', {
-    value: signalsMap,
-    enumerable: false,
-    configurable: true,
-    writable: false,
-  });
-
-  return child;
-}
-
-/**
- * FEATURE (v1.0.0): ساخت Context ساده برای fast path (zen-static).
- *
- * تفاوت با createLoopContext:
- *   - هیچ Signal محلی ساخته نمی‌شود (item و index مقادیر ثابت هستند).
- *   - به جای getter با defineProperty، مقادیر مستقیم با defineProperty(value)
- *     ست می‌شوند (ارزان‌تر، اما non-reactive).
- *   - signalsMap ساخته نمی‌شود (zen-model داخل zen-static پشتیبانی نمی‌شود).
- *
- * این تابع برای لیست‌های فقط‌خواندنی طراحی شده — جایی که آیتم‌ها هرگز
- * تغییر نمی‌کنند و نیازی به reactivity روی $item/$index نیست.
- *
- * @param parentContext Context والد (برای ارث‌بردن getter های reactive).
- * @param itemName      نام متغیر آیتم.
- * @param indexName     نام متغیر ایندکس.
- * @param item          مقدار آیتم (ثابت).
- * @param index         مقدار ایندکس (ثابت).
- * @returns Context محلی با مقادیر مستقیم.
- */
-function createStaticLoopContext(
-  parentContext: Record<string, any>,
-  itemName: string,
-  indexName: string,
-  item: any,
-  index: number,
-): Record<string, any> {
-  const child: Record<string, any> = Object.create(parentContext);
-
-  // $item و item — مقادیر مستقیم (نه getter).
-  Object.defineProperty(child, `$${itemName}`, {
-    value: item,
-    enumerable: true,
-    configurable: true,
-  });
-  if (!(itemName in parentContext)) {
-    Object.defineProperty(child, itemName, {
-      value: item,
-      enumerable: true,
-      configurable: true,
-    });
-  }
-
-  // $index و index — مقادیر مستقیم.
-  Object.defineProperty(child, `$${indexName}`, {
-    value: index,
-    enumerable: true,
-    configurable: true,
-  });
-  if (!(indexName in parentContext)) {
-    Object.defineProperty(child, indexName, {
-      value: index,
-      enumerable: true,
-      configurable: true,
-    });
-  }
-
-  return child;
-}
-
-/**
- * محاسبه کلید یک آیتم.
- *
- * اگر zen-key تعریف شده بود، expression آن در context محلی ارزیابی می‌شود.
- * در غیر این صورت، از index استفاده می‌کنیم (با هشدار).
- */
-function computeKey(
-  keyEvalFn: ((ctx: object) => any) | null,
-  item: any,
-  index: number,
-  parentContext: Record<string, any>,
-  itemName: string,
-  indexName: string,
-): string {
-  if (!keyEvalFn) {
-    return String(index);
-  }
-  // برای ارزیابی expression کلید، یک context موقت می‌سازیم که item و index
-  // مقادیر ثابت (نه Signal) داشته باشند. این کار باعث می‌شود ارزیابی key
-  // وابستگی به Signalهای محلی ایجاد نکند.
-  const tempContext: Record<string, any> = Object.create(parentContext);
-  // $item و item
-  Object.defineProperty(tempContext, `$${itemName}`, {
-    value: item,
-    enumerable: true,
-    configurable: true,
-  });
-  if (!(itemName in parentContext)) {
-    Object.defineProperty(tempContext, itemName, {
-      value: item,
-      enumerable: true,
-      configurable: true,
-    });
-  }
-  // $index و index
-  Object.defineProperty(tempContext, `$${indexName}`, {
-    value: index,
-    enumerable: true,
-    configurable: true,
-  });
-  if (!(indexName in parentContext)) {
-    Object.defineProperty(tempContext, indexName, {
-      value: index,
-      enumerable: true,
-      configurable: true,
-    });
-  }
-  let key: any;
-  try {
-    key = keyEvalFn(tempContext);
-  } catch (err) {
-    reportError(err as Error, 'expression', { expression: 'zen-key' });
-    return String(index);
-  }
-  return key === null || key === undefined ? String(index) : String(key);
-}
-
-/**
- * پردازش دایرکتیو zen-for روی یک عنصر.
- *
- * @param el            عنصر HTML که zen-for روی آن است.
- * @param expr          رشته‌ی expression از `zen-for`.
- * @param context       Context والد (شامل getter های `$user` و …).
- * @param processChildren callback که برای هر آیتم تازه ساخته‌شده فراخوانی
- *                       می‌شود تا فرزندانش با context محلی walk شوند.
- *                      امضای آن: (node, localContext, disposes) => void
- * @returns تابع Dispose برای پاکسازی کل zen-for (effect اصلی + همه‌ی آیتم‌ها).
- */
+/** Keyed/static list binding; child context is dynamic and caller-owned. @public */
 export function processFor(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   processChildren: (
     node: HTMLElement,
-    localContext: Record<string, any>,
+    localContext: Record<string, unknown>,
     disposes: (() => void)[],
   ) => void,
 ): () => void {
@@ -390,7 +89,7 @@ export function processFor(
   const disposeEffect = effect(() => {
     // FEATURE (v1.0.0): compile-once — listEvalFn فقط evaluate می‌کند.
     const list = listEvalFn(context);
-    const arr: any[] = Array.isArray(list) ? list : [];
+    const arr: unknown[] = Array.isArray(list) ? list : [];
 
     // ── FEATURE (v1.0.0): Fast Path (zen-static) ──
     // در حالت static، روی تغییر لیست، همه آیتم‌های قبلی dispose + remove می‌شوند
@@ -424,7 +123,7 @@ export function processFor(
         const newNode = template.cloneNode(true) as HTMLElement;
 
         // Context ساده با مقادیر مستقیم (بدون Signal، بدون getter).
-        const localContext = createStaticLoopContext(context, itemName, indexName, item, i);
+        const localContext = createStaticLoopContext(context, { itemName, indexName, item, index: i });
 
         const disposes: (() => void)[] = [];
         processChildren(newNode, localContext, disposes);
@@ -458,7 +157,7 @@ export function processFor(
       const item = arr[i];
 
       // محاسبه‌ی کلید این آیتم.
-      const key = computeKey(keyEvalFn, item, i, context, itemName, indexName);
+      const key = computeKey(keyEvalFn, { item, index: i, parentContext: context, itemName, indexName });
 
       // BUG FIX (BUG-08): کلیدهای index همیشه یکتا هستند (i یکتا است)،
       // پس این بررسی برای حالت !keyExpr مرده بود. اما برای zen-key،
@@ -501,13 +200,7 @@ export function processFor(
         const indexSignal = signal(i);
 
         // Context محلی که $item و $index روی آن تعریف شده‌اند.
-        const localContext = createLoopContext(
-          context,
-          itemName,
-          indexName,
-          itemSignal,
-          indexSignal,
-        );
+        const localContext = createLoopContext(context, { itemName, indexName, itemSignal, indexSignal });
 
         const disposes: (() => void)[] = [];
         processChildren(newNode, localContext, disposes);

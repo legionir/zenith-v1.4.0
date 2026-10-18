@@ -26,6 +26,7 @@ import {
   type ZenithStorage,
 } from '@zenith/storage';
 import { isSignal } from '../context';
+import { clonePathContainer } from './path-container';
 
 // نمونهٔ storage به‌ازای هر (driver, version) — SPEC §۲.۵: namespace پیش‌فرض
 // 'zen'، sync:true. ماژول‌سطح است تا چند المان با یک درایور یک subscription
@@ -74,8 +75,8 @@ function attrsOf(el: HTMLElement): Parameters<typeof parsePersistAttr>[1] {
 export function processPersist(
   el: HTMLElement,
   keyExpr: string,
-  context: Record<string, any>,
-  state: Record<string, any>,
+  context: Record<string, unknown>,
+  state: Record<string, unknown>,
 ): () => void {
   const modelExpr = el.getAttribute('zen-model');
   if (!modelExpr) {
@@ -159,8 +160,8 @@ function parsePath(path: string): string[] {
 }
 
 function applyPath(
-  state: Record<string, any>,
-  context: Record<string, any>,
+  state: Record<string, unknown>,
+  context: Record<string, unknown>,
   expr: string,
   value: unknown,
 ): boolean {
@@ -169,19 +170,17 @@ function applyPath(
   const root = state[parts[0]!] ?? context[parts[0]!];
   if (!isSignal(root)) return false;
   if (parts.length === 1) {
-    root.set(value);
+    Reflect.apply(root.set, root, [value]);
     return true;
   }
   const current = root.get();
-  const copy: any = Array.isArray(current) ? [...current] : { ...current };
+  const copy = clonePathContainer(current);
   let target = copy;
   for (let i = 1; i < parts.length - 1; i++) {
-    target[parts[i]!] = Array.isArray(target[parts[i]!])
-      ? [...target[parts[i]!]]
-      : { ...target[parts[i]!] };
-    target = target[parts[i]!];
+    target[parts[i]!] = clonePathContainer(target[parts[i]!]);
+    target = target[parts[i]!] as Record<string, unknown>;
   }
   target[parts[parts.length - 1]!] = value;
-  root.set(copy);
+  Reflect.apply(root.set, root, [copy]);
   return true;
 }

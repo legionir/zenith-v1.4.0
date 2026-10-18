@@ -1,26 +1,2 @@
-#!/usr/bin/env node
-// #143 — فهرست مجاز مرحله‌ای (ratchet) برای قاعدهٔ ESLint `no-console`.
-//
-// SPEC §۲.۳ (قانون ESLint): `no-console` برای src همهٔ پکیج‌ها؛ استثنا فقط
-// consoleSink داخل @zenith/logger. مهاجرت فایل‌های قدیمی (در مبدأ ۶۲ فایل،
-// حدود ۳۷۰ فراخوانی console.*) در issue جدا (#39) انجام می‌شود؛ تا آن موقع
-// این فایل *منبع واحد* معافیت‌هاست:
-//   • eslint.config.mjs این مسیرها را با `no-console: 'off'` override می‌کند.
-//   • scripts/test/no-console-ratchet.test.mjs بررسی می‌کند که فهرست دقیقاً
-//     برابرِ فایل‌های دارای console در src باشد (نه بیشتر — کهنه، نه کمتر —
-//     نقض جدید). یعنی فهرست فقط با مهاجرت کوتاه‌تر می‌شود؛ بزرگ‌کردنش عمدتاً
-//     غیرممکن است چون تست، فایلِ بدونِ فهرست را «offender» می‌کند.
-//
-// مسیرها نسبی به ریشه و با «/» (posix) — همان چیزی که eslint می‌پاید.
-export const NO_CONSOLE_RATCHET = [
-  'packages/cli/src/check.ts',
-  'packages/cli/src/index.ts',
-  'packages/cli/src/lighthouse.ts',
-  'packages/cli/src/templates.ts',
-  // #94: ماژول `zenith telemetry` — خروجی/خطای کاربرپسند CLI (مانند check/index)
-  'packages/cli/src/telemetry.ts',
-  'packages/compiler/src/compiler.ts',
-  'packages/vite-plugin/src/compile.ts',
-  'packages/vite-plugin/src/index.ts',
-  'packages/vscode-extension/src/extension.ts',
-];
+// Legacy console debt is empty. Only the central console sink may write console.
+export const NO_CONSOLE_RATCHET = Object.freeze([]);

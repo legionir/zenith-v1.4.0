@@ -213,8 +213,8 @@ function makeController(
 export function processVirtualList(
   el: HTMLElement,
   listExpr: string,
-  context: Record<string, any>,
-  processChildren: (node: HTMLElement, ctx: Record<string, any>, disposes: (() => void)[]) => void,
+  context: Record<string, unknown>,
+  processChildren: (node: HTMLElement, ctx: Record<string, unknown>, disposes: (() => void)[]) => void,
   disposes: (() => void)[],
 ): VirtualListController {
   deprecate(
@@ -234,7 +234,7 @@ export function processVirtualList(
         const item = list[i];
         const itemSignal = signal<unknown>(item);
         const indexSignal = signal(i);
-        const childCtx: Record<string, any> = Object.create(context);
+        const childCtx: Record<string, unknown> = Object.create(context);
         Object.defineProperty(childCtx, '$item', {
           get: () => itemSignal.get(),
           enumerable: true,
@@ -323,7 +323,7 @@ export function processVirtualList(
       node.appendChild(templateContent.cloneNode(true));
       const itemSignal = signal(item);
       const indexSignal = signal(index);
-      const childCtx: Record<string, any> = Object.create(context);
+      const childCtx: Record<string, unknown> = Object.create(context);
       Object.defineProperty(childCtx, '$item', {
         get: () => itemSignal.get(),
         enumerable: true,
@@ -348,11 +348,11 @@ export function processVirtualList(
           configurable: true,
         });
       }
-      const parentSignals = (context as any).__zenith_signals__ as
-        Map<string, Signal<any>> | undefined;
-      const signalsMap = parentSignals ? new Map(parentSignals) : new Map<string, Signal<any>>();
+      const parentSignals = context.__zenith_signals__ as
+        Map<string, Pick<Signal<unknown>, 'get'>> | undefined;
+      const signalsMap = parentSignals ? new Map(parentSignals) : new Map<string, Pick<Signal<unknown>, 'get'>>();
       signalsMap.set('item', itemSignal);
-      signalsMap.set('index', indexSignal as Signal<any>);
+      signalsMap.set('index', indexSignal);
       Object.defineProperty(childCtx, '__zenith_signals__', {
         value: signalsMap,
         enumerable: false,

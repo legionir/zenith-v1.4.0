@@ -4,6 +4,8 @@ out
 .docexamples
 .tsbuild
 coverage
+playwright-report
+test-results
 browser-bundles
 artifacts
 *.tsbuildinfo

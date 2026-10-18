@@ -6,7 +6,7 @@ import { reportError } from '@zenith/error-boundary';
 export function processShow(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
   const evalFn = compileExpression(expr);

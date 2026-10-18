@@ -296,7 +296,28 @@ scripts/gen-zenith-meta.mjs [--check]  ← گیت تازگی در CI (متناظ
 
 | directive | kind | package | نوع مقدار | گزینه‌ها/همراه (از سند) | سازگار؟ |
 |---|---|---|---|---|---|
+| `zen-head` | custom element / attribute | head | authored title/meta/link/base/JSON-LD | `zen-head-key` | ✅ |
+| `zen-head-title` | attribute | head | expression text | `zen-head-key` | ✅ |
+| `zen-head-description` | attribute | head | expression text | `zen-head-key` | ✅ |
+| `zen-head-canonical` | attribute | head | expression text | `zen-head-key` | ✅ |
+| `zen-head-og-image` | attribute | head | expression text | `zen-head-key` | ✅ |
+| `zen-focus-trap` | attribute | a11y | expression boolean | `zen-focus-trap-initial`, `zen-focus-trap-return`, `zen-focus-trap-escape` | ✅ |
+| `zen-autofocus` | attribute | a11y | expression boolean | — | ✅ |
+| `zen-inert` | attribute | a11y | expression boolean | — | ✅ |
+| `zen-scroll-lock` | attribute | a11y | expression boolean | — | ✅ |
+| `zen-roving` | attribute | a11y | enum literal | `zen-roving-loop`, `zen-roving-selector` | ✅ |
+| `zen-live` | attribute | a11y | enum literal | — | ✅ |
+| `zen-announce` | attribute | a11y | expression text | `zen-announce-politeness`, `zen-announce-clear` | ✅ |
+| `zen-reduced-motion` | attribute | a11y | enum literal | — | ✅ |
 | `zen-animate` | attribute | transition | preset یا keyframes JSON | — | ✅ |
+| `zen-dialog` | attribute | ui | expression | `zen-dialog-modal`, `zen-dialog-role`, `zen-dialog-close-on-esc`, `zen-dialog-close-on-backdrop`, `zen-dialog-initial-focus`, `zen-dialog-return-focus`, `zen-dialog-scroll-lock`, `zen-dialog-portal`, `zen-dialog-transition`, `zen-dialog-transition-duration` | ✅ |
+| `zen-popover` | attribute | ui | expression | `zen-popover-trigger`, `zen-popover-placement`, `zen-popover-offset`, `zen-popover-flip`, `zen-popover-shift`, `zen-popover-arrow`, `zen-popover-trigger-on`, `zen-popover-return-focus`, `zen-popover-role`, `zen-popover-transition`, `zen-popover-transition-duration` | ✅ |
+| `zen-tooltip` | attribute | ui | expression | `zen-tooltip-trigger`, `zen-tooltip-placement`, `zen-tooltip-offset`, `zen-tooltip-flip`, `zen-tooltip-shift`, `zen-tooltip-arrow`, `zen-tooltip-delay`, `zen-tooltip-hide-delay`, `zen-tooltip-disabled`, `zen-tooltip-transition`, `zen-tooltip-transition-duration` | ✅ |
+| `zen-tabs` | attribute | ui | expression | `zen-tabs-orientation`, `zen-tabs-activation`, `zen-tabs-lazy`, `zen-tabs-transition`, `zen-tabs-transition-duration` | ✅ |
+| `zen-accordion` | attribute | ui | expression | `zen-accordion-multiple`, `zen-accordion-collapsible`, `zen-accordion-transition`, `zen-accordion-transition-duration` | ✅ |
+| `zen-menu` | attribute | ui | expression | `zen-menu-trigger`, `zen-menu-placement`, `zen-menu-offset`, `zen-menu-flip`, `zen-menu-shift`, `zen-menu-arrow`, `zen-menu-trigger-on`, `zen-menu-return-focus`, `zen-menu-loop`, `zen-menu-typeahead`, `zen-menu-close-on-select`, `zen-menu-transition`, `zen-menu-transition-duration` | ✅ |
+| `zen-combobox` | attribute | ui | expression | `zen-combobox-options`, `zen-combobox-option-label`, `zen-combobox-option-value`, `zen-combobox-filter`, `zen-combobox-allow-custom`, `zen-combobox-async`, `zen-combobox-debounce`, `zen-combobox-min-chars`, `zen-combobox-multiple`, `zen-combobox-transition`, `zen-combobox-transition-duration` | ✅ |
+| `zen-date-picker` | custom element / attribute | ui (runtime bridge) | date / range | `calendar`, `locale`, `value`, `min`, `max`, `first-day`, `format`, `disabled`, `readonly`, `required`, `name`, `form`, `range`, `disabled-dates`, `nonce` | ✅ |
 | `zen-portal` | attribute | runtime | CSS selector | — | ✅ |
 | `zen-intersection` | attribute | runtime | expression (callback) | — | ✅ |
 | `zen-component` | attribute | components | نام کامپوننت تعریف‌شده | `zen-props` | ✅ |
@@ -336,10 +357,10 @@ scripts/gen-zenith-meta.mjs [--check]  ← گیت تازگی در CI (متناظ
 - **`data-body`/`data-ids` (crud):** بدنه/آی‌دی به‌جای `zen-crud-options='{…}'`
   از `data-*` خام خوانده می‌شود (`packages/crud/src/crud.ts:203,308`) — با
   §۱.۶ ناسازگار. ⚠️ → **#52**.
-- **`CustomEvent('change')` بدون پیشوند/`bubbles`:**
-  `packages/runtime/src/directives/date-picker.ts:244` رویداد را `change` و
-  بدون `bubbles:true` می‌فرستد — با §۱.۸ (`zen-<name>-<event>` + `bubbles`)
-  ناسازگار. ⚠️ → اصلاح در پکیج runtime (موج بعد، با تست رفتاری).
+- **رویداد date-picker:** مسیر قدیمی runtime اکنون bridge پکیج UI است.
+  `zen-date-picker-change` با `bubbles/composed` و detail کامل نوشته شده؛
+  `change` برای انتخاب کامل به‌عنوان سازگاری حفظ شده است. صحت این candidate هنوز
+  در اجرای نهایی unit/browser بررسی می‌شود، نه با تغییر نام به‌تنهایی.
 - **attributeهای هم‌خانواده بدون ثبت:** `zen-crud-*`، `zen-router-*`،
   `zen-suspense-*`، `zen-virtual-list-*`، `zen-animate-*`، `zen-enter-*`/`zen-leave-*`
   (classهای transition) هنوز `DirectiveMeta` ندارند — ثبتشان در **#52/#148**.
@@ -359,3 +380,20 @@ scripts/gen-zenith-meta.mjs [--check]  ← گیت تازگی در CI (متناظ
 > قوانین `eslint-plugin` در **#159** (موج ۴) پیاده می‌شوند؛ تا آنجا گیت
 > `attribute-grammar.mjs` حداقلِ ماشین‌پذیرِ سازگاری سند↔رجیستری را در CI نگه
 > می‌دارد.
+
+
+### Candidate owned accessibility/head bindings (unvalidated)
+
+Boolean a11y attributes use an expression; an empty value opts in as `true`.
+Their auxiliary boolean attributes and `zen-announce-clear` use strict shared
+schema coercion (for example `5s`); malformed values do not acquire a browser
+lease. `zen-live` owns role/status/alert, politeness and atomic attributes together.
+All eight a11y bindings are client-only in explicit SSR documents.
+
+`<zen-head>` (also `zen-head` on a container) has literal authored content, not an
+expression value. Only title/meta/link/base and inline JSON-LD are accepted;
+`zen-head-key` maps to the canonical entry key. Child bindings are suppressed via
+Core's proposed `skipChildren` capability, and exact authored children return on
+cleanup. Four expression directives use the same per-install head manager.
+Source metadata and this grammar are updated; generated snapshots remain pending
+until final validation. These notes are not acceptance/API-approval evidence.

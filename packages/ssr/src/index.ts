@@ -1,3 +1,4 @@
+export type { SSRDocument, SSRDOMWindow, SSRDOMInstance } from './dom-types';
 export {
   renderToString,
   renderToStream,
@@ -26,6 +27,7 @@ export {
   runOnServer,
   runOnClient,
   type RenderOptions,
+  type SSRAppContext,
   type SSRHeadInput,
   type SSRI18nInput,
   type HeadManager,
@@ -33,6 +35,7 @@ export {
   type SSRResult,
   type StreamChunk,
   type StreamOptions,
+  type StreamMetadata,
 } from './render';
 
 // FEATURE (v1.0.0) + #92: AsyncLocalStorage & Edge-compatible DOM/Request isolation.
@@ -102,3 +105,5 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   includeHydrationData: true,
   timeout: 10_000,
 });
+
+export { cloneRequestState, type RequestStateOptions } from './request-state';

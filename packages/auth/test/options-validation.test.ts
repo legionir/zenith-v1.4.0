@@ -40,6 +40,7 @@ describe('@zenith/auth options validation (#52)', () => {
         refreshUrl: '',
         meUrl: '',
         tokenStorage: 'memory',
+        refreshMode: 'token',
         tokenKey: 'zenith_token',
         refreshTokenKey: 'zenith_refresh_token',
         autoRefresh: true,
@@ -49,6 +50,11 @@ describe('@zenith/auth options validation (#52)', () => {
         userField: 'user',
         expiresInField: 'expiresIn',
         headers: {},
+        registerUrl: '',
+        storageKey: '',
+        loginRedirect: '/dashboard',
+        logoutRedirect: '/',
+        loginPath: '/login',
       });
     });
 

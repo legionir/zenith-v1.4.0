@@ -1,5 +1,21 @@
 # Zenith v1.4.0 — چک‌لیست Production Readiness
 
+> **تازه‌ترین وضعیت — code-first:** تمام پیاده‌سازی‌ها هنوز تکمیل نشده‌اند. کد/تست
+> جدید نوشته می‌شود و تست/CI/push میانی اجرا نمی‌شود. audit=0 و نتایج W1 در متن
+> پایین تاریخی‌اند، نه شاهد dependencyها/کد dirty فعلی. جزئیات و تمام کارت‌های باز:
+> [دفتر اجرای جاری](docs/progress/REMEDIATION-CODE-FIRST-2026-10-16.md).
+
+> **وضعیت تاریخی remediation — ۲۰۲۶-۱۰-۱۶:** چک‌لیست زیر baseline/هدف تاریخی است؛
+> تعدادهای build/test و ادعاهای دسترسی آن وضعیت جاری نیستند. وضعیت هر معیار را از
+> [تطبیق issueها](docs/progress/ISSUE-RECONCILIATION-2026-10-16.md)،
+> [پلن مرحله‌ای](docs/progress/REMEDIATION-EXECUTION-PLAN-2026-10-16.md) و
+> [اجرای W0/W1](docs/progress/REMEDIATION-W1-2026-10-16.md) بخوانید.
+> audit کامل پس از ارتقا صفر است؛ hotfix nonce/abort/provider انجام شده، اما transport
+> realtime و پکیج‌های کامل analytics/adapterها آماده نیستند. ممیزی مستقل، scope npm،
+> دو نگه‌دارنده و تنظیم واقعی protection/OIDC **تأییدنشده‌اند**. انتشار تأیید نشده است.
+
+## baseline و چک‌لیست تاریخی (نه اعلام readiness جاری)
+
 این چک‌لیست جدا از رفع باگ‌های `AUDIT.md` است و معماری را در `ARCHITECTURE.md` می‌بینید.
 اولویت‌ها: **P0** مانع انتشار · **P1** قبل از نسخهٔ پایدار · **P2** برای بلوغ محصول.
 

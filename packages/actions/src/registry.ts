@@ -41,13 +41,13 @@ import type { Disposable } from '@zenith/shared';
  */
 export interface ActionContext {
   event: Event;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   element: HTMLElement;
   /**
    * FEATURE (v1.3.0): Evaluated arguments for parameterized actions.
    * Undefined when the action is invoked without parens (backward compat).
    */
-  args?: any[];
+  args?: unknown[];
 }
 
 /**
@@ -104,7 +104,7 @@ export interface ActionMetadata {
   /** اگر `true`، اکشن در DevTools با warning نشان داده می‌شود. */
   deprecated?: boolean;
   /** Free-form bag برای plugin های سفارشی. */
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

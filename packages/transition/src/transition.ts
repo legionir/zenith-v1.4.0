@@ -314,7 +314,7 @@ export function animateGroup(
           staggerDelay: directionOrOptions.staggerDelay ?? 50,
         };
   const { direction, name, duration, staggerDelay } = options;
-  deprecate(
+  if (typeof directionOrOptions === 'string') deprecate(
     'ZEN-DEPR-004',
     'animateGroup(elements, direction, name, duration, staggerDelay)',
     'animateGroup(elements, { direction, name, duration, staggerDelay }) یا createTransition',
@@ -391,7 +391,8 @@ const MAX_COUNTED_ITERATIONS = 100;
 const SAFE_CAP_MS = 30_000;
 
 function measureTransitionDuration(el: HTMLElement): number {
-  const style = getComputedStyle(el);
+  const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+  if (!style) return 0;
   let longest = 0;
 
   const tProps = cssList(style.transitionProperty);
@@ -447,6 +448,7 @@ export function createTransition(
     ...options.classes,
   };
   const activeRuns = new Map<HTMLElement, TransitionRun>();
+  const versions = new WeakMap<HTMLElement, number>(); let sequence = 0;
   const duration = options.duration ?? 300;
   let disposed = false;
 
@@ -458,6 +460,7 @@ export function createTransition(
   function run(element: HTMLElement, direction: TransitionDirection): TransitionRun {
     if (disposed) return createCompletedRun();
 
+    const version = ++sequence; versions.set(element, version);
     activeRuns.get(element)?.cancel();
 
     if (direction === 'enter') options.onBeforeEnter?.(element);
@@ -465,7 +468,9 @@ export function createTransition(
 
     // #133: اگر کاربر prefers-reduced-motion را فعال کرده باشد، از اجرای
     // transition حرکتی صرف‌نظر می‌کنیم ولی تمام callbackها را بلافاصله فراخوانی می‌کنیم.
-    if (prefersReducedMotion()) {
+    if (disposed || versions.get(element) !== version) return createCompletedRun();
+    const view = element.ownerDocument.defaultView;
+    if (!view || (element.ownerDocument as Document & { __zenithSSR__?: boolean }).__zenithSSR__ || prefersReducedMotion(element.ownerDocument)) {
       if (direction === 'enter') options.onAfterEnter?.(element);
       else options.onAfterLeave?.(element);
       options.onComplete?.();
@@ -475,6 +480,10 @@ export function createTransition(
     const from = direction === 'enter' ? classes.enterFrom : classes.leaveFrom;
     const active = direction === 'enter' ? classes.enterActive : classes.leaveActive;
     const to = direction === 'enter' ? classes.enterTo : classes.leaveTo;
+    const hadClassAttribute = element.hasAttribute('class');
+    const originalClasses = new Map([...new Set([name, from, active, to].flatMap(classTokens))].map(token => [token, element.classList.contains(token)]));
+    const requestFrame = view.requestAnimationFrame?.bind(view) ?? ((callback: FrameRequestCallback) => view.setTimeout(() => callback(Date.now()), 16));
+    const cancelFrame = view.cancelAnimationFrame?.bind(view) ?? view.clearTimeout.bind(view);
 
     let settled = false;
     let resolveFinished!: () => void;
@@ -490,25 +499,24 @@ export function createTransition(
     const finish = (completed: boolean) => {
       if (settled) return;
       settled = true;
-      if (raf1) cancelAnimationFrame(raf1);
-      if (raf2) cancelAnimationFrame(raf2);
+      if (raf1) cancelFrame(raf1);
+      if (raf2) cancelFrame(raf2);
       if (timer) clearTimeout(timer);
       element.removeEventListener('transitionend', onEnd);
       element.removeEventListener('transitioncancel', onCancel);
       element.removeEventListener('animationend', onEnd);
       element.removeEventListener('animationcancel', onCancel);
-      removeClasses(element, from);
-      removeClasses(element, active);
-      removeClasses(element, to);
-      removeClasses(element, name);
-      activeRuns.delete(element);
+      for (const [token, present] of originalClasses) element.classList.toggle(token, present);
+      if (!hadClassAttribute && !element.classList.length) element.removeAttribute('class');
+      if (activeRuns.get(element) === transitionRun) activeRuns.delete(element);
 
-      if (completed) {
-        if (direction === 'enter') options.onAfterEnter?.(element);
-        else options.onAfterLeave?.(element);
-        options.onComplete?.();
-      }
-      resolveFinished();
+      try {
+        if (completed) {
+          if (direction === 'enter') options.onAfterEnter?.(element);
+          else options.onAfterLeave?.(element);
+          options.onComplete?.();
+        }
+      } finally { resolveFinished(); }
     };
 
     const onEnd = (event: Event) => {
@@ -551,13 +559,15 @@ export function createTransition(
     // FIX (#24): تایمر fallback بلافاصله ساخته می‌شود، نه بعد از دو rAF —
     // در تب پس‌زمینه rAF متوقف است وگرنه finished هرگز resolve نمی‌شود.
     // مدت = بیشینهٔ duration تنظیم‌شده و مدت محاسبه‌شده (تقریب اولیه) + حاشیه ۵۰ms.
-    timer = setTimeout(() => finish(true), duration + 50);
+    timer = setTimeout(() => finish(true), Math.min(2147483647, Math.max(0, duration) + 50));
 
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
+    raf1 = requestFrame(() => {
+      if (settled) return;
+      raf2 = requestFrame(() => {
         if (settled) return;
         // اطمینان از اعمال شدن state آغازین پیش از تغییر classها.
-        void getComputedStyle(element).transform; // intentional forced style resolution (reflow)
+        void view.getComputedStyle(element).transform; // intentional forced style resolution (reflow)
+        if (settled) return;
         removeClasses(element, from);
         addClasses(element, to);
 
@@ -565,6 +575,7 @@ export function createTransition(
         // transition/animation را از computed style اندازه بگیر و deadline و
         // تایمر fallback را به بیشینهٔ (duration، مدت واقعی) + حاشیه ببر.
         expectedEndMs = measureTransitionDuration(element);
+        if (settled) return;
         if (expectedEndMs > duration) {
           if (timer) clearTimeout(timer);
           timer = setTimeout(() => finish(true), expectedEndMs + 50 - (Date.now() - startedAt));

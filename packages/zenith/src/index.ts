@@ -218,3 +218,7 @@ export * as storage from '@zenith/storage';
 export * as store from '@zenith/store';
 export * as suspense from '@zenith/suspense';
 export * as transition from '@zenith/transition';
+
+export * as a11y from '@zenith/a11y';
+export * as head from '@zenith/head';
+export * as ui from '@zenith/ui';

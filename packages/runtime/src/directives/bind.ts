@@ -135,7 +135,7 @@ export function processBind(
   el: HTMLElement,
   attrName: string,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse/validate می‌شود.
   const evalFn = compileExpression(expr);
@@ -149,11 +149,11 @@ export function processBind(
   // برای objects (class object): === reference comparison — اگر کاربر آبجکت جدید
   // نسازد، آپدیت رخ نمی‌دهد که این رفتار صحیحی است (immutable pattern).
   // برای null/undefined: handled by === (null === null → true).
-  let prevValue: any = undefined;
+  let prevValue: unknown = undefined;
   let isFirstRun = true;
 
   const dispose = effect(() => {
-    let value: any;
+    let value: unknown;
     try {
       value = evalFn(context);
     } catch (err) {
@@ -179,7 +179,7 @@ export function processBind(
     // not accidentally treated as plain objects.
     if (attrName === 'class' && Array.isArray(value)) {
       const managedClasses = new Set(getManagedClasses(el));
-      const newSet = new Set(value.filter((c: any) => c).map((c: any) => String(c)));
+      const newSet = new Set(value.filter((c: unknown) => c).map((c: unknown) => String(c)));
       // Remove previously-managed classes that are no longer in the array.
       for (const className of managedClasses) {
         if (!newSet.has(className)) {
@@ -201,7 +201,7 @@ export function processBind(
 
       // ابتدا کلاس‌های قبلی که دیگر true نیستند را حذف کن.
       for (const className of managedClasses) {
-        if (!(className in value) || !value[className]) {
+        if (!(className in value) || !(value as Record<string, unknown>)[className]) {
           el.classList.remove(className);
           managedClasses.delete(className);
         }
@@ -209,7 +209,7 @@ export function processBind(
 
       // سپس کلاس‌های جدیدی که true هستند را اضافه کن.
       for (const className in value) {
-        if (value[className]) {
+        if ((value as Record<string, unknown>)[className]) {
           el.classList.add(className);
           managedClasses.add(className);
         }
@@ -231,7 +231,7 @@ export function processBind(
     if (attrName === 'value' || attrName === 'checked') {
       const tag = (el.tagName || '').toUpperCase();
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'OPTION') {
-        (el as any)[attrName] = value == null ? '' : value;
+        (el as unknown as Record<string, unknown>)[attrName] = value == null ? '' : value;
         return;
       }
     }

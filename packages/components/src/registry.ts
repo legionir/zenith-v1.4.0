@@ -1,3 +1,4 @@
+import { createScopedRegistry, createReferenceRegistry, type ReferenceRegistry } from '@zenith/shared';
 // packages/components/src/registry.ts
 import { developerError, ErrorCode, deprecate, onGlobalReset } from '@zenith/errors';
 //
@@ -31,7 +32,7 @@ import { developerError, ErrorCode, deprecate, onGlobalReset } from '@zenith/err
  *   type ProductCardProps = { productId: number; theme?: string };
  *   const def: ComponentDefinition<ProductCardProps> = { ... };
  */
-export interface ComponentDefinition<TProps extends Record<string, any> = Record<string, any>> {
+export interface ComponentDefinition<TProps extends object = Record<string, unknown>> {
   /** نام کامپوننت (lowercase). مثلا "app-product-card". */
   name: string;
   /** قالب HTML کامپوننت. */
@@ -54,8 +55,8 @@ export const componentRegistry = new Map<string, HTMLTemplateElement>();
  * #92 — ایزولاسیون رجیستری کامپوننت‌ها در SSR هم‌زمان.
  * اگر provider توسط `@zenith/ssr` نصب شده باشد و یک Map مخصوص درخواست جاری
  * برگرداند، عملیات ثبت/حذف/پاکسازی روی همان Map درخواست انجام می‌شود و
- * خواندن (`getComponent`/`isComponent`) ابتدا Map درخواست و سپس
- * `componentRegistry` سراسری را بررسی می‌کند.
+ * خواندن و نوشتن در owner جاری انجام می‌شود؛ نام غایب به رجیستری global
+ * برنمی‌گردد. componentRegistry فقط compatibility scope بدون owner است.
  */
 let _componentStoreProvider: (() => Map<string, HTMLTemplateElement> | null) | null = null;
 
@@ -65,9 +66,15 @@ export function setComponentRegistryStore(
   _componentStoreProvider = provider;
 }
 
-function getActiveComponentMap(): Map<string, HTMLTemplateElement> {
-  return _componentStoreProvider?.() ?? componentRegistry;
+const mapAdapters = new WeakMap<Map<string, HTMLTemplateElement>, ReferenceRegistry<HTMLTemplateElement>>();
+function fallbackRegistry(): ReferenceRegistry<HTMLTemplateElement> {
+  const map = _componentStoreProvider?.() ?? componentRegistry;
+  let adapter = mapAdapters.get(map);
+  if (!adapter) { adapter = createReferenceRegistry({ legacyMap: map }); mapAdapters.set(map, adapter); }
+  return adapter;
 }
+const scopedComponents = createScopedRegistry<HTMLTemplateElement>('components', { fallback: fallbackRegistry });
+
 
 /**
  * Type guard برای تشخیص HTMLTemplateElement.
@@ -80,11 +87,11 @@ function getActiveComponentMap(): Map<string, HTMLTemplateElement> {
  * Duck typing: یک HTMLTemplateElement ویژگی `content` (DocumentFragment) دارد
  * و nodeName آن 'TEMPLATE' است.
  */
-function isHTMLTemplateElement(value: any): value is HTMLTemplateElement {
+function isHTMLTemplateElement(value: unknown): value is HTMLTemplateElement {
   return (
     value !== null &&
     typeof value === 'object' &&
-    value.nodeName === 'TEMPLATE' &&
+    'nodeName' in value && value.nodeName === 'TEMPLATE' &&
     'content' in value
   );
 }
@@ -115,23 +122,14 @@ export function registerComponent(name: string, template: HTMLTemplateElement): 
     );
   }
   const key = name.toLowerCase();
-  const targetMap = getActiveComponentMap();
-  targetMap.set(key, template);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (targetMap.get(key) === template) {
-      targetMap.delete(key);
-    }
-  };
+  return scopedComponents.register(key, template);
 }
 
 /**
  * حذف یک کامپوننت از Registry.
  */
 export function unregisterComponent(name: string): boolean {
-  return getActiveComponentMap().delete(name.toLowerCase());
+  return scopedComponents.delete(name.toLowerCase());
 }
 
 /**
@@ -141,11 +139,7 @@ export function unregisterComponent(name: string): boolean {
  */
 export function getComponent(name: string): HTMLTemplateElement | undefined {
   const key = name.toLowerCase();
-  const scoped = _componentStoreProvider?.();
-  if (scoped && scoped.has(key)) {
-    return scoped.get(key);
-  }
-  return componentRegistry.get(key);
+  return scopedComponents.get(key);
 }
 
 /**
@@ -156,11 +150,7 @@ export function getComponent(name: string): HTMLTemplateElement | undefined {
  */
 export function isComponent(name: string): boolean {
   const key = name.toLowerCase();
-  const scoped = _componentStoreProvider?.();
-  if (scoped && scoped.has(key)) {
-    return true;
-  }
-  return componentRegistry.has(key);
+  return scopedComponents.has(key);
 }
 
 /** #118: بررسی وجود کامپوننت ثبت‌شده (`hasX`). */
@@ -170,12 +160,7 @@ export function hasComponent(name: string): boolean {
 
 /** #118: فهرست نام تمام کامپوننت‌های ثبت‌شده (`listXs`). */
 export function listComponents(): string[] {
-  const keys = new Set<string>(componentRegistry.keys());
-  const scoped = _componentStoreProvider?.();
-  if (scoped) {
-    for (const k of scoped.keys()) keys.add(k);
-  }
-  return Array.from(keys);
+  return [...scopedComponents.keys()];
 }
 
 /**
@@ -192,7 +177,7 @@ export function clearComponents(): void {
  * #118: پاک‌سازی داخلی بدون هشدار (هوک ریست سراسری).
  */
 export function clearComponentsInternal(): void {
-  getActiveComponentMap().clear();
+  scopedComponents.clear();
 }
 
 /* @__PURE__ */ onGlobalReset(clearComponentsInternal);
@@ -292,7 +277,7 @@ export function stopComponentTracking(): void {
  * @param options  Optional configuration (props type info, lifecycle hooks).
  * @returns The ComponentDefinition for chaining / introspection.
  */
-export function defineComponent<TProps extends Record<string, any> = Record<string, any>>(
+export function defineComponent<TProps extends object = Record<string, unknown>>(
   name: string,
   template: HTMLTemplateElement,
   options?: {

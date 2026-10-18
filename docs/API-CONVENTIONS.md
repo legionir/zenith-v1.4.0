@@ -335,3 +335,131 @@ export const DEFAULTS = defineDefaults({ ttl: 0, maxSize: 100 });
 اجرا شود. گرامر attributeهای HTML و رویدادهای `CustomEvent` در سند خواهر
 [ATTRIBUTE-GRAMMAR.md](./ATTRIBUTE-GRAMMAR.md) (#173) ثابت شده‌اند و با گیت
 `scripts/attribute-grammar.mjs` به رجیستری `zenith.meta.json` قفل می‌شوند.
+
+## پیشنهاد در انتظار پذیرش — محتوای owned و Menu مشترک (۲۰۲۶-۱۰-۱۷)
+
+این بخش **قرارداد مصوب تازه محسوب نمی‌شود**؛ تغییرهای candidate در Core/UI را برای
+بازبینی API و release ثبت می‌کند و نباید برای ادعای API-identical بودن #40 مصرف شود.
+
+- `BindContext.skipChildren?(): void`: فقط descent خودکار همان bind را متوقف می‌کند؛
+  دایرکتیوهای دیگر همان element و `processChildren` صریح برقرارند. تصمیم بین mountها
+  ذخیره نمی‌شود. fixture مرجع: `runtime-core/test/owned-children.test.ts`.
+- Tooltip با expression مالک presentation فرزندان و Text node مستقل است؛ fallback
+  bind نمی‌شود و شاخهٔ arrow decorative/inert باقی می‌ماند. host بدون این قابلیت
+  برای expression پیش از mutation با ZEN-1603 رد می‌شود، نه fallback ناامن/خاموش.
+  Tooltip بدون expression محتوای authored و binding عادی را حفظ می‌کند.
+- Menu مشترک فقط یک منبع config دارد؛ borrower می‌تواند گزینه را حذف کند، همان
+  readable را بدهد یا concrete مطابق config فعلی بدهد. readable متفاوت/تعارض config
+  با ZEN-1603 رد می‌شود. selector خراب/trigger متفاوت ZEN-1601 است. lease والد برای
+  child ازپیش‌ساخته منبع child را عوض نمی‌کند؛ فقط child جدید از والد ارث می‌برد.
+- role ثابت Tooltip/Menu در type و schema محدود به `tooltip`/`menu` است؛ role ناسازگار
+  نباید پذیرفته و سپس نادیده گرفته شود. Popover عمومی همچنان role قابل تنظیم دارد.
+- generation گزارش‌ها و اجرای fixtureهای این بخش تا فاز اعتبارسنجی نهایی انجام نشده
+  است. سیاست remount/borrow و تنگ‌شدن type/API نیازمند پذیرش سازگاری است.
+
+### Authored continuation: Form and unknown writable capabilities (unvalidated)
+
+Canonical Form bags and bridges are proposed as:
+
+| API | Canonical | Warning |
+| --- | --- | --- |
+| `validateField` | `(value, { rules, allValues })` | 095 |
+| `validateFieldAsync` | `(value, { rules, allValues, signal })` | 096 |
+| `validateFormAsync` | `({ values, rules, signal })` | 097 |
+| `validateWithLifecycle` | `(values, { rules, lifecycle, async })` | 098 |
+| `FormStore.moveItem` | `(field, { from, to })` | 099 |
+| `FormStore.addField` | `({ name, initial, rules })` | 100 |
+
+Old signatures remain deprecated and separately evaluated; canonical validation
+must not accidentally validate/warn again through a positional overload.
+Checking setter existence does not validate its input domain: the State guard
+exposes only an unknown setter capability (`never` input), not a readable or
+universally writable Signal. Known `Signal<T>` types retain typed writes. Native
+runtime DOM/storage/hydration writes are explicit unchecked domain boundaries,
+not response decoders. See the migration ledger for compatibility distinctions,
+remaining work and the absence of any current-tree acceptance evidence.
+
+### Owned reactive/Form lifecycle candidate (2026-10-18)
+
+Ownership changes are behavior/source-contract changes even when implemented in
+new private modules. Omitted owners inherit; explicit null detaches; disposed
+owners cannot acquire live children. Scope entry restores the caller in `finally`;
+late teardown must not restore an unrelated creation-time owner. Keep owner-bound
+`onCleanup`, per-effect dependency cleanup, and per-watch callback cleanup distinct.
+A lazy derived value must not invent `T` for an uninitialized placeholder or restart
+a disposed owner. Form validators/autosave/submission use current-run leases before
+state writes; arbitrary promise cancellation/domain decoding is not implied. New
+Advanced/Wizard `dispose` and reset/navigation semantics require lifecycle/migration
+review. All related runtime/type/export fixtures remain unrun.
+
+### Factory data and rest-tuple review (candidate, 2026-10-18)
+
+A default empty record is not a populated generic T. Factories must retain a real
+initial value's field types, expose a dynamic/union result when dispatch cannot be
+proven from static names, and return the API their overload actually advertises
+(including empty collections). Callback callability checks do not decode callback
+results or payload domains. Dirty comparison must not require JSON-serializable
+application fields; conservative identity/bounded comparison behavior must be
+recorded as a contract change, not a mechanical move.
+
+Direct rest tuples and each union branch count as their actual positional inputs;
+a single `...args` spelling does not evade the rule. Source/lint syntax inventories
+cannot resolve imported/generic aliases; published declaration inspection remains
+required. Expansion is bounded/fail-closed. A data-operand callback exemption must
+be qualified and signature-bound, with an actual independent-operand rationale;
+it cannot exempt new method overloads or extra configuration. State/Form protocol
+leases and their negative fixtures are authored, not gate evidence.
+
+### Internal self facades and native host capture (candidate, 2026-10-18)
+
+An internal subpath has an explicit entry release level; a new subpath does not
+magically remove legacy root exposure. Keep compatibility bridges until removal
+is approved, classify their real origin, and do not relabel them public to clear a
+gate. An independently built internal facade must reference the canonical package
+owner rather than bundle another implementation/nominal declaration graph. The
+State bridge uses the external self-specifier for both formats and declarations;
+that is not proof of pre-existing mixed-format root constructor identity.
+
+Owner/tracking context selection must agree. Host context binding is a synchronous,
+argument/result/exception-preserving protocol that captures native async context
+at registration. One snapshot of the first consumer of a shared request context
+cannot stand in for per-registration snapshots. Pure State scopes never hold a
+global synchronous override across a Promise. A Node renderer can keep a root
+owner in its isolated native request store across awaits, and must retire that
+owner before releasing request resources, including error/cancel/stream paths.
+Explicit detached ownership and arbitrary user Promise side effects remain explicit
+limits, not implicit cancellation guarantees. All new fixtures remain unrun.
+
+### Diagnostic capability/host policy candidate (2026-10-18, unvalidated)
+
+Inspection APIs may require a real readable capability without claiming a writable
+nominal class. State naming observer accepts ReadonlySignal<T>; modern Core keeps
+explicit generics with UntypedSignal<T>. Unknown defaults do not authorize setters
+or arbitrary result casts. Getter/event capture is untracked, not side-effect-free.
+Observer/listener registrations require identity-token cleanup, not callback-value
+identity. Context diagnostic lifetime is host-owned, not the first observing child.
+The new internal global-observation policy separates Node request-local legacy
+inspection from realm-global observers. This changes contracts/defaults and belongs
+in the proposed major migration, not the compatible-refactor category. Root bridges,
+release peer floors and all final declaration/format gates remain unresolved.
+
+### Diagnostic options and capability transport (candidate, 2026-10-18)
+
+| API | Canonical options form | Deprecated code |
+| --- | --- | --- |
+| `RuntimeGraph.addSignal` / hook | `(id, { name, value })` | 101 |
+| `RuntimeGraph.addDirective` / hook | `(id, { directiveType, elementSelector, expression })` | 102 |
+| `recordPanelStateChange` | `(id, { oldValue, newValue, signalName })` | 103 |
+| hook `addStaticFor` | `(id, { expr, itemCount })` | 104 |
+| hook `recordResourceDestroy` | `(name, { url, stack })` | 105 |
+
+Only each deprecated overload is exempt; the old panel's broad name waiver is
+removed. Unknown raw oldValue objects are never treated as options by property
+heuristics. Foreign hooks use native capability checks/receiver-preserving calls
+with ignored results; a claimed interface or callback-result cast is not a decoder.
+The internal walker uses protocol marker 2 for canonical metadata and preserves the
+unmarked foreign positional transport. These type/default/lifecycle/retention
+changes are proposed contracts, not #40 compatible-refactor evidence. New public
+option types are explicitly tagged; internal holder/reset/policy types stay off
+facades. Existing internal root bridges and peer-floor approvals remain open.
+All associated fixtures are authored, unrun and uncompiled.

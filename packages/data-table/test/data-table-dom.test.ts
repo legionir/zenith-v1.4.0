@@ -52,7 +52,7 @@ describe('@zenith/data-table DOM & reactive unit tests (#28)', () => {
     expect(table.pageData.get()[0].name).toBe('Cara');
 
     // Filtering by role
-    table.setColumnFilter('role', 'admin', 'equals');
+    table.setColumnFilter('role', { value: 'admin', operator: 'equals' });
     flushComputedChain();
     expect(table.totalRows.get()).toBe(2);
 

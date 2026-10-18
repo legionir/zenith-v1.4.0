@@ -1,11 +1,6 @@
 #!/usr/bin/env node
-/**
- * #38 — Public API `any` Auditor (`scripts/check-public-any.mjs`)
- *
- * Scans `packages/<slug>/src/index.ts` for explicit `any` type annotations in public
- * entrypoints. Enforces zero `any` in all L0/L1/modern packages and a strict
- * non-increasing ratchet ceiling across legacy barrel files.
- */
+/** #38 — published declarations, all subpaths/conditions and referenced workspace types. */
+import { declarationEntries, inspectDeclarationApi } from './lib/declaration-api.mjs';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +34,7 @@ function stripComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 }
 
-export function auditPublicEntrypointAny(rootDir = process.cwd()) {
+export function auditSourceBarrelAnyInventory(rootDir = process.cwd()) {
   const packagesDir = join(rootDir, 'packages');
   const slugs = readdirSync(packagesDir, { withFileTypes: true })
     .filter((d) => d.isDirectory() && existsSync(join(packagesDir, d.name, 'src', 'index.ts')))
@@ -69,12 +64,24 @@ export function auditPublicEntrypointAny(rootDir = process.cwd()) {
   };
 }
 
+/** Missing declarations are an error, never a clean zero-any result. */
+export function auditPublicEntrypointAny(rootDir = process.cwd()) {
+  const entries = declarationEntries(rootDir);
+  if (!entries.length) throw new Error('No published declaration entries found');
+  const analysis = inspectDeclarationApi(entries, { includeDirectories: [join(rootDir, 'packages')] });
+  const counts = Object.fromEntries([...new Set(entries.map(e => e.packageName))].map(name => [name, 0]));
+  for (const finding of analysis.any) {
+    for (const name of Object.keys(counts)) if (finding.exposedBy.some(entry => entry.startsWith(`${name}.:`) || entry.startsWith(`${name}./`))) counts[name]++;
+  }
+  return { counts, totalAnyInEntrypoints: analysis.any.length, zeroAnyPackagesCount: Object.values(counts).filter(count => count === 0).length, violations: analysis.any, entries: entries.length };
+}
+
 /**
  * #38 — Internal `any` ratchet (src کل؛ تست‌ها و کامنت‌ها کنار گذاشته می‌شوند).
  *
  * مسیر مهاجرت: شمار کلی در تست api-surface-docs پین می‌شود و فقط می‌تواند
  * کم شود (سقف نزولی)؛ هدف نهایی طبق معیار پذیرش #38، ≤ ۱۰۰ با کامنت توجیه
- * برای موارد باقی‌مانده است. public entrypointها هم‌اکنون صفرند (بالاتر).
+ * برای موارد باقی‌مانده است. این inventory منبع، شاهد صفر بودن API نیست؛ declaration graph بالا مرجع است.
  */
 export function auditSrcAnyTotals(rootDir = process.cwd()) {
   const packagesDir = join(rootDir, 'packages');

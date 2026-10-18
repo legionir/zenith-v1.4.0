@@ -327,10 +327,11 @@ export async function loadComponent(
 /**
  * Signature of the walker-supplied `processChildren` callback. Mirrors the
  * shape used by `processComponent` in `./processor.ts`.
+ * @public
  */
 export type AsyncProcessChildren = (
   el: HTMLElement,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   disposes: (() => void)[],
 ) => void;
 
@@ -352,10 +353,11 @@ export type AsyncProcessChildren = (
  * the load finishes.
  *
  * @returns Dispose function — aborts in-flight fetch and cleans up.
+ * @public
  */
 export function processAsyncComponent(
   el: HTMLElement,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   processChildren: AsyncProcessChildren,
 ): () => void {
   const src = el.getAttribute('src');

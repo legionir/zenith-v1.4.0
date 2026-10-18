@@ -15,19 +15,20 @@
 import { deprecate } from '@zenith/errors';
 import { validateWithZod as schemaValidateWithZod } from '@zenith/schema/zod';
 import { defineRule, type FormSchema, type SchemaField, schemaToFormConfig } from './validator';
-import { createForm, type FormStore } from './form';
+import { FormStore } from './form-store';
 
 // ── Zod Adapter ──
 // Zod یک optional peer dependency است. اگر نصب باشد، از آن استفاده می‌کنیم.
 
 /**
  * @deprecated از `@zenith/schema/zod` استفاده کنید (#142 / #50، ZEN-DEPR-016).
+ * @public
  */
 export interface ZodSchema {
   // Minimal interface — فقط چه چیزی نیاز داریم.
-  safeParse(data: any): {
+  safeParse(data: unknown): {
     success: boolean;
-    data?: any;
+    data?: unknown;
     error?: { issues: Array<{ path: (string | number)[]; message: string }> };
   };
 }
@@ -48,6 +49,7 @@ export interface ZodSchema {
  *     email: { initial: '', label: 'Email' },
  *     password: { initial: '', label: 'Password', type: 'password' },
  *   });
+ * @public
  */
 export function fromZod(
   zodSchema: ZodSchema,
@@ -62,7 +64,7 @@ export function fromZod(
     'این alias در 2.0 حذف می‌شود (DEC-026).',
   );
   // Test با یک sample تا قوانین استخراج کنیم.
-  const sampleValues: Record<string, any> = {};
+  const sampleValues: Record<string, unknown> = {};
   if (fieldConfig) {
     for (const [name, config] of Object.entries(fieldConfig)) {
       sampleValues[name] = config.initial ?? '';
@@ -99,7 +101,7 @@ export function fromZod(
     }
 
     // Build form config.
-    const config: Record<string, { initial: any; rules?: string }> = {};
+    const config: Record<string, { initial: unknown; rules?: string }> = {};
     for (const [name, fc] of Object.entries(fieldConfig || {})) {
       config[name] = {
         initial: fc.initial ?? '',
@@ -127,15 +129,15 @@ export function fromZod(
       field.rules = existingRules ? `${existingRules},__zod__` : '__zod__';
     }
 
-    return createForm(config);
+    return new FormStore(config);
   }
 
   // If sample passes (all fields are optional), just create form with no rules.
-  const config: Record<string, { initial: any; rules?: string }> = {};
+  const config: Record<string, { initial: unknown; rules?: string }> = {};
   for (const [name, fc] of Object.entries(fieldConfig || {})) {
     config[name] = { initial: fc.initial ?? '', rules: '' };
   }
-  return createForm(config);
+  return new FormStore(config);
 }
 
 /**
@@ -144,6 +146,7 @@ export function fromZod(
  *
  * #142: چک خالص safeParse به `@zenith/schema/zod` واگذار می‌شود؛ این wrapper
  * فقط FormStore را update می‌کند و در 2.0 حذف می‌شود.
+ * @public
  */
 export async function validateWithZod(form: FormStore, zodSchema: ZodSchema): Promise<boolean> {
   deprecate(
@@ -171,6 +174,7 @@ export async function validateWithZod(form: FormStore, zodSchema: ZodSchema): Pr
 
 /**
  * @deprecated از `JsonSchemaInput` در `@zenith/schema/json-schema` استفاده کنید (#142 / #50، ZEN-DEPR-018).
+ * @public
  */
 export interface JsonSchema {
   type?: string;
@@ -184,7 +188,7 @@ export interface JsonSchema {
       minimum?: number;
       maximum?: number;
       pattern?: string;
-      enum?: any[];
+      enum?: unknown[];
       description?: string;
     }
   >;
@@ -201,10 +205,11 @@ export interface JsonSchema {
  * @deprecated #119/#142 — نام تکراری با `@zenith/schema/json-schema.fromJsonSchema`
  * (امضا ناسازگار، DEC-029). از `fromJsonSchema` از `@zenith/schema/json-schema` +
  * `createForm` استفاده کنید (ZEN-DEPR-018؛ حذف در ۲.۰).
+ * @public
  */
 export function fromJsonSchema(
   jsonSchema: JsonSchema,
-  initialValues?: Record<string, any>,
+  initialValues?: Record<string, unknown>,
 ): FormStore {
   deprecate(
     'ZEN-DEPR-018',
@@ -212,7 +217,7 @@ export function fromJsonSchema(
     '@zenith/schema/json-schema fromJsonSchema + createForm',
     'این alias در 2.0 حذف می‌شود (DEC-026).',
   );
-  const config: Record<string, { initial: any; rules?: string }> = {};
+  const config: Record<string, { initial: unknown; rules?: string }> = {};
   const required = new Set(jsonSchema.required || []);
 
   for (const [name, prop] of Object.entries(jsonSchema.properties || {})) {
@@ -240,14 +245,15 @@ export function fromJsonSchema(
     };
   }
 
-  return createForm(config);
+  return new FormStore(config);
 }
 
 /**
  * ساخت فرم از Schema (FormSchema interface).
+ * @public
  */
 export function createFormFromSchema(schema: FormSchema): FormStore {
-  return createForm(schemaToFormConfig(schema));
+  return new FormStore(schemaToFormConfig(schema));
 }
 
 export { type FormSchema, type SchemaField, schemaToFormConfig, schemaToHtml } from './validator';

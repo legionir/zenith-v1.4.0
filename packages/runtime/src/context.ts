@@ -23,7 +23,7 @@
 // این الگو به runtime اجازه می‌دهد بدون router هم کار کند (مثلاً در تست‌های
 // واحد یا اپلیکیشن‌های بدون routing).
 
-import { type Signal, isReadable, isWritable } from '@zenith/state';
+import { type Readable, type WritableCapability, isReadable, isWritable } from '@zenith/state';
 
 /**
  * Type of the route signal provider function.
@@ -71,8 +71,8 @@ export function setRouteSignalProvider(provider: RouteStateProvider | null): voi
  * را بپذیرند. برای صرفاً خواندن/unwrap در context، از `isReadable` استفاده
  * می‌شود (پایین‌تر در createContext).
  */
-function isSignal(value: any): value is Signal<any> {
-  return isWritable(value) && typeof value.get === 'function';
+function isSignal(value: unknown): value is Readable<unknown> & WritableCapability {
+  return isWritable(value) && typeof Reflect.get(value, 'get') === 'function';
 }
 
 /**
@@ -96,8 +96,8 @@ function isSignal(value: any): value is Signal<any> {
  * @param state آبجکت State که کاربر تعریف می‌کند.
  * @returns Context قابل استفاده در Expression Engine.
  */
-export function createContext(state: Record<string, any>): Record<string, any> {
-  const context: Record<string, any> = {};
+export function createContext(state: Record<string, unknown>): Record<string, unknown> {
+  const context: Record<string, unknown> = {};
 
   for (const key in state) {
     // پیشوند $ به صورت خودکار اضافه می‌شود تا در Expressionها

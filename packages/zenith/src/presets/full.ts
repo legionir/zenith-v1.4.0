@@ -19,6 +19,9 @@ import * as components from '@zenith/components';
 import * as suspense from '@zenith/suspense';
 import * as transition from '@zenith/transition';
 import * as actions from '@zenith/actions';
+import { a11yPlugin } from '@zenith/a11y';
+import { headPlugin } from '@zenith/head';
+import { uiPlugin } from '@zenith/ui';
 
 export const PRESET_FULL_MODULES = /* @__PURE__ */ Object.freeze([
   'runtime-core',
@@ -40,12 +43,18 @@ export const PRESET_FULL_MODULES = /* @__PURE__ */ Object.freeze([
   'suspense',
   'transition',
   'actions',
+  'a11y',
+  'head',
+  'ui',
 ] as const);
 
 export const fullPreset: Plugin = /* @__PURE__ */ definePlugin({
   name: 'zenith:preset:full',
   install(app: App) {
     app.use(spaPreset);
+    app.use(a11yPlugin());
+    app.use(headPlugin());
+    app.use(uiPlugin());
     app.provide('zenith:preset', 'full');
     app.provide('zenith:auth', auth);
     app.provide('zenith:cache', cache);

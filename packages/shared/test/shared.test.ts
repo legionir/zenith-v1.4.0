@@ -340,3 +340,9 @@ describe('invariant — خطای ساختارمند با ZEN-1090 (#141/#171)', 
     expect((caught as { code: string }).code).toBe('ZEN-1090');
   });
 });
+
+it('detaches an exact owned child registration and keeps disposal status terminal', () => {
+  const parent = createDisposer(); const first = vi.fn(), last = vi.fn(); parent.add(first); parent.add(last);
+  expect(parent.remove?.(first)).toBe(true); expect(parent.remove?.(first)).toBe(false); expect(parent.isDisposed?.()).toBe(false);
+  parent.dispose(); expect(first).not.toHaveBeenCalled(); expect(last).toHaveBeenCalledOnce(); expect(parent.isDisposed?.()).toBe(true); expect(parent.remove?.(last)).toBe(false);
+});

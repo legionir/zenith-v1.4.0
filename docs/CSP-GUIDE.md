@@ -48,4 +48,14 @@ const app = createZenith({
 app.mount('#app');
 ```
 
-All HTML sinks (`zen-html`, `setSafeInnerHTML`) sanitize input via `sanitizeHTML` and wrap the result in a `TrustedHTML` instance produced by the `'zenith'` policy.
+Use `setSafeInnerHTML(element, { html })` for the canonical package sink. It
+sanitizes by default and passes native policy output to the DOM setter when a
+Trusted Types policy is available. The positional form is a deprecated bridge
+(`ZEN-DEPR-092`). Policy outputs are opaque `unknown` values, not promised strings.
+
+`trusted: true` / `sanitizeHTMLTrusted` are explicit escape hatches, not input
+validation. Without a policy they may render unsanitized content; an installed
+Zenith policy still sanitizes its input. Do not use them with user-supplied HTML.
+The non-DOM regex fallback is not equivalent to DOM sanitization. Unit fixtures
+and this setup guide do not by themselves establish real-browser CSP/Trusted
+Types enforcement for every runtime/compiler sink.

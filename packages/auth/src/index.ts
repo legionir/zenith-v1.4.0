@@ -1,6 +1,7 @@
 export {
   Auth,
   createAuth,
+  getDefaultAuth,
   registerAuth,
   getAuth,
   hasAuth,
@@ -47,3 +48,11 @@ export {
   type FunctionalAuthConfig,
   type RouteGuard,
 } from './auth';
+
+export {
+  createAuthRegistry, authPlugin, getAppAuth, authPluginOptions,
+  type AuthRegistry, type AuthRegistryStore, type AuthAppHost, type AuthPluginOptions,
+} from './registry';
+
+// Higher-layer ownership bridge; not an application configuration API.
+export { setAuthRegistryOwner, type AuthRegistryOwner } from './auth';

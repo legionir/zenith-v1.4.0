@@ -6,13 +6,18 @@
 
 import { signal, untrack, type ReadonlySignal } from './signal';
 import { effect } from './effect';
+import { createOwner, disposeOwner, getOwner, _getMutableContext, _bindToEffectContext } from './context';
+import { emitError } from './error';
+import { developerError } from '@zenith/errors';
 import { ZENITH_READABLE } from './readable';
 
+/** @public */
 export interface AsyncComputeContext {
   /** سیگنال لغو که با تغییر وابستگی یا dispose شدن، abort می‌شود. */
   readonly signal: AbortSignal;
 }
 
+/** @public */
 export interface AsyncOptions<T> {
   /** مقدار اولیهٔ `data` پیش از اولین resolve. */
   initial?: T;
@@ -24,6 +29,7 @@ export interface AsyncOptions<T> {
   onError?: (error: unknown) => void;
 }
 
+/** @public */
 export interface AsyncSignal<T> {
   readonly [ZENITH_READABLE]: true;
   /** سیگنال مقدار فعلی. */
@@ -59,67 +65,87 @@ export function createAsync<T>(
 ): AsyncSignal<T> {
   const { initial, keepPrevious = true, immediate = true, onError } = options;
 
-  const dataSig = signal<T | undefined>(initial);
-  const loadingSig = signal<boolean>(immediate);
-  const errorSig = signal<unknown>(null);
+  const executionContext = _getMutableContext();
+  const owner = createOwner(getOwner());
+  if (owner.disposed) throw developerError('Cannot create async state under a disposed owner');
+  const ownedSignal = <V>(value: V) => {
+    try {
+      if (owner.disposed) throw developerError('Cannot create async state under a disposed owner');
+      const state = signal(value);
+      if (owner.disposed) {
+        state.dispose(); throw developerError('Async state owner was disposed during initialization');
+      }
+      owner.cleanup.add(() => state.dispose());
+      return state;
+    } catch (error) { disposeOwner(owner); throw error; }
+  };
+  const dataSig = ownedSignal<T | undefined>(initial);
+  const loadingSig = ownedSignal(immediate);
+  const errorSig = ownedSignal<unknown>(null);
 
   let runVersion = 0;
   let activeController: AbortController | null = null;
-  let disposed = false;
+  let disposed = owner.disposed;
+  let stopEffect: (() => void) | undefined;
 
   const abortCurrent = () => {
     if (activeController) {
-      activeController.abort();
+      const controller = activeController;
       activeController = null;
+      untrack(() => controller.abort());
     }
   };
 
   const execute = (): Promise<T | undefined> => {
     if (disposed) return Promise.resolve(dataSig.peek());
     abortCurrent();
+    if (disposed || owner.disposed) return Promise.resolve(dataSig.peek());
     const version = ++runVersion;
     const controller = new AbortController();
     activeController = controller;
+    const current = () => version === runVersion && !disposed && !controller.signal.aborted;
 
     untrack(() => {
       loadingSig.set(true);
+      if (!current()) return;
       errorSig.set(null);
-      if (!keepPrevious && version > 1) {
+      if (current() && !keepPrevious && version > 1) {
         dataSig.set(initial);
       }
     });
 
+    if (!current()) return Promise.resolve(dataSig.peek());
     let rawResult: Promise<T> | T;
     try {
       // اجرای همگام بخش اول fn برای ثبت وابستگی‌های سیگنال در effect
       rawResult = fn({ signal: controller.signal });
     } catch (syncErr) {
       untrack(() => {
-        if (version === runVersion && !disposed) {
+        if (current()) {
           errorSig.set(syncErr);
-          loadingSig.set(false);
-          onError?.(syncErr);
+          if (current()) loadingSig.set(false);
+          if (current()) onError?.(syncErr);
         }
       });
+      if (activeController === controller) activeController = null;
       return Promise.resolve(dataSig.peek());
     }
 
     const p = Promise.resolve(rawResult).then(
       (resolved) => {
-        if (version !== runVersion || disposed || controller.signal.aborted) {
-          return dataSig.peek();
-        }
+        if (activeController === controller) activeController = null;
+        if (!current()) return dataSig.peek();
         dataSig.set(resolved);
-        loadingSig.set(false);
+        if (current()) loadingSig.set(false);
         return resolved;
       },
       (err) => {
-        if (version !== runVersion || disposed || controller.signal.aborted || isAbortError(err)) {
-          return dataSig.peek();
-        }
+        if (activeController === controller) activeController = null;
+        if (!current()) return dataSig.peek();
+        if (isAbortError(err)) { loadingSig.set(false); return dataSig.peek(); }
         errorSig.set(err);
-        loadingSig.set(false);
-        onError?.(err);
+        if (current()) loadingSig.set(false);
+        if (current()) onError?.(err);
         return dataSig.peek();
       },
     );
@@ -127,24 +153,42 @@ export function createAsync<T>(
     return p;
   };
 
-  let firstRun = true;
-  const stopEffect = effect(() => {
-    if (disposed) return;
-    if (firstRun && !immediate) {
-      firstRun = false;
-      return;
-    }
-    firstRun = false;
-    void execute();
+  owner.cleanup.add(() => {
+    disposed = true; runVersion++;
+    abortCurrent(); loadingSig.set(false);
+    stopEffect = undefined;
   });
 
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
-    abortCurrent();
-    loadingSig.set(false);
-    stopEffect();
+  const refreshInContext = (): Promise<T | undefined> => {
+    if (disposed || owner.disposed) return Promise.resolve(dataSig.peek());
+    stopEffect?.(); stopEffect = undefined;
+    let request: Promise<T | undefined> = Promise.resolve(dataSig.peek());
+    const stop = effect(() => {
+      request = execute();
+      // Preserve explicit refresh rejection while observing background failures
+      // from user error hooks/native observers (not ordinary compute failures).
+      void request.catch(error => emitError({ message: error instanceof Error ? error.message : String(error), category: 'reactivity', severity: 'error', stack: error instanceof Error ? error.stack : undefined }));
+    }, { owner });
+    if (disposed) stop(); else stopEffect = stop;
+    return request;
   };
+  let refresh: () => Promise<T | undefined>;
+  let abort: () => void;
+  try {
+    refresh = _bindToEffectContext(executionContext, refreshInContext);
+    abort = _bindToEffectContext(executionContext, () => {
+      if (disposed) return;
+      runVersion++;
+      abortCurrent();
+      loadingSig.set(false);
+    });
+    if (owner.disposed) throw developerError('Async state owner was disposed during initialization');
+  } catch (error) { disposeOwner(owner); throw error; }
+  if (immediate) {
+    try { void refresh(); }
+    catch (error) { disposeOwner(owner); throw error; }
+  }
+  const dispose = () => disposeOwner(owner);
 
   return {
     [ZENITH_READABLE]: true,
@@ -152,11 +196,8 @@ export function createAsync<T>(
     loading: loadingSig,
     error: errorSig,
     get: () => dataSig.get(),
-    refresh: () => execute(),
-    abort: () => {
-      abortCurrent();
-      loadingSig.set(false);
-    },
+    refresh,
+    abort,
     dispose,
     [Symbol.dispose]: dispose,
   };

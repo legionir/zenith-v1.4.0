@@ -425,7 +425,7 @@ export function createChart(el: HTMLElement, options: ChartOptions): Chart {
     },
   };
   if (typeof Symbol !== 'undefined' && Symbol.dispose) {
-    (chart as any)[Symbol.dispose] = () => chart.dispose();
+    Reflect.set(chart, Symbol.dispose, () => chart.dispose());
   }
   return chart;
 }

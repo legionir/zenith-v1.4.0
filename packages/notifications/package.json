@@ -1,7 +1,7 @@
 {
   "name": "@zenith/notifications",
   "version": "1.4.0",
-  "description": "Zenith framework — Toast notifications, alerts, and confirm dialogs.",
+  "description": "Zenith framework \u2014 Toast notifications, alerts, and confirm dialogs.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -61,6 +61,7 @@
   },
   "dependencies": {
     "@zenith/errors": "1.4.0",
-    "@zenith/shared": "1.5.0"
+    "@zenith/shared": "1.5.0",
+    "@zenith/a11y": "1.5.0"
   }
 }

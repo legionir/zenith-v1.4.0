@@ -1,132 +1,99 @@
-// packages/state/src/computed.ts
-//
-// ماژول Computed: مقادیر محاسباتی (Derived State).
-//
-// Computed در واقع یک Signal "فقط‌خواندنی" است که مقدارش از روی
-// Signalهای دیگر محاسبه می‌شود. تا وقتی وابستگی‌هایش تغییر نکرده‌اند،
-// نباید دوباره محاسبه شود (Caching + Lazy Evaluation).
-//
-// استفاده:
-//   const firstName = signal('Ali');
-//   const lastName  = signal('Mohammadi');
-//   const fullName  = computed(() => `${firstName.get()} ${lastName.get()}`);
-//
-//   fullName.get(); // 'Ali Mohammadi'
-//   firstName.set('Reza');
-//   fullName.get(); // 'Reza Mohammadi'  ← به صورت خودکار آپدیت شد.
-
-import { type Signal, signal, type ReadonlySignal } from './signal';
+import { type Signal, signal, type ReadonlySignal, untrack } from './signal';
 import { effect } from './effect';
-import { createOwner, disposeOwner, getOwner } from './context';
-// #187 FIX: همان brand قابل‌خواندن Signal (Computed متد set ندارد).
+import { createOwner, disposeOwner, getOwner, _getMutableContext, _bindToEffectContext } from './context';
+import { developerError } from '@zenith/errors';
 import { ZENITH_READABLE } from './readable';
 
-/**
- * کلاس Computed: یک Signal با مقدار مشتق‌شده.
- *
- * ساز و کار داخلی:
- *   - یک Signal داخلی (innerSignal) ساخته می‌شود تا تغییرات مقدار محاسبه‌شده
- *     را به Effectهای بیرونی اطلاع دهد.
- *   - یک Effect داخلی ساخته می‌شود که به Signalهای خوانده‌شده در computation وابسته است.
- *     وقتی هر کدام از آن‌ها تغییر کند، این Effect دوباره اجرا شده و مقدار جدید
- *     را در innerSignal قرار می‌دهد.
- *   - اگر مقدار محاسبه‌شده تغییر نکرده باشد (Object.is)، از Set کردن innerSignal
- *     صرف‌نظر می‌شود تا Effectهای بیرونی بی‌دلیل اجرا نشوند.
- */
-export class Computed<T> {
-  private _value: T | undefined;
-  private _innerSignal: Signal<T | undefined>;
-  private _cleanup: (() => void) | null = null;
-  private _initialized = false;
-  private _owner: ReturnType<typeof createOwner>;
+type ComputedState<T> = { kind: 'empty' } | { kind: 'ready'; signal: Signal<T> };
 
-  constructor(private computation: () => T) {
-    // BUG-03 FIX + IMP-01 (v1.3.0): Lazy initialization — computation() is
-    // deferred until the first get() call. This avoids double execution of the
-    // computation function (previously it ran once in the constructor and once
-    // inside the effect). For pure functions this was only a performance issue;
-    // for impure functions (e.g. Math.random(), Date.now()) it could produce
-    // different values leading to subtle bugs.
-    //
-    // innerSignal starts with undefined as a placeholder. When get() is called
-    // for the first time, _initialize() runs computation(), creates the real
-    // innerSignal, and sets up the tracking effect.
-    this._owner = createOwner(getOwner());
-    this._innerSignal = signal<T | undefined>(undefined);
+/** A lazy, owned derived value with real readonly capabilities. @public */
+export class Computed<T> implements ReadonlySignal<T> {
+  private _state: ComputedState<T> = { kind: 'empty' };
+  private _initializing = false;
+  private readonly _owner = createOwner(getOwner());
+
+  private _computation: (() => T) | undefined;
+  private _initializeInContext: (() => Signal<T>) | undefined;
+  constructor(computation: () => T) {
+    this._computation = this._owner.disposed ? undefined : computation;
+    if (this._owner.disposed) return;
+    try { this._initializeInContext = _bindToEffectContext(_getMutableContext(), () => this._initialize()); }
+    catch (error) { disposeOwner(this._owner); this._computation = undefined; throw error; }
+    if (this._owner.disposed) {
+      this._computation = undefined; this._initializeInContext = undefined; return;
+    }
+    // No invented T/undefined placeholder signal. First successful evaluation
+    // creates the actual typed signal; its owner releases subscribers once.
+    this._owner.cleanup.add(() => {
+      this._computation = undefined;
+      this._initializeInContext = undefined;
+      if (this._state.kind === 'ready') this._state.signal.dispose();
+    });
   }
 
-  /**
-   * خواندن مقدار Computed.
-   *
-   * اولین فراخوانی get() باعث مقداردهی اولیه (lazy initialization) می‌شود.
-   * این کار از اجرای بیهوده computation برای computedهایی که هرگز خوانده
-   * نمی‌شوند جلوگیری می‌کند.
-   *
-   * - اگر افکت بیرونی این را بخواند، به innerSignal وابسته می‌شود.
-   * - اگر خارج از Effect خوانده شود، فقط مقدار برگردانده می‌شود.
-   */
   get(): T {
-    if (!this._initialized) {
-      this._initialize();
+    const state = this._state;
+    if (state.kind === 'ready') {
+      // Disposal is terminal: cached reads are snapshots, never new subscriptions.
+      return this._owner.disposed ? state.signal.peek() : state.signal.get();
     }
-    return this._innerSignal.get() as T;
+    if (this._owner.disposed) throw developerError('Cannot initialize a disposed computed value');
+    const initialize = this._initializeInContext;
+    if (!initialize) throw developerError('Cannot initialize a disposed computed value');
+    // Initialize in the producer context, then subscribe in the reader context.
+    return initialize().get();
   }
 
-  /**
-   * مقداردهی اولیه lazy: محاسبه مقدار اولیه، ساخت innerSignal و Effect.
-   */
-  private _initialize(): void {
-    // BUG-03 FIX: computation() now runs only once for initialization.
-    // The tracking effect re-runs computation() on dependency changes,
-    // but the first run is the _only_ initialization run — no duplication.
-    this._value = this.computation();
-    this._innerSignal = signal<T>(this._value as T);
+  peek(): T { return untrack(() => this.get()); }
+  get subscriberCount(): number { return this._state.kind === 'ready' ? this._state.signal.subscriberCount : 0; }
+  removeSubscriber(subscriber: Parameters<Signal<T>['removeSubscriber']>[0]): void {
+    if (this._state.kind === 'ready') this._state.signal.removeSubscriber(subscriber);
+  }
 
-    this._cleanup = effect(
-      () => {
-        const newValue = this.computation();
-
-        // اگر مقدار واقعاً تغییر کرده، innerSignal را update می‌کنیم.
-        // در غیر این صورت، هیچ کاری نمی‌کنیم تا از re-render غیرضروری جلوگیری شود.
-        if (!Object.is(newValue, this._value)) {
-          this._value = newValue;
-          this._innerSignal.set(newValue as T);
+  private _initialize(): Signal<T> {
+    if (this._initializing) throw developerError('Circular computed initialization');
+    this._initializing = true;
+    const initial: { signal?: Signal<T>; failure?: { error: unknown } } = {};
+    let first = true;
+    try {
+      const stop = effect(() => {
+        try {
+          const computation = this._computation;
+          if (!computation) throw developerError('Cannot evaluate a disposed computed value');
+          const value = computation();
+          if (this._owner.disposed) {
+            if (first) throw developerError('Computed owner was disposed during initialization');
+            return;
+          }
+          if (first) {
+            // Observer/legacy registry reads during construction must not make
+            // the computed subscribe to its own signal.
+            const inner = untrack(() => signal(value));
+            if (this._owner.disposed) { inner.dispose(); throw developerError('Computed owner was disposed during initialization'); }
+            this._state = { kind: 'ready', signal: inner };
+            initial.signal = inner;
+            first = false;
+          } else {
+            const state = this._state;
+            if (state.kind === 'ready' && !Object.is(value, state.signal.peek())) untrack(() => state.signal.set(value));
+          }
+        } catch (error) {
+          // Preserve initial synchronous failure (including thrown undefined)
+          // without routing it through the effect error hub or fabricating T.
+          if (first) initial.failure = { error };
+          else throw error;
         }
-      },
-      {
-        owner: this._owner,
-      },
-    );
-
-    this._initialized = true;
+      }, { owner: this._owner });
+      if (initial.failure) { stop(); throw initial.failure.error; }
+      if (!initial.signal) { stop(); throw developerError('Computed initialization did not produce a value'); }
+      return initial.signal;
+    } finally { this._initializing = false; }
   }
 
-  /**
-   * آزادسازی منابع (برای استفاده در آینده در Component lifecycle).
-   */
-  dispose(): void {
-    if (this._cleanup) {
-      this._cleanup();
-      this._cleanup = null;
-    }
-    disposeOwner(this._owner);
-    this._initialized = false;
-  }
+  /** Idempotent terminal disposal; initialized values retain only their last snapshot. */
+  dispose(): void { disposeOwner(this._owner); }
 }
 
-/**
- * Create a computed (derived) readonly signal with full type inference.
- *
- * @param computation تابع محاسبه‌کننده‌ی مقدار.
- * @returns یک Computed قابل استفاده (به‌صورت ReadonlySignal).
- *
- * @example
- *   const double = computed(() => count.get() * 2); // ReadonlySignal<number>
- */
-export function computed<T>(computation: () => T): ReadonlySignal<T> {
-  return new Computed(computation) as unknown as ReadonlySignal<T>;
-}
-
-// #187 FIX: Computed هم «readable» است (فقط get دارد) — brand شود تا
-// createContext آن را به‌جای اسنپ‌شات یک‌باره، به‌صورت getter واکنشی unwrap کند.
-(Computed.prototype as any)[ZENITH_READABLE] = true;
+/** Create a lazy derived value; dependencies belong to its own tracking effect. @public */
+export function computed<T>(computation: () => T): ReadonlySignal<T> { return new Computed(computation); }
+Reflect.set(Computed.prototype, ZENITH_READABLE, true);

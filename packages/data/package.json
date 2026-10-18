@@ -1,7 +1,7 @@
 {
   "name": "@zenith/data",
   "version": "1.4.0",
-  "description": "Zenith framework — Declarative Data Fetching (Phase 8). zen-fetch directive with loading/error/success states and reactive URL.",
+  "description": "Zenith framework \u2014 Declarative Data Fetching (Phase 8). zen-fetch directive with loading/error/success states and reactive URL.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -58,7 +58,8 @@
     "@zenith/cache": "1.5.0",
     "@zenith/errors": "1.4.0",
     "@zenith/expressions": "1.4.0",
-    "@zenith/logger": "1.5.0"
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"

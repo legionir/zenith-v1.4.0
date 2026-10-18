@@ -231,90 +231,62 @@
 
   <script type="importmap">
   {
-    "imports": {
-      "@zenith/actions": "/packages/actions/dist/index.js",
-      "@zenith/auth": "/packages/auth/dist/index.js",
-      "@zenith/components": "/packages/components/dist/index.js",
-      "@zenith/compiler": "/packages/compiler/dist/index.js",
-      "@zenith/components": "/packages/components/dist/index.js",
-      "@zenith/crud": "/packages/crud/dist/index.js",
-      "@zenith/data": "/packages/data/dist/index.js",
-      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
-      "@zenith/devtools": "/packages/devtools/dist/index.js",
-      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
-      "@zenith/errors": "/packages/errors/dist/index.js",
-      "@zenith/events": "/packages/events/dist/index.js",
-      "@zenith/expressions": "/packages/expressions/dist/index.js",
-      "@zenith/form": "/packages/form/dist/index.js",
-      "@zenith/i18n": "/packages/i18n/dist/index.js",
-      "@zenith/permission": "/packages/permission/dist/index.js",
-      "@zenith/resource": "/packages/resource/dist/index.js",
-      "@zenith/router": "/packages/router/dist/index.js",
-      "@zenith/runtime": "/packages/runtime/dist/index.js",
-      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
-      "@zenith/security": "/packages/security/dist/index.js",
-      "@zenith/ssr": "/packages/ssr/dist/index.js",
-      "@zenith/state": "/packages/state/dist/index.js",
-      "@zenith/stateful": "/packages/stateful/dist/index.js",
-      "@zenith/store": "/packages/store/dist/index.js",
-      "@zenith/suspense": "/packages/suspense/dist/index.js",
-      "@zenith/transition": "/packages/transition/dist/index.js",
-      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
-    }
+  "imports": {
+    "@zenith/actions": "/packages/actions/dist/index.js",
+    "@zenith/auth": "/packages/auth/dist/index.js",
+    "@zenith/components": "/packages/components/dist/index.js",
+    "@zenith/compiler": "/packages/compiler/dist/index.js",
+    "@zenith/crud": "/packages/crud/dist/index.js",
+    "@zenith/data": "/packages/data/dist/index.js",
+    "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+    "@zenith/devtools": "/packages/devtools/dist/index.js",
+    "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+    "@zenith/errors": "/packages/errors/dist/index.js",
+    "@zenith/events": "/packages/events/dist/index.js",
+    "@zenith/expressions": "/packages/expressions/dist/index.js",
+    "@zenith/form": "/packages/form/dist/index.js",
+    "@zenith/i18n": "/packages/i18n/dist/index.js",
+    "@zenith/permission": "/packages/permission/dist/index.js",
+    "@zenith/resource": "/packages/resource/dist/index.js",
+    "@zenith/router": "/packages/router/dist/index.js",
+    "@zenith/runtime": "/packages/runtime/dist/index.js",
+    "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+    "@zenith/security": "/packages/security/dist/index.js",
+    "@zenith/ssr": "/packages/ssr/dist/index.js",
+    "@zenith/state": "/packages/state/dist/index.js",
+    "@zenith/stateful": "/packages/stateful/dist/index.js",
+    "@zenith/store": "/packages/store/dist/index.js",
+    "@zenith/suspense": "/packages/suspense/dist/index.js",
+    "@zenith/transition": "/packages/transition/dist/index.js",
+    "@zenith/virtual-list": "/packages/virtual-list/dist/index.js",
+    "@zenith/a11y": "/packages/a11y/dist/index.js",
+    "@zenith/cache": "/packages/cache/dist/index.js",
+    "@zenith/head": "/packages/head/dist/index.js",
+    "@zenith/jalali": "/packages/jalali/dist/index.js",
+    "@zenith/logger": "/packages/logger/dist/index.js",
+    "@zenith/mock": "/packages/mock/dist/index.js",
+    "@zenith/notifications": "/packages/notifications/dist/index.js",
+    "@zenith/realtime": "/packages/realtime/dist/index.js",
+    "@zenith/runtime-core": "/packages/runtime-core/dist/index.js",
+    "@zenith/schema": "/packages/schema/dist/index.js",
+    "@zenith/shared": "/packages/shared/dist/index.js",
+    "@zenith/ui": "/packages/ui/dist/index.js",
+    "@zenith/schema/attr": "/packages/schema/dist/attr.js",
+    "@zenith/realtime/legacy": "/packages/realtime/dist/legacy.js"
   }
+}
   </script>
 
   <script type="module">
     import { signal, effect } from '@zenith/state';
     import { Zen } from '@zenith/runtime';
     import { createResource } from '@zenith/resource';
+    import { installResourceBackend } from './mock-backend.mjs';
 
     // ═══════════════════════════════════════════════════
     // ۱. Mock backend — in-memory array
     // ═══════════════════════════════════════════════════
-    let items = [
-      { id: 1, name: 'محصول ۱', price: 1000 },
-      { id: 2, name: 'محصول ۲', price: 2000 },
-      { id: 3, name: 'محصول ۳', price: 3000 },
-    ];
-    let nextId = 4;
-    const delay = (ms) => new Promise(r => setTimeout(r, ms));
-
-    window.fetch = async (url, opts) => {
-      await delay(400);  // شبیه‌سازی تاخیر شبکه
-      const urlStr = String(url);
-      const method = opts?.method || 'GET';
-      console.log('[mock fetch]', method, urlStr);
-      const jsonHeaders = { get: () => 'application/json' };
-
-      // GET /api/items
-      if (urlStr === '/api/items' && method === 'GET') {
-        return { ok: true, status: 200, headers: jsonHeaders, json: async () => [...items] };
-      }
-      // POST /api/items
-      if (urlStr === '/api/items' && method === 'POST') {
-        const body = JSON.parse(opts.body);
-        const newItem = { ...body, id: nextId++ };
-        items.push(newItem);
-        return { ok: true, status: 201, headers: jsonHeaders, json: async () => newItem };
-      }
-      // PUT /api/items/:id
-      const putMatch = urlStr.match(/^\/api\/items\/(\d+)$/);
-      if (putMatch && method === 'PUT') {
-        const id = +putMatch[1];
-        const body = JSON.parse(opts.body);
-        items = items.map(it => it.id === id ? { ...it, ...body } : it);
-        return { ok: true, status: 200, headers: jsonHeaders, json: async () => items.find(it => it.id === id) };
-      }
-      // DELETE /api/items/:id
-      const delMatch = urlStr.match(/^\/api\/items\/(\d+)$/);
-      if (delMatch && method === 'DELETE') {
-        const id = +delMatch[1];
-        items = items.filter(it => it.id !== id);
-        return { ok: true, status: 200, headers: jsonHeaders, json: async () => ({ success: true }) };
-      }
-      return { ok: false, status: 404, headers: jsonHeaders, json: async () => ({ message: 'Not found' }) };
-    };
+    const backend = installResourceBackend();
 
     // ═══════════════════════════════════════════════════
     // ۲. ساخت Resource
@@ -326,6 +298,7 @@
       retryDelay: 500,
       optimistic: true,
     });
+    window.addEventListener('pagehide', () => { try { itemResource.dispose(); } finally { backend.dispose(); } }, { once: true });
 
     // ═══════════════════════════════════════════════════
     // ۳. State

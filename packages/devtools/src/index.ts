@@ -18,6 +18,8 @@ export {
   cleanupDevtools,
   DEVTOOLS_VERSION,
   type ZenithDevtoolsHook,
+  type StaticForOptions,
+  type ResourceDestroyOptions,
 } from './hook';
 
 // FEATURE (v0.4.0): Dependency Graph Viewer
@@ -36,6 +38,8 @@ export {
   recordRead,
   recordWrite,
   recordDomUpdate,
+  type GraphSignalOptions,
+  type GraphDirectiveOptions,
   type GraphNode,
   type GraphEdge,
   type GraphSnapshot,
@@ -68,6 +72,7 @@ export {
   type SignalInfo,
   type EffectInfo,
   type ComponentInfo,
+  type PanelStateChangeOptions,
   type DevToolsStateChange,
   type StateChange,
 } from './api';

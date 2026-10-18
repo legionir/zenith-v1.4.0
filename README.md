@@ -1,17 +1,22 @@
 <p align="center">
   <img alt="Zenith" src="https://img.shields.io/badge/Zenith-v1.4.0-6c5ce7?style=for-the-badge">
-  <a href="https://github.com/legionir/zenith-v1.4.0/actions/workflows/main.yml"><img alt="CI" src="https://github.com/legionir/zenith-v1.4.0/workflows/CI/badge.svg?branch=audit%2Fconsolidated-report"></a>
+  <a href="https://github.com/legionir/zenith-v1.4.0/actions/workflows/main.yml"><img alt="CI" src="https://github.com/legionir/zenith-v1.4.0/workflows/CI/badge.svg?branch=main"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <a href="docs/decisions/DEC-007-node-floor.md"><img alt="node" src="https://img.shields.io/badge/node-%E2%89%A518.19-brightgreen"></a>
 </p>
 
 # Zenith Framework
 
+> **Remediation در جریان است:** کد و تست‌های جدید هنوز اعتبارسنجی نشده‌اند؛ CI
+> تاریخی یا badge شاخهٔ main گواه dirty tree این نشست نیست. وضعیت همهٔ کارت‌ها:
+> [دفتر code-first](docs/progress/REMEDIATION-CODE-FIRST-2026-10-16.md).
+> هیچ تکمیل کل پلن یا آمادگی انتشار اعلام نشده است.
+
 **Zenith یک فریم‌ورک فرانت‌اند HTML-First است** — UI را مستقیم روی HTML واقعی با directiveهایی مثل `zen-text`، `zen-if` و `zen-bind:*` می‌سازد؛ هستهٔ آن یک سیستم **Signal** ریزدانه (fine-grained) بدون Virtual DOM است. بدون bundler شروع کنید، با compiler و vite-plugin بزرگ شوید.
 
 - ⚡ **Fine-grained reactivity** — فقط وابستگی‌های واقعی update می‌شوند (بدون diff درخت)
 - 🧲 **HTML-First** — قالب شما همان HTML است؛ compile اختیاری است، نه اجباری
-- 🧩 **۴۲ پکیج ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، تقویم جلالی و devtools)
+- 🧩 **پکیج‌های ماژولار** (از `shared`/`scheduler` تا SSR، CRUD، auth، تقویم جلالی و devtools)
 - 🔒 **مرزهای امنیتی** — sanitizer مستقل، expression evaluator بدون `eval` (سیاست: [SECURITY.md](SECURITY.md))
 - 🖥️ **SSR + Hydration** و پشتیبانی service-worker آفلاین
 
@@ -126,8 +131,8 @@ npm ci && npm run build && npm run build:browser
 | [`@zenith/feature-flags`](packages/feature-flags) | L2 | پرچم‌های ویژگی واکنشی با rollout پایدار (#168) | [📄](packages/feature-flags/README.md) |
 | [`@zenith/charts`](packages/charts) | L2 | نمودار SVG (line/area/bar/pie/scatter) با جدول a11y (#169) | [📄](packages/charts/README.md) |
 | [`@zenith/icons`](packages/icons) | L2 | رجیستری آیکن SVG با sanitize و zen-icon (#170) | [📄](packages/icons/README.md) |
-| [`zenith-vscode`](packages/vscode-extension) | Tooling | پشتیبانی زبان VS Code | [📄](packages/vscode-extension/README.md) |
-| [`devtools-extension`](packages/devtools-extension) | Tooling | افزونهٔ مرورگر (Chrome/Firefox) | [📄](packages/devtools-extension/README.md) |
+| [`zenith-vscode`](tools/vscode-extension) | Tooling | پشتیبانی زبان VS Code | [📄](tools/vscode-extension/README.md) |
+| [`devtools-extension`](tools/devtools-extension) | Tooling | افزونهٔ مرورگر (Chrome/Firefox) | [📄](tools/devtools-extension/README.md) |
 
 ---
 

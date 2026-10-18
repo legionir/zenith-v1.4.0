@@ -29,7 +29,7 @@ import { reportError } from '@zenith/error-boundary';
 export function processText(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse/validate می‌شود.
   // closure evalFn فقط evaluate(ast, context) را اجرا می‌کند که در Hot Path (Effect

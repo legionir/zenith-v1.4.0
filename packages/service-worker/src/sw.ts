@@ -321,7 +321,7 @@ export function setupSW(config: SWRuntimeConfig): void {
         matchedRoute.cacheName || cfg.defaultCacheName!,
       );
       event.respondWith(
-        applyStrategy(matchedRoute.strategy, request, cacheName, matchedRoute.timeout).catch(
+        applyStrategy(matchedRoute.strategy, request, { cacheName, timeout: matchedRoute.timeout }).catch(
           (err) => {
             logger.error(
               `[Zenith SW] strategy failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -346,7 +346,7 @@ export function setupSW(config: SWRuntimeConfig): void {
 
     // defaultStrategy برای GET های unmatched.
     const defaultCacheName = versionedCacheName(cfg.cachePrefix!, cfg.defaultCacheName!);
-    event.respondWith(applyStrategy(cfg.defaultStrategy!, request, defaultCacheName));
+    event.respondWith(applyStrategy(cfg.defaultStrategy!, request, { cacheName: defaultCacheName }));
   });
 
   // FEATURE (v0.5.0): sync event — retry queued mutations با exponential backoff.

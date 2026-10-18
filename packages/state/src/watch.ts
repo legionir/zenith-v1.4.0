@@ -4,20 +4,26 @@
 // بدون ردیابی سیگنال‌های خوانده‌شده در بدنهٔ callback (untrack).
 
 import { effect } from './effect';
+import { onCleanup, _getMutableContext, _bindToEffectContext } from './context';
 import { untrack } from './signal';
-import { isReadable, type Readable } from './readable';
+import type { Readable } from './readable';
+import { captureWatchValue, equalWatchValue, type WatchValueSnapshot } from './watch-values';
 import { Priority } from '@zenith/scheduler';
 
+/** @public */
 export type WatchSource<T = unknown> = Readable<T> | (() => T);
 
+/** @public */
 export type WatchCleanupRegistrar = (cleanupFn: () => void) => void;
 
+/** @public */
 export type WatchCallback<V = unknown, OV = V | undefined> = (
   newValue: V,
   oldValue: OV,
   onCleanup: WatchCleanupRegistrar,
 ) => void;
 
+/** @public */
 export interface WatchOptions {
   /** اجرای فوری callback در زمان ثبت با مقدار اولیه (`oldValue = undefined`). */
   immediate?: boolean;
@@ -30,35 +36,13 @@ export interface WatchOptions {
 }
 
 function readSource<T>(src: WatchSource<T>): T {
-  return isReadable(src) ? src.get() : src();
+  return typeof src === 'function' ? src() : src.get();
 }
 
-function deepCloneAndRead(val: unknown, seen = new Set<object>()): unknown {
-  if (isReadable(val)) {
-    return deepCloneAndRead(val.get(), seen);
-  }
-  if (val === null || typeof val !== 'object') return val;
-  if (seen.has(val)) return val;
-  seen.add(val);
-  if (Array.isArray(val)) {
-    return val.map((item) => deepCloneAndRead(item, seen));
-  }
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-    out[k] = deepCloneAndRead(v, seen);
-  }
-  return out;
-}
-
-function hasChanged(a: unknown, b: unknown, isMulti: boolean, deep: boolean): boolean {
-  if (deep) {
-    return JSON.stringify(a) !== JSON.stringify(b);
-  }
+function hasChanged(a: unknown, b: unknown, isMulti: boolean): boolean {
   if (isMulti && Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return true;
-    for (let i = 0; i < a.length; i++) {
-      if (!Object.is(a[i], b[i])) return true;
-    }
+    for (let i = 0; i < a.length; i++) if (!Object.is(a[i], b[i])) return true;
     return false;
   }
   return !Object.is(a, b);
@@ -74,6 +58,7 @@ export function watch<T>(
   cb: WatchCallback<T, T | undefined>,
   options?: WatchOptions,
 ): () => void;
+/** @public */
 export function watch<T extends readonly WatchSource<unknown>[]>(
   sources: [...T],
   cb: WatchCallback<
@@ -84,14 +69,16 @@ export function watch<T extends readonly WatchSource<unknown>[]>(
 ): () => void;
 export function watch(
   source: WatchSource<unknown> | readonly WatchSource<unknown>[],
-  cb: WatchCallback<any, any>,
+  cb: (...args: never[]) => unknown,
   options: WatchOptions = {},
 ): () => void {
+  const executionContext = _getMutableContext();
   const isMulti = Array.isArray(source);
   const { immediate = false, flush = 'pre', deep = false, once = false } = options;
 
   let initialized = false;
   let oldValue: unknown = undefined;
+  let oldSnapshot: WatchValueSnapshot | undefined;
   let currentCleanup: (() => void) | null = null;
   let disposed = false;
   let stopEffect: (() => void) | null = null;
@@ -101,22 +88,24 @@ export function watch(
       const fn = currentCleanup;
       currentCleanup = null;
       try {
-        fn();
+        untrack(fn);
       } catch {
         /* ignore cleanup errors */
       }
     }
   };
 
-  const registerCleanup: WatchCleanupRegistrar = (fn) => {
+  const registerCleanup: WatchCleanupRegistrar = _bindToEffectContext(executionContext, (fn: () => void) => {
+    if (disposed) { untrack(fn); return; }
     currentCleanup = fn;
-  };
+  });
+  const dispose = _bindToEffectContext(executionContext, disposeWatch);
 
   const getter = (): unknown => {
     const raw = isMulti
       ? (source as readonly WatchSource<unknown>[]).map((s) => readSource(s))
       : readSource(source as WatchSource<unknown>);
-    return deep ? deepCloneAndRead(raw) : raw;
+    return raw;
   };
 
   const priority =
@@ -125,8 +114,12 @@ export function watch(
   const invokeCallback = (nextVal: unknown, prevVal: unknown) => {
     if (disposed) return;
     runCleanup();
+    if (disposed) return;
     untrack(() => {
-      cb(nextVal, prevVal, registerCleanup);
+      // The public overload correlates the source and callback. Its erased
+      // invocation is native and void-returning, not a fabricated unknown-input
+      // callback that would accept arbitrary data from other callers.
+      Reflect.apply(cb, undefined, [nextVal, prevVal, registerCleanup]);
     });
     if (once) {
       dispose();
@@ -136,27 +129,36 @@ export function watch(
   stopEffect = effect(
     () => {
       if (disposed) return;
+      if (!initialized) onCleanup(dispose);
       const nextVal = getter();
+      if (disposed) return;
+      const snapshot = deep ? captureWatchValue(nextVal, { isLive: () => !disposed }) : undefined;
+      if (disposed) return;
       if (!initialized) {
         initialized = true;
-        oldValue = nextVal;
+        oldValue = nextVal; oldSnapshot = snapshot;
         if (immediate) {
           invokeCallback(nextVal, undefined);
         }
         return;
       }
-      if (hasChanged(nextVal, oldValue, isMulti, deep)) {
+      const changed = deep ? !snapshot || !oldSnapshot || !equalWatchValue(snapshot, oldSnapshot) : hasChanged(nextVal, oldValue, isMulti);
+      if (changed) {
         const prev = oldValue;
-        oldValue = nextVal;
+        oldValue = nextVal; oldSnapshot = snapshot;
         invokeCallback(nextVal, prev);
       }
     },
     { priority },
   );
 
-  function dispose(): void {
+  // An immediate once callback may dispose before effect() returns its stop.
+  if (disposed) { stopEffect(); stopEffect = null; }
+
+  function disposeWatch(): void {
     if (disposed) return;
     disposed = true;
+    oldValue = undefined; oldSnapshot = undefined;
     runCleanup();
     stopEffect?.();
     stopEffect = null;

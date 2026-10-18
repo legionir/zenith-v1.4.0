@@ -1,7 +1,7 @@
 {
   "name": "@zenith/store",
   "version": "1.4.0",
-  "description": "Zenith framework — Global state management (Phase 3). Pinia-like stores with reactive state, getters, and actions.",
+  "description": "Zenith framework \u2014 Global state management (Phase 3). Pinia-like stores with reactive state, getters, and actions.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -60,7 +60,8 @@
     "@zenith/state": "^1.4.0"
   },
   "dependencies": {
-    "@zenith/errors": "1.4.0"
+    "@zenith/errors": "1.4.0",
+    "@zenith/shared": "1.5.0"
   },
   "zenith": {
     "target": "universal"

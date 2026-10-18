@@ -21,6 +21,7 @@
 /**
  * Symbol جهانی برند Signal/Computed. با `Symbol.for` ساخته می‌شود تا
  * بین چند instance از پکیج state هم یکسان بماند.
+ * @public
  */
 export const ZENITH_READABLE: symbol = Symbol.for('zenith.readable');
 
@@ -31,6 +32,7 @@ export const ZENITH_READABLE: symbol = Symbol.for('zenith.readable');
  * قرارداد DEC-021/#141 هیچ یال `state → shared` نمی‌خواهد (تست
  * packages/shared/test/layering.test.ts). دو تعریف ساختاریِ هم‌معنا هستند و
  * گیت #119 آن‌ها را به‌عنوان `same-meaning` در allowlist ثبت کرده است.
+ * @public
  */
 export interface Readable<T = unknown> {
   get(): T;
@@ -39,18 +41,28 @@ export interface Readable<T = unknown> {
 /**
  * True اگر مقدار یک Signal/Computed (برنددار) یا یک duck-type سازگار با
  * legacy (شیء دارای get+set تابعی) باشد.
+ * @public
  */
-export function isReadable(value: unknown): value is Readable<any> {
+export function isReadable(value: unknown): value is Readable<unknown> {
   if (value === null || typeof value !== 'object') return false;
-  if (typeof (value as any).get !== 'function') return false;
+  if (typeof Reflect.get(value, 'get') !== 'function') return false;
   // brand روی prototype (Signal/Computed این پکیج)
-  if ((value as any)[ZENITH_READABLE] === true) return true;
+  if (Reflect.get(value, ZENITH_READABLE) === true) return true;
   // legacy: هر آبجکت get+set مثل قبل Signal فرض می‌شد (رفتار حفظ شود)
-  return typeof (value as any).set === 'function';
+  return typeof Reflect.get(value, 'set') === 'function';
 }
 
-/** True اگر مقدار نوشتنی باشد (Signal معمولی یا duck-type get+set). */
-export function isWritable(value: unknown): value is Readable<any> & { set(v: any): void } {
+/** A setter was observed, but its accepted domain is not known. @public */
+export interface WritableCapability { set(value: never): unknown; }
+
+/**
+ * Detect setter capability only, without inventing a getter or a writable
+ * Signal<unknown>. Unknown consumers must not pass arbitrary values; known
+ * application-owned Signal<T> values retain their original typed methods.
+ * Runtime detection intentionally still accepts setter-only objects.
+ * @public
+ */
+export function isWritable(value: unknown): value is WritableCapability {
   if (value === null || typeof value !== 'object') return false;
-  return typeof (value as any).set === 'function';
+  return typeof Reflect.get(value, 'set') === 'function';
 }

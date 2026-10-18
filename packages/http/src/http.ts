@@ -122,7 +122,7 @@ export interface CacheConfig {
   key?: string;
 }
 
-export interface HttpResponse<T = any> {
+export interface HttpResponse<T = unknown> {
   data: T;
   status: number;
   statusText: string;
@@ -133,7 +133,7 @@ export interface HttpResponse<T = any> {
 export interface HttpError extends Error {
   status?: number;
   statusText?: string;
-  data?: any;
+  data?: unknown;
   config?: HttpRequestOptions;
 }
 
@@ -253,7 +253,7 @@ const errorInterceptors: ErrorInterceptor[] = [];
 // ورودی با opts.ttl، برچسب‌ها با opts.tags و invalidate. انقضا lazy است
 // (بدون timer ⇒ SSR-safe). wrapper { data } می‌سازیم تا پاسخ `undefined`
 // با «نبود entry» اشتباه گرفته نشود.
-const httpCache: Cache<any> = createCache<any>({ ttl: 'never', maxSize: 200 });
+const httpCache: Cache<{ data: unknown }> = createCache<{ data: unknown }>({ ttl: 'never', maxSize: 200 });
 const pendingRequests = new Map<string, AbortController>();
 let _mockFetchImpl: typeof fetch | null = null;
 
@@ -268,7 +268,7 @@ export function mockHttp(
   ) =>
     | Response
     | Promise<Response>
-    | { status?: number; headers?: Record<string, string>; data?: any },
+    | { status?: number; headers?: Record<string, string>; data?: unknown },
 ): () => void {
   const impl: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const rawUrl =
@@ -495,7 +495,7 @@ export function clearCache(tags?: string[]): void {
 /**
  * Make an HTTP request with full feature support
  */
-export async function request<T = any>(
+export async function request<T = unknown>(
   url: string,
   options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
@@ -550,7 +550,8 @@ export async function request<T = any>(
     const cached = httpCache.get(cacheKey);
     if (cached) {
       return {
-        data: cached.data,
+        // Same unchecked caller-declared generic boundary as a fresh response.
+        data: cached.data as T,
         status: 200,
         statusText: 'OK (from cache)',
         headers: new Headers(),
@@ -667,7 +668,7 @@ export async function request<T = any>(
     }
 
     // Parse response (with streaming download progress when requested — #129)
-    let responseData: any;
+    let responseData: unknown;
     if (onDownloadProgress && response.body && typeof response.body.getReader === 'function') {
       const contentLengthHeader = response.headers?.get?.('content-length');
       const totalHeader = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
@@ -708,7 +709,7 @@ export async function request<T = any>(
     }
 
     let httpResponse: HttpResponse<T> = {
-      data: responseData,
+      data: responseData as T,
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
@@ -718,7 +719,8 @@ export async function request<T = any>(
     // Run response interceptors
     if (!effectiveSkipInterceptors) {
       for (const interceptor of responseInterceptors) {
-        httpResponse = await interceptor(httpResponse);
+        // Legacy interceptors can replace payloads; their output is not a decoder for T.
+        httpResponse = await interceptor(httpResponse) as HttpResponse<T>;
       }
     }
 
@@ -730,7 +732,7 @@ export async function request<T = any>(
 
     return httpResponse;
   } catch (err) {
-    if (callerSignal?.aborted || (err as any)?.name === 'AbortError') {
+    if (callerSignal?.aborted || (err instanceof Error && err.name === 'AbortError')) {
       throw new ZenithError({
         code: 'ZEN-1600',
         category: 'Network',
@@ -781,23 +783,23 @@ export async function request<T = any>(
 // ============================================================
 
 export const http = {
-  get: <T = any>(url: string, options?: HttpRequestOptions) =>
+  get: <T = unknown>(url: string, options?: HttpRequestOptions) =>
     request<T>(url, { ...options, method: 'GET' }),
 
-  post: <T = any>(url: string, data?: any, options?: HttpRequestOptions) =>
+  post: <T = unknown>(url: string, data?: unknown, options?: HttpRequestOptions) =>
     request<T>(url, { ...options, method: 'POST', body: JSON.stringify(data) }),
 
-  put: <T = any>(url: string, data?: any, options?: HttpRequestOptions) =>
+  put: <T = unknown>(url: string, data?: unknown, options?: HttpRequestOptions) =>
     request<T>(url, { ...options, method: 'PUT', body: JSON.stringify(data) }),
 
-  patch: <T = any>(url: string, data?: any, options?: HttpRequestOptions) =>
+  patch: <T = unknown>(url: string, data?: unknown, options?: HttpRequestOptions) =>
     request<T>(url, { ...options, method: 'PATCH', body: JSON.stringify(data) }),
 
-  delete: <T = any>(url: string, options?: HttpRequestOptions) =>
+  delete: <T = unknown>(url: string, options?: HttpRequestOptions) =>
     request<T>(url, { ...options, method: 'DELETE' }),
 
   /** Create a reactive resource that auto-updates on refetch */
-  resource: <T = any>(url: string, options?: HttpRequestOptions) => {
+  resource: <T = unknown>(url: string, options?: HttpRequestOptions) => {
     const data = signal<T | null>(null);
     const loading = signal(false);
     const error = signal<HttpError | null>(null);
@@ -847,168 +849,6 @@ export function cancelAllRequests(): void {
 // #154 — Realtime Transport (createRealtime, createWebSocket, createSSE)
 // ============================================================
 
-export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'closing' | 'closed' | 'error';
-
-export interface RealtimeOptions {
-  url: string;
-  transport?: 'ws' | 'sse';
-  autoConnect?: boolean;
-  allowInsecure?: boolean;
-  reconnect?:
-    | boolean
-    | {
-        retries?: number;
-        delay?: number;
-        factor?: number;
-        jitter?: number;
-        maxDelay?: number;
-      };
-  queue?: {
-    maxSize?: number;
-    whileDisconnected?: 'buffer' | 'drop';
-  };
-  history?: number;
-}
-
-export interface RealtimeClient {
-  readonly status: ReturnType<typeof signal<RealtimeStatus>>;
-  readonly lastMessage: ReturnType<typeof signal<any>>;
-  readonly messages: ReturnType<typeof signal<any[]>>;
-  readonly error: ReturnType<typeof signal<unknown>>;
-  open(): void;
-  close(): void;
-  send(data: unknown): void;
-  receiveMockMessage(data: unknown, topic?: string): void;
-  subscribe(topic: string, cb: (data: any) => void): () => void;
-  dispose(): void;
-}
-
-/**
- * #154: کلاینت ارتباط بلادرنگ (WebSocket/SSE) با صف آفلاین، reconnect با backoff+jitter و بررسی امنیت پروتکل.
- */
-export function createRealtime(options: RealtimeOptions): RealtimeClient {
-  const { url, autoConnect = true, allowInsecure = false, history = 50 } = options;
-
-  const isProd = (globalThis as any).__ZENITH_DEV__ === false;
-  const isLocalhost = /^ws:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(url);
-  if (url.startsWith('ws://') && !isLocalhost && isProd && !allowInsecure) {
-    throw new ZenithError({
-      code: 'ZEN-1703',
-      category: 'Security',
-      message: `Insecure WebSocket URL "${url}" is not allowed in production without allowInsecure: true.`,
-      suggestion: 'در محیط تولید از پروتکل امن wss:// استفاده کنید.',
-      context: { url },
-    });
-  }
-
-  const statusSig = signal<RealtimeStatus>('idle');
-  const lastMsgSig = signal<any>(null);
-  const messagesSig = signal<any[]>([]);
-  const errorSig = signal<unknown>(null);
-
-  const maxQueue = options.queue?.maxSize ?? 100;
-  const queueMode = options.queue?.whileDisconnected ?? 'buffer';
-  const outbox: string[] = [];
-  const topicListeners = new Map<string, Set<(data: any) => void>>();
-  const timers = new Set<ReturnType<typeof setTimeout>>();
-  let disposed = false;
-
-  const open = () => {
-    if (disposed) return;
-    statusSig.set('open');
-    while (outbox.length > 0) {
-      outbox.shift();
-    }
-  };
-
-  const close = () => {
-    if (disposed) return;
-    for (const t of timers) clearTimeout(t);
-    timers.clear();
-    statusSig.set('closed');
-  };
-
-  const send = (data: unknown) => {
-    if (disposed) return;
-    const serialized = typeof data === 'string' ? data : JSON.stringify(data);
-    if (statusSig.get() !== 'open') {
-      if (queueMode === 'drop') return;
-      if (outbox.length >= maxQueue) {
-        throw new ZenithError({
-          code: 'ZEN-1704',
-          category: 'Network',
-          message: `Realtime send queue exceeded maxSize (${maxQueue}).`,
-          suggestion: 'سقف queue.maxSize را افزایش دهید یا وضعیت اتصال را پیش از ارسال بررسی کنید.',
-        });
-      }
-      outbox.push(serialized);
-    }
-  };
-
-  const receiveMockMessage = (data: unknown, topic = '*') => {
-    if (disposed) return;
-    lastMsgSig.set(data);
-    const nextList = [...messagesSig.get(), data].slice(-Math.max(1, history));
-    messagesSig.set(nextList);
-    for (const cb of topicListeners.get(topic) ?? []) cb(data);
-    if (topic !== '*') {
-      for (const cb of topicListeners.get('*') ?? []) cb(data);
-    }
-  };
-
-  const subscribe = (topic: string, cb: (data: any) => void): (() => void) => {
-    let set = topicListeners.get(topic);
-    if (!set) {
-      set = new Set();
-      topicListeners.set(topic, set);
-    }
-    set.add(cb);
-    let removed = false;
-    return () => {
-      if (removed) return;
-      removed = true;
-      set?.delete(cb);
-    };
-  };
-
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
-    for (const t of timers) clearTimeout(t);
-    timers.clear();
-    outbox.length = 0;
-    topicListeners.clear();
-    statusSig.set('closed');
-  };
-
-  if (autoConnect && typeof window !== 'undefined') {
-    open();
-  }
-
-  return {
-    status: statusSig,
-    lastMessage: lastMsgSig,
-    messages: messagesSig,
-    error: errorSig,
-    open,
-    close,
-    send,
-    receiveMockMessage,
-    subscribe,
-    dispose,
-  };
-}
-
-export function createWebSocket(
-  url: string,
-  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
-): RealtimeClient {
-  return createRealtime({ ...options, url, transport: 'ws' });
-}
-
-export function createSSE(
-  url: string,
-  options: Omit<RealtimeOptions, 'url' | 'transport'> = {},
-): RealtimeClient {
-  return createRealtime({ ...options, url, transport: 'sse' });
-}
+/** @deprecated Use @zenith/realtime; compatibility strings/testing bridge preserved. */
+export { createRealtime, createWebSocket, createSSE } from '@zenith/realtime/legacy';
+export type { RealtimeStatus, RealtimeOptions, RealtimeClient } from '@zenith/realtime/legacy';

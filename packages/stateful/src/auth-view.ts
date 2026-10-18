@@ -35,7 +35,7 @@
 //
 // ── نکات ──
 //
-//   - کاربر می‌تواند به‌جای Auth instance، مستقیماً Signal<AuthState> هم
+//   - کاربر می‌تواند به‌جای Auth instance، مستقیماً Pick<Signal<AuthState>, 'get'> هم
 //     پاس بدهد. ما هر دو را پشتیبانی می‌کنیم.
 //   - اگر هیچ template برای slot فعلی وجود نداشت، محتوای element خالی
 //     می‌ماند (نه خطا).
@@ -51,32 +51,32 @@ import type { AuthState } from '@zenith/auth';
  * duck typing — به جای import کردن کلاس Auth.
  */
 interface AuthLike {
-  readonly signal: Signal<AuthState>;
+  readonly signal: Pick<Signal<AuthState>, 'get'>;
   readonly isAuthenticated: boolean;
 }
 
 /**
  * Type guard: بررسی اینکه آیا مقدار یک Auth instance است.
  */
-function isAuthLike(value: any): value is AuthLike {
+function isAuthLike(value: unknown): value is AuthLike {
   return (
     value !== null &&
     typeof value === 'object' &&
-    typeof value.signal === 'object' &&
+    'signal' in value && typeof value.signal === 'object' &&
     value.signal !== null &&
-    typeof value.signal.get === 'function'
+    'get' in value.signal && typeof value.signal.get === 'function'
   );
 }
 
 /**
- * Type guard: بررسی اینکه آیا مقدار یک Signal<AuthState> است.
+ * Type guard: بررسی اینکه آیا مقدار یک Pick<Signal<AuthState>, 'get'> است.
  */
-function isAuthSignal(value: any): value is Signal<AuthState> {
+function isAuthSignal(value: unknown): value is Pick<Signal<AuthState>, 'get'> {
   return (
     value !== null &&
     typeof value === 'object' &&
-    typeof value.get === 'function' &&
-    typeof value.set === 'function'
+    'get' in value && typeof value.get === 'function' &&
+    'set' in value && typeof value.set === 'function'
   );
 }
 
@@ -92,8 +92,8 @@ function isAuthSignal(value: any): value is Signal<AuthState> {
 export function processAuthView(
   el: HTMLElement,
   configAttr: string | null,
-  context: Record<string, any>,
-  state: Record<string, any>,
+  context: Record<string, unknown>,
+  state: Record<string, unknown>,
 ): () => void {
   // SSR-safe guard.
   if (typeof document === 'undefined') {
@@ -109,20 +109,20 @@ export function processAuthView(
 
   // FEATURE (v0.6.0): استخراج Auth از context.
   // کاربر می‌تواند یا Auth instance را در state بگذارد (که به‌صورت plain
-  // object در context قرار می‌گیرد) یا Signal<AuthState> را. هر دو را
+  // object در context قرار می‌گیرد) یا Pick<Signal<AuthState>, 'get'> را. هر دو را
   // پشتیبانی می‌کنیم.
-  const ref = (context as Record<string, any>)[refName];
+  const ref = context[refName];
 
-  let authSignal: Signal<AuthState>;
+  let authSignal: Pick<Signal<AuthState>, 'get'>;
   if (isAuthLike(ref)) {
     // Auth instance.
     authSignal = ref.signal;
   } else if (isAuthSignal(ref)) {
-    // مستقیماً Signal<AuthState>.
+    // مستقیماً Pick<Signal<AuthState>, 'get'>.
     authSignal = ref;
   } else {
     logger.warn(
-      `[zen-auth-view] Auth "${configAttr}" not found in context or is neither an Auth instance nor a Signal<AuthState>. ` +
+      `[zen-auth-view] Auth "${configAttr}" not found in context or is neither an Auth instance nor a Pick<Signal<AuthState>, 'get'>. ` +
         `Example: Zen.start(app, { auth: createAuth({...}) });`,
     );
     return () => {};

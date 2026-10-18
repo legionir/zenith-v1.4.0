@@ -8,8 +8,9 @@
  * 2. Install ALL tarballs into a fresh project (workspace `@zenith/*` ranges are overridden to the
  *    local tarballs; third-party deps/peers come from the registry like for a real consumer).
  * 3. Import every package (and every declared subpath) as ESM with `import()` and as CommonJS with
- *    `require()`. CJS needs `require(esm)` for the ESM-only workspace deps (Node >= 20.19 / 22.12);
- *    on older Node the CJS half is skipped with a notice.
+ *    `require()`. ESM-only entries need `require(esm)` (Node >= 20.19 / 22.12);
+ *    on older Node only ESM-only entries are omitted from CJS; genuine require
+ *    entries are always exercised, including their dependency loading failures.
  * 4. Run the installed `zenith` CLI binary and compare `--version` with its package.json.
  *
  * Catches what source-tree tests cannot: files missing from the tarball, wrong `exports` targets,
@@ -28,8 +29,9 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { conditionTarget } from './lib/exports-shape.mjs';
+import { conditionTarget, isDualEntry } from './lib/exports-shape.mjs';
 import { spawnNpm } from './lib/proc.mjs';
+import { checkInstalledCli } from './lib/cli-consumer-check.mjs';
 
 const SKIP = new Set(['devtools-extension', 'vscode-extension']);
 
@@ -61,6 +63,16 @@ export function specifiersOf(manifest) {
     specs.push(key === '.' ? manifest.name : `${manifest.name}/${key.slice(2)}`);
   }
   return specs;
+}
+
+/** Select real package entry contracts, never skip all CJS for an old runtime. */
+export function consumerTargetsOf(manifest, canRequireEsm) {
+  return specifiersOf(manifest)
+    .filter(spec => !(isExecutableEntry(manifest) && spec === manifest.name))
+    .map(spec => {
+      const key = spec === manifest.name ? '.' : `./${spec.slice(manifest.name.length + 1)}`;
+      return { spec, cjs: isDualEntry(manifest.exports[key]) || canRequireEsm };
+    });
 }
 
 function run(cmd, args, opts = {}) {
@@ -111,10 +123,8 @@ export async function installImportCheck(root = process.cwd()) {
     run('npm', ['install', '--no-audit', '--no-fund', '--ignore-scripts'], { cwd: project });
 
     // 3) import every entry as ESM and CJS in a child process (clean module registry per format)
-    const targets = packages
-      .filter(({ manifest }) => !isExecutableEntry(manifest))
-      .flatMap(({ manifest }) => specifiersOf(manifest).map((spec) => ({ spec })));
     const canRequireEsm = Boolean(process.features.require_module);
+    const targets = packages.flatMap(({ manifest }) => consumerTargetsOf(manifest, canRequireEsm));
     const harness = `
       const { JSDOM } = await import('jsdom');
       const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
@@ -137,13 +147,13 @@ export async function installImportCheck(root = process.cwd()) {
       console.log(JSON.stringify(failures));
     `;
     writeFileSync(join(project, 'harness.mjs'), harness);
-    const specs = JSON.stringify(targets.map((t) => t.spec));
-    for (const mode of canRequireEsm ? ['esm', 'cjs'] : ['esm']) {
+    for (const mode of ['esm', 'cjs']) {
+      const specs = JSON.stringify(targets.filter(target => mode === 'esm' || target.cjs).map(target => target.spec));
       const out = run('node', ['--no-warnings', 'harness.mjs', mode, specs], { cwd: project });
       for (const f of JSON.parse(out.trim().split('\n').pop())) problems.push(`[${mode}] ${f}`);
     }
     if (!canRequireEsm) {
-      console.warn('⚠ Node without require(esm): CommonJS half skipped (needs >= 20.19 / 22.12).');
+      console.warn('⚠ Node without require(esm): ESM-only entries omitted from CJS; all declared require entries checked.');
     }
 
     // 4) the installed CLI binary reports its package version
@@ -152,6 +162,7 @@ export async function installImportCheck(root = process.cwd()) {
       // run the installed bin script through node (no .bin/*.cmd shim on Windows)
       const cliBin = join(project, 'node_modules', '@zenith', 'cli', 'dist', 'index.js');
       const version = run('node', [cliBin, '--version'], { cwd: project }).trim();
+      checkInstalledCli(project, cliBin);
       if (version !== cli.manifest.version) {
         problems.push(`zenith --version printed "${version}", package is ${cli.manifest.version}`);
       }

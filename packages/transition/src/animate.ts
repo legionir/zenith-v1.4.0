@@ -1,7 +1,8 @@
+import { deprecate } from '@zenith/errors';
 // packages/transition/src/animate.ts
 import { developerError, ErrorCode } from '@zenith/errors';
 import { logger } from '@zenith/logger';
-import { prefersReducedMotion } from '@zenith/shared';
+import { reducedMotionMatches as prefersReducedMotion } from '@zenith/a11y';
 //
 // FEATURE (v0.5.0): zen-animate — انیمیشن مبتنی بر Web Animations API.
 //
@@ -123,6 +124,7 @@ export interface ZenAnimateConfig extends KeyframeAnimationOptions {
 export { prefersReducedMotion };
 
 export function zenAnimate(el: HTMLElement, config: ZenAnimateConfig): Promise<void>;
+/** @public @deprecated Use zenAnimate(el, { keyframes, ...options }). */
 export function zenAnimate(
   el: HTMLElement,
   keyframes: Keyframe[],
@@ -135,6 +137,7 @@ export function zenAnimate(
     respectReducedMotion?: boolean;
   } = DEFAULT_ANIMATE_OPTIONS,
 ): Promise<void> {
+  if (Array.isArray(keyframesOrConfig)) deprecate('ZEN-DEPR-085', 'zenAnimate(el, keyframes, options)', 'zenAnimate(el, { keyframes, ...options })');
   const keyframes = Array.isArray(keyframesOrConfig)
     ? keyframesOrConfig
     : keyframesOrConfig.keyframes;
@@ -345,7 +348,7 @@ export function processAnimate(
 
   // اجرای انیمیشن به‌صورت fire-and-forget. Promise reject نخواهد شد چون
   // zenAnimate همیشه resolve می‌شود (حتی در صورت cancel).
-  void zenAnimate(el, parsed.keyframes, parsed.options);
+  void zenAnimate(el, { keyframes: parsed.keyframes, ...parsed.options });
 
   // no-op dispose — انیمیشن پس از پایان خودش را با anim.cancel() پاک می‌کند.
   // اگر کاربر بخواهد قبل از پایان آن را لغو کند، می‌تواند از getAnimations()

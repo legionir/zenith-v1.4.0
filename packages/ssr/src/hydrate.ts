@@ -41,9 +41,10 @@ export interface HydrationResult {
 /**
  * Deserialize state from a JSON string.
  */
-export function deserializeStateFromString(serialized: string): Record<string, any> {
+export function deserializeStateFromString(serialized: string): Record<string, unknown> {
   try {
-    return JSON.parse(serialized);
+    const value: unknown = JSON.parse(serialized);
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
   } catch {
     return {};
   }
@@ -52,15 +53,15 @@ export function deserializeStateFromString(serialized: string): Record<string, a
 /**
  * Load preloaded state on client from the injected script tag.
  */
-export function loadPreloadedState(): Record<string, any> | null {
+export function loadPreloadedState(): Record<string, unknown> | null {
   if (typeof document === 'undefined') return null;
   const el = document.getElementById('zenith-state');
   if (!el) return null;
   return deserializeStateFromString(el.textContent || '{}');
 }
 
-export function deserializeState(serializedState: Record<string, any>): Record<string, any> {
-  const state: Record<string, any> = {};
+export function deserializeState(serializedState: unknown): Record<string, unknown> {
+  const state: Record<string, unknown> = {};
 
   // ── Type Validation ──
   // اگر `__ZENITH_STATE__` یک آرایه یا null یا primitive باشد، for-in loop
@@ -87,7 +88,8 @@ export function deserializeState(serializedState: Record<string, any>): Record<s
     // آبجکت plain برمی‌گردد، اما دفاع در عمق).
     if (['__proto__', 'constructor', 'prototype'].includes(key)) continue;
 
-    state[key] = signal(serializedState[key]);
+    const value: unknown = Reflect.get(serializedState, key);
+    state[key] = signal(value);
   }
   return state;
 }
@@ -116,12 +118,12 @@ export function deserializeState(serializedState: Record<string, any>): Record<s
  */
 export async function hydrate(
   root: HTMLElement,
-  initFn?: (state: Record<string, any>) => void,
+  initFn?: (state: Record<string, unknown>) => void,
 ): Promise<HydrationResult> {
   const startTime = performance.now();
 
   try {
-    const serializedState = (window as any).__ZENITH_STATE__;
+    const serializedState: unknown = Reflect.get(window, '__ZENITH_STATE__');
     if (!serializedState) {
       return {
         success: false,
@@ -134,8 +136,8 @@ export async function hydrate(
     const state = deserializeState(serializedState);
 
     // Set route if available.
-    const initialRoute = (window as any).__ZENITH_ROUTE__;
-    if (initialRoute && initialRoute !== 'null') {
+    const initialRoute = Reflect.get(window, '__ZENITH_ROUTE__');
+    if (typeof initialRoute === 'string' && initialRoute && initialRoute !== 'null') {
       try {
         const { routeSignal } = await import('@zenith/router');
         routeSignal.set({ path: initialRoute, params: {} });
@@ -191,19 +193,19 @@ export async function hydrate(
  */
 export async function startFromSSR(
   root: HTMLElement,
-  initFn?: (state: Record<string, any>) => void,
+  initFn?: (state: Record<string, unknown>) => void,
 ): Promise<HydrationResult> {
   return hydrate(root, initFn);
 }
 
 export function isHydrationMode(): boolean {
-  return typeof window !== 'undefined' && !!(window as any).__ZENITH_STATE__;
+  return typeof window !== 'undefined' && !!Reflect.get(window, '__ZENITH_STATE__');
 }
 
 export function clearHydrationData(): void {
   if (typeof window !== 'undefined') {
-    delete (window as any).__ZENITH_STATE__;
-    delete (window as any).__ZENITH_ROUTE__;
+    Reflect.deleteProperty(window, '__ZENITH_STATE__');
+    Reflect.deleteProperty(window, '__ZENITH_ROUTE__');
   }
 }
 

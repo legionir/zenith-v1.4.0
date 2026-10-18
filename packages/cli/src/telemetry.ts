@@ -1,3 +1,4 @@
+import { output } from './output';
 // packages/cli/src/telemetry.ts
 //
 // #94 (STABILITY): telemetry اختیاری با opt-in صریح — پیش‌فرض همیشه خاموش.
@@ -147,7 +148,7 @@ export function runTelemetry(action: string | undefined): number {
   switch (action) {
     case 'on': {
       setTelemetryEnabled(true);
-      console.log(
+      output.line(
         '✅ [#94] telemetry فعال شد — فقط: ' +
           TELEMETRY_FIELDS.join('، ') +
           '. قطع هر وقت خواستید: zenith telemetry off یا ZENITH_TELEMETRY=0.',
@@ -156,22 +157,22 @@ export function runTelemetry(action: string | undefined): number {
     }
     case 'off': {
       setTelemetryEnabled(false);
-      console.log('✅ [#94] telemetry خاموش شد؛ کانفیگ به‌روزرسانی شد.');
+      output.line('✅ [#94] telemetry خاموش شد؛ کانفیگ به‌روزرسانی شد.');
       return 0;
     }
     case 'status':
     case undefined: {
       const s = telemetryStatus();
-      console.log(`telemetry: ${s.enabled ? 'فعال ✅' : 'خاموش ⛔ (پیش‌فرض)'}`);
-      console.log(`  منشأ: ${s.source} | کانفیگ: ${s.configPath}`);
+      output.line(`telemetry: ${s.enabled ? 'فعال ✅' : 'خاموش ⛔ (پیش‌فرض)'}`);
+      output.line(`  منشأ: ${s.source} | کانفیگ: ${s.configPath}`);
       if (s.enabled && !s.endpoint) {
-        console.log('  ⚠️  توجه: بدون ZENITH_TELEMETRY_ENDPOINT هیچ ارسالی انجام نمی‌شود.');
+        output.line('  ⚠️  توجه: بدون ZENITH_TELEMETRY_ENDPOINT هیچ ارسالی انجام نمی‌شود.');
       }
-      if (s.endpoint) console.log(`  endpoint: ${s.endpoint}`);
+      if (s.endpoint) output.line(`  endpoint: ${s.endpoint}`);
       return 0;
     }
     default:
-      console.error(`zenith telemetry: action ناشناخته «${action}» — مجاز: on | off | status`);
+      output.error(`zenith telemetry: action ناشناخته «${action}» — مجاز: on | off | status`);
       return 1;
   }
 }

@@ -65,9 +65,9 @@ const DEFAULT_RETRY_TEXT = 'تلاش مجدد';
  * پکیج به‌صورت structural typing با هر شیء مشابه (مثلاً mock در تست‌ها)
  * کار کند. این الگو duck typing است.
  */
-interface ResourceLike<T = any> {
+interface ResourceLike<T = unknown> {
   /** Signal وضعیت Resource. */
-  readonly signal: Signal<ResourceState<T>>;
+  readonly signal: { get(): ResourceState<T> };
   /** متد fetch لیست. برای retry استفاده می‌شود. */
   list(force?: boolean): Promise<unknown>;
 }
@@ -75,14 +75,15 @@ interface ResourceLike<T = any> {
 /**
  * Type guard برای تشخیص Resource.
  */
-function isResourceLike(value: any): value is ResourceLike {
+function isResourceLike(value: unknown): value is ResourceLike {
   return (
     value !== null &&
     typeof value === 'object' &&
+    'signal' in value &&
     typeof value.signal === 'object' &&
     value.signal !== null &&
-    typeof value.signal.get === 'function' &&
-    typeof value.list === 'function'
+    'get' in value.signal && typeof value.signal.get === 'function' &&
+    'list' in value && typeof value.list === 'function'
   );
 }
 
@@ -93,7 +94,7 @@ interface RenderedItem {
   /** نود DOM آیتم. */
   node: HTMLElement;
   /** Signal محلی برای مقدار آیتم ($item). */
-  itemSignal: Signal<any>;
+  itemSignal: Signal<unknown>;
   /** Signal محلی برای ایندکس آیتم ($index). */
   indexSignal: Signal<number>;
   /** تابع teardown برای dispose effectهای فرزندان. */
@@ -116,8 +117,8 @@ interface RenderedItem {
 export function processResourceView(
   el: HTMLElement,
   configAttr: string | null,
-  context: Record<string, any>,
-  state: Record<string, any>,
+  context: Record<string, unknown>,
+  state: Record<string, unknown>,
 ): () => void {
   // SSR-safe guard: بدون document، هیچ کاری نمی‌توان کرد.
   if (typeof document === 'undefined') {
@@ -139,7 +140,7 @@ export function processResourceView(
   // plain object در state ذخیره می‌شوند (نه به‌صورت Signal). اما اگر کاربر
   // آن را به‌صورت Signal<ResourceState> ذخیره کرده باشد، مقدار برگشتی
   // ResourceState خواهد بود که `list` ندارد — در این صورت هشدار می‌دهیم.
-  const resource = (context as Record<string, any>)[refName];
+  const resource = context[refName];
   if (!isResourceLike(resource)) {
     logger.warn(
       `[zen-resource-view] Resource "${configAttr}" not found in context or is not a Resource. ` +
@@ -291,9 +292,9 @@ export function processResourceView(
    * اگر آیتم شیء با فیلد `id` باشد، از آن استفاده می‌کنیم. در غیر این صورت،
    * fallback به index.
    */
-  function computeKey(item: any, index: number): string {
+  function computeKey(item: unknown, index: number): string {
     if (item !== null && typeof item === 'object' && 'id' in item) {
-      const id = (item as any).id;
+      const id = item.id;
       if (id !== null && id !== undefined) return String(id);
     }
     return String(index);
@@ -307,10 +308,10 @@ export function processResourceView(
    *   - آیتم‌های موجود: فقط Signalهای محلی را update می‌کنیم.
    *   - آیتم‌های حذفشده: dispose + remove.
    */
-  function renderSuccess(data: any): void {
+  function renderSuccess(data: unknown): void {
     clearSlot();
     // اگر data آرایه نبود (مثلاً یک شیء واحد)، آن را به آرایه‌ی تک‌عضوی تبدیل می‌کنیم.
-    const arr: any[] = Array.isArray(data)
+    const arr: unknown[] = Array.isArray(data)
       ? data
       : data !== null && data !== undefined
         ? [data]
@@ -362,7 +363,7 @@ export function processResourceView(
         // و $index در دسترس باشند، آنها را در state قرار می‌دهیم.
         // همچنین تمام state والد را spread می‌کنیم تا $user, $usersResource
         // و سایر کلیدها در دسترس باشند.
-        const localState: Record<string, any> = {
+        const localState: Record<string, unknown> = {
           ...state,
           item: itemSignal,
           index: indexSignal,

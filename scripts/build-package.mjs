@@ -2,6 +2,7 @@ import { build } from 'esbuild';
 import { rollup } from 'rollup';
 import { dts } from 'rollup-plugin-dts';
 import {
+  readdirSync,
   existsSync,
   rmSync,
   mkdirSync,
@@ -14,6 +15,7 @@ import { createHash } from 'crypto';
 import { join, resolve } from 'path';
 import { spawnSync } from 'child_process';
 import { conditionTarget, distName, isDualEntry } from './lib/exports-shape.mjs';
+import { buildPlatform, needsBrowserGlobal } from './lib/build-target.mjs';
 import { collectTypeOnlyReexports, restoreTypeOnlyReexports } from './lib/dts-bundle.mjs';
 
 /**
@@ -27,7 +29,7 @@ import { collectTypeOnlyReexports, restoreTypeOnlyReexports } from './lib/dts-bu
  * Browser/isomorphic packages intentionally stay on `neutral` so their output
  * remains portable across runtimes.
  */
-const NODE_PLATFORM_PACKAGES = new Set(['cli', 'ssr', 'vite-plugin']);
+// Target selection lives in lib/build-target.mjs, including legacy Node hosts.
 
 /**
  * Build a single package with dual ESM + CJS output + TypeScript declarations.
@@ -42,8 +44,7 @@ export async function buildPackage(pkgName) {
   const outDir = join(pkgPath, `dist.build-${process.pid}-${buildCounter++}`);
 
   if (!existsSync(srcPath)) {
-    console.log(`⏭️  @zenith/${pkgName}: no src/index.ts, skipping`);
-    return false;
+    throw new Error(`@zenith/${pkgName}: missing required src/index.ts`);
   }
 
   rmSync(outDir, { recursive: true, force: true });
@@ -61,7 +62,7 @@ let buildCounter = 0;
 async function buildInto(pkgName, pkgPath, srcPath, outDir, finalDir) {
   console.log(`🔨 Building @zenith/${pkgName}...`);
 
-  const platform = NODE_PLATFORM_PACKAGES.has(pkgName) ? 'node' : 'neutral';
+
 
   // Peer dependencies are provided by the consumer and must never be bundled.
   // Without this, e.g. @zenith/ssr inlines the whole of jsdom (~3 MB) and
@@ -69,7 +70,13 @@ async function buildInto(pkgName, pkgPath, srcPath, outDir, finalDir) {
   const pkgJsonPath = join(pkgPath, 'package.json');
   const pkgJson = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf8')) : {};
   const peerDeps = Object.keys(pkgJson.peerDependencies ?? {});
+  const platform = buildPlatform(pkgJson, '.', pkgName);
 
+  const packageVersions = {};
+  if (pkgName === 'cli') for (const name of readdirSync(resolve(pkgPath, '..'))) {
+    const manifest = resolve(pkgPath, '..', name, 'package.json'); if (!existsSync(manifest)) continue;
+    const metadata = JSON.parse(readFileSync(manifest, 'utf8')); if (!metadata.private) packageVersions[metadata.name] = metadata.version;
+  }
   const sharedOptions = {
     entryPoints: [srcPath],
     platform,
@@ -77,10 +84,11 @@ async function buildInto(pkgName, pkgPath, srcPath, outDir, finalDir) {
     sourcemap: true,
     minify: true,
     target: 'es2022',
-    external: ['@zenith/*', ...peerDeps],
+    external: ['@zenith/*', ...peerDeps, ...(platform === 'node' ? Object.keys(pkgJson.dependencies ?? {}) : [])],
     define: {
       __ZENITH_PKG_VERSION__: JSON.stringify(pkgJson.version ?? '1.4.0'),
-      ...(process.env.NODE_ENV === 'production' ? { __ZENITH_DEV__: 'false' } : {}),
+      ...(pkgName === 'cli' ? { __ZENITH_PACKAGE_VERSIONS__: JSON.stringify(packageVersions) } : {}),
+      ...(process.env.NODE_ENV === 'production' ? { __ZENITH_DEV__: 'false', 'globalThis.__ZENITH_DEV__': 'false' } : {}),
     },
   };
 
@@ -147,12 +155,17 @@ async function buildInto(pkgName, pkgPath, srcPath, outDir, finalDir) {
     await build({
       ...sharedOptions,
       entryPoints: [subEntry],
+      platform: buildPlatform(pkgJson, key, pkgName),
       outfile: join(outDir, `${name}.js`),
       format: 'esm',
     });
 
+    if (isDualEntry(val)) {
+      await build({ ...sharedOptions, entryPoints: [subEntry], platform: buildPlatform(pkgJson, key, pkgName), outfile: join(outDir, `${name}.cjs`), format: 'cjs', define: { ...sharedOptions.define, 'import.meta': 'undefined' } });
+    }
+
     // #149: Browser IIFE bundle (window.Zenith) + external sourcemap + SRI
-    if (name === 'browser') {
+    if (needsBrowserGlobal(pkgJson, key)) {
       const iifeOut = join(outDir, 'browser.global.js');
       const workspaceSourcePlugin = {
         name: 'zenith-workspace-src',

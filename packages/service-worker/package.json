@@ -17,6 +17,26 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./sw": {
+      "import": {
+        "types": "./dist/sw.d.ts",
+        "default": "./dist/sw.js"
+      },
+      "require": {
+        "types": "./dist/sw.d.cts",
+        "default": "./dist/sw.cjs"
+      }
+    },
+    "./strategies": {
+      "import": {
+        "types": "./dist/strategies.d.ts",
+        "default": "./dist/strategies.js"
+      },
+      "require": {
+        "types": "./dist/strategies.d.cts",
+        "default": "./dist/strategies.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -61,6 +81,10 @@
     "@zenith/schema": "1.5.0"
   },
   "zenith": {
-    "target": "worker"
+    "target": "worker",
+    "entryTargets": {
+      "./sw": "worker",
+      "./strategies": "worker"
+    }
   }
 }

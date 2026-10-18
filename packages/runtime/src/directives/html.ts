@@ -53,17 +53,17 @@ import { reportError } from '@zenith/error-boundary';
 export function processHtml(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
   const evalFn = compileExpression(expr);
   // FEATURE (v1.0.0): Property Diffing — اگر مقدار با قبلی برابر است، skip کن.
   // این کار از sanitizeHTML و innerHTML غیرضروری جلوگیری می‌کند.
-  let prevValue: any = undefined;
+  let prevValue: unknown = undefined;
   let isFirstRun = true;
 
   const dispose = effect(() => {
-    let value: any;
+    let value: unknown;
     try {
       value = evalFn(context);
     } catch (err) {

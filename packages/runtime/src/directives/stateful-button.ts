@@ -99,7 +99,7 @@ export function processStatefulButton(
   el: HTMLElement,
   actionName: string,
   loadingText: string | null,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   if (typeof document === 'undefined') {
     return () => {};
@@ -191,7 +191,7 @@ export function processStatefulButton(
     }
     setState('loading');
     try {
-      await action({ state: context as any, event, element: button });
+      await action({ state: context, event, element: button });
       setState('success');
     } catch (err) {
       reportError(err as Error, 'action', { element: button });

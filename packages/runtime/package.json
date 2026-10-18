@@ -1,7 +1,7 @@
 {
   "name": "@zenith/runtime",
   "version": "1.4.0",
-  "description": "Zenith framework — DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
+  "description": "Zenith framework \u2014 DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@zenith/actions": "1.4.0",
+    "@zenith/analytics": "1.5.0",
     "@zenith/auth": "1.4.0",
     "@zenith/components": "1.4.0",
     "@zenith/data": "1.4.0",
@@ -73,9 +74,11 @@
     "@zenith/runtime-core": "1.5.0",
     "@zenith/schema": "1.5.0",
     "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.5.0",
     "@zenith/storage": "1.5.0",
     "@zenith/suspense": "1.4.0",
-    "@zenith/transition": "1.4.0"
+    "@zenith/transition": "1.4.0",
+    "@zenith/ui": "1.5.0"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.6",

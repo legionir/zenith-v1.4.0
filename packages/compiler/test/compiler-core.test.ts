@@ -1,3 +1,4 @@
+import { logger } from '@zenith/logger';
 // #27 core tests for @zenith/compiler — compileTemplate output shape,
 // directive compilation, dependency extraction, strict mode, delegation.
 import { describe, it, expect, vi } from 'vitest';
@@ -69,8 +70,8 @@ describe('compileTemplate', () => {
     ).rejects.toThrow();
   });
 
-  it('warns (console) on conflicting structural directives', async () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('warns through the logger on conflicting structural directives', async () => {
+    const spy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     await compileTemplate('<div zen-for="i in $items" zen-if="$show"></div>');
     const out = spy.mock.calls.map((c) => c.join(' ')).join('\n');
     expect(out).toMatch(/conflicting structural directives/i);

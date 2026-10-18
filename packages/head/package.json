@@ -1,0 +1,57 @@
+{
+  "name": "@zenith/head",
+  "version": "1.5.0",
+  "description": "Explicit per-App/request reactive document head management.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.19"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs head",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/head"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/main/packages/head",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/shared": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/expressions": "1.4.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

@@ -2,68 +2,75 @@
 //
 // #147 — تنها نقطهٔ اتصال (hook) برای @zenith/devtools-core (SPEC §۲.۷).
 // شکستن چرخهٔ state ↔ devtools: state هیچ وابستگی به devtools یا devtools-core
-// ندارد و فقط یک observer اختیاری می‌پذیرد که در prod قابل حذف (tree-shake) و
-// در صورت عدم نصب صفر overhead است.
+// ندارد و فقط یک observer اختیاری می‌پذیرد. slot مشترک متعلق به همین realm است؛
+// سازنده‌های Signal با این slot جایگزین یا یکسان‌سازی نمی‌شوند.
 
-import type { Signal } from './signal';
+import type { Signal, ReadonlySignal } from './signal';
+import { _getStateRuntime, type ObserverLease } from './runtime-state';
+import { isGlobalObservationEnabled } from './context';
 
+/** @public */
 export interface SignalObserver {
-  onCreate?(sig: Signal<any>, name?: string): void;
-  onChange?(sig: Signal<any>, oldValue: unknown, newValue: unknown): void;
-  onDispose?(sig: Signal<any>): void;
-  onName?(sig: Signal<any>, name: string): void;
+  onCreate?<T>(sig: Signal<T>, name?: string): void;
+  onChange?<T>(sig: Signal<T>, oldValue: T, newValue: T): void;
+  onDispose?<T>(sig: Signal<T>): void;
+  onName?<T>(sig: ReadonlySignal<T>, name: string): void;
 }
 
-let activeObserver: SignalObserver | null = null;
-let legacyCreateHook: ((sig: Signal<any>, name?: string) => void) | null = null;
-let legacyChangeHook: ((sig: Signal<any>, oldValue: unknown, newValue: unknown) => void) | null =
-  null;
+const runtime = _getStateRuntime();
 
 export function _setLegacyRegistryHooks(
-  onCreate: (sig: Signal<any>, name?: string) => void,
-  onChange: (sig: Signal<any>, oldValue: unknown, newValue: unknown) => void,
+  onCreate: <T>(sig: Signal<T>, name?: string) => void,
+  onChange: <T>(sig: Signal<T>, oldValue: T, newValue: T) => void,
 ): boolean {
-  legacyCreateHook = onCreate;
-  legacyChangeHook = onChange;
+  runtime.legacyHooks = { create: onCreate, change: onChange };
   return true;
 }
 
 /**
  * ثبت یا پاک‌کردن observer سیگنال‌ها (SPEC §۲.۷).
- * خروجی یک Cleanup idempotent است که در صورت فعال بودن همین observer، آن را
- * به مقدار قبلی برمی‌گرداند (#116).
+ * خروجی یک Cleanup idempotent مربوط به همین نصب است، نه برابری شیء observer.
+ * حذف خارج از ترتیب فقط نصب زندهٔ پیشین را برمی‌گرداند؛ null موقتاً بی‌صدا می‌کند.
+ * هر نصب باید cleanup خود را آزاد کند (#116).
+ * @public
  */
 export function setSignalObserver(observer: SignalObserver | null): () => void {
-  const previous = activeObserver;
-  activeObserver = observer;
-  let restored = false;
+  const lease: ObserverLease = { value: observer, previous: runtime.observer, next: null, disposed: false };
+  if (lease.previous) lease.previous.next = lease;
+  runtime.observer = lease;
   return () => {
-    if (restored) return;
-    restored = true;
-    if (activeObserver === observer) {
-      activeObserver = previous;
-    }
+    if (lease.disposed) return;
+    lease.disposed = true;
+    if (lease.next) lease.next.previous = lease.previous;
+    else runtime.observer = lease.previous;
+    if (lease.previous) lease.previous.next = lease.next;
+    lease.value = null; lease.previous = null; lease.next = null;
   };
 }
 
+/** @public */
 export function getSignalObserver(): SignalObserver | null {
-  return activeObserver;
+  return runtime.observer?.value ?? null;
 }
 
-export function notifySignalCreate(sig: Signal<any>, name?: string): void {
-  activeObserver?.onCreate?.(sig, name);
-  legacyCreateHook?.(sig, name);
+export function notifySignalCreate<T>(sig: Signal<T>, name?: string): void {
+  const observer = getSignalObserver();
+  if (observer && isGlobalObservationEnabled()) observer.onCreate?.(sig, name);
+  runtime.legacyHooks?.create(sig, name);
 }
 
-export function notifySignalChange(sig: Signal<any>, oldValue: unknown, newValue: unknown): void {
-  activeObserver?.onChange?.(sig, oldValue, newValue);
-  legacyChangeHook?.(sig, oldValue, newValue);
+export function notifySignalChange<T>(sig: Signal<T>, oldValue: T, newValue: T): void {
+  const observer = getSignalObserver();
+  if (observer && isGlobalObservationEnabled()) observer.onChange?.(sig, oldValue, newValue);
+  runtime.legacyHooks?.change(sig, oldValue, newValue);
 }
 
-export function notifySignalDispose(sig: Signal<any>): void {
-  activeObserver?.onDispose?.(sig);
+export function notifySignalDispose<T>(sig: Signal<T>): void {
+  const observer = getSignalObserver();
+  if (observer && isGlobalObservationEnabled()) observer.onDispose?.(sig);
 }
 
-export function notifySignalName(sig: Signal<any>, name: string): void {
-  activeObserver?.onName?.(sig, name);
+export function notifySignalName<T>(sig: ReadonlySignal<T>, name: string): void {
+  const observer = getSignalObserver();
+  if (observer && isGlobalObservationEnabled()) observer.onName?.(sig, name);
 }

@@ -35,12 +35,11 @@ export enum TokenType {
  * فیلدهای start و end برای Error Reporting دقیق به کار می‌روند
  * (مثلاً "Error at position 12-15: Unexpected ')'").
  */
-export interface Token {
-  type: TokenType;
-  value: any;
-  start: number;
-  end: number;
-}
+export type Token = { start: number; end: number } & (
+  | { type: TokenType.Number; value: number }
+  | { type: TokenType.String | TokenType.Identifier | TokenType.Punctuator; value: string }
+  | { type: TokenType.EOF; value: null }
+);
 
 /**
  * لیست تمام عملگرها و علائم نگارشی پشتیبانی‌شده.

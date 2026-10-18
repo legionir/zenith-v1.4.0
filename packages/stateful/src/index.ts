@@ -96,7 +96,7 @@ function registerStatefulDirectives(): {
       logger.warn(`[Zenith] Directive "${directive.name}" already registered. Skipping.`);
       continue;
     }
-    registerCustomDirective(directive.name, directive.handler, directive.attr);
+    registerCustomDirective(directive.name, { handler: directive.handler, attributeName: directive.attr });
     installed.push(directive.name);
   }
   return {

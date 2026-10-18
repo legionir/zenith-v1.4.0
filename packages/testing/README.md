@@ -59,5 +59,26 @@ describe('Counter', () => {
 - `createTestHarness()` — Create isolated test environment
 - `trackEffect(fn)` — Track effect execution count
 - `createMockResource<T>()` — Create mock reactive resource
-- `render(template, state)` — Render template for testing
+- `render({ template, state, attachToBody })` — Render template for testing
 - `zenithMatchers` — Custom Jest/Bun matchers
+
+## Canonical configuration (migration candidate, unvalidated)
+
+```ts
+const view = render({ template: '<p>hello</p>', state, attachToBody: true });
+const bound = testDirective(directive, { html: '<div zen-example></div>', state });
+```
+
+Canonical bags use shared schemas. State validation checks record capability,
+not application payload fields; caller-owned signals and state objects retain
+identity. The old `render(template, state?, options?)` and
+`testDirective(directive, html, state?)` forms remain deprecated bridges with
+once-only `ZEN-DEPR-093/094` warnings (proposed removal in 2.0).
+
+`useFakeTimers()` replaces global timeout functions and returns **numeric runtime
+handles**, even where the ambient Node declaration ordinarily describes a Timeout
+object. This helper does not provide `ref`, `unref`, `refresh` or
+`timers/promises` support. Use a full test-runner clock for those capabilities.
+Dispose/restore the controller after use; failed installation of clearTimeout
+rolls back the setTimeout patch. This lifecycle repair is separate from the
+implementation-module moves. No gate or compatibility result is claimed here.

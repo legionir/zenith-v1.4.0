@@ -39,7 +39,7 @@ module.exports = {
       name: 'no-circular',
       severity: 'error',
       comment: 'Static import cycles between sources are forbidden (#79).',
-      from: { pathNot: '^packages/vscode-extension/' },
+      from: { pathNot: '^tools/vscode-extension/' },
       to: { circular: true },
     },
     {

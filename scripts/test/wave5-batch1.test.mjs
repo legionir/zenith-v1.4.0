@@ -38,6 +38,7 @@ import {
   createFetchHandler,
 } from '../../packages/ssr/src/index.ts';
 import { createRealtime } from '../../packages/http/src/index.ts';
+import { FakeSocket } from '../../packages/realtime/test/fake-socket';
 import { getTemplateManifest } from '../../packages/cli/src/templates.ts';
 import { analyzeZenithDocument } from '../../packages/language-server/src/index.ts';
 
@@ -194,9 +195,13 @@ describe('Wave 5 P1 Batch 1 — New Packages & Peripheral Integration (#150, #15
       createRealtime({ url: 'ws://localhost:4000/ws', autoConnect: false }),
     ).not.toThrow();
     globalThis.__ZENITH_DEV__ = prevDev;
-    const client = createRealtime({ url: 'wss://safe.example.com/ws', autoConnect: false });
+    const socket = new FakeSocket();
+    const client = createRealtime({ url: 'wss://safe.example.com/ws', autoConnect: false, webSocketFactory: () => socket });
     client.send({ hello: 1 });
     client.open();
+    expect(client.status.get()).toBe('connecting');
+    socket.open();
+    expect(socket.sent).toEqual(['{"hello":1}']);
     client.receiveMockMessage({ data: 'incoming' }, 'news');
     const received = [];
     client.subscribe('news', (d) => received.push(d));

@@ -35,66 +35,7 @@
 import { signal, effect, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { reportError } from '@zenith/error-boundary';
-
-/**
- * FIX (v1.2.8): P1-3 — findScrollContainer helper.
- *
- * Previously the directive assumed the scroll container was always
- * `parent.closest('table').parentElement` (table mode) or
- * `contentContainer.parentElement.parentElement` (generic mode). That
- * assumption breaks for two common patterns:
- *
- *   1. The list element itself has `overflow-y: auto` (e.g. a fixed-height
- *      <div style="overflow:auto; height:300px"> wrapping the list).
- *      In this case the scroller IS the wrapper, not its parent.
- *
- *   2. The scroll container is several ancestors up (e.g. a layout with
- *      nested flex/grid containers between the list and the actual
- *      scroll viewport). The hardcoded `.parentElement.parentElement`
- *      traversal stops one level too early and binds the scroll listener
- *      to a non-scrolling element — so onScroll never fires.
- *
- * The helper walks up from `startEl`, checking getComputedStyle(node).overflowY
- * at each level, and returns the first element whose overflow-y is scrollable
- * ('auto' | 'scroll' | 'overlay'). Falls back to document.scrollingElement
- * (usually <html>) when nothing in the ancestor chain is scrollable.
- */
-function findScrollContainer(startEl: HTMLElement | null): HTMLElement | null {
-  let node: HTMLElement | null = startEl;
-  while (node) {
-    // Skip detached nodes — getComputedStyle returns all-'initial' for them
-    // which would not match our scroll patterns, but the closest() guard
-    // below also catches the case where node === document.documentElement.
-    try {
-      if (typeof getComputedStyle === 'function') {
-        const style = getComputedStyle(node);
-        const overflowY = style && style.overflowY;
-        if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
-          // Only treat as a real scroller if the element actually has a
-          // bounded height (otherwise overflow-y has no effect). For the
-          // <body> / <html> we accept unconditionally — they're the
-          // document scroller.
-          const isDocumentElement = node === document.documentElement || node === document.body;
-          if (isDocumentElement) return node;
-          const h = style.height;
-          const mh = style.maxHeight;
-          if ((h && h !== 'auto' && !h.endsWith('%')) || (mh && mh !== 'none')) {
-            return node;
-          }
-        }
-      }
-    } catch {
-      // getComputedStyle can throw on detached/pseudo elements in some
-      // browsers — skip the node and continue up the chain.
-    }
-    node = node.parentElement;
-  }
-  // Fallback: the document's scrollingElement (usually <html>).
-  if (typeof document !== 'undefined' && document.scrollingElement) {
-    return document.scrollingElement as HTMLElement;
-  }
-  return null;
-}
+import { findScrollContainer, buildVirtualLayout } from './virtual-layout';
 
 /**
  * Signature of the walker-supplied `processChildren` callback. It receives
@@ -103,13 +44,13 @@ function findScrollContainer(startEl: HTMLElement | null): HTMLElement | null {
  */
 export type VirtualProcessChildren = (
   itemEl: HTMLElement,
-  localContext: Record<string, any>,
+  localContext: Record<string, unknown>,
   itemDisposes: (() => void)[],
 ) => void;
 
 interface VisibleRow {
   el: HTMLElement;
-  itemSignal: Signal<any>;
+  itemSignal: Signal<unknown>;
   indexSignal: Signal<number>;
   disposes: (() => void)[];
 }
@@ -127,7 +68,7 @@ interface VisibleRow {
 export function processVirtualRepeat(
   el: HTMLElement,
   forExpr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   processChildren: VirtualProcessChildren,
 ): () => void {
   // Parse the for expression: "<itemName> in <listExpr>".
@@ -165,62 +106,7 @@ export function processVirtualRepeat(
     return () => {};
   }
 
-  let topSpacer: HTMLElement;
-  let bottomSpacer: HTMLElement;
-  let contentContainer: HTMLElement;
-
-  if (isTableMode) {
-    // Table mode: keep the original <tr> as the template for cloning.
-    // Insert two spacer <tr> elements: one before, one after.
-    topSpacer = document.createElement('tr');
-    topSpacer.setAttribute('data-zenith-virtual-spacer', 'top');
-    const topTd = document.createElement('td');
-    topTd.style.padding = '0';
-    topTd.style.border = '0';
-    topSpacer.appendChild(topTd);
-
-    bottomSpacer = document.createElement('tr');
-    bottomSpacer.setAttribute('data-zenith-virtual-spacer', 'bottom');
-    const bottomTd = document.createElement('td');
-    bottomTd.style.padding = '0';
-    bottomTd.style.border = '0';
-    bottomSpacer.appendChild(bottomTd);
-
-    parent.insertBefore(topSpacer, el);
-    if (el.nextSibling) {
-      parent.insertBefore(bottomSpacer, el.nextSibling);
-    } else {
-      parent.appendChild(bottomSpacer);
-    }
-    // The original <tr> itself becomes the content container — but we
-    // remove it from the DOM since we'll re-create visible rows from its
-    // template. We keep a deep clone as the template.
-    contentContainer = el as HTMLElement;
-    parent.removeChild(el);
-  } else {
-    // Generic mode: wrap the element inside a container with spacer divs.
-    const wrapper = document.createElement('div');
-    wrapper.setAttribute('data-zenith-virtual-wrapper', '');
-    wrapper.style.position = 'relative';
-
-    topSpacer = document.createElement('div');
-    topSpacer.setAttribute('data-zenith-virtual-spacer', 'top');
-    topSpacer.style.padding = '0';
-    topSpacer.style.margin = '0';
-
-    bottomSpacer = document.createElement('div');
-    bottomSpacer.setAttribute('data-zenith-virtual-spacer', 'bottom');
-    bottomSpacer.style.padding = '0';
-    bottomSpacer.style.margin = '0';
-
-    contentContainer = document.createElement('div');
-    contentContainer.setAttribute('data-zenith-virtual-content', '');
-
-    parent.replaceChild(wrapper, el);
-    wrapper.appendChild(topSpacer);
-    wrapper.appendChild(contentContainer);
-    wrapper.appendChild(bottomSpacer);
-  }
+  const { topSpacer, bottomSpacer, contentContainer } = buildVirtualLayout(el, { parent, isTableMode });
 
   // Template for cloning: the original element (without zen-virtual).
   const template = el;
@@ -271,7 +157,7 @@ export function processVirtualRepeat(
   };
 
   // Render the visible slice [start, end) of the items array.
-  const renderSlice = (items: any[], start: number, end: number): void => {
+  const renderSlice = (items: unknown[], start: number, end: number): void => {
     // Dispose all currently visible rows.
     for (const row of visibleRows) {
       for (const d of row.disposes) {
@@ -310,7 +196,7 @@ export function processVirtualRepeat(
 
       const itemSignal = signal(item);
       const indexSignal = signal(i);
-      const localContext: Record<string, any> = Object.create(context);
+      const localContext: Record<string, unknown> = Object.create(context);
       Object.defineProperty(localContext, itemName, {
         get: () => itemSignal.get(),
         configurable: true,
@@ -360,7 +246,7 @@ export function processVirtualRepeat(
   // We listen to scroll events on the nearest scrollable ancestor.
   let currentStart = 0;
   let currentEnd = 0;
-  let currentItems: any[] = [];
+  let currentItems: unknown[] = [];
 
   const onScroll = (): void => {
     if (currentItems.length === 0) return;
@@ -407,14 +293,14 @@ export function processVirtualRepeat(
 
   // ── Effect: subscribe to the items list ──
   const dispose = effect(() => {
-    let items: any[];
+    let result: unknown;
     try {
-      items = listEval(context) || [];
+      result = listEval(context);
     } catch (err) {
       reportError(err as Error, 'expression', { expression: listExpr, element: el });
-      items = [];
+      result = [];
     }
-    if (!Array.isArray(items)) items = [];
+    const items = Array.isArray(result) ? result : [];
     currentItems = items;
     // Resize the heights array to match.
     if (heights.length !== items.length) {

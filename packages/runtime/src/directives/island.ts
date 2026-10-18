@@ -34,7 +34,7 @@ import { logger } from '@zenith/logger';
  */
 export type IslandProcessChildren = (
   el: HTMLElement,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   itemDisposes: (() => void)[],
 ) => void;
 
@@ -51,7 +51,7 @@ export type IslandProcessChildren = (
 export function processIsland(
   el: HTMLElement,
   hydrateMode: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   processChildren: IslandProcessChildren,
 ): () => void {
   // Normalize the mode. Empty/unknown modes fall back to "load" (immediate).
@@ -127,9 +127,9 @@ export function processIsland(
       }
       observer = null;
     }
-    if (idleHandle !== null && typeof (globalThis as any).cancelIdleCallback !== 'undefined') {
+    if (idleHandle !== null && typeof globalThis.cancelIdleCallback !== 'undefined') {
       try {
-        (globalThis as any).cancelIdleCallback(idleHandle);
+        globalThis.cancelIdleCallback(idleHandle);
       } catch {
         /* noop */
       }
@@ -160,8 +160,8 @@ export function processIsland(
     // Immediate. Process children synchronously.
     hydrate();
   } else if (effectiveMode === 'idle') {
-    if (typeof (globalThis as any).requestIdleCallback !== 'undefined') {
-      idleHandle = (globalThis as any).requestIdleCallback(() => hydrate());
+    if (typeof globalThis.requestIdleCallback !== 'undefined') {
+      idleHandle = globalThis.requestIdleCallback(() => hydrate());
     } else {
       // Fallback: setTimeout(50) mimics idle for environments without rIC.
       timeoutHandle = setTimeout(() => hydrate(), 50);
@@ -181,9 +181,9 @@ export function processIsland(
         { threshold: 0.1 },
       );
       observer.observe(el);
-    } else if (typeof (globalThis as any).requestIdleCallback !== 'undefined') {
+    } else if (typeof globalThis.requestIdleCallback !== 'undefined') {
       // Fallback chain: visible → idle → setTimeout.
-      idleHandle = (globalThis as any).requestIdleCallback(() => hydrate());
+      idleHandle = globalThis.requestIdleCallback(() => hydrate());
     } else {
       // Fallback chain: visible → idle → setTimeout(100).
       timeoutHandle = setTimeout(() => hydrate(), 100);
@@ -199,9 +199,9 @@ export function processIsland(
       }
       observer = null;
     }
-    if (idleHandle !== null && typeof (globalThis as any).cancelIdleCallback !== 'undefined') {
+    if (idleHandle !== null && typeof globalThis.cancelIdleCallback !== 'undefined') {
       try {
-        (globalThis as any).cancelIdleCallback(idleHandle);
+        globalThis.cancelIdleCallback(idleHandle);
       } catch {
         /* noop */
       }

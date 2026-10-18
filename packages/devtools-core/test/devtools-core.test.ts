@@ -15,6 +15,7 @@ import {
   registerSignal as legacyStateRegisterSignal,
 } from '@zenith/state';
 import { ZenithError } from '@zenith/errors';
+import type { Disposable } from '@zenith/shared';
 import {
   installDevtoolsCore,
   DEVTOOLS_CORE_DEFAULTS,
@@ -39,7 +40,6 @@ import {
   hook,
   DEVTOOLS_HOOK_VERSION,
   assertHookVersion,
-  type Disposable,
 } from '../src/index';
 
 function catchError(fn: () => unknown): ZenithError {

@@ -37,6 +37,11 @@ export const SRC_PATHS = {
   // Every @zenith/<name> resolves to that package's src entry.
   '@zenith/*': ['../packages/*/src'],
   // Subpath exports that exist today (see vitest.config.ts #27).
+  '@zenith/router/node': ['../packages/router/src/node.ts'],
+  '@zenith/errors/internal': ['../packages/errors/src/internal.ts'],
+  '@zenith/state/internal': ['../packages/state/src/internal.ts'],
+  '@zenith/ssr/edge': ['../packages/ssr/src/edge.ts'],
+  '@zenith/service-worker/strategies': ['../packages/service-worker/src/strategies.ts'],
   '@zenith/service-worker/sw': ['../packages/service-worker/src/sw.ts'],
   // #142 — زیرمسیرهای @zenith/schema (SPEC §۲.۲).
   '@zenith/schema/zod': ['../packages/schema/src/zod.ts'],
@@ -44,6 +49,10 @@ export const SRC_PATHS = {
   // #120 — مسیر مشترک خواندن attribute (بودجهٔ ۴KB باندل اصلی، DEC-036 پیوست الف).
   '@zenith/schema/attr': ['../packages/schema/src/attr.ts'],
   '@zenith/storage/signal': ['../packages/storage/src/signal.ts'],
+  '@zenith/testing-e2e/browser': ['../packages/testing-e2e/src/browser.ts'],
+  '@zenith/analytics/legacy': ['../packages/analytics/src/legacy.ts'],
+  '@zenith/realtime/testing': ['../packages/realtime/src/testing.ts'],
+  '@zenith/realtime/legacy': ['../packages/realtime/src/legacy.ts'],
 };
 
 /**
@@ -54,9 +63,9 @@ export const SRC_PATHS = {
  *
  * @param {string} dir package directory name (e.g. "state")
  */
-export function typecheckConfigFor(dir) {
+export function typecheckConfigFor(dir, parent = 'packages') {
   return {
-    extends: `../packages/${dir}/tsconfig.json`,
+    extends: `../${parent}/${dir}/tsconfig.json`,
     compilerOptions: {
       noEmit: true,
       declaration: false,
@@ -69,7 +78,7 @@ export function typecheckConfigFor(dir) {
       // own directory, i.e. the repo root's `.tsbuild/`.
       paths: SRC_PATHS,
     },
-    include: [`../packages/${dir}/src/**/*.ts`],
+    include: [`../${parent}/${dir}/src/**/*.ts`],
   };
 }
 
@@ -135,7 +144,6 @@ export function listTypeTestFiles(root = process.cwd()) {
  * @param {string} root repository root containing packages/
  */
 export function runTypecheckAll(root = process.cwd()) {
-  const packagesDir = join(root, 'packages');
   const buildDir = join(root, TS_BUILD_DIR);
 
   // Fresh temp dir on every run (#26 acceptance: stale artifacts can't hide
@@ -143,20 +151,22 @@ export function runTypecheckAll(root = process.cwd()) {
   rmSync(buildDir, { recursive: true, force: true });
   mkdirSync(buildDir, { recursive: true });
 
-  const dirs = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((dir) => existsSync(join(packagesDir, dir, 'tsconfig.json')))
-    .sort();
+  const dirs = ['packages', 'tools'].flatMap(parent => {
+    const base = join(root, parent);
+    if (!existsSync(base)) return [];
+    return readdirSync(base, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && existsSync(join(base, entry.name, 'tsconfig.json')))
+      .map(entry => ({ parent, name: entry.name }));
+  }).sort((a, b) => `${a.parent}/${a.name}`.localeCompare(`${b.parent}/${b.name}`));
 
   let failed = 0;
   /** @type {string[]} */
   const errorOutput = [];
 
-  for (const dir of dirs) {
-    console.log(`🔍 Type-checking @zenith/${dir} (noEmit, src-resolved)…`);
+  for (const { parent, name: dir } of dirs) {
+    console.log(`🔍 Type-checking ${parent}/${dir} (noEmit, src-resolved)…`);
     const cfgPath = join(buildDir, `${dir}.tsconfig.json`);
-    writeFileSync(cfgPath, JSON.stringify(typecheckConfigFor(dir), null, 2));
+    writeFileSync(cfgPath, JSON.stringify(typecheckConfigFor(dir, parent), null, 2));
 
     const result = spawnSync(process.execPath, [TSC_PATH, '-p', cfgPath], {
       cwd: root,

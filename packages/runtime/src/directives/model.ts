@@ -19,11 +19,13 @@
 //   setSignalFromPath() مسیر را تجزیه می‌کند، Signal مربوطه را پیدا می‌کند،
 //   و یک کپی جدید (با تغییرات اعمال‌شده) را در Signal می‌نویسد.
 
-import { effect, type Signal } from '@zenith/state';
+import { effect } from '@zenith/state';
 // FEATURE (v1.0.0): compileExpression — compile-once برای Hot Path.
 import { compileExpression } from '@zenith/expressions';
 import { logger } from '@zenith/logger';
 import { isSignal } from '../context';
+import { clonePathContainer } from './path-container';
+import { callModelMethod } from './native-method';
 
 /**
  * تنظیم مقدار جدید در یک Signal از روی مسیر مثل "$user.name".
@@ -106,10 +108,10 @@ function parsePath(path: string): string[] {
 }
 
 function setSignalFromPath(
-  state: Record<string, any>,
+  state: Record<string, unknown>,
   path: string,
-  value: any,
-  context?: Record<string, any>,
+  value: unknown,
+  context?: Record<string, unknown>,
 ): boolean {
   // پارس مسیر با پشتیبانی از dot و bracket notation.
   const parts = parsePath(path);
@@ -125,7 +127,7 @@ function setSignalFromPath(
   const resolvedParts = parts.map((part) => {
     if (part.startsWith('$') && context) {
       try {
-        const val = (context as any)[part];
+        const val = context[part];
         if (val !== undefined && val !== null) return String(val);
       } catch {}
     }
@@ -144,10 +146,9 @@ function setSignalFromPath(
   // که Map از نام متغیر به Signal است.
   if (context) {
     // بررسی اینکه آیا context دارای signals map است (برای متغیرهای محلی)
-    const localSignals = (context as any).__zenith_signals__ as
-      Map<string, Signal<any>> | undefined;
-    if (localSignals && localSignals.has(rootKey)) {
-      const localSignal = localSignals.get(rootKey)!;
+    const localSignals: unknown = context.__zenith_signals__;
+    if (localSignals && callModelMethod(localSignals, 'has', [rootKey])) {
+      const localSignal: unknown = callModelMethod(localSignals, 'get', [rootKey]);
       return setSignalValue(localSignal, resolvedParts, value);
     }
   }
@@ -163,7 +164,7 @@ function setSignalFromPath(
     return false;
   }
 
-  return setSignalValue(signal as Signal<any>, resolvedParts, value);
+  return setSignalValue(signal, resolvedParts, value);
 }
 
 /**
@@ -174,24 +175,24 @@ function setSignalFromPath(
  * @param value  مقدار جدید.
  * @returns true در صورت موفقیت.
  */
-function setSignalValue(signal: Signal<any>, parts: string[], value: any): boolean {
+function setSignalValue(signal: unknown, parts: string[], value: unknown): boolean {
   if (parts.length === 1) {
     // مسیر ساده: signal.set(value) مستقیم
-    signal.set(value);
+    callModelMethod(signal, 'set', [value]);
     return true;
   }
 
   // مسیر تو در تو: باید یک کپی جدید بسازیم تا Reference تغییر کند
   // و Effectها trigger شوند.
-  const currentValue = signal.get();
+  const currentValue = callModelMethod(signal, 'get', []);
   // BUG-2 FIX (v1.2.2): array corruption — `{ ...currentValue }` روی آرایه یک
   // آبجکت می‌سازد (با indexed keys) نه یک آرایه. این باعث می‌شد مقدار جدید
   // به‌جای Array، Object باشد و همه‌ی Array methods از کار بیفتند.
   // راه‌حل: تشخیص نوع و استفاده از spread مناسب (array spread برای آرایه،
   // object spread برای آبجکت). برای nested levels هم همین منطق اعمال می‌شود.
-  const newValue: any = Array.isArray(currentValue) ? [...currentValue] : { ...currentValue };
+  const newValue = clonePathContainer(currentValue);
 
-  let target: any = newValue;
+  let target = newValue;
   for (let i = 1; i < parts.length - 1; i++) {
     const key = parts[i]!;
     if (target[key] === null || target[key] === undefined) {
@@ -199,13 +200,13 @@ function setSignalValue(signal: Signal<any>, parts: string[], value: any): boole
     } else {
       // BUG-2 FIX (v1.2.2): برای nested levels هم از همان منطق array-aware
       // استفاده می‌کنیم تا آرایه‌های تودرته خراب نشوند.
-      target[key] = Array.isArray(target[key]) ? [...target[key]] : { ...target[key] };
+      target[key] = clonePathContainer(target[key]);
     }
-    target = target[key];
+    target = target[key] as Record<string, unknown>;
   }
   target[parts[parts.length - 1]!] = value;
 
-  signal.set(newValue);
+  callModelMethod(signal, 'set', [newValue]);
   return true;
 }
 
@@ -214,7 +215,7 @@ function setSignalValue(signal: Signal<any>, parts: string[], value: any): boole
  */
 function getInputConfig(el: HTMLElement): {
   eventName: string;
-  readValue: () => any;
+  readValue: () => unknown;
 } {
   const tagName = el.tagName;
   const type = (el as HTMLInputElement).type;
@@ -262,8 +263,8 @@ function getInputConfig(el: HTMLElement): {
 export function processModel(
   el: HTMLElement,
   expr: string,
-  context: Record<string, any>,
-  state: Record<string, any>,
+  context: Record<string, unknown>,
+  state: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
   const evalFn = compileExpression(expr);
@@ -271,7 +272,7 @@ export function processModel(
   // ── ۱. State → Input (One-way binding از سیگنال به Input) ──
   // FEATURE (v1.0.0): Property Diffing — اگر value با قبلی برابر است، skip کن.
   // این کار از نوشتن غیرضروری `.value` جلوگیری می‌کند.
-  let prevValue: any = undefined;
+  let prevValue: unknown = undefined;
   let isFirstRun = true;
 
   const disposeEffect = effect(() => {

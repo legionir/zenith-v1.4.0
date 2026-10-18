@@ -139,11 +139,11 @@ describe('@zenith/ssr concurrent isolation & Edge runtime (#92)', () => {
     appB.dispose();
   });
 
-  it('works in Edge-like runtime environments with custom createDOM and FallbackContextStorage', async () => {
+  it('uses native Node ALS without getBuiltinModule or a global polyfill, with a custom DOM', async () => {
     expect(isAsyncLocalStorageAvailable()).toBe(true);
     expect(getSSRRuntimeEnv()).toBe('node');
 
-    // Simulate an Edge isolate without node:async_hooks by temporarily masking process.getBuiltinModule
+    // Node 18 has neither getBuiltinModule nor a global ALS constructor.
     const proc = (globalThis as any).process;
     const origGetBuiltin = proc.getBuiltinModule;
     const origGlobalAls = (globalThis as any).AsyncLocalStorage;

@@ -22,7 +22,7 @@
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import ts from 'typescript';
+import { collectSourceSignatures, signatureAllowed } from './lib/positional-signatures.mjs';
 
 /** مسیر پیش‌فرض allowlist. */
 export const ALLOWLIST_PATH = join('scripts', 'positional-config.allowlist.json');
@@ -39,11 +39,6 @@ function walkDir(dir) {
   return out;
 }
 
-/** پارامترها را برمی‌گرداند (بدون `this`). */
-function paramsOf(node) {
-  return node.parameters.filter((p) => !ts.isIdentifier(p.name) || p.name.text !== 'this');
-}
-
 /**
  * آیا این پارامتر یک «options object» است؟
  * ملاک: نام `…Options` / `…Config` یا نوع متناظر، یا literal نوع object.
@@ -56,53 +51,11 @@ function paramsOf(node) {
  * @param {string} paramText متن پارامتر (مثل `options?: FetchOptions` یا `{ ttl?: number }`).
  * @returns {boolean} true اگر پارامتر پیکربندی be-shape options باشد.
  */
-export function isOptionsParamText(paramText) {
-  const text = paramText.replace(/\s+/g, ' ').trim();
-  // نام یا نوع شامل …Options/…Config
-  if (/(?:^|[\s:{(&|,[])\w*(Options|Config)\w*\s*[:?=]?/.test(text)) return true;
-  // literal نوع object: `opts: { ttl?: number }` یا `?: { a: number }`
-  if (/[:?]\s*\{[^}]*[:?]/.test(text)) return true;
-  return false;
-}
+export { isOptionsParamText } from '../packages/eslint-plugin/src/rules/options-object.js';
+import { isOptionsParamText } from '../packages/eslint-plugin/src/rules/options-object.js';
 
-/** توابع exported یک فایل با اطلاعات امضا. */
-function exportedFunctions(file) {
-  const sourceText = readFileSync(file, 'utf8');
-  const sf = ts.createSourceFile(file, sourceText, ts.ScriptTarget.ES2022, true);
-  const out = [];
-  const deprecatedAt = (node) => {
-    const ranges = ts.getLeadingCommentRanges(sourceText, node.pos) ?? [];
-    return ranges.some((r) => /@deprecated/.test(sourceText.slice(r.pos, r.end)));
-  };
-  for (const stmt of sf.statements) {
-    const hasExport = stmt.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
-    if (!hasExport) continue;
-    if (ts.isFunctionDeclaration(stmt) && stmt.name) {
-      out.push({
-        name: stmt.name.text,
-        params: paramsOf(stmt).map((p) => p.getText(sf)),
-        optionsParam: paramsOf(stmt).some((p) => isOptionsParamText(p.getText(sf))),
-        deprecated: deprecatedAt(stmt),
-        line: sf.getLineAndCharacterOfPosition(stmt.getStart()).line + 1,
-      });
-    }
-    if (ts.isVariableStatement(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        const init = decl.initializer;
-        if (!init || !ts.isIdentifier(decl.name)) continue;
-        if (!ts.isArrowFunction(init) && !ts.isFunctionExpression(init)) continue;
-        out.push({
-          name: decl.name.text,
-          params: paramsOf(init).map((p) => p.getText(sf)),
-          optionsParam: paramsOf(init).some((p) => isOptionsParamText(p.getText(sf))),
-          deprecated: deprecatedAt(stmt),
-          line: sf.getLineAndCharacterOfPosition(stmt.getStart()).line + 1,
-        });
-      }
-    }
-  }
-  return out;
-}
+/** Source-export inventory includes classes, interfaces and object methods. */
+function exportedFunctions(file) { return collectSourceSignatures(file, readFileSync(file, 'utf8')); }
 
 /**
  * ممیزی کامل.
@@ -112,7 +65,6 @@ function exportedFunctions(file) {
 export function auditPositionalConfig(opts = {}) {
   const root = opts.root ?? process.cwd();
   const allowlist = opts.allowlist ?? loadAllowlist(root);
-  const allowed = new Set(allowlist.map((e) => `${e.pkg}:${e.name}`));
 
   const packagesDir = join(root, 'packages');
   const signatures = [];
@@ -127,9 +79,8 @@ export function auditPositionalConfig(opts = {}) {
         const configCount = fn.params.filter((p) => !isOptionsParamText(p)).length;
         const flagged =
           fn.params.length > 2 &&
-          !fn.optionsParam &&
           !fn.deprecated &&
-          !allowed.has(`${pkg}:${fn.name}`);
+          !signatureAllowed({ pkg, ...fn, file: relative(root, file).split('\\').join('/') }, allowlist);
         signatures.push({
           pkg,
           file: relative(root, file).split('\\').join('/'),
@@ -151,11 +102,11 @@ export function auditPositionalConfig(opts = {}) {
   }
 
   const stale = allowlist
-    .filter((e) => !signatures.some((s) => s.pkg === e.pkg && s.name === e.name))
+    .filter((e) => !signatures.some((s) => signatureAllowed(s, [e])))
     .map((e) => `${e.pkg}:${e.name}`)
     .sort();
 
-  return { signatures, violations, allowlisted: allowlist.length, stale };
+  return { scope: 'source-export-inventory', signatures, violations, allowlisted: allowlist.length, stale };
 }
 
 /**
@@ -184,7 +135,9 @@ export function loadAllowlist(root = process.cwd(), path = ALLOWLIST_PATH) {
       if (typeof e.pkg !== 'string' || typeof e.name !== 'string') {
         throw new Error(`positional-config allowlist: عضو نامعتبر در دستهٔ «${category.id}».`);
       }
-      entries.push({ pkg: e.pkg, name: e.name, category: category.id, reason: category.reason });
+      if (e.params !== undefined && (!Array.isArray(e.params) || e.params.some(param => typeof param !== 'string'))) throw new Error('positional-config allowlist: params must be strings.');
+      if (e.file !== undefined && (typeof e.file !== 'string' || e.file.startsWith('/') || e.file.split('/').includes('..'))) throw new Error('positional-config allowlist: file must be workspace-relative.');
+      entries.push({ pkg: e.pkg, name: e.name, ...(e.params ? { params: e.params } : {}), ...(e.file ? { file: e.file } : {}), category: category.id, reason: category.reason });
     }
   }
   return entries;
@@ -204,7 +157,7 @@ function main(argv) {
       );
     }
     process.stdout.write(
-      `\n${report.signatures.length} امضای عمومی؛ ${report.violations.length} تخلف؛ ${report.allowlisted} ردیف allowlist.\n`,
+      `\n${report.signatures.length} امضای export منبع؛ ${report.violations.length} تخلف؛ ${report.allowlisted} ردیف allowlist.\n`,
     );
     return 0;
   }
@@ -227,7 +180,7 @@ function main(argv) {
   }
   if (report.violations.length === 0 && report.stale.length === 0) {
     process.stdout.write(
-      `✅ پیکربندی positional: ${report.signatures.length} امضای عمومی بررسی شد؛ ` +
+      `✅ پیکربندی positional: ${report.signatures.length} امضای export منبع بررسی شد؛ ` +
         `${report.allowlisted} ردیف allowlist مستند — گیت #55.\n`,
     );
   }

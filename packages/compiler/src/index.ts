@@ -19,12 +19,16 @@ export {
   type ParityTestContext,
   type ParityResult,
   type ParityTestSuite,
+  type ParityRunner,
+  type ParityRunnerOptions,
+  type ParityReport,
 } from './parity';
 
 /**
  * #53: پیش‌فرض‌های منجمد برای `@zenith/compiler` (`CompilerOptions`).
  * @default { minify: false, sourceMap: false, mode: 'spa' }
  * @since 1.4.0
+ * @public
  */
 export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   minify: false,

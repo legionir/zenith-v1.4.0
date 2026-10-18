@@ -16,6 +16,8 @@ export {
   recordRead,
   recordWrite,
   recordDomUpdate,
+  type GraphSignalOptions,
+  type GraphDirectiveOptions,
   type GraphNode,
   type GraphEdge,
   type GraphSnapshot,

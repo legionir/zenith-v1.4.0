@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { releasePolicy } from './lib/release-policy.mjs';
 import { getPackageOrder } from './package-order.mjs';
 
 export function parseReleaseArgs(argv = process.argv.slice(2)) {
@@ -122,6 +123,12 @@ export function runRelease(options = {}) {
     };
   }
 
+  if (!dryRun) {
+    const npmVersion = exec('npm', ['--version'], { cwd: rootDir });
+    const policy = releasePolicy({ env: options.env ?? process.env, version: [...coreVersions][0], npmVersion: npmVersion.status === 0 ? npmVersion.stdout : '', skipChecks, allowDirty, registry });
+    if (policy) return { ok: false, stage: 'release-policy', published: [], skipped, error: policy };
+  }
+
   // 4. Preflight quality gates (lint, typecheck, test, build, publint)
   if (!skipChecks) {
     const gates = [
@@ -130,6 +137,14 @@ export function runRelease(options = {}) {
       ['npm', ['test']],
       ['npm', ['run', 'build']],
       ['npm', ['run', 'publint']],
+      ['npm', ['run', 'api:strict']],
+      ['npm', ['run', 'attw']],
+      ['npm', ['run', 'pack:audit']],
+      ['npm', ['run', 'install-import']],
+      ['npm', ['run', 'dts-parity']],
+      ['npm', ['run', 'size']],
+      ['npm', ['run', 'test:e2e']],
+      ['npm', ['audit', '--audit-level=low']],
     ];
     for (const [cmd, args] of gates) {
       const gateName = args.join(' ');
@@ -192,7 +207,7 @@ export function runRelease(options = {}) {
   // 7. Publish in topological order (stopping immediately on first failure)
   const published = [];
   const useProvenance = Boolean(
-    options.provenance || (process.env.ACTIONS_ID_TOKEN_REQUEST_URL && !registry),
+    !dryRun || options.provenance || (process.env.ACTIONS_ID_TOKEN_REQUEST_URL && !registry),
   );
 
   for (const pkg of targetPackages) {

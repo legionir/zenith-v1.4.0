@@ -3,9 +3,9 @@
 ## `main.yml` — the quality pipeline (#79)
 
 Every gate is its **own parallel job**, so each appears as a separate check on
-a PR and a failure in any single one blocks merging. All gates run on Node 22;
-only the bundle build keeps the Node 18/22 matrix (Node 18 is the `engines`
-floor). A normal PR completes well under ~10 minutes.
+a PR and a failure in any single one blocks merging. Normal development/test gates run on Node 22.12+ (22 LTS, DEC-040);
+the bundle build retains the 18.19/20/22 artifact-compatibility matrix.
+Library `engines >=18.19` is not a promise of Vitest 4/lint-staged 16 support on old Node. A normal PR completes well under ~10 minutes.
 
 ### When it runs
 
@@ -27,7 +27,7 @@ Runs for the same branch supersede each other (cancel-in-progress), except on
 | Format         | `npm run format:check` (#36 Prettier)            | any file not Prettier-formatted                   | —                            |
 | Type-check     | `npm run typecheck`                              | any `tsc` error in any package                    | —                            |
 | Unit tests     | `npm run test:coverage` (#27 vitest)             | failing test **or** <70% core statement coverage  | `coverage/` (14 days)        |
-| Dependency audit | `npm audit --omit=dev --audit-level=high`      | high/critical advisory in the production tree     | —                            |
+| Dependency audit | `npm audit --omit=dev --audit-level=high` + `npm audit --audit-level=low`      | any advisory in prod+dev (no non-blocking dev exception)     | —                            |
 | Dependency graph | `npm run deps` (dependency-cruiser, #79 baseline; #49 extends) | static import cycle or src→devDep import | —                        |
 | Build          | `npm run build` + collect (Node 18 **and** 22)   | build or `.d.ts` emit error                       | `zenith-bundles-node18/22`   |
 | Package lint   | `npm run publint` (needs Build; #74 adds attw)   | publint **error** in any package's published shape| —                            |
@@ -87,10 +87,10 @@ read-only.
 
 ### Notes
 
-- Two packages are intentionally skipped by the collector and reported in
-  the log: `devtools-extension` (no `package.json`) and `vscode-extension`
-  (no `src/index.ts`, so no esbuild bundle — it compiles with `tsc` via
-  `npm run compile -w zenith-vscode`, which the Package-lint job runs).
+- Browser/editor extensions are private workspaces under `tools/`, not silently
+  skipped npm libraries. Root `build` includes `build:libraries` and `build:tools`;
+  the dedicated tools job packages Chrome/Firefox ZIPs and a VSIX. Store upload
+  and Extension Host/browser-install acceptance remain separate owner/QA work.
 - `npm ci` requires `package-lock.json` to stay in sync with
   `package.json`.
 - The browser-e2e job installs Chromium with `npx playwright install
@@ -127,3 +127,33 @@ version coherence) and `e2e/browser-bundle.spec.ts` (loads the bundle through
   crossorigin="anonymous"
 ></script>
 ```
+
+### Vite integration (#13)
+
+Two jobs run the built plugin against Vite 6.4.4 and 7.3.7 using
+`node scripts/vite-plugin-integration.mjs 6|7`. They build a real directive-bearing
+HTML entry and fetch a real dev server response. Negative peer-install tests use
+isolated local tarball metadata and expect npm ERESOLVE for incompatible/unsafe
+versions. Vite 8, state-preserving browser HMR and sourcemaps remain #110 work.
+
+
+## Code-first remediation additions (2026-10-16, not executed)
+
+The declaration API job and publication preflight now fail closed on missing
+reports, signature drift, public any and unclassified/internal exports. Reviewed
+baselines and migration of the full legacy inventory are still pending; the new
+gate is not a claim that this working tree passes. See
+`docs/api/CONTRACT-GATES.md`. Release attachments depend on all quality jobs;
+Trusted Publishing uses job-scoped id-token permission and pinned npm 11.21.1.
+Owner configuration/provenance still requires real external evidence. No workflow
+or test was run during the current implementation-only phase.
+
+### Shared API candidate (2026-10-17)
+
+Public-any no longer scans just `src/index.ts`: it follows emitted declarations
+for every published subpath/condition. Unit/consumer jobs therefore build library
+artifacts before those assertions. Missing artifacts are errors, not skipped
+checks. `api:strict` additionally compares release level, deprecation metadata,
+signatures and API Extractor reports. During code-first authoring these commands
+are **not executed**; new snapshots/reports are generated/reviewed only in the
+final validation phase. A changed gate is not a passing result.

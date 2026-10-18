@@ -52,7 +52,7 @@ import { logger } from '@zenith/logger';
 export function processIntersection(
   el: HTMLElement,
   callbackExpr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — callbackExpr فقط یک‌بار parse می‌شود.
   const evalFn = compileExpression(callbackExpr);
@@ -77,7 +77,7 @@ export function processIntersection(
       for (const entry of entries) {
         if (entry.isIntersecting) {
           // ارزیابی callbackExpr در context.
-          let callback: any;
+          let callback: unknown;
           try {
             callback = evalFn(context);
           } catch (err) {

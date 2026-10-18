@@ -1,7 +1,7 @@
 {
   "name": "@zenith/permission",
   "version": "1.4.0",
-  "description": "Zenith framework — Authorization runtime (Phase 4). RBAC + permission-based access control with zen-permission and zen-role directives.",
+  "description": "Zenith framework \u2014 Authorization runtime (Phase 4). RBAC + permission-based access control with zen-permission and zen-role directives.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -57,7 +57,8 @@
   "dependencies": {
     "@zenith/errors": "1.4.0",
     "@zenith/logger": "1.5.0",
-    "@zenith/security": "1.4.0"
+    "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.5.0"
   },
   "peerDependencies": {
     "@zenith/state": "^1.4.0"

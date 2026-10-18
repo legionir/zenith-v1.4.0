@@ -5,6 +5,11 @@
 > حساس در حالت development با کد **ZEN-404** در کنسول هشدار می‌دهد
 > (`globalThis.__ZENITH_DEV__ = false` آن را خاموش می‌کند).
 
+> وضعیت کاندیدای فعلی (۲۰۲۶-۱۰-۱۶): موتور class و functional یکپارچه و storage،
+> لغو درخواست و sync بازنویسی شده‌اند؛ تست‌های قدیم/جدید در این فاز **اجرا نشده‌اند**.
+> این راهنما تأیید ممیزی یا پذیرش production نیست. قرارداد و جدول مهاجرت:
+> [README بستهٔ Auth](../../packages/auth/README.md).
+
 ## ۱. الگوی توصیه‌شده: کوکی HttpOnly سمت سرور + access token در حافظه
 
 ذخیرهٔ توکن در `localStorage`/`sessionStorage` یا کوکی‌های سمت کلاینت
@@ -29,9 +34,12 @@
 const auth = createAuth({
   loginUrl: '/api/auth/login',
   refreshUrl: '/api/auth/refresh',
+  refreshMode: 'cookie', // refresh token فقط در کوکی HttpOnly سمت سرور
+  headers: { 'X-CSRF-Token': 'server-issued-value' },
   // tokenStorage حذف شد → 'memory'
   autoRefresh: true,
 });
+await auth.refresh(); // boot صریح؛ init حافظه بدون session خودکار refresh نمی‌زند
 ```
 
 ```http
@@ -39,23 +47,22 @@ const auth = createAuth({
 Set-Cookie: rt=<refresh-token>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth; Max-Age=1209600
 ```
 
-> نکته: در حالت کوکی-سمت-سرور، بدنۀ پاسخ refresh فقط `access token` را برمی‌گرداند
-> و refresh token در body نیست؛ Zenith در `_doRefresh` در نبود فیلد
-> `refreshToken` مقدار قبلی را نگه می‌دارد (و در حالت `memory` توکنی برای نگه‌داشتن
-> نیست) — پس با سرور خود را هماهنگ کنید: یا `tokenStorage: 'cookie'` را برای
-> متادیتای غیرحساس به کار ببرید، یا flow حافظه‌محور را با refresh در boot بالا بیاورید.
+> در `refreshMode: 'cookie'` درخواست refresh با body خالی و کوکی same-origin
+> ارسال می‌شود؛ هیچ refresh token جاوااسکریپتی لازم نیست. حالت پیش‌فرض `'token'`
+> برای سازگاری، refresh token JSON را لازم دارد. `tokenStorage: 'cookie'` راه ساختن
+> کوکی HttpOnly نیست؛ فقط رکورد سمت کلاینت و قابل‌خواندن توسط اسکریپت است.
 
 ## ۲. CSRF
 
 Zenith توکن CSRF اضافه نمی‌کند؛ دفاع به انتخاب شما و مرورگر وابسته است
-(تحلیل کامل در کامنت SEC-A13 داخل `packages/auth/src/auth.ts`):
+(ذخیرهٔ token به‌تنهایی دفاع کامل CSRF نیست):
 
 | حالت tokenStorage | CSRF | XSS |
 | --- | --- | --- |
-| `memory` (پیش‌فرض) | عملاً غیرممکن (توکن خودکار ارسال نمی‌شود) | ضربه محدود به tab |
-| `localStorage`/`sessionStorage` | غیرممکن (توکن هدر دستی است) | **آسیب‌پذیر** |
-| `cookie` سمت کلاینت | `SameSite=Strict` بلاک می‌کند | **آسیب‌پذیر** (بدون HttpOnly) |
-| کوکی HttpOnly سمت سرور | SameSite + بررسی Origin سرور | محافظت‌شده |
+| `memory` (پیش‌فرض) | bearer دستی خودکار ارسال نمی‌شود؛ cookieهای همراه همچنان دفاع CSRF می‌خواهند | در برابر اسکریپت همان صفحه امن نیست |
+| `localStorage`/`sessionStorage` | bearer دستی؛ اگر سرور cookie هم می‌پذیرد Origin/CSRF لازم است | **آسیب‌پذیر** |
+| `cookie` سمت کلاینت | SameSite کمک می‌کند؛ دفاع کامل یا مجوز حذف Origin/CSRF نیست | **آسیب‌پذیر** (بدون HttpOnly) |
+| کوکی HttpOnly سمت سرور | SameSite + بررسی Origin/CSRF سرور | خواندن cookie مسدود؛ XSS هنوز می‌تواند درخواست مجاز بفرستد |
 
 الگوهای پیشنهادی:
 
@@ -69,14 +76,12 @@ Zenith توکن CSRF اضافه نمی‌کند؛ دفاع به انتخاب ش�
 
 ## ۳. `credentials: 'include'` و `withCredentials`
 
-- متدهای کلاس `Auth` (login/logout/refresh/fetchUser) با
-  `credentials: 'same-origin'` درخواست می‌زنند: کوکی‌ها فقط با همان origin
-  ارسال می‌شوند (پیش‌فرض امن). برای API روی دامنهٔ متفاوت (cross-origin) باید
-  صریحاً `credentials: 'include'` لازم است؛ تنها جای Zenith که این کار را
-  می‌کند `secureLogout` در fallback به fetch است (تا کوکی HttpOnly هم هنگام
-  بستن تب invalidate شود). در حالت `include` سرور **نباید**
-  `Access-Control-Allow-Origin: *` بفرستد؛ مقدار دقیق origin +
-  `Access-Control-Allow-Credentials: true` لازم است.
+- هر دو API روی موتور واحد با `credentials: 'same-origin'` کار می‌کنند؛ endpoint
+  مرورگری باید HTTP(S)، هم-origin و بدون userinfo باشد. cross-origin پیش از شبکه رد
+  می‌شود؛ برای آن proxy هم-origin با بازبینی سیاست امنیتی لازم است. fallback متد
+  `secureLogout` همچنان `include + keepalive` دارد، ولی endpoint خارجی را مجاز نمی‌کند.
+- Auth دیگر از interceptorهای سراسری `@zenith/http` استفاده نمی‌کند؛ هدر CSRF و
+  هدرهای برنامه را صریحاً در `AuthConfig.headers` تنظیم کنید.
 - در `@zenith/http` گزینه‌ها مستقیم به `fetch` پاس می‌شوند
   (`HttpRequestOptions extends RequestInit`)، پس:
 
@@ -85,8 +90,8 @@ await http.get('/api/data', { credentials: 'include' });
 // معادل XHR: xhr.withCredentials = true
 ```
 
-  رفتار در تست‌های `packages/auth/test/auth-security.test.ts` قفل شده است
-  (same-origin برای login؛ include+keepalive برای fallbackِ secureLogout).
+  سناریوهای این رفتار در `packages/auth/test/auth-security.test.ts` و
+  `canonical-engine.test.ts` نوشته شده‌اند؛ نتیجهٔ dirty tree فعلی هنوز نداریم.
 
 ## ۴. چرخش (Rotation) Refresh Token و تشخیص Reuse
 
@@ -94,14 +99,25 @@ await http.get('/api/data', { credentials: 'include' });
   (one-time-use refresh tokens). `refreshUrl` Zenith پاسخ را می‌خواند و
   `tokenField`/`refreshTokenField` قابل تنظیم‌اند.
 - **Race guard:** `Auth.refresh()` با `_refreshPromise` تنها **یک** درخواست هم‌زمان
-  می‌فرستد (چند caller ۴۰۱ هم‌زمان → یک rotation) — تست‌شده در
-  `auth-security.test.ts`.
+  می‌فرستد (در یک instance؛ نه قفل میان تب‌ها). سناریوهای
+  `auth-security.test.ts` و `canonical-engine.test.ts` در کاندیدای فعلی اجرا نشده‌اند.
 - **Reuse detection (سرور):** اگر refresh tokenِ مصرف‌شده دوباره ارسال شد،
   سرور کل family/session را باطل (revoke) کند و ۴۰۱ برگرداند. سمت کلاینت،
   Zenith در ۴۰۱/۴۰۳ رویداد `token-expired` را emit و `logout()` می‌کند؛
-  خطاهای ۵xx/۴۲۹ موقتند و logout نمی‌کنند (قابل retry).
+  خطاهای ۵xx/۴۲۹/شبکه موقتند و logout نمی‌کنند (auto-refresh در ۳۰ ثانیه retry می‌کند).
 - برای تشخیص reuse در کلاینت: رویداد `token-expired` را به «جلسه باطل شد؛
   احراز هویت مجدد» نگاشت کنید، نه «دوباره تلاش کن».
+
+### همگام‌سازی و teardown
+
+- cross-tab اختیاری فقط پیام invalidation بدون توکن/کاربر/OTP می‌فرستد؛ refresh
+  مشترک فقط برای رکورد persistent/remembered قابل adoption است، با validation سرور.
+- scope/channel متفاوت برای sessionهای مستقل تنظیم کنید. `sessionStorage` بین تب‌ها
+  مشترک نیست. قفل rotation میان تب‌ها و anti-replay سمت سرور همچنان لازم است.
+- logout محلی قبل از شبکه state و storage را پاک و درخواست‌های قبلی را abort می‌کند؛
+  generation مانع اثر پاسخ دیررسِ نادیده‌گیرندهٔ abort است. dispose فقط حافظه و
+  resourceها را آزاد می‌کند؛ جای logout/revocation سرور نیست.
+- `verifyMfa` فقط adapter endpoint است، نه پروتکل کامل challenge/recovery/anti-replay.
 
 ## ۵. چک‌لیست انتشار
 

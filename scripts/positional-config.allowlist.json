@@ -198,22 +198,6 @@
           "name": "setNestedValue"
         },
         {
-          "pkg": "form",
-          "name": "validateField"
-        },
-        {
-          "pkg": "form",
-          "name": "validateFieldAsync"
-        },
-        {
-          "pkg": "form",
-          "name": "validateFormAsync"
-        },
-        {
-          "pkg": "form",
-          "name": "validateWithLifecycle"
-        },
-        {
           "pkg": "icons",
           "name": "defineIconSet"
         },
@@ -252,14 +236,6 @@
           "name": "setCachedData"
         },
         {
-          "pkg": "devtools",
-          "name": "recordPanelStateChange"
-        },
-        {
-          "pkg": "devtools-core",
-          "name": "recordStateChange"
-        },
-        {
           "pkg": "devtools-core",
           "name": "replay"
         },
@@ -274,10 +250,6 @@
         {
           "pkg": "logger",
           "name": "warnOnce"
-        },
-        {
-          "pkg": "runtime",
-          "name": "registerCustomDirective"
         },
         {
           "pkg": "scheduler",
@@ -327,23 +299,7 @@
         },
         {
           "pkg": "i18n",
-          "name": "formatLocaleNumber"
-        },
-        {
-          "pkg": "i18n",
-          "name": "formatCurrency"
-        },
-        {
-          "pkg": "i18n",
           "name": "formatRelativeTime"
-        },
-        {
-          "pkg": "i18n",
-          "name": "formatDateTime"
-        },
-        {
-          "pkg": "i18n",
-          "name": "formatList"
         },
         {
           "pkg": "jalali",
@@ -388,10 +344,6 @@
       "reason": "رندر/SSR/DOM: پارامترها محتوای ساختاری (سند/سرصفحه/استراتژی) هستند و options ندارند؛ این توابع در #120/#67 بازبینی شده‌اند.",
       "entries": [
         {
-          "pkg": "compiler",
-          "name": "runParityTest"
-        },
-        {
           "pkg": "error-boundary",
           "name": "redactPIIValue"
         },
@@ -404,18 +356,6 @@
           "name": "renderAccessibleDialog"
         },
         {
-          "pkg": "security",
-          "name": "setSafeInnerHTML"
-        },
-        {
-          "pkg": "service-worker",
-          "name": "networkFirst"
-        },
-        {
-          "pkg": "service-worker",
-          "name": "cacheThenNetwork"
-        },
-        {
           "pkg": "service-worker",
           "name": "applyStrategy"
         },
@@ -426,10 +366,6 @@
         {
           "pkg": "ssr",
           "name": "generateFullPage"
-        },
-        {
-          "pkg": "transition",
-          "name": "zenAnimate"
         }
       ]
     },
@@ -484,14 +420,122 @@
         {
           "pkg": "runtime",
           "name": "hydrateModel"
+        }
+      ]
+    },
+    {
+      "id": "typed-data-operand-protocols",
+      "reason": "Reviewed independent runtime data/capability operands, not multiple configuration settings: rendering value/row/index, traversal context, reactive new/old/cleanup, observer signal/old/new, validator value/cross-field/rule-argument/abort and lifecycle field/error/value maps. Qualified owner names and exact parameter types bind each lease; changing another method, overload or domain is not exempt. These callbacks retain their existing invocation protocol rather than inventing an options-only callback. Devtools recordStateChange is likewise a readable identity plus previous/next event data; its former name-only lease is narrowed to the actual capability signature.",
+      "entries": [
+        {
+          "pkg": "data-table",
+          "name": "ColumnDef.render",
+          "params": [
+            "value: unknown",
+            "row: T",
+            "index: number"
+          ]
         },
         {
           "pkg": "runtime",
-          "name": "reportParityDivergence"
+          "name": "ZenApi.start",
+          "params": [
+            "root: HTMLElement",
+            "state?: Record<string, unknown>",
+            "options?: ZenStartOptions"
+          ]
         },
         {
           "pkg": "runtime",
-          "name": "assertParity"
+          "name": "Walk",
+          "params": [
+            "node: Node",
+            "context: Record<string, unknown>",
+            "state: Record<string, unknown>",
+            "disposes: (() => void)[]"
+          ]
+        },
+        {
+          "pkg": "runtime",
+          "name": "MemoProcessChildren",
+          "params": [
+            "el: HTMLElement",
+            "context: Record<string, unknown>",
+            "itemDisposes: (() => void)[]"
+          ]
+        },
+        {
+          "pkg": "runtime",
+          "name": "IslandProcessChildren",
+          "params": [
+            "el: HTMLElement",
+            "context: Record<string, unknown>",
+            "itemDisposes: (() => void)[]"
+          ]
+        },
+        {
+          "pkg": "state",
+          "name": "WatchCallback",
+          "params": [
+            "newValue: V",
+            "oldValue: OV",
+            "onCleanup: WatchCleanupRegistrar"
+          ]
+        },
+        {
+          "pkg": "state",
+          "name": "SignalObserver.onChange",
+          "params": [
+            "sig: Signal<T>",
+            "oldValue: T",
+            "newValue: T"
+          ]
+        },
+        {
+          "pkg": "form",
+          "name": "FieldValidationRule",
+          "params": [
+            "value: unknown",
+            "allValues: Record<string, unknown>",
+            "param?: string"
+          ]
+        },
+        {
+          "pkg": "form",
+          "name": "AsyncFieldValidationRule",
+          "params": [
+            "value: unknown",
+            "allValues: Record<string, unknown>",
+            "param?: string",
+            "signal?: AbortSignal"
+          ]
+        },
+        {
+          "pkg": "form",
+          "name": "FormValidationLifecycle.onFieldChange",
+          "params": [
+            "name: string",
+            "value: unknown",
+            "allValues: Record<string, unknown>"
+          ]
+        },
+        {
+          "pkg": "form",
+          "name": "FormValidationLifecycle.onFieldError",
+          "params": [
+            "name: string",
+            "error: string",
+            "allValues: Record<string, unknown>"
+          ]
+        },
+        {
+          "pkg": "devtools-core",
+          "name": "recordStateChange",
+          "params": [
+            "sig: UntypedSignal<T>",
+            "oldValue: unknown",
+            "newValue: unknown"
+          ]
         }
       ]
     }

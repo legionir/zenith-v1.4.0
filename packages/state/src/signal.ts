@@ -1,3 +1,4 @@
+import type { EffectSubscriber } from './effect-subscriber';
 // packages/state/src/signal.ts
 //
 // هسته اصلی سیستم Reactivity در فریم‌ورک Zenith.
@@ -23,7 +24,7 @@ import { notifySignalCreate, notifySignalChange, notifySignalDispose } from './o
 import { getEffectPriority } from './effect';
 // BUG-05 FIX (v1.3.0): Context functions از ماژول مجزای context.ts
 // برای شکستن circular dependency با effect.ts.
-import { _getMutableContext, getActiveEffect, setActiveEffect, registerCleanup } from './context';
+import { _getMutableContext, registerCleanup } from './context';
 // #187 FIX: brand «readable» روی prototype تا مصرف‌کننده‌ها (runtime context و…)
 // بتوانند Signal/Computed را بدون instanceof و بدون وابستگی به متد set تشخیص دهند.
 import { ZENITH_READABLE } from './readable';
@@ -36,10 +37,11 @@ import { developerError } from '@zenith/errors';
  *   1) هنگام get(): اگر Effect فعالی وجود داشت، خودش را به عنوان وابستگی آن ثبت کند
  *      و یک Cleanup ثبت کند تا در re-tracking یا dispose، وابستگی قطع شود.
  *   2) هنگام set(): اگر مقدار واقعاً تغییر کرد، به تمام Effectهای وابسته اطلاع دهد.
+ * @public
  */
 export class Signal<T> {
   private _value: T;
-  private _subscribers: Set<Function> = new Set();
+  private _subscribers: Set<EffectSubscriber> = new Set();
   private _readonly: boolean;
 
   constructor(initialValue: T, options?: { readonly?: boolean }) {
@@ -73,7 +75,7 @@ export class Signal<T> {
       // این Signal خودش را از لیست subscribers آن Effect پاک می‌کند.
       // این کار از Memory Leak و Zombie Effectها جلوگیری می‌کند.
       registerCleanup(() => {
-        this._subscribers.delete(subscribedEffect as () => void);
+        this._subscribers.delete(subscribedEffect);
       });
     }
     return this._value;
@@ -132,7 +134,7 @@ export class Signal<T> {
     // اگر Effect اولویتی نداشته باشد، 'normal' استفاده می‌شود.
     this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
-      scheduleEffect(effectFn as () => void, priority);
+      scheduleEffect(effectFn, priority);
     });
   }
 
@@ -142,7 +144,7 @@ export class Signal<T> {
    * این متد زمانی فراخوانی می‌شود که یک Effect از بین می‌رود یا
    * وابستگی‌هایش تغییر می‌کند و نیاز به re-tracking دارد.
    */
-  removeSubscriber(effect: Function): void {
+  removeSubscriber(effect: EffectSubscriber): void {
     this._subscribers.delete(effect);
   }
 
@@ -180,7 +182,7 @@ export class Signal<T> {
     // ── فاز ۷: Scheduler ──
     this._subscribers.forEach((effectFn) => {
       const priority = getEffectPriority(effectFn);
-      scheduleEffect(effectFn as () => void, priority);
+      scheduleEffect(effectFn, priority);
     });
   }
 
@@ -218,6 +220,7 @@ export class Signal<T> {
  * @example
  *   const count = signal(0); // Signal<number>
  *   const name = signal<string>('Ali'); // explicit type
+ * @public
  */
 export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Signal<T> {
   return new Signal(initialValue, options);
@@ -225,19 +228,15 @@ export function signal<T>(initialValue: T, options?: { readonly?: boolean }): Si
 
 // #187 FIX: brand روی prototype — همهٔ instanceها (و subclassها) قابل‌تشخیص‌اند
 // بدون instanceof و صرف‌نظر از اینکه چند بیلد از state بارگذاری شده باشد.
-(Signal.prototype as any)[ZENITH_READABLE] = true;
+Reflect.set(Signal.prototype, ZENITH_READABLE, true);
 
 /**
- * Type helper for readonly signals (e.g. computed values).
- * Omits the `set` method to prevent external mutation.
- *
- * Values produced by `computed()` own an internal effect, so they also expose
- * `dispose()` for releasing it. It is declared optional because not every
- * ReadonlySignal is a Computed.
+ * Read-only signal capability backed by real methods, not Omit<Signal, 'set'>:
+ * update() is also a write operation and must not leak into a readonly view.
+ * For get-only containers use Readable<T>; computed() supplies this full view.
+ * @public
  */
-export type ReadonlySignal<T> = Omit<Signal<T>, 'set'> & {
-  dispose?(): void;
-};
+export type ReadonlySignal<T> = Pick<Signal<T>, 'get' | 'peek' | 'subscriberCount' | 'removeSubscriber' | 'dispose'>;
 
 // FEATURE (v1.3.0): untrack() — execute a function without tracking dependencies.
 // All signal.get() calls inside fn() will NOT register subscriptions.
@@ -248,18 +247,20 @@ export type ReadonlySignal<T> = Omit<Signal<T>, 'set'> & {
 //     const userId = user.get();            // ← tracks
 //     const cached = untrack(() => cache.get()); // ← no track
 //   });
+/** @public */
 export function untrack<T>(fn: () => T): T {
-  const prev = getActiveEffect();
-  setActiveEffect(null);
+  const context = _getMutableContext();
+  const prev = context.activeEffect;
+  context.activeEffect = null;
   try {
     return fn();
   } finally {
-    setActiveEffect(prev);
+    context.activeEffect = prev;
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Context Functions (Re-exports از context.ts)
+// Context EffectSubscribers (Re-exports از context.ts)
 // ─────────────────────────────────────────────────────────────
 //
 // BUG-05 FIX (v1.3.0): ALL context-related functions (EffectContext,

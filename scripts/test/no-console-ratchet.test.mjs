@@ -20,10 +20,11 @@ const CONSOLE_RE =
 /** همهٔ فایل‌های src/*.ts (بدون d.ts) در کل ورک‌اسپیس که console.* دارند. */
 function consoleFiles() {
   const files = new Set();
-  for (const d of readdirSync('packages', { withFileTypes: true })) {
+  for (const parent of ['packages', 'tools']) {
+  for (const d of readdirSync(parent, { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
     if (d.name === 'tmp-scaffold-verify') continue; // ردّ دریکتوری گذرای scaffold موازی
-    const base = join('packages', d.name, 'src');
+    const base = join(parent, d.name, 'src');
     if (!existsSync(base)) continue;
     const stack = [base];
     while (stack.length) {
@@ -37,6 +38,7 @@ function consoleFiles() {
       }
     }
   }
+  }
   return files;
 }
 
@@ -49,15 +51,12 @@ describe('no-console rule + ratchet (#143)', () => {
 
   it('eslint config enables no-console:error for package src (was off pending #39)', () => {
     expect(eslintConfig).toMatch(/'no-console':\s*'error'/);
-    // تنها یک 'off' مجاز است: override مربوط به فهرست بدهی (#39) — نه در قواعد اصلی.
-    expect((eslintConfig.match(/'no-console':\s*'off'/g) ?? []).length).toBe(1);
-    expect(eslintConfig).toContain('no-console-ratchet.mjs');
-    expect(eslintConfig).toContain('NO_CONSOLE_RATCHET');
+    expect(eslintConfig).not.toMatch(/'no-console':\s*'off'/);
   });
 
   it('the allowed list is exactly the set of legacy console.* files (no drift)', () => {
     const offenders = [...files].filter(
-      (f) => !ratchet.has(f) && !f.startsWith('packages/logger/'),
+      (f) => !ratchet.has(f) && f !== 'packages/logger/src/sinks.ts',
     );
     expect(
       offenders,
@@ -69,23 +68,7 @@ describe('no-console rule + ratchet (#143)', () => {
     );
   });
 
-  it('baseline shrinks only via real migration (#143=62 → #115 unified hub sink)', () => {
-    // #115 (DEC-031): error-path console.* now lives solely in the errors hub sink.
-    // #147: packages/devtools/src/graph.ts migrated to @zenith/devtools-core (61 → 60).
-    // #94: packages/cli/src/telemetry.ts افزوده شد (خروجی کاربرپسند CLI؛ در دستورالعمل #39 مهاجرت می‌کند) (60 → 61).
-    // #39 موج ۱ (2026-10-13): events/security/data/permission/error-boundary/ssr/router/components
-    //   و store (بازنویسی جامنت) مهاجرت شدند — ۱۷ فایل از فهرست خارج شدند (61 → 44).
-    // #39 موج ۴ (2026-10-13): runtime×11/transition/errors×2 (32 → 9).
-    //   errors خودش به logger وابسته نیست (چرخهٔ import)؛ مرز چاپ به
-    //   packages/errors/src/print.ts (بدون import) سپرده شد و deprecate از
-    //   همان مسیر می‌گذرد.
-    //   ثقل باقی‌ماندهٔ ۹ فایل (cli×5/vite-plugin×2/vscode-extension/compiler)
-    //   مصونِ تصمیم‌شده‌اند: خروجی آن‌ها UX اصلی ابزار CLI/IDE است (نه
-    //   observability framework) و چاپ JSON-Lines لاگر برای ترمینال نامناسب است؛
-    //   compiler هم پیام‌های user-code را از طریق hub→print می‌گذرانَد.
-    //   نکته: در موج ۳ شمارندهٔ لیست از 32 به 23 رسید؛ این بار به 9.
-    expect(NO_CONSOLE_RATCHET.length).toBe(9);
-    // هیچ‌کدام از فایل‌های logger نباید در فهرست باشد (پکیج جدید پاک است).
-    expect(NO_CONSOLE_RATCHET.filter((f) => f.startsWith('packages/logger/'))).toEqual([]);
+  it('has no legacy exemptions', () => {
+    expect(NO_CONSOLE_RATCHET).toEqual([]);
   });
 });

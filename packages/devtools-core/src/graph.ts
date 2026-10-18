@@ -4,9 +4,16 @@
 // تغییر نام از DependencyGraph برای رفع تداخل نام با @zenith/dependency-graph؛
 // DependencyGraph به‌عنوان alias سازگار حفظ شده است.
 
+import { untrack } from '@zenith/state';
+import { deprecate } from '@zenith/errors';
+import { isGlobalDiagnosticsAllowed } from './observation-policy';
+
+/** @public */
 export type GraphNodeType = 'signal' | 'effect' | 'directive' | 'dom';
+/** @public */
 export type GraphEdgeType = 'read-by' | 'drives' | 'updates';
 
+/** @public */
 export interface GraphNode {
   id: string;
   type: GraphNodeType;
@@ -20,12 +27,14 @@ export interface GraphNode {
   createdAt: number;
 }
 
+/** @public */
 export interface GraphEdge {
   from: string;
   to: string;
   type: GraphEdgeType;
 }
 
+/** @public */
 export interface GraphSnapshot {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -39,79 +48,117 @@ export interface GraphSnapshot {
   };
 }
 
-const MAX_NODES_PER_TYPE = 500;
+/** Metadata for a graph signal, not a writable Signal capability. @public */
+export interface GraphSignalOptions { name?: string; value?: unknown; }
+/** Directive graph metadata; strings remain data, not executable expressions. @public */
+export interface GraphDirectiveOptions { directiveType: string; elementSelector: string; expression?: string; }
 
+const MAX_NODES_PER_TYPE = 500;
+const realmGraphs = new WeakSet<RuntimeGraph>();
+const resetters = new WeakMap<RuntimeGraph, () => void>();
+const generations = new WeakMap<RuntimeGraph, number>();
+function realmObservationAllowed(): boolean {
+  return untrack(() => isGlobalDiagnosticsAllowed() && Reflect.get(globalThis, '__ZENITH_DEVTOOLS__') !== false);
+}
+function canAccessGraph(instance: RuntimeGraph): boolean {
+  return !realmGraphs.has(instance) || realmObservationAllowed();
+}
+function edgeKey(from: string, to: string, type: GraphEdgeType): string {
+  return `${from.length}:${from}${to.length}:${to}:${type}`;
+}
+
+/** @public */
 export class RuntimeGraph {
   private nodes: Map<string, GraphNode> = new Map();
   private edgeKeys: Set<string> = new Set();
   private edges: GraphEdge[] = [];
 
-  addSignal(id: string, name: string, value: unknown): void {
-    const existing = this.nodes.get(id);
-    if (existing) {
-      existing.label = name || existing.label;
-      existing.value = value;
-      return;
-    }
-    this.evictIfNeeded('signal');
-    this.nodes.set(id, {
-      id,
-      type: 'signal',
-      label: name || id,
-      value,
-      createdAt: Date.now(),
+  constructor() {
+    generations.set(this, 0);
+    resetters.set(this, () => {
+      generations.set(this, (generations.get(this) ?? 0) + 1);
+      this.nodes.clear(); this.edgeKeys.clear(); this.edges.length = 0;
     });
   }
 
-  addEffect(id: string, deps: string[] = []): void {
+  /** @public */
+  addSignal(id: string, options: GraphSignalOptions): void;
+  /** @public @deprecated Use addSignal(id, { name, value }) (ZEN-DEPR-101; removal in 2.0). */
+  addSignal(id: string, name: string, value: unknown): void;
+  addSignal(id: string, input: GraphSignalOptions | string, legacyValue?: unknown): void {
+    if (!canAccessGraph(this)) return;
+    const generation = generations.get(this);
+    const { name, value } = untrack(() => {
+      if (typeof input === 'string') {
+        deprecate('ZEN-DEPR-101', 'addSignal(id, name, value)', 'addSignal(id, { name, value })');
+        return { name: input, value: legacyValue };
+      }
+      return { name: input.name, value: input.value };
+    });
+    if (generation !== generations.get(this) || !canAccessGraph(this)) return;
     const existing = this.nodes.get(id);
-    if (existing) {
-      existing.deps = deps;
+    if (existing?.type === 'signal') { existing.label = name || existing.label; existing.value = value; return; }
+    if (existing) this.removeNode(id);
+    this.evictIfNeeded('signal');
+    this.nodes.set(id, { id, type: 'signal', label: name || id, value, createdAt: Date.now() });
+  }
+
+  addEffect(id: string, deps: string[] = []): void {
+    if (!canAccessGraph(this)) return;
+    const generation = generations.get(this);
+    const captured = untrack(() => deps.slice());
+    if (generation !== generations.get(this) || !canAccessGraph(this)) return;
+    const existing = this.nodes.get(id);
+    if (existing?.type === 'effect') {
+      existing.deps = captured;
       return;
     }
+    if (existing) this.removeNode(id);
     this.evictIfNeeded('effect');
     this.nodes.set(id, {
       id,
       type: 'effect',
       label: id,
-      deps,
+      deps: captured,
       createdAt: Date.now(),
     });
   }
 
-  addDirective(
-    id: string,
-    directiveType: string,
-    elementSelector: string,
-    expression?: string,
-  ): void {
-    const existing = this.nodes.get(id);
-    if (existing) {
-      existing.directiveType = directiveType;
-      existing.elementSelector = elementSelector;
-      existing.expression = expression;
-      existing.label = `${directiveType}${expression ? `="${expression}"` : ''}`;
-      return;
-    }
-    this.evictIfNeeded('directive');
-    this.nodes.set(id, {
-      id,
-      type: 'directive',
-      label: `${directiveType}${expression ? `="${expression}"` : ''}`,
-      directiveType,
-      elementSelector,
-      expression,
-      createdAt: Date.now(),
+  /** @public */
+  addDirective(id: string, options: GraphDirectiveOptions): void;
+  /** @public @deprecated Use addDirective(id, { directiveType, elementSelector, expression }) (ZEN-DEPR-102; removal in 2.0). */
+  addDirective(id: string, directiveType: string, elementSelector: string, expression?: string): void;
+  addDirective(id: string, input: GraphDirectiveOptions | string, legacySelector?: string, legacyExpression?: string): void {
+    if (!canAccessGraph(this)) return;
+    const generation = generations.get(this);
+    const { directiveType, elementSelector, expression } = untrack(() => {
+      if (typeof input === 'string') {
+        deprecate('ZEN-DEPR-102', 'addDirective(id, type, selector, expression)', 'addDirective(id, { directiveType, elementSelector, expression })');
+        return { directiveType: input, elementSelector: legacySelector ?? '', expression: legacyExpression };
+      }
+      return { directiveType: input.directiveType, elementSelector: input.elementSelector, expression: input.expression };
     });
+    if (generation !== generations.get(this) || !canAccessGraph(this)) return;
+    const existing = this.nodes.get(id);
+    if (existing?.type === 'directive') {
+      existing.directiveType = directiveType; existing.elementSelector = elementSelector;
+      existing.expression = expression; existing.label = `${directiveType}${expression ? `="${expression}"` : ''}`; return;
+    }
+    if (existing) this.removeNode(id);
+    this.evictIfNeeded('directive');
+    this.nodes.set(id, { id, type: 'directive', label: `${directiveType}${expression ? `="${expression}"` : ''}`,
+      directiveType, elementSelector, expression, createdAt: Date.now() });
   }
 
   addDom(id: string, domTag: string): void {
+    if (!canAccessGraph(this)) return;
     const existing = this.nodes.get(id);
-    if (existing) {
+    if (existing?.type === 'dom') {
       existing.domTag = domTag;
       existing.label = `<${domTag.toLowerCase()}>`;
       return;
     }
+    if (existing) this.removeNode(id);
     this.evictIfNeeded('dom');
     this.nodes.set(id, {
       id,
@@ -135,8 +182,8 @@ export class RuntimeGraph {
   }
 
   private addEdge(from: string, to: string, type: GraphEdgeType): void {
-    if (!this.nodes.has(from) || !this.nodes.has(to)) return;
-    const key = `${from}|${to}|${type}`;
+    if (!canAccessGraph(this) || !this.nodes.has(from) || !this.nodes.has(to)) return;
+    const key = edgeKey(from, to, type);
     if (this.edgeKeys.has(key)) return;
     this.edgeKeys.add(key);
     this.edges.push({ from, to, type });
@@ -157,10 +204,10 @@ export class RuntimeGraph {
   }
 
   removeNode(id: string): void {
-    if (!this.nodes.delete(id)) return;
+    if (!canAccessGraph(this) || !this.nodes.delete(id)) return;
     this.edges = this.edges.filter((e) => {
       if (e.from === id || e.to === id) {
-        this.edgeKeys.delete(`${e.from}|${e.to}|${e.type}`);
+        this.edgeKeys.delete(edgeKey(e.from, e.to, e.type));
         return false;
       }
       return true;
@@ -168,8 +215,9 @@ export class RuntimeGraph {
   }
 
   getGraph(): GraphSnapshot {
-    const nodes = Array.from(this.nodes.values());
-    const edges = this.edges.slice();
+    const allowed = canAccessGraph(this);
+    const nodes = allowed ? Array.from(this.nodes.values(), node => ({ ...node, ...(node.deps ? { deps: node.deps.slice() } : {}) })) : [];
+    const edges = allowed ? this.edges.map(edge => ({ ...edge })) : [];
     let signals = 0;
     let effects = 0;
     let directives = 0;
@@ -195,66 +243,78 @@ export class RuntimeGraph {
   }
 
   clear(): void {
-    this.nodes.clear();
-    this.edgeKeys.clear();
-    this.edges.length = 0;
+    if (canAccessGraph(this)) resetters.get(this)?.();
   }
 }
 
-/** Alias سازگار با نام قدیمی در @zenith/devtools */
+/** Alias سازگار با نام قدیمی در @zenith/devtools. @public */
 export const DependencyGraph = RuntimeGraph;
+/** @public */
 export type DependencyGraph = RuntimeGraph;
 
+/** Realm-global graph; explicit new RuntimeGraph instances stay caller-owned. @public */
 export const runtimeGraph = new RuntimeGraph();
+realmGraphs.add(runtimeGraph);
+/** @public */
 export const graph = runtimeGraph;
 
+/** Explicit process reset bypasses the request-facing singleton policy. @internal */
+export function resetRuntimeGraphInternal(): void { resetters.get(runtimeGraph)?.(); }
+
+/** @public */
 export function getRuntimeGraph(): GraphSnapshot {
   return runtimeGraph.getGraph();
 }
 
+/** @public */
 export function clearRuntimeGraph(): void {
   runtimeGraph.clear();
 }
 
+/** @public */
 export const getDependencyGraph = getRuntimeGraph;
+/** @public */
 export const clearDependencyGraph = clearRuntimeGraph;
 
-function getGlobalHook(): {
-  recordRead?: (s: string, e: string) => void;
-  recordWrite?: (e: string, d: string) => void;
-  recordDomUpdate?: (d: string, n: string) => void;
-} | null {
-  if (typeof globalThis === 'undefined') return null;
-  return (globalThis as { __ZENITH__?: unknown }).__ZENITH__ as {
-    recordRead?: (s: string, e: string) => void;
-    recordWrite?: (e: string, d: string) => void;
-    recordDomUpdate?: (d: string, n: string) => void;
-  } | null;
+type EdgeEvent = 'recordRead' | 'recordWrite' | 'recordDomUpdate';
+const forwarding = new Set<EdgeEvent>();
+
+// Unknown globals are capabilities only after concrete object/function checks.
+// Never invent a typed hook, change its receiver, or trust its return value.
+function forwardEdge(event: EdgeEvent, operands: [string, string]): boolean {
+  if (forwarding.has(event)) return false;
+  if (!realmObservationAllowed()) return true;
+  const generation = generations.get(runtimeGraph);
+  forwarding.add(event);
+  try {
+    return untrack(() => {
+      try {
+        const browser: unknown = Reflect.get(globalThis, 'window');
+        const targets: object[] = [globalThis];
+        if (browser !== null && (typeof browser === 'object' || typeof browser === 'function') && browser !== globalThis) targets.push(browser);
+        for (const target of targets) {
+          const hook: unknown = Reflect.get(target, '__ZENITH__');
+          if (hook === null || (typeof hook !== 'object' && typeof hook !== 'function')) continue;
+          const method: unknown = Reflect.get(hook, event);
+          if (generation !== generations.get(runtimeGraph) || !realmObservationAllowed()) return true;
+          if (typeof method !== 'function') continue;
+          Reflect.apply(method, hook, operands); return true;
+        }
+      } catch { /* a broken diagnostic bridge must not break the caller */ }
+      return generation !== generations.get(runtimeGraph);
+    });
+  } finally { forwarding.delete(event); }
 }
 
+/** @public */
 export function recordRead(signalId: string, effectId: string): void {
-  const h = getGlobalHook();
-  if (h && typeof h.recordRead === 'function') {
-    h.recordRead(signalId, effectId);
-    return;
-  }
-  runtimeGraph.recordRead(signalId, effectId);
+  if (!forwardEdge('recordRead', [signalId, effectId])) runtimeGraph.recordRead(signalId, effectId);
 }
-
+/** @public */
 export function recordWrite(effectId: string, directiveId: string): void {
-  const h = getGlobalHook();
-  if (h && typeof h.recordWrite === 'function') {
-    h.recordWrite(effectId, directiveId);
-    return;
-  }
-  runtimeGraph.recordWrite(effectId, directiveId);
+  if (!forwardEdge('recordWrite', [effectId, directiveId])) runtimeGraph.recordWrite(effectId, directiveId);
 }
-
+/** @public */
 export function recordDomUpdate(directiveId: string, nodeId: string): void {
-  const h = getGlobalHook();
-  if (h && typeof h.recordDomUpdate === 'function') {
-    h.recordDomUpdate(directiveId, nodeId);
-    return;
-  }
-  runtimeGraph.recordDomUpdate(directiveId, nodeId);
+  if (!forwardEdge('recordDomUpdate', [directiveId, nodeId])) runtimeGraph.recordDomUpdate(directiveId, nodeId);
 }

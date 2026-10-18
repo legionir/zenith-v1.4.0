@@ -1,115 +1,94 @@
-// packages/ssr/src/dom-context.ts
-//
-// FEATURE (v1.0.0) + #92: AsyncLocalStorage & Edge-compatible DOM/Request isolation.
-//
-// هر درخواست SSR وضعیت کامل خود را (DOM globals، EffectContext، ComponentRegistry،
-// ActionRegistry، ServerComponentRegistry، App، locale) در یک store مستقل
-// بر پایهٔ AsyncLocalStorage ذخیره می‌کند.
-//
-// پشتیبانی از Edge runtimeها (#92):
-//   1. اگر `globalThis.AsyncLocalStorage` موجود باشد (Cloudflare Workers با
-//      nodejs_compat، Vercel Edge، Deno، WinterCG)، مستقیماً از آن استفاده می‌شود.
-//   2. در Node.js (18.19+/20.6+)، از `process.getBuiltinModule('node:async_hooks')`
-//      به‌صورت بدون وابستگی استاتیک باندلر بارگذاری می‌شود.
-//   3. در محیط‌های تک‌رشته‌ای فاقد `AsyncLocalStorage`، یک پشتهٔ کانتکست سبک
-//      (`FallbackContextStorage`) فراهم می‌شود و `isAsyncLocalStorageAvailable()`
-//      وضعیت واقعی را گزارش می‌دهد.
+import type { SSRDOMWindow } from './dom-types';
+import type { EffectContext } from '@zenith/state/internal';
+import type { ActionRegistry, App } from '@zenith/runtime';
+import type { ServerComponent } from './server-component';
+import type { RegistryOwner } from '@zenith/shared';
+import type { HeadManager } from '@zenith/head';
+// This is the Node entry. Workers use ./edge and never import this module.
+// A process.getBuiltinModule probe silently fell back to a shared stack on Node
+// 18, which is not async-context isolation. Use the native API on every Node floor.
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface AsyncContextStore<T> {
   getStore(): T | undefined;
   run<R>(store: T, callback: () => R): R;
 }
 
-class FallbackContextStorage<T> implements AsyncContextStore<T> {
-  private _stack: T[] = [];
-
-  getStore(): T | undefined {
-    return this._stack.length > 0 ? this._stack[this._stack.length - 1] : undefined;
-  }
-
-  run<R>(store: T, callback: () => R): R {
-    this._stack.push(store);
-    let isAsync = false;
-    try {
-      const result = callback();
-      if (result && typeof (result as unknown as Promise<unknown>).then === 'function') {
-        isAsync = true;
-        return (result as unknown as Promise<unknown>).finally(() => {
-          const idx = this._stack.lastIndexOf(store);
-          if (idx !== -1) this._stack.splice(idx, 1);
-        }) as unknown as R;
-      }
-      return result;
-    } finally {
-      if (!isAsync) {
-        const idx = this._stack.lastIndexOf(store);
-        if (idx !== -1) this._stack.splice(idx, 1);
-      }
-    }
-  }
-}
-
-function resolveAsyncLocalStorageCtor(): (new <T>() => AsyncContextStore<T>) | null {
-  try {
-    const g = globalThis as Record<string, any>;
-    if (typeof g.AsyncLocalStorage === 'function') {
-      return g.AsyncLocalStorage;
-    }
-    const proc = g.process;
-    if (proc?.versions?.node && typeof proc.getBuiltinModule === 'function') {
-      const mod = proc.getBuiltinModule('node:async_hooks');
-      if (mod && typeof mod.AsyncLocalStorage === 'function') {
-        return mod.AsyncLocalStorage;
-      }
-    }
-  } catch {
-    // ignore and fall back
-  }
-  return null;
-}
-
 export function isAsyncLocalStorageAvailable(): boolean {
-  return resolveAsyncLocalStorageCtor() !== null;
+  return typeof AsyncLocalStorage === 'function';
 }
 
 export function createAsyncContextStore<T>(): AsyncContextStore<T> {
-  const Ctor = resolveAsyncLocalStorageCtor();
-  return Ctor ? new Ctor<T>() : new FallbackContextStorage<T>();
+  return new AsyncLocalStorage<T>();
 }
 
 export function getSSRRuntimeEnv(): 'node' | 'edge' | 'browser' {
-  const g = globalThis as Record<string, any>;
+  const g = globalThis;
+  const process: unknown = Reflect.get(g, 'process');
   if (typeof g.window !== 'undefined' && typeof g.document !== 'undefined' && !getDOMGlobals()) {
     return 'browser';
   }
-  if (g.process?.versions?.node) {
+  if (process && typeof process === 'object' && 'versions' in process && process.versions && typeof process.versions === 'object' && 'node' in process.versions) {
     return 'node';
   }
   return 'edge';
 }
 
 export interface DOMGlobals {
-  window: any;
-  document: any;
-  Node: any;
-  HTMLElement: any;
-  Element: any;
-  Event: any;
-  history: any;
-  location: any;
-  DOMParser: any;
-  MouseEvent: any;
-  KeyboardEvent: any;
+  registryOwner?: RegistryOwner;
+  head?: HeadManager;
+  window?: SSRDOMWindow;
+  document?: SSRDOMWindow['document'];
+  Node?: SSRDOMWindow['Node'];
+  HTMLElement?: SSRDOMWindow['HTMLElement'];
+  Element?: SSRDOMWindow['Element'];
+  Event?: SSRDOMWindow['Event'];
+  history?: SSRDOMWindow['history'];
+  location?: SSRDOMWindow['location'];
+  DOMParser?: SSRDOMWindow['DOMParser'];
+  MouseEvent?: SSRDOMWindow['MouseEvent'];
+  KeyboardEvent?: SSRDOMWindow['KeyboardEvent'];
   /** #92: ایزولاسیون رجیستری‌های سطح درخواست در SSR هم‌زمان */
-  effectContext?: any;
-  componentRegistry?: Map<string, any>;
-  actionRegistry?: any;
-  serverComponents?: Map<string, any>;
+  effectContext?: EffectContext;
+  componentRegistry?: Map<string, HTMLTemplateElement>;
+  actionRegistry?: ActionRegistry;
+  serverComponents?: Map<string, ServerComponent>;
   locale?: string;
 }
 
+const DOM_CONTEXT_SYMBOL = Symbol.for('zenith.ssr.dom-context.v1');
+interface DOMContextSingleton {
+  store: AsyncContextStore<DOMGlobals>;
+  globalsInstalled: boolean;
+  activeApps: WeakSet<App>;
+  factoryApps: WeakSet<App>;
+}
+function getDOMContextSingleton(): DOMContextSingleton {
+  const globals = globalThis as unknown as Record<symbol, DOMContextSingleton | undefined>;
+  let singleton = globals[DOM_CONTEXT_SYMBOL];
+  if (!singleton) {
+    singleton = {
+      store: createAsyncContextStore<DOMGlobals>(), globalsInstalled: false,
+      activeApps: new WeakSet(), factoryApps: new WeakSet(),
+    };
+    globals[DOM_CONTEXT_SYMBOL] = singleton;
+  }
+  return singleton;
+}
+
+/** Node render conditions must not claim the same App through separate sets. */
+export function getSSRAppOwnership(): Pick<DOMContextSingleton, 'activeApps' | 'factoryApps'> {
+  return getDOMContextSingleton();
+}
+
 /** @internal */
-export const domAls: AsyncContextStore<DOMGlobals> = createAsyncContextStore<DOMGlobals>();
+export const domAls: AsyncContextStore<DOMGlobals> = getDOMContextSingleton().store;
+
+/** Capture ALL native ALS stores (DOM, route, App), once per registration. */
+export function bindSSRCallback<Args extends unknown[], T>(callback: (...args: Args) => T): (...args: Args) => T {
+  const resume = AsyncLocalStorage.snapshot();
+  return (...args: Args) => resume(callback, ...args);
+}
 
 export function getDOMGlobals(): DOMGlobals | undefined {
   return domAls.getStore();
@@ -129,15 +108,14 @@ const GLOBAL_KEYS = [
   'KeyboardEvent',
 ] as const;
 
-let _installed = false;
-
 /** @internal */
 export function installDOMGlobalGetters(): void {
-  if (_installed) return;
+  const singleton = getDOMContextSingleton();
+  if (singleton.globalsInstalled) return;
   if (typeof document !== 'undefined') return;
-  _installed = true;
+  singleton.globalsInstalled = true;
   for (const key of GLOBAL_KEYS) {
-    const nativeValue = (globalThis as any)[key];
+    const nativeValue = Reflect.get(globalThis, key);
     Object.defineProperty(globalThis, key, {
       get() {
         const store = getDOMGlobals();

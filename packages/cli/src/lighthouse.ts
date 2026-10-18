@@ -1,3 +1,4 @@
+import { output } from './output';
 // packages/cli/src/lighthouse.ts
 //
 // Bug Fix #6: Lighthouse PWA Audit Script
@@ -220,13 +221,13 @@ export async function runLighthouseAudit(
     );
   }
 
-  console.log(`[Zenith Lighthouse] Starting static server for: ${rootDir}`);
+  output.line(`[Zenith Lighthouse] Starting static server for: ${rootDir}`);
   const port = options.port || 0;
   const server = await startStaticServer(rootDir, port);
 
   try {
-    console.log(`[Zenith Lighthouse] Server running at: ${server.url}`);
-    console.log(`[Zenith Lighthouse] Running Lighthouse audit...`);
+    output.line(`[Zenith Lighthouse] Server running at: ${server.url}`);
+    output.line(`[Zenith Lighthouse] Running Lighthouse audit...`);
 
     const lighthouseResult = await runLighthouse(server.url, options);
     const lhr = lighthouseResult.lhr;
@@ -295,48 +296,48 @@ export function printLighthouseResult(result: LighthouseResult): void {
     return COLORS.red;
   };
 
-  console.log('');
-  console.log(`${COLORS.bold}━━━ Lighthouse Audit Results ━━━${COLORS.reset}`);
-  console.log('');
-  console.log(
+  output.line('');
+  output.line(`${COLORS.bold}━━━ Lighthouse Audit Results ━━━${COLORS.reset}`);
+  output.line('');
+  output.line(
     `  PWA:              ${scoreColor(result.pwaScore)}${result.pwaScore}${COLORS.reset}/100`,
   );
-  console.log(
+  output.line(
     `  Performance:      ${scoreColor(result.performanceScore)}${result.performanceScore}${COLORS.reset}/100`,
   );
-  console.log(
+  output.line(
     `  Accessibility:    ${scoreColor(result.accessibilityScore)}${result.accessibilityScore}${COLORS.reset}/100`,
   );
-  console.log(
+  output.line(
     `  Best Practices:   ${scoreColor(result.bestPracticesScore)}${result.bestPracticesScore}${COLORS.reset}/100`,
   );
-  console.log(
+  output.line(
     `  SEO:              ${scoreColor(result.seoScore)}${result.seoScore}${COLORS.reset}/100`,
   );
-  console.log('');
+  output.line('');
 
   if (result.failedAudits.length > 0) {
-    console.log(
+    output.line(
       `${COLORS.bold}━━━ Failed PWA Audits (${result.failedAudits.length}) ━━━${COLORS.reset}`,
     );
     for (const audit of result.failedAudits) {
-      console.log(`  ${COLORS.red}✗${COLORS.reset} ${audit.title}`);
-      console.log(`    ${COLORS.gray}${audit.description}${COLORS.reset}`);
+      output.line(`  ${COLORS.red}✗${COLORS.reset} ${audit.title}`);
+      output.line(`    ${COLORS.gray}${audit.description}${COLORS.reset}`);
     }
-    console.log('');
+    output.line('');
   } else {
-    console.log(`${COLORS.green}✓ All PWA audits passed!${COLORS.reset}`);
-    console.log('');
+    output.line(`${COLORS.green}✓ All PWA audits passed!${COLORS.reset}`);
+    output.line('');
   }
 
   if (result.reportPath) {
-    console.log(`${COLORS.gray}HTML report saved to: ${result.reportPath}${COLORS.reset}`);
-    console.log('');
+    output.line(`${COLORS.gray}HTML report saved to: ${result.reportPath}${COLORS.reset}`);
+    output.line('');
   }
 
   if (result.passed) {
-    console.log(`${COLORS.green}✓ Audit passed!${COLORS.reset}`);
+    output.line(`${COLORS.green}✓ Audit passed!${COLORS.reset}`);
   } else {
-    console.log(`${COLORS.red}✗ Audit failed (PWA score < threshold).${COLORS.reset}`);
+    output.line(`${COLORS.red}✗ Audit failed (PWA score < threshold).${COLORS.reset}`);
   }
 }

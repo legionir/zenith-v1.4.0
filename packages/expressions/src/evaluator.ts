@@ -15,6 +15,7 @@
 //     3) عملکرد بسیار بالاتر از eval باشد (بدون compile cost در runtime).
 
 import { type ASTNode } from './parser';
+import { binaryOperation, unaryOperation } from './operators';
 // FEATURE (v1.0.0): ادغام کتابخانه‌ی خطاها برای پیام‌های بهبودیافته.
 import { variableNotDefinedError, securityError } from '@zenith/errors';
 // FIX (v1.2.8): P1-1 — Import the shared FORBIDDEN_PROPERTIES list from
@@ -70,8 +71,9 @@ const FORBIDDEN_PROPERTIES_RT = FORBIDDEN_PROPERTIES;
  * @param node نود AST.
  * @param context آبجکت Context (شامل مقادیر متغیرها).
  * @returns نتیجه‌ی محاسبه.
+ * @public
  */
-export function evaluate(node: ASTNode, context: object): any {
+export function evaluate(node: ASTNode, context: object): unknown {
   switch (node.type) {
     // ───────────────────────────────────────────────
     // Literal: مقدار ثابت (مثل 42 یا "hello")
@@ -110,7 +112,7 @@ export function evaluate(node: ASTNode, context: object): any {
         );
         throw variableNotDefinedError(node.name, availableVars);
       }
-      return (context as any)[node.name];
+      return (context as Record<string, unknown>)[node.name];
     }
 
     // ───────────────────────────────────────────────
@@ -152,7 +154,7 @@ export function evaluate(node: ASTNode, context: object): any {
         return undefined;
       }
 
-      return (object as any)[property];
+      return (object as Record<PropertyKey, unknown>)[property as PropertyKey];
     }
 
     // ───────────────────────────────────────────────
@@ -166,7 +168,7 @@ export function evaluate(node: ASTNode, context: object): any {
     // object اصلی تنظیم می‌کنیم تا method به درستی کار کند.
     // ───────────────────────────────────────────────
     case 'CallExpression': {
-      let thisArg: any = undefined;
+      let thisArg: unknown = undefined;
 
       // اگر callee یک MemberExpression است (مثل $obj.method)،
       // thisArg باید روی $obj تنظیم شود.
@@ -178,7 +180,7 @@ export function evaluate(node: ASTNode, context: object): any {
         // بدون این short-circuit، evaluate(node.callee) در حالت null object
         // undefined برمی‌گرداند و سپس `typeof callee !== 'function'` پرتاب
         // می‌کرد که رفتار اشتباهی برای optional chaining است.
-        if (thisArg == null && (node.callee as any).optional === true) {
+        if (thisArg == null && node.callee.optional === true) {
           return undefined;
         }
       }
@@ -188,13 +190,13 @@ export function evaluate(node: ASTNode, context: object): any {
       if (typeof callee !== 'function') {
         // FIX (B-10): بهبود پیام خطا وقتی object null/undefined است.
         if (thisArg == null) {
-          const propName = (node.callee as any).property?.name || 'unknown';
+          const propName = (node.callee.type === 'MemberExpression' && node.callee.property.type === 'Identifier' ? node.callee.property.name : undefined) || 'unknown';
           throw new Error(
             `Cannot read properties of ${thisArg === null ? 'null' : 'undefined'} (reading '${propName}').`,
           );
         }
         throw new Error(
-          `Expression is not a function: tried to call '${(node.callee as any).name || node.callee.type}'.`,
+          `Expression is not a function: tried to call '${(node.callee.type === 'Identifier' ? node.callee.name : undefined) || node.callee.type}'.`,
         );
       }
 
@@ -212,36 +214,7 @@ export function evaluate(node: ASTNode, context: object): any {
       const left = evaluate(node.left, context);
       const right = evaluate(node.right, context);
 
-      switch (node.operator) {
-        case '+':
-          return left + right;
-        case '-':
-          return left - right;
-        case '*':
-          return left * right;
-        case '/':
-          return left / right;
-        case '%':
-          return left % right;
-        case '==':
-          return left == right;
-        case '===':
-          return left === right;
-        case '!=':
-          return left != right;
-        case '!==':
-          return left !== right;
-        case '<':
-          return left < right;
-        case '>':
-          return left > right;
-        case '<=':
-          return left <= right;
-        case '>=':
-          return left >= right;
-        default:
-          throw new Error(`Unknown binary operator: '${node.operator}'`);
-      }
+      return binaryOperation(node.operator, { left, right });
     }
 
     // ───────────────────────────────────────────────
@@ -276,10 +249,7 @@ export function evaluate(node: ASTNode, context: object): any {
     // ───────────────────────────────────────────────
     case 'UnaryExpression': {
       const arg = evaluate(node.argument, context);
-      if (node.operator === '!') return !arg;
-      if (node.operator === '-') return -arg;
-      if (node.operator === '+') return +arg;
-      throw new Error(`Unknown unary operator: '${node.operator}'`);
+      return unaryOperation(node.operator, arg);
     }
 
     // ───────────────────────────────────────────────
@@ -305,8 +275,8 @@ export function evaluate(node: ASTNode, context: object): any {
     // آبجکت جدید را شناسایی می‌کند.
     // ───────────────────────────────────────────────
     case 'ArrowFunction': {
-      return (...args: any[]) => {
-        const localCtx: Record<string, any> = Object.create(context);
+      return (...args: unknown[]) => {
+        const localCtx: Record<string, unknown> = Object.create(context);
         node.params.forEach((p, i) => {
           localCtx[p.name] = args[i];
         });
@@ -318,7 +288,7 @@ export function evaluate(node: ASTNode, context: object): any {
       return node.elements.map((el) => evaluate(el, context));
 
     case 'ObjectExpression': {
-      const result: Record<string, any> = {};
+      const result: Record<string, unknown> = {};
       for (const prop of node.properties) {
         result[prop.key] = evaluate(prop.value, context);
       }
@@ -327,6 +297,6 @@ export function evaluate(node: ASTNode, context: object): any {
 
     // برای Type Safety: اگر type جدیدی به AST اضافه شد و فراموش کردیم handle کنیم
     default:
-      throw new Error(`Unknown AST node type: '${(node as any).type}'`);
+      throw new Error(`Unknown AST node type: '${Reflect.get(node, 'type')}'`);
   }
 }

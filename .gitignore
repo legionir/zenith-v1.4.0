@@ -53,3 +53,8 @@ test-results/
 .docexamples/
 benchmarks/results/latest.json
 benchmarks/results/browser.json
+
+# Explicit tool output (#51)
+tools/*/out/
+tools/*/dist/
+*.vsix

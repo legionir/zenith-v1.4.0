@@ -44,7 +44,7 @@ import { reportError } from '@zenith/error-boundary';
  */
 export type MemoProcessChildren = (
   el: HTMLElement,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   itemDisposes: (() => void)[],
 ) => void;
 
@@ -60,7 +60,7 @@ export type MemoProcessChildren = (
 export function processMemo(
   el: HTMLElement,
   memoExpr: string,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
   processChildren: MemoProcessChildren,
 ): () => void {
   // FEATURE (v1.0.0): compile-once — memoExpr is parsed only once.
@@ -71,12 +71,12 @@ export function processMemo(
 
   // Track the most recently seen memo value. Initialize with a sentinel
   // that is guaranteed to be unique so the first run always processes.
-  let lastValue: any = ZenithMemoSentinel;
+  let lastValue: unknown = ZenithMemoSentinel;
   let childDisposes: (() => void)[] = [];
 
   const dispose = effect(() => {
     // Read the memo value inside the effect so we subscribe to it.
-    let value: any;
+    let value: unknown;
     try {
       value = evalFn(context);
     } catch (err) {

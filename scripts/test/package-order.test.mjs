@@ -4,7 +4,7 @@
 //  2. runtime cycle → throws with the cycle's package names,
 //  3. devDependencies create ordering edges,
 //  4. dev-only cycles warn (not throw) and still return a full order.
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readdirSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -105,8 +105,8 @@ describe('getPackageOrder (#25)', () => {
     // The actual monorepo must order every package exactly once and never
     // throw; workspace devDep edges (e.g. runtime → permission) are honoured.
     const order = getPackageOrder({ packagesDir: join(process.cwd(), 'packages') });
-    // #142: @zenith/schema (39 → 40); #145: @zenith/storage (40 → 41); #147..#149 (41 → 44).
-    expect(order).toHaveLength(50); // #147..#149 + #160 + #161,#162,#168,#169,#170
-    expect(new Set(order).size).toBe(50);
+    const names = readdirSync('packages').filter(name => name !== 'tmp-scaffold-verify' && existsSync(join('packages', name, 'package.json'))).sort();
+    expect([...order].sort()).toEqual(names);
+    expect(new Set(order).size).toBe(names.length);
   });
 });

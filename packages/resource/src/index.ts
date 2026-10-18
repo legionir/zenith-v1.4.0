@@ -16,4 +16,4 @@ export {
   type CrudOperation,
 } from './resource';
 
-export { processResource } from './directive';
+export { processResource, type ResourceBindContext } from './directive';

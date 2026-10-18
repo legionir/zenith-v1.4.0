@@ -118,7 +118,8 @@ describe('#55 — positional config is frozen and new APIs take options objects'
     expect(isOptionsParamText('count: number')).toBe(false);
 
     const eslintConfig = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
-    expect(eslintConfig).toMatch(/isOptionsParamText/);
+    expect(eslintConfig).toMatch(/createOptionsObjectRule/);
+    expect(readFileSync(join(ROOT, 'scripts/positional-config-audit.mjs'), 'utf8')).toContain('../packages/eslint-plugin/src/rules/options-object.js');
     expect(eslintConfig).toMatch(/from '\.\/scripts\/positional-config-audit\.mjs'/);
     expect(eslintConfig).toContain('zenith/options-object');
     expect(eslintConfig).toMatch(/plugins: \{ zenith: zenithPlugin \}/);
@@ -210,4 +211,17 @@ describe('#55 — positional config is frozen and new APIs take options objects'
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+it('checks public overloads individually, not the non-callable implementation signature', () => {
+  const directory = fixture('demo', 'api.ts', [
+    'export function configure(value: string, options?: { timeout?: number }): void;',
+    '/** @deprecated Use the options overload. */',
+    'export function configure(value: string, timeout: number, retry?: number): void;',
+    'export function configure(value: string, options?: unknown, retry?: number): void {}',
+  ].join('\n'));
+  try {
+    const report = auditPositionalConfig({ root: directory, allowlist: [] });
+    expect(report.violations).toEqual([]); expect(report.signatures).toHaveLength(2);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });

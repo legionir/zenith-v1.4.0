@@ -15,7 +15,7 @@ export {
   invalidate,
   registerInvalidateHook,
 } from './fetcher';
-export type { FetchState } from './fetcher';
+export type { FetchCacheReadOptions, FetchCacheWriteOptions, ProcessFetchWithCacheOptions, FetchState } from './fetcher';
 
 export {
   createMutation,

@@ -126,3 +126,15 @@ Back یا Forward را می‌زند، `routeSignal` آپدیت می‌شود و
   idempotent است.
 - `processRouter` یک `Cleanup` idempotent برگرداند (abort + teardown محتوای فعلی +
   dispose effect) و همزمان آن را در آرایهٔ `disposes[]` والد برای سازگاری قرار می‌دهد.
+
+### Request scope migration candidate
+
+`routeSignal` is backed by a real Signal. Extracting `get`, `peek`, `set` or
+`update` does not pin a request: the active signal is resolved when called.
+Async SSR scopes require native isolation and release their signal in `finally`;
+there is no shared-browser fallback when native isolation is unavailable.
+For synchronous native initialization use `@zenith/router/node` before calling
+`runWithRouteSync` on Node hosts without `process.getBuiltinModule`. The Node
+entry has separate import/require declarations; the universal root does not
+statically import Node builtins. See the unvalidated compatibility proposal in
+[`API-MIGRATION-CANDIDATE-2026-10-17.md`](../../docs/API-MIGRATION-CANDIDATE-2026-10-17.md).

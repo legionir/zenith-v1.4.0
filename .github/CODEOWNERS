@@ -12,3 +12,5 @@
 /packages/ssr/ @legionir @zenith-framework/security-reviewers
 /.github/workflows/ @legionir @zenith-framework/security-reviewers
 /scripts/release.mjs @legionir @zenith-framework/core-maintainers
+
+/tools/ @legionir

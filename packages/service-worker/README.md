@@ -252,3 +252,14 @@ const sw = registerSW('/sw.js', {
 The SW controller exposes `dispose()` (implements `Disposable` from
 `@zenith/shared`): removes message/state listeners; idempotent. `destroy()` is a
 deprecated alias (warns once with **ZEN-DEPR-024**, removed in 2.0 per DEC-026).
+
+### Options-object migration candidate
+
+The `sw` bootstrap and `strategies` modules are explicit subpath exports.
+Use `networkFirst(request, { cacheName: 'api', timeout: 3000 })`,
+`cacheThenNetwork(request, { cacheName: 'api', onUpdate })` and
+`applyStrategy('cacheFirst', request, { cacheName: 'api' })`.
+`cacheFirst`, `cacheOnly` and `staleWhileRevalidate` take the same options shape.
+Canonical options are schema-validated. Positional overloads remain deprecated
+compatibility bridges, retaining historical cache-name/timer behavior and warning
+once. This is authored code, not a browser/consumer validation result.

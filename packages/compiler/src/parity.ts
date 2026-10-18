@@ -1,3 +1,6 @@
+import { deprecate } from '@zenith/errors';
+import { defineOptions, s } from '@zenith/schema';
+
 /**
  * Runtime ↔ Compiler Parity Testing Framework
  *
@@ -5,11 +8,13 @@
  * and ahead-of-time compiled modes.
  */
 
+/** @public */
 export interface ParityTestContext {
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   html: string;
 }
 
+/** @public */
 export interface ParityResult {
   directive: string;
   runtimeOutput: string;
@@ -18,6 +23,10 @@ export interface ParityResult {
   details?: string;
 }
 
+/** @public */
+export interface ParityReport { total: number; passed: number; failed: number; results: ParityResult[]; }
+
+/** @public */
 export interface ParityTestSuite {
   name: string;
   directive: string;
@@ -27,6 +36,7 @@ export interface ParityTestSuite {
 /**
  * Known directives that must behave identically in both modes
  */
+/** @public */
 export const CORE_DIRECTIVES = [
   'zen-bind',
   'zen-text',
@@ -59,6 +69,7 @@ export const CORE_DIRECTIVES = [
  *
  * These are executed against BOTH runtime and compiler to verify parity.
  */
+/** @public */
 export const STANDARD_TEST_SUITES: ParityTestSuite[] = [
   {
     name: 'zen-text basic rendering',
@@ -131,11 +142,28 @@ export const STANDARD_TEST_SUITES: ParityTestSuite[] = [
 /**
  * Run a single parity test by comparing runtime and compiler outputs
  */
-export function runParityTest(
-  suite: ParityTestSuite,
-  runtimeRunner: (ctx: ParityTestContext) => string,
-  compilerRunner: (ctx: ParityTestContext) => string,
-): ParityResult[] {
+/** Callback operands are retained, not wrapped or decoded. @public */
+export type ParityRunner = (ctx: ParityTestContext) => string;
+/** @public */
+export interface ParityRunnerOptions { runtimeRunner: ParityRunner; compilerRunner: ParityRunner; }
+// Only callability is validated. The callback signature/return type is the
+// caller's contract, not a claim that arbitrary callback results were decoded.
+const parityRunner = s.custom<ParityRunner>(value => typeof value === 'function', 'parity runner callback');
+const parityRunnerOptions = /* @__PURE__ */ defineOptions<ParityRunnerOptions>('ParityRunnerOptions', s.object({ runtimeRunner: parityRunner, compilerRunner: parityRunner }));
+/** @public */
+export function runParityTest(suite: ParityTestSuite, options: ParityRunnerOptions): ParityResult[];
+/** @public @deprecated Use runParityTest(suite, { runtimeRunner, compilerRunner }) (ZEN-DEPR-090; removal in 2.0). */
+export function runParityTest(suite: ParityTestSuite, runtimeRunner: ParityRunner, compilerRunner: ParityRunner): ParityResult[];
+export function runParityTest(suite: ParityTestSuite, optionsOrRunner: ParityRunnerOptions | ParityRunner, legacyCompiler?: ParityRunner): ParityResult[] {
+  if (typeof optionsOrRunner === 'function' || arguments.length > 2) {
+    deprecate('ZEN-DEPR-090', 'runParityTest(suite, runtimeRunner, compilerRunner)', 'runParityTest(suite, { runtimeRunner, compilerRunner })');
+    return executeParity(suite, optionsOrRunner as ParityRunner, legacyCompiler!);
+  }
+  const { runtimeRunner, compilerRunner } = parityRunnerOptions.resolve(optionsOrRunner);
+  return executeParity(suite, runtimeRunner, compilerRunner);
+}
+
+function executeParity(suite: ParityTestSuite, runtimeRunner: ParityRunner, compilerRunner: ParityRunner): ParityResult[] {
   return suite.cases.map((testCase) => {
     const runtimeOutput = runtimeRunner(testCase);
     const compilerOutput = compilerRunner(testCase);
@@ -163,14 +191,22 @@ function normalizeOutput(html: string): string {
 /**
  * Run all standard parity test suites and return full report
  */
-export function runAllParityTests(
-  runtimeRunner: (ctx: ParityTestContext) => string,
-  compilerRunner: (ctx: ParityTestContext) => string,
-): { total: number; passed: number; failed: number; results: ParityResult[] } {
+/** @public */
+export function runAllParityTests(options: ParityRunnerOptions): ParityReport;
+/** @public @deprecated Use runAllParityTests({ runtimeRunner, compilerRunner }) (ZEN-DEPR-091; removal in 2.0). */
+export function runAllParityTests(runtimeRunner: ParityRunner, compilerRunner: ParityRunner): ParityReport;
+export function runAllParityTests(optionsOrRunner: ParityRunnerOptions | ParityRunner, legacyCompiler?: ParityRunner): ParityReport {
+  let runtimeRunner: ParityRunner, compilerRunner: ParityRunner;
+  if (typeof optionsOrRunner === 'function' || arguments.length > 1) {
+    deprecate('ZEN-DEPR-091', 'runAllParityTests(runtimeRunner, compilerRunner)', 'runAllParityTests({ runtimeRunner, compilerRunner })');
+    runtimeRunner = optionsOrRunner as ParityRunner; compilerRunner = legacyCompiler!;
+  } else {
+    ({ runtimeRunner, compilerRunner } = parityRunnerOptions.resolve(optionsOrRunner));
+  }
   const allResults: ParityResult[] = [];
 
   for (const suite of STANDARD_TEST_SUITES) {
-    const results = runParityTest(suite, runtimeRunner, compilerRunner);
+    const results = executeParity(suite, runtimeRunner, compilerRunner);
     allResults.push(...results);
   }
 
@@ -188,7 +224,8 @@ export function runAllParityTests(
 /**
  * Generate a human-readable parity report
  */
-export function generateParityReport(report: ReturnType<typeof runAllParityTests>): string {
+/** @public */
+export function generateParityReport(report: ParityReport): string {
   const lines = [
     '═'.repeat(60),
     '  ZENITH RUNTIME ↔ COMPILER PARITY REPORT',

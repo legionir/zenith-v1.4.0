@@ -2,7 +2,7 @@
 import { developerError, ErrorCode, deprecate } from '@zenith/errors';
 import { logger } from '@zenith/logger';
 import { parseJsonValue } from '@zenith/schema/attr';
-import { getDOMGlobals } from './dom-context';
+import { createScopedRegistry } from '@zenith/shared';
 import { onGlobalReset } from '@zenith/errors';
 //
 // FEATURE (v0.4.0): Server Components — کامپوننت‌هایی که کاملاً در سرور
@@ -49,7 +49,7 @@ import { onGlobalReset } from '@zenith/errors';
  */
 export interface ServerComponent {
   readonly name: string;
-  render: (props: Record<string, any>) => Promise<string> | string;
+  render: (props: Record<string, unknown>) => Promise<string> | string;
 }
 
 // ── REGISTRY ──
@@ -62,7 +62,7 @@ export interface ServerComponent {
  * بین درخواست‌ها به‌صورت read-only مشترک است — کامپوننت‌ها باید
  * stateless باشند یا state خود را از props بگیرند.
  */
-const serverComponentRegistry = new Map<string, ServerComponent>();
+const serverComponentRegistry = createScopedRegistry<ServerComponent>('serverComponents');
 
 /**
  * ثبت یک Server Component در registry.
@@ -95,27 +95,15 @@ export function registerServerComponent(comp: ServerComponent): () => void {
         `check for duplicate registrations or conflicting component names.`,
     );
   }
-  serverComponentRegistry.set(comp.name, comp);
-  let removed = false;
-  return () => {
-    if (removed) return;
-    removed = true;
-    if (serverComponentRegistry.get(comp.name) === comp) {
-      serverComponentRegistry.delete(comp.name);
-    }
-  };
+  return serverComponentRegistry.register(comp.name, comp);
 }
 
 /**
  * گرفتن یک Server Component از registry.
- * ابتدا رجیستری اختصاصی درخواست جاری (در صورت وجود در AsyncLocalStorage)
- * و سپس رجیستری سراسری بررسی می‌شود (#92).
+ * فقط رجیستری owner جاری خوانده می‌شود؛ request/App غایب را با مقدار global
+ * پر نمی‌کند. کامپوننت‌های مشترک را صریحاً در RenderOptions.serverComponents بدهید.
  */
 export function getServerComponent(name: string): ServerComponent | undefined {
-  const scoped = getDOMGlobals()?.serverComponents;
-  if (scoped && scoped.has(name)) {
-    return scoped.get(name);
-  }
   return serverComponentRegistry.get(name);
 }
 
@@ -131,19 +119,12 @@ export function unregisterServerComponent(name: string): boolean {
 
 /** #118: بررسی وجود ServerComponent در رجیستری (`hasX`). */
 export function hasServerComponent(name: string): boolean {
-  const scoped = getDOMGlobals()?.serverComponents;
-  if (scoped && scoped.has(name)) return true;
   return serverComponentRegistry.has(name);
 }
 
 /** #118: فهرست نام تمام ServerComponentهای ثبت‌شده (`listXs`). */
 export function listServerComponents(): string[] {
-  const keys = new Set<string>(serverComponentRegistry.keys());
-  const scoped = getDOMGlobals()?.serverComponents;
-  if (scoped) {
-    for (const k of scoped.keys()) keys.add(k);
-  }
-  return Array.from(keys);
+  return [...serverComponentRegistry.keys()];
 }
 
 /**
@@ -208,7 +189,7 @@ export function makeCloseMarker(name: string): string {
  */
 export async function renderServerComponent(
   name: string,
-  props: Record<string, any> = {},
+  props: Record<string, unknown> = {},
 ): Promise<string> {
   const open = makeOpenMarker(name);
   const close = makeCloseMarker(name);
@@ -260,7 +241,7 @@ export async function renderServerComponent(
  */
 export function defineServerComponent(
   name: string,
-  render: (props: Record<string, any>) => Promise<string> | string,
+  render: (props: Record<string, unknown>) => Promise<string> | string,
 ): ServerComponent {
   return { name, render };
 }
@@ -365,9 +346,9 @@ function findServerComponentTags(html: string): FoundTag[] {
  */
 function parseServerComponentAttrs(
   attrs: string,
-  state: Record<string, any> = {},
-): { name: string; props: Record<string, any> } {
-  const props: Record<string, any> = {};
+  state: Record<string, unknown> = {},
+): { name: string; props: Record<string, unknown> } {
+  const props: Record<string, unknown> = {};
   let name = '';
 
   // Attribute regex:
@@ -407,7 +388,7 @@ function parseServerComponentAttrs(
  * - اگر با { یا [ شروع شود → JSON.parse.
  * - در غیر این صورت → string.
  */
-function resolvePropValue(raw: string, state: Record<string, any>): any {
+function resolvePropValue(raw: string, state: Record<string, unknown>): unknown {
   const trimmed = raw.trim();
   if (trimmed === '') return '';
 
@@ -435,13 +416,13 @@ function resolvePropValue(raw: string, state: Record<string, any>): any {
  *
  * اگر path نامعتبر باشد یا مقدار undefined باشد، undefined برمی‌گرداند.
  */
-function resolveStateExpression(expr: string, state: Record<string, any>): any {
+function resolveStateExpression(expr: string, state: Record<string, unknown>): unknown {
   // حذف $ از ابتدا.
   const pathStr = expr.slice(1);
   if (!pathStr) return undefined;
 
   const segments = pathStr.split('.');
-  let current: any = state;
+  let current: unknown = state;
 
   // اولین segment: lookup در state.
   const firstKey = segments[0];
@@ -449,16 +430,17 @@ function resolveStateExpression(expr: string, state: Record<string, any>): any {
   current = state[firstKey];
 
   // unwrap signal برای root.
-  if (current != null && typeof current.get === 'function') {
+  if (current != null && (typeof current === 'object' || typeof current === 'function') && 'get' in current && typeof current.get === 'function') {
     current = current.get();
   }
 
   // بقیه‌ی segmentها: پیمایش path.
   for (let i = 1; i < segments.length; i++) {
     if (current == null) return undefined;
-    current = current[segments[i]!];
+    current = Reflect.get(Object(current), segments[i]!);
+    // Reflect is a host boundary; the traversal value remains unknown.
     // unwrap signal در هر سطح.
-    if (current != null && typeof current.get === 'function') {
+    if (current != null && (typeof current === 'object' || typeof current === 'function') && 'get' in current && typeof current.get === 'function') {
       current = current.get();
     }
   }
@@ -483,7 +465,7 @@ function resolveStateExpression(expr: string, state: Record<string, any>): any {
 async function singlePass(
   html: string,
   tags: FoundTag[],
-  state: Record<string, any>,
+  state: Record<string, unknown>,
 ): Promise<string> {
   // رندر موازی همه‌ی کامپوننت‌ها.
   const rendered = await Promise.all(
@@ -528,7 +510,7 @@ async function singlePass(
  */
 export async function inlineServerComponents(
   html: string,
-  state: Record<string, any> = {},
+  state: Record<string, unknown> = {},
 ): Promise<string> {
   let result = html;
   let MAX_PASSES = 10;

@@ -1,5 +1,5 @@
 {
-  "$comment": "#49 — SINGLE source of truth for the package→layer map. Read by .dependency-cruiser.cjs, scripts/dependency-graph.mjs and scripts/test/architecture-layers.test.mjs; docs/ARCHITECTURE-LAYERS.md §2 must list exactly the same packages (enforced by test). Names of packages that are planned but not yet on disk are allowed.",
+  "$comment": "#49 \u2014 SINGLE source of truth for the package\u2192layer map. Read by .dependency-cruiser.cjs, scripts/dependency-graph.mjs and scripts/test/architecture-layers.test.mjs; docs/ARCHITECTURE-LAYERS.md \u00a72 must list exactly the same packages (enforced by test). Names of packages that are planned but not yet on disk are allowed.",
   "layers": {
     "L0": [
       "errors",
@@ -12,7 +12,12 @@
       "scheduler",
       "security"
     ],
-    "L1": ["state", "expressions", "dependency-graph", "devtools-core"],
+    "L1": [
+      "state",
+      "expressions",
+      "dependency-graph",
+      "devtools-core"
+    ],
     "L2": [
       "router",
       "events",
@@ -43,7 +48,11 @@
       "charts",
       "icons"
     ],
-    "L3": ["runtime-core", "runtime", "ssr"],
+    "L3": [
+      "runtime-core",
+      "runtime",
+      "ssr"
+    ],
     "L4": [
       "stateful",
       "crud",
@@ -52,9 +61,12 @@
       "testing",
       "adapter-node",
       "adapter-edge",
-      "ssg"
+      "ssg",
+      "mock"
     ],
-    "L5": ["zenith"],
+    "L5": [
+      "zenith"
+    ],
     "TOOLING": [
       "compiler",
       "vite-plugin",
@@ -65,7 +77,6 @@
       "eslint-plugin",
       "language-server",
       "codemod",
-      "mock",
       "testing-e2e",
       "devtools-extension"
     ]

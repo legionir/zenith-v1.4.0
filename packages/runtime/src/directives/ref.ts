@@ -66,7 +66,7 @@ import { logger } from '@zenith/logger';
 export function processRef(
   el: HTMLElement,
   refName: string,
-  context: Record<string, any> = {},
+  context: Record<string, unknown> = {},
 ): () => void {
   // FEATURE (v0.5.0): zen-ref — bind DOM element to a state Signal.
 
@@ -84,16 +84,17 @@ export function processRef(
   // ما هر دو را چک می‌کنیم تا با هر دو حالت کار کند.
   // نکته: اگر context[key] یک getter باشد که Signal.get() را برمی‌گرداند،
   // آن مقدار خودش Signal نیست. اما در state واقعی، state[key] خود Signal است.
-  let signal: any = context[key];
+  let signal: unknown = context[key];
   if (signal == null) {
     // fallback: امتحان با $ prefix
     signal = context['$' + key];
   }
 
   // ── ۳. اگر Signal بود، set(el) ──
-  if (signal != null && typeof signal.set === 'function') {
+  if (signal != null && typeof (signal as { set?: unknown }).set === 'function') {
+    const target = signal as { set(value: unknown): void };
     try {
-      signal.set(el);
+      target.set(el);
     } catch (err) {
       logger.error(
         `[Zenith zen-ref] Failed to set ref: ${err instanceof Error ? err.message : String(err)}`,
@@ -104,7 +105,7 @@ export function processRef(
     // برای جلوگیری از memory leak (reference به عنصر detach شده).
     return () => {
       try {
-        signal.set(null);
+        target.set(null);
       } catch (err) {
         logger.error(
           `[Zenith zen-ref] Failed to clear ref: ${err instanceof Error ? err.message : String(err)}`,

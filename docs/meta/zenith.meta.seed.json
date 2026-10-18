@@ -361,6 +361,221 @@
       "description": "قواعد اعتبارسنجی میدان (CSV).",
       "syntax": "<input zen-field=\"email\" zen-validate=\"required,email\">",
       "docs": "https://zenith.dev/docs/form#zen-validate"
+    },
+    {
+      "name": "zen-date-picker",
+      "description": "تقویم جلالی/میلادی با محدودیت تاریخ، range و مالکیت فرم؛ رویداد canonical همراه bridge رویداد change.",
+      "syntax": "<zen-date-picker calendar=\"gregorian\" value=\"2024-02-29\" format=\"YYYY-MM-DD\" name=\"date\"></zen-date-picker>",
+      "attributes": [
+        "value",
+        "calendar",
+        "locale",
+        "min",
+        "max",
+        "first-day",
+        "format",
+        "disabled",
+        "readonly",
+        "required",
+        "name",
+        "form",
+        "range",
+        "disabled-dates",
+        "nonce"
+      ],
+      "docs": "https://zenith.dev/docs/ui#date-picker"
+    },
+    {
+      "name": "zen-dialog",
+      "description": "Modal or nonmodal dialog with owned focus, scroll and two-way open value.",
+      "attributes": [
+        "zen-dialog-modal",
+        "zen-dialog-role",
+        "zen-dialog-close-on-esc",
+        "zen-dialog-close-on-backdrop",
+        "zen-dialog-initial-focus",
+        "zen-dialog-return-focus",
+        "zen-dialog-scroll-lock",
+        "zen-dialog-portal",
+        "zen-dialog-transition",
+        "zen-dialog-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-popover",
+      "description": "Floating surface with a two-way open value and owned geometry.",
+      "attributes": [
+        "zen-popover-trigger",
+        "zen-popover-placement",
+        "zen-popover-offset",
+        "zen-popover-flip",
+        "zen-popover-shift",
+        "zen-popover-arrow",
+        "zen-popover-trigger-on",
+        "zen-popover-return-focus",
+        "zen-popover-role",
+        "zen-popover-transition",
+        "zen-popover-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-tooltip",
+      "description": "Descriptive tooltip with independent focus and hover intent.",
+      "attributes": [
+        "zen-tooltip-trigger",
+        "zen-tooltip-placement",
+        "zen-tooltip-offset",
+        "zen-tooltip-flip",
+        "zen-tooltip-shift",
+        "zen-tooltip-arrow",
+        "zen-tooltip-delay",
+        "zen-tooltip-hide-delay",
+        "zen-tooltip-disabled",
+        "zen-tooltip-transition",
+        "zen-tooltip-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-tabs",
+      "description": "APG tab collection with reactive controlled selection and lazy panels.",
+      "attributes": [
+        "zen-tabs-orientation",
+        "zen-tabs-activation",
+        "zen-tabs-lazy",
+        "zen-tabs-transition",
+        "zen-tabs-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-accordion",
+      "description": "APG disclosure collection with controlled selection.",
+      "attributes": [
+        "zen-accordion-multiple",
+        "zen-accordion-collapsible",
+        "zen-accordion-transition",
+        "zen-accordion-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-menu",
+      "description": "Keyboard menu, check/radio items and nested submenus.",
+      "attributes": [
+        "zen-menu-trigger",
+        "zen-menu-placement",
+        "zen-menu-offset",
+        "zen-menu-flip",
+        "zen-menu-shift",
+        "zen-menu-arrow",
+        "zen-menu-trigger-on",
+        "zen-menu-return-focus",
+        "zen-menu-loop",
+        "zen-menu-typeahead",
+        "zen-menu-close-on-select",
+        "zen-menu-transition",
+        "zen-menu-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-combobox",
+      "description": "Owned listbox with reactive options, controlled value and cancellable async search.",
+      "attributes": [
+        "zen-combobox-options",
+        "zen-combobox-option-label",
+        "zen-combobox-option-value",
+        "zen-combobox-filter",
+        "zen-combobox-allow-custom",
+        "zen-combobox-async",
+        "zen-combobox-debounce",
+        "zen-combobox-min-chars",
+        "zen-combobox-multiple",
+        "zen-combobox-transition",
+        "zen-combobox-transition-duration"
+      ]
+    },
+    {
+      "name": "zen-focus-trap",
+      "description": "Reactive owned focus trap.",
+      "attributes": [
+        "zen-focus-trap-initial",
+        "zen-focus-trap-return",
+        "zen-focus-trap-escape"
+      ]
+    },
+    {
+      "name": "zen-autofocus",
+      "description": "Focus when a boolean expression becomes true.",
+      "attributes": []
+    },
+    {
+      "name": "zen-inert",
+      "description": "Reactive owned inert lease.",
+      "attributes": []
+    },
+    {
+      "name": "zen-scroll-lock",
+      "description": "Reactive counted scroll lock.",
+      "attributes": []
+    },
+    {
+      "name": "zen-roving",
+      "description": "Keyboard roving tab stops with owned restoration.",
+      "attributes": [
+        "zen-roving-loop",
+        "zen-roving-selector"
+      ]
+    },
+    {
+      "name": "zen-live",
+      "description": "Owned role, politeness and atomic live-region attributes.",
+      "attributes": []
+    },
+    {
+      "name": "zen-announce",
+      "description": "Text-only reactive live announcement.",
+      "attributes": [
+        "zen-announce-politeness",
+        "zen-announce-clear"
+      ]
+    },
+    {
+      "name": "zen-reduced-motion",
+      "description": "Owned reduced-motion preference.",
+      "attributes": []
+    },
+    {
+      "name": "zen-head",
+      "description": "Owned authored title/meta/link/base/JSON-LD head content.",
+      "attributes": [
+        "zen-head-key"
+      ]
+    },
+    {
+      "name": "zen-head-title",
+      "description": "Reactive title head entry.",
+      "attributes": [
+        "zen-head-key"
+      ]
+    },
+    {
+      "name": "zen-head-description",
+      "description": "Reactive description head entry.",
+      "attributes": [
+        "zen-head-key"
+      ]
+    },
+    {
+      "name": "zen-head-canonical",
+      "description": "Reactive canonical head entry.",
+      "attributes": [
+        "zen-head-key"
+      ]
+    },
+    {
+      "name": "zen-head-og-image",
+      "description": "Reactive og-image head entry.",
+      "attributes": [
+        "zen-head-key"
+      ]
     }
   ]
 }

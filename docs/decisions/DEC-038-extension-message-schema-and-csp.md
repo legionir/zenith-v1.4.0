@@ -8,13 +8,13 @@
 
 `#67` سه سطح حملهٔ متفاوت را در دو افزونهٔ مخزن می‌بست:
 
-1. **افزونهٔ مرورگر (`packages/devtools-extension`)** سه منبع دادهٔ **غیرقابل‌اعتماد**
+1. **افزونهٔ مرورگر (`tools/devtools-extension`)** سه منبع دادهٔ **غیرقابل‌اعتماد**
    دارد: پیام‌های `chrome.runtime.onMessage` (هر script صفحهٔ بازدیدشده می‌تواند
    بفرستد)، نتیجهٔ `chrome.scripting.executeScript` روی `window.__ZENITH__`، و
    `?data=<base64-JSON>` در `graph-viewer.html`. تا پیش از این، هر سه مسیر مستقیم
    در popup/viewer رندر می‌شدند: `innerHTML` با رشته‌های صفحهٔ میزبان
    (XSS ⇒ اجرای کد در context افزونه با دسترسی `activeTab`/`scripting`).
-2. **پنل DevTools افزونهٔ VS Code (`packages/vscode-extension`)** با
+2. **پنل DevTools افزونهٔ VS Code (`tools/vscode-extension`)** با
    `enableScripts: true` یک صفحهٔ وب کامل است؛ HTML آن به‌صورت رشتهٔ inline ساخته
    می‌شد، بدون nonce، با `onclick=` داخل رشته و دو نقطهٔ `innerHTML` روی داده.
    CSP نداشت (VS Code به‌صورت پیش‌فرض `default-src` تنگ نمی‌کند).
@@ -48,7 +48,7 @@
 
 ## تصمیم و دلیل
 
-1. **یک ماژول schema، یک مفهوم:** `packages/devtools-extension/message-schema.js`
+1. **یک ماژول schema، یک مفهوم:** `tools/devtools-extension/message-schema.js`
    تنها منبعِ اعتبارسنجی است و API آن (نه فایل‌های مصرف‌کننده) مرز امنیتی را
    تعریف می‌کند: `validateRuntimeMessage`, `validateNotification`,
    `isTrustedSender`, `sanitizeGraphPayload`, `sanitizeInspectionResponse`,
@@ -74,7 +74,7 @@
 5. **تست به‌جای توضیح:** `scripts/test/devtools-message-schema.test.mjs` ماژول را
    با همان مسیر مرورگر (`vm.runInThisContext`) بار می‌کند و allowlist، کلیدهای
    ناامن، فرستندهٔ متقلب، سقف‌ها و یال‌های معلق را تست می‌کند؛
-   `packages/vscode-extension/test/webview.test.ts` CSP/nonce/non-`innerHTML` را
+   `tools/vscode-extension/test/webview.test.ts` CSP/nonce/non-`innerHTML` را
    و `scripts/test/devtools-extension.test.mjs` ترتیب بارگذاری و متای CSP را.
 
 ## پیامدها

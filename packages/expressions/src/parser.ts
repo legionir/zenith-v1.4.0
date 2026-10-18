@@ -35,7 +35,7 @@ import { lex, type Token, TokenType } from './lexer';
  * و TypeScript می‌تواند در switch روی آن Type Narrowing دقیق انجام دهد.
  */
 export type ASTNode =
-  | { type: 'Literal'; value: any }
+  | { type: 'Literal'; value: unknown }
   | { type: 'Identifier'; name: string }
   | {
       type: 'MemberExpression';
@@ -161,6 +161,12 @@ export class Parser {
     return this.tokens[this.pos++]!;
   }
 
+  private consumeText(): string {
+    const token = this.consume();
+    if (typeof token.value !== 'string') throw this.syntaxError(token, 'a text token');
+    return token.value;
+  }
+
   /**
    * مصرف Token فعلی به شرطی که value آن برابر مقدار مورد انتظار باشد.
    * در غیر این صورت، خطای syntax پرتاب می‌شود.
@@ -248,7 +254,7 @@ export class Parser {
   private parseLogicalOr(): ASTNode {
     let left = this.parseLogicalAnd();
     while (this.match('||') || this.match('??')) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseLogicalAnd();
       if (op === '??') {
         left = { type: 'NullishCoalescing', left, right };
@@ -265,7 +271,7 @@ export class Parser {
   private parseLogicalAnd(): ASTNode {
     let left = this.parseEquality();
     while (this.match('&&')) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseEquality();
       left = { type: 'LogicalExpression', operator: op, left, right };
     }
@@ -278,7 +284,7 @@ export class Parser {
   private parseEquality(): ASTNode {
     let left = this.parseRelational();
     while (this.matchAny(['==', '===', '!=', '!=='])) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseRelational();
       left = { type: 'BinaryExpression', operator: op, left, right };
     }
@@ -291,7 +297,7 @@ export class Parser {
   private parseRelational(): ASTNode {
     let left = this.parseAdditive();
     while (this.matchAny(['<', '>', '<=', '>='])) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseAdditive();
       left = { type: 'BinaryExpression', operator: op, left, right };
     }
@@ -304,7 +310,7 @@ export class Parser {
   private parseAdditive(): ASTNode {
     let left = this.parseMultiplicative();
     while (this.matchAny(['+', '-'])) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseMultiplicative();
       left = { type: 'BinaryExpression', operator: op, left, right };
     }
@@ -317,7 +323,7 @@ export class Parser {
   private parseMultiplicative(): ASTNode {
     let left = this.parseUnary();
     while (this.matchAny(['*', '/', '%'])) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const right = this.parseUnary();
       left = { type: 'BinaryExpression', operator: op, left, right };
     }
@@ -336,7 +342,7 @@ export class Parser {
    */
   private parseUnary(): ASTNode {
     if (this.matchAny(['!', '-', '+'])) {
-      const op = this.consume().value;
+      const op = this.consumeText();
       const argument = this.parseUnary();
       return { type: 'UnaryExpression', operator: op, argument };
     }
@@ -468,7 +474,7 @@ export class Parser {
       (token.type as number) === (TokenType.Identifier as number) &&
       this.peek()?.value === '=>'
     ) {
-      const paramName = this.consume().value;
+      const paramName = this.consumeText();
       this.consume(); // consume =>
       const body = this.parseConditional();
       return { type: 'ArrowFunction' as const, params: [{ name: paramName }], body };
@@ -507,7 +513,7 @@ export class Parser {
           do {
             if (this.current().type !== TokenType.Identifier)
               throw new Error('expected identifier');
-            params.push({ name: this.consume().value });
+            params.push({ name: this.consumeText() });
             if (this.match(',')) {
               this.consume(); // مصرف کاما
             } else {
@@ -621,10 +627,10 @@ export class Parser {
 
     if (token.type === TokenType.String) {
       this.consume();
-      key = token.value as string;
+      key = token.value;
     } else if (token.type === TokenType.Identifier) {
       this.consume();
-      key = token.value as string;
+      key = token.value;
     } else {
       throw this.syntaxError(token, 'a string or identifier as object key');
     }

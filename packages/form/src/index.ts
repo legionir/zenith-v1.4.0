@@ -8,6 +8,9 @@ export {
   type FormFieldState,
   type ValidationRule,
   type FormOptions,
+  type ReactiveFormApi,
+  type FormFieldDefinition,
+  type FormFieldDefinitions,
   type ValidationResult,
   type Validator,
   type FieldState,
@@ -32,6 +35,8 @@ export {
   setNestedValue,
   flattenValues,
   type FieldValidation,
+  type FieldValidationRule,
+  type AsyncFieldValidationRule,
   type FormValidation,
   type FormValidationLifecycle,
   type FormSchema,
@@ -53,6 +58,7 @@ export {
  * #53: پیش‌فرض‌های منجمد برای `@zenith/form` (`FormOptions`).
  * @default { debounceMs: 300, validateOnChange: true, validateOnBlur: true }
  * @unit ms (debounceMs)
+ * @public
  * @since 1.4.0
  */
 export const DEFAULTS = /* @__PURE__ */ Object.freeze({
@@ -60,3 +66,5 @@ export const DEFAULTS = /* @__PURE__ */ Object.freeze({
   validateOnChange: true,
   validateOnBlur: true,
 });
+
+export type { FieldValidationOptions, AsyncFieldValidationOptions, AsyncFormValidationOptions, LifecycleValidationOptions, MoveFormItemOptions, AddFormFieldOptions } from './validation-types';
