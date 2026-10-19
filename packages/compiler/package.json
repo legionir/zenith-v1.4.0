@@ -56,7 +56,7 @@
     "@zenith/dependency-graph": "1.4.0"
   },
   "devDependencies": {
-    "jsdom": "^24.0.0"
+    "jsdom": "^30.1.3"
   },
   "zenith": {
     "target": "universal"
