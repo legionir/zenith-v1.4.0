@@ -86,7 +86,7 @@
     "solid-js": "^1.9.17",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.71.1",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.5"
   },
   "engines": {
     "node": ">=18.19"
