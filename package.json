@@ -62,7 +62,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@axe-core/playwright": "^4.13.0",
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "@hpcc-js/wasm-graphviz": "^1.29.2",
     "@playwright/test": "^1.56.1",
     "@preact/signals-core": "^1.14.4",
