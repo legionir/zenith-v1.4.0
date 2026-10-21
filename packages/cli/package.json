@@ -1,0 +1,93 @@
+{
+  "name": "@zenith/cli",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 CLI for scaffolding projects, components, pages, and actions (Phase 10).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "zenith": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./program": {
+      "import": {
+        "types": "./dist/program.d.ts",
+        "default": "./dist/program.js"
+      },
+      "require": {
+        "types": "./dist/program.d.cts",
+        "default": "./dist/program.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs cli",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "zenith",
+    "cli",
+    "scaffold",
+    "generator",
+    "framework"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/index.cjs"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/expressions": "1.4.0",
+    "@zenith/runtime": "1.4.0",
+    "@zenith/vite-plugin": "1.4.0",
+    "commander": "^12.0.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/templates": "1.5.0",
+    "typescript": "^5.6.0",
+    "semver": "^7.7.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "node"
+  },
+  "devDependencies": {
+    "@zenith/ssr": "1.4.0",
+    "@types/semver": "^7.5.8"
+  }
+}

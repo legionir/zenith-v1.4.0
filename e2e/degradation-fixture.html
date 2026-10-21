@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- #95 — graceful-degradation matrix fixture.
+  Behavior matrix (asserted by e2e/degradation.spec.ts; every mode must boot
+  with ZERO unhandled exceptions/rejections):
+    default        → local storage read/write ok, SW registered, ready
+    sw-blocked     → SW request aborted: boot continues, sw:'failed:*', ready
+    no-idb         → indexedDB deleted: indexeddb storage falls back to
+                     memory (driverName 'memory'), read/write ok, ready
+    no-webstorage  → localStorage/sessionStorage access throws: default
+                     storage falls back to memory, read/write ok, ready
+    quota          → setItem throws QuotaExceededError except for the driver
+                     probe key: set() never throws (evict-oldest finds nothing
+                     to evict, warns ZEN-1102, drops the write), ready
+    js-off         → separate context, javaScriptEnabled:false: the <noscript>
+                     block below is the usable content (never a blank page)
+  Served statically by scripts/e2e-server.mjs (no server change needed). -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith degradation-matrix fixture (#95)</title>
+    <script type="importmap">
+      {
+  "imports": {
+    "@zenith/security": "/packages/security/dist/index.js",
+    "@zenith/errors": "/packages/errors/dist/index.js",
+    "@zenith/logger": "/packages/logger/dist/index.js",
+    "@zenith/shared": "/packages/shared/dist/index.js",
+    "@zenith/a11y": "/packages/a11y/dist/index.js",
+    "@zenith/head": "/packages/head/dist/index.js",
+    "@zenith/ui": "/packages/ui/dist/index.js",
+    "@zenith/expressions": "/packages/expressions/dist/index.js",
+    "@zenith/schema": "/packages/schema/dist/index.js",
+    "@zenith/jalali": "/packages/jalali/dist/index.js",
+    "@zenith/transition": "/packages/transition/dist/index.js",
+    "@zenith/http": "/packages/http/dist/index.js",
+    "@zenith/resource": "/packages/resource/dist/index.js",
+    "@zenith/mock": "/packages/mock/dist/index.js",
+    "@zenith/storage": "/packages/storage/dist/index.js",
+    "@zenith/ui/position": "/packages/ui/dist/position.js"
+  }
+}
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <div id="noscript">
+        <h1>Zenith demo (static mode)</h1>
+        <p>
+          JavaScript is disabled, so this page runs in static mode: you can
+          still read the content and follow these links. Interactive features
+          (cart, dashboard widgets, saved preferences) need JavaScript.
+        </p>
+        <ul>
+          <li><a href="/dashboard/index.html">Admin dashboard (static)</a></li>
+          <li><a href="/ecommerce-demo/index.html">Store demo (static)</a></li>
+        </ul>
+      </div>
+    </noscript>
+    <div id="app"><p>Booting…</p></div>
+    <script type="module">
+      import { createStorage } from '@zenith/storage';
+
+      const report = { storage: {}, sw: null };
+      window.__ZENITH_DEGRADE__ = null;
+
+      // 1. Default storage (local driver in a real browser).
+      const store = createStorage({ namespace: 'deg' });
+      store.set('probe', { hello: 'world' });
+      report.storage.default = {
+        driver: store.driverName,
+        writeOk: true,
+        readOk: store.get('probe')?.hello === 'world',
+      };
+
+      // 2. Explicit IndexedDB storage (falls back to memory when IDB is
+      //    missing or refuses to open — never rejects: storage.ready
+      //    absorbs the failure with ZEN-1101).
+      const idb = createStorage({ namespace: 'deg-idb', driver: 'indexeddb' });
+      await idb.ready;
+      idb.set('probe', 1);
+      report.storage.indexeddb = {
+        driver: idb.driverName,
+        writeOk: true,
+        readOk: idb.get('probe') === 1,
+      };
+
+      document.getElementById('app').textContent = `boot ok (${report.storage.default.driver})`;
+
+      // 3. Service-worker attempt — guarded: a missing/blocked SW must never
+      //    break boot. The scope path contains no pages, and the SW script
+      //    has no fetch handler, so registration cannot affect other specs.
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.register('/e2e/degradation-sw.js', {
+            scope: '/e2e/__degradation_scope__/',
+          });
+          report.sw = `registered:${reg.scope}`;
+          reg.unregister().catch(() => {});
+        } else {
+          report.sw = 'unsupported';
+        }
+      } catch (err) {
+        report.sw = `failed:${err instanceof Error ? err.name : String(err)}`;
+      }
+
+      window.__ZENITH_DEGRADE__ = report;
+      window.__ZENITH_DEGRADE_READY__ = true;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+{
+  "name": "@zenith/service-worker",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 Offline-first Service Worker with cache strategies (Phase 13). Zero-dep workbox-style SW: cache-first, network-first, stale-while-revalidate, network-only, cache-only.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./sw": {
+      "import": {
+        "types": "./dist/sw.d.ts",
+        "default": "./dist/sw.js"
+      },
+      "require": {
+        "types": "./dist/sw.d.cts",
+        "default": "./dist/sw.cjs"
+      }
+    },
+    "./strategies": {
+      "import": {
+        "types": "./dist/strategies.d.ts",
+        "default": "./dist/strategies.js"
+      },
+      "require": {
+        "types": "./dist/strategies.d.cts",
+        "default": "./dist/strategies.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "service-worker",
+    "offline",
+    "pwa",
+    "cache",
+    "sw",
+    "framework"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/service-worker"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0"
+  },
+  "zenith": {
+    "target": "worker",
+    "entryTargets": {
+      "./sw": "worker",
+      "./strategies": "worker"
+    }
+  }
+}

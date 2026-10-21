@@ -1,0 +1,73 @@
+{
+  "name": "@zenith/schema",
+  "version": "1.5.0",
+  "description": "Zenith framework — L0 options/config validation (SPEC §۲.۲): s builders, validate/safeValidate, defineOptions, parseConfigAttr, directive metadata and JSON Schema Draft 2020-12 generation; ZEN-1001/1002/1003/1004. zod is never a runtime dependency (duck-typed via /zod).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js",
+      "default": "./dist/zod.js"
+    },
+    "./json-schema": {
+      "types": "./dist/json-schema.d.ts",
+      "import": "./dist/json-schema.js",
+      "default": "./dist/json-schema.js"
+    },
+    "./attr": {
+      "types": "./dist/attr.d.ts",
+      "import": "./dist/attr.js",
+      "default": "./dist/attr.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "schema",
+    "validation",
+    "options",
+    "json-schema"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/shared": "1.5.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

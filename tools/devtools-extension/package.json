@@ -1,0 +1,12 @@
+{
+  "name": "zenith-devtools-extension",
+  "version": "1.4.0",
+  "private": true,
+  "type": "commonjs",
+  "license": "MIT",
+  "scripts": {
+    "build": "node ../../scripts/build-tools.mjs --only=devtools-extension",
+    "lint": "eslint .",
+    "package": "node ../../scripts/build-tools.mjs --only=devtools-extension --package"
+  }
+}

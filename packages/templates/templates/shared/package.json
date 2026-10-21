@@ -1,0 +1,30 @@
+{
+  "name": "__PROJECT_NAME_LOWER__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@zenith/state": "__ZENITH_STATE__",
+    "@zenith/runtime": "__ZENITH_RUNTIME__",
+    "@zenith/logger": "__ZENITH_LOGGER__"
+  },
+  "devDependencies": {
+    "@zenith/vite-plugin": "__ZENITH_VITE_PLUGIN__",
+    "@zenith/eslint-plugin": "__ZENITH_ESLINT_PLUGIN__",
+    "eslint": "^9.39.4",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^6.4.4",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.11"
+  }
+}

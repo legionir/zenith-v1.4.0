@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Suspense</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8; --success: #4ade80; --error: #ef4444;
+      --warn: #fbbf24;
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 1.75rem; margin-bottom: 8px; }
+    h1 .gradient { background: linear-gradient(135deg, var(--accent), #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .section p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; }
+
+    /* Suspense demo styles */
+    zen-suspense { display: block; }
+    .zen-suspense-fallback, .zen-suspense-timeout, .zen-suspense-error {
+      padding: 16px; text-align: center; border-radius: 8px; font-size: 0.9rem;
+    }
+    .zen-suspense-fallback { background: rgba(99, 102, 241, 0.1); color: var(--accent-light); }
+    .zen-suspense-timeout { background: rgba(251, 191, 36, 0.1); color: var(--warn); }
+    .zen-suspense-error { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+    .zen-suspense-content { transition: opacity 0.3s; }
+
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 2px solid rgba(99, 102, 241, 0.2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-left: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .data-card {
+      background: rgba(99, 102, 241, 0.05); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; margin-top: 8px;
+    }
+    .data-card .label { color: var(--text-muted); font-size: 0.75rem; }
+    .data-card .value { color: var(--text-primary); font-size: 1rem; font-weight: 600; }
+
+    .btn {
+      padding: 6px 14px; border: 1px solid var(--border-strong); border-radius: 6px;
+      background: transparent; color: var(--text-primary); cursor: pointer; font-size: 0.85rem;
+      font-family: inherit; margin-left: 8px; transition: all 0.2s;
+    }
+    .btn:hover { background: rgba(99, 102, 241, 0.15); border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); }
+    .btn.primary:hover { background: var(--accent-light); }
+
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;
+      margin-right: 8px;
+    }
+    .status-badge.loading { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+    .status-badge.success { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+    .status-badge.error { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+    .status-badge.timeout { background: rgba(251, 191, 36, 0.2); color: var(--warn); }
+
+    code { background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: var(--accent-light); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/demos/" class="back">← بازگشت به فهرست دموها</a>
+    <h1>🔄 <span class="gradient">zen-suspense</span> — Suspense Loading State</h1>
+    <p class="subtitle">مدیریت خودکار loading/error/timeout با fallback slot — مشابه React Suspense اما HTML-First.</p>
+
+    <!-- ۱. Basic Suspense with Fallback -->
+    <div class="section">
+      <h2>۱. Basic Suspense با Fallback</h2>
+      <p>وقتی داده در حال بارگذاری است، fallback نمایش داده می‌شود. وقتی داده آماده شد، محتوا.</p>
+      <div style="margin-bottom: 12px;">
+        <span class="status-badge loading" id="status1">loading</span>
+        <button class="btn primary" id="load1">بارگذاری داده (۱.۵ ثانیه)</button>
+        <button class="btn" id="reset1">ریست</button>
+      </div>
+      <zen-suspense id="suspense1">
+        <div class="data-card" id="content1" style="display:none;">
+          <div class="label">نام کاربر</div>
+          <div class="value" id="userName">—</div>
+        </div>
+        <template zen-fallback>
+          <div>در حال بارگذاری...<span class="spinner"></span></div>
+        </template>
+      </zen-suspense>
+    </div>
+
+    <!-- ۲. Timeout Handling -->
+    <div class="section">
+      <h2>۲. Timeout Handling</h2>
+      <p>اگر عملیات طول بکشد (بیش از timeout)، fallback timeout نمایش داده می‌شود.</p>
+      <div style="margin-bottom: 12px;">
+        <span class="status-badge loading" id="status2">loading</span>
+        <button class="btn primary" id="load2">بارگذاری کند (۳ ثانیه، timeout=۲s)</button>
+        <button class="btn" id="reset2">ریست</button>
+      </div>
+      <zen-suspense id="suspense2" timeout="2000">
+        <div class="data-card" id="content2" style="display:none;">
+          <div class="label">داده</div>
+          <div class="value">بارگذاری شد!</div>
+        </div>
+        <template zen-fallback>
+          <div>در حال بارگذاری...<span class="spinner"></span></div>
+        </template>
+        <template zen-timeout>
+          <div>⏱️ Timeout! عملیات خیلی طول کشید.</div>
+        </template>
+      </zen-suspense>
+    </div>
+
+    <!-- ۳. Error Handling -->
+    <div class="section">
+      <h2>۳. Error Handling</h2>
+      <p>اگر خطا رخ دهد، fallback error نمایش داده می‌شود.</p>
+      <div style="margin-bottom: 12px;">
+        <span class="status-badge loading" id="status3">loading</span>
+        <button class="btn primary" id="load3">شبیه‌سازی خطا</button>
+        <button class="btn" id="reset3">ریست</button>
+      </div>
+      <zen-suspense id="suspense3">
+        <div class="data-card" id="content3" style="display:none;">
+          <div class="label">داده</div>
+          <div class="value">موفق!</div>
+        </div>
+        <template zen-fallback>
+          <div>در حال بارگذاری...<span class="spinner"></span></div>
+        </template>
+        <template zen-error>
+          <div>❌ خطا در بارگذاری داده!</div>
+        </template>
+      </zen-suspense>
+    </div>
+
+    <!-- ۴. Integration با zen-fetch -->
+    <div class="section">
+      <h2>۴. Integration با zen-fetch</h2>
+      <p>zen-suspense به‌طور خودکار وضعیت loading zen-fetch را رصد می‌کند.</p>
+      <div style="margin-bottom: 12px;">
+        <button class="btn primary" id="load4">Fetch از API</button>
+      </div>
+      <zen-suspense id="suspense4">
+        <div zen-fetch="'/demos/router/api/users/1.json'" zen-state="user4">
+          <div class="data-card" zen-if="$user4.data">
+            <div class="label">نام</div>
+            <div class="value" zen-text="$user4.data.name">—</div>
+          </div>
+        </div>
+        <template zen-fallback>
+          <div>در حال fetch...<span class="spinner"></span></div>
+        </template>
+        <template zen-error>
+          <div>❌ خطا در fetch!</div>
+        </template>
+      </zen-suspense>
+    </div>
+
+    <div class="section">
+      <h2>خلاصه</h2>
+      <p>
+        <code>&lt;zen-suspense&gt;</code> یک SuspenseContext می‌سازد که شامل:
+      </p>
+      <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-right: 20px; line-height: 2;">
+        <li><code>$suspense.loading</code> — آیا در حال loading است؟</li>
+        <li><code>$suspense.pendingCount</code> — تعداد فرزندان در حال loading</li>
+        <li><code>$suspense.timedOut</code> — آیا timeout رخ داده؟</li>
+        <li><code>$suspense.error</code> — پیام خطا (اگر وجود دارد)</li>
+      </ul>
+      <p style="margin-top: 12px;">
+        <strong>Slots:</strong>
+        <code>&lt;template zen-fallback&gt;</code> — loading،
+        <code>&lt;template zen-timeout&gt;</code> — timeout،
+        <code>&lt;template zen-error&gt;</code> — error.
+      </p>
+      <p style="margin-top: 8px;">
+        <strong>Timeout:</strong> <code>timeout="5000"</code> (میلی‌ثانیه، 0 = بدون timeout).
+      </p>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+
+    // ── Helper: simulate async operation ──
+    function simulateAsync(delay, shouldFail = false) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          if (shouldFail) reject(new Error('Network error'));
+          else resolve({ name: 'علی احمدی', email: 'ali@example.com' });
+        }, delay);
+      });
+    }
+
+    // ── 1. Basic Suspense ──
+    const state1 = { loaded: signal(false), data: signal(null), suspense: signal({ loading: false, pendingCount: 0, timedOut: false, error: null }) };
+
+    document.getElementById('load1').addEventListener('click', async () => {
+      state1.suspense.set({ loading: true, pendingCount: 1, timedOut: false, error: null });
+      document.getElementById('status1').textContent = 'loading';
+      document.getElementById('status1').className = 'status-badge loading';
+      document.getElementById('content1').style.display = 'none';
+
+      try {
+        const data = await simulateAsync(1500);
+        state1.data.set(data);
+        state1.loaded.set(true);
+        state1.suspense.set({ loading: false, pendingCount: 0, timedOut: false, error: null });
+        document.getElementById('userName').textContent = data.name;
+        document.getElementById('content1').style.display = '';
+        document.getElementById('status1').textContent = 'success';
+        document.getElementById('status1').className = 'status-badge success';
+      } catch (err) {
+        state1.suspense.set({ loading: false, pendingCount: 0, timedOut: false, error: err.message });
+        document.getElementById('status1').textContent = 'error';
+        document.getElementById('status1').className = 'status-badge error';
+      }
+    });
+
+    document.getElementById('reset1').addEventListener('click', () => {
+      state1.suspense.set({ loading: false, pendingCount: 0, timedOut: false, error: null });
+      document.getElementById('content1').style.display = 'none';
+      document.getElementById('status1').textContent = 'idle';
+      document.getElementById('status1').className = 'status-badge loading';
+    });
+
+    // ── Manual suspense effect for demo 1 ──
+    effect(() => {
+      const s = state1.suspense.get();
+      const fb = document.querySelector('#suspense1 .zen-suspense-fallback');
+      if (fb) {
+        fb.style.display = s.loading ? '' : 'none';
+        document.getElementById('content1').style.display = s.loading ? 'none' : (state1.loaded.get() ? '' : 'none');
+      }
+    });
+
+    // ── 2. Timeout ──
+    const state2 = { loading: signal(false) };
+
+    document.getElementById('load2').addEventListener('click', async () => {
+      state2.loading.set(true);
+      document.getElementById('status2').textContent = 'loading';
+      document.getElementById('status2').className = 'status-badge loading';
+      document.getElementById('content2').style.display = 'none';
+
+      const fb2 = document.querySelector('#suspense2 .zen-suspense-fallback');
+      const to2 = document.querySelector('#suspense2 .zen-suspense-timeout');
+      if (fb2) fb2.style.display = '';
+      if (to2) to2.style.display = 'none';
+
+      // Simulate slow operation (3s) with 2s timeout
+      setTimeout(() => {
+        if (fb2) fb2.style.display = 'none';
+        if (to2) to2.style.display = '';
+        document.getElementById('status2').textContent = 'timeout';
+        document.getElementById('status2').className = 'status-badge timeout';
+        state2.loading.set(false);
+      }, 2000); // timeout fires at 2s
+
+      // Actual data arrives at 3s (too late)
+      setTimeout(() => {
+        document.getElementById('content2').style.display = '';
+      }, 3000);
+    });
+
+    document.getElementById('reset2').addEventListener('click', () => {
+      const fb2 = document.querySelector('#suspense2 .zen-suspense-fallback');
+      const to2 = document.querySelector('#suspense2 .zen-suspense-timeout');
+      if (fb2) fb2.style.display = 'none';
+      if (to2) to2.style.display = 'none';
+      document.getElementById('content2').style.display = 'none';
+      document.getElementById('status2').textContent = 'idle';
+      document.getElementById('status2').className = 'status-badge loading';
+    });
+
+    // ── 3. Error ──
+    document.getElementById('load3').addEventListener('click', async () => {
+      const fb3 = document.querySelector('#suspense3 .zen-suspense-fallback');
+      const er3 = document.querySelector('#suspense3 .zen-suspense-error');
+      document.getElementById('status3').textContent = 'loading';
+      document.getElementById('status3').className = 'status-badge loading';
+      document.getElementById('content3').style.display = 'none';
+      if (fb3) fb3.style.display = '';
+      if (er3) er3.style.display = 'none';
+
+      setTimeout(() => {
+        if (fb3) fb3.style.display = 'none';
+        if (er3) er3.style.display = '';
+        document.getElementById('status3').textContent = 'error';
+        document.getElementById('status3').className = 'status-badge error';
+      }, 1000);
+    });
+
+    document.getElementById('reset3').addEventListener('click', () => {
+      const fb3 = document.querySelector('#suspense3 .zen-suspense-fallback');
+      const er3 = document.querySelector('#suspense3 .zen-suspense-error');
+      if (fb3) fb3.style.display = 'none';
+      if (er3) er3.style.display = 'none';
+      document.getElementById('content3').style.display = 'none';
+      document.getElementById('status3').textContent = 'idle';
+      document.getElementById('status3').className = 'status-badge loading';
+    });
+
+    // ── 4. zen-fetch integration ──
+    document.getElementById('load4').addEventListener('click', () => {
+      // Zen.start will process zen-fetch + zen-suspense
+      const root = document.getElementById('suspense4');
+      try { Zen.stop(root); } catch {}
+      Zen.start(root, {});
+    });
+
+    // Initialize status badges
+    document.getElementById('status1').textContent = 'idle';
+    document.getElementById('status2').textContent = 'idle';
+    document.getElementById('status3').textContent = 'idle';
+
+    console.log('✅ zen-suspense demo loaded');
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>App-owned authentication fixture</title>
+<script type="importmap">{
+  "imports": {
+    "@zenith/state": "/packages/state/dist/index.js",
+    "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+    "@zenith/errors": "/packages/errors/dist/index.js",
+    "@zenith/logger": "/packages/logger/dist/index.js",
+    "@zenith/shared": "/packages/shared/dist/index.js",
+    "@zenith/schema": "/packages/schema/dist/index.js",
+    "@zenith/expressions": "/packages/expressions/dist/index.js",
+    "@zenith/security": "/packages/security/dist/index.js",
+    "@zenith/storage": "/packages/storage/dist/index.js",
+    "@zenith/auth": "/packages/auth/dist/index.js",
+    "@zenith/runtime-core": "/packages/runtime-core/dist/index.js",
+    "@zenith/a11y": "/packages/a11y/dist/index.js",
+    "@zenith/head": "/packages/head/dist/index.js",
+    "@zenith/ui": "/packages/ui/dist/index.js",
+    "@zenith/jalali": "/packages/jalali/dist/index.js",
+    "@zenith/transition": "/packages/transition/dist/index.js",
+    "@zenith/http": "/packages/http/dist/index.js",
+    "@zenith/resource": "/packages/resource/dist/index.js",
+    "@zenith/mock": "/packages/mock/dist/index.js",
+    "@zenith/ui/position": "/packages/ui/dist/position.js"
+  }
+}</script>
+</head>
+<body><main><h1>Authentication ownership fixture</h1><output id="status">starting</output></main>
+<script type="module">
+import { createApp } from '@zenith/runtime-core';
+import { authPlugin, getAppAuth } from '@zenith/auth';
+import { effect } from '@zenith/state';
+const query = new URLSearchParams(location.search);
+const app = createApp();
+app.use(authPlugin({
+  loginUrl: '/e2e/auth-session/login', refreshUrl: '/e2e/auth-session/refresh', meUrl: '/e2e/auth-session/me',
+  autoRefresh: false, storageKey: query.get('scope') || 'auth-browser-fixture',
+  tokenStorage: query.get('persistent') === 'true' ? 'localStorage' : 'memory',
+}, { crossTab: true }));
+const engine = getAppAuth(app);
+const status = document.querySelector('#status');
+const stop = effect(() => { status.textContent = engine.signal.get().isAuthenticated ? 'signed-in' : 'signed-out'; });
+let disposed = false;
+const dispose = () => { if (disposed) return; disposed = true; stop(); app.dispose(); status.textContent = 'disposed'; };
+window.authFixture = {
+  init: () => engine.init(), login: () => engine.login({ email: 'fixture@example.test', password: 'test-only' }),
+  refresh: () => engine.refresh(), logout: () => engine.logout(false), dispose,
+  snapshot: () => ({ token: engine.token, authenticated: engine.isAuthenticated }),
+};
+window.addEventListener('pagehide', dispose, { once: true });
+</script>
+</body></html>

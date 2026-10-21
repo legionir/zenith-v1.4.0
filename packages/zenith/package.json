@@ -1,0 +1,130 @@
+{
+  "name": "zenith",
+  "version": "1.5.0",
+  "description": "Zenith umbrella package with single-source namespaces, presets (minimal/spa/full), and browser bundle",
+  "keywords": [
+    "zenith",
+    "framework",
+    "reactive",
+    "signals",
+    "umbrella",
+    "presets"
+  ],
+  "license": "MIT",
+  "author": "Ostovar",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "default": "./dist/core.js"
+    },
+    "./ssr": {
+      "types": "./dist/ssr.d.ts",
+      "import": "./dist/ssr.js",
+      "default": "./dist/ssr.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
+    },
+    "./presets/minimal": {
+      "types": "./dist/presets/minimal.d.ts",
+      "import": "./dist/presets/minimal.js",
+      "default": "./dist/presets/minimal.js"
+    },
+    "./presets/spa": {
+      "types": "./dist/presets/spa.d.ts",
+      "import": "./dist/presets/spa.js",
+      "default": "./dist/presets/spa.js"
+    },
+    "./presets/full": {
+      "types": "./dist/presets/full.d.ts",
+      "import": "./dist/presets/full.js",
+      "default": "./dist/presets/full.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.19"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/zenith"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/main/packages/zenith#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs zenith",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zenith/actions": "1.4.0",
+    "@zenith/auth": "1.4.0",
+    "@zenith/cache": "1.5.0",
+    "@zenith/components": "1.4.0",
+    "@zenith/error-boundary": "1.4.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/events": "1.4.0",
+    "@zenith/form": "1.4.0",
+    "@zenith/http": "1.4.0",
+    "@zenith/i18n": "1.4.0",
+    "@zenith/jalali": "1.5.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/notifications": "1.4.0",
+    "@zenith/resource": "1.4.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/runtime-core": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/ssr": "1.4.0",
+    "@zenith/storage": "1.5.0",
+    "@zenith/store": "1.4.0",
+    "@zenith/suspense": "1.4.0",
+    "@zenith/testing": "1.4.0",
+    "@zenith/transition": "1.4.0",
+    "@zenith/a11y": "1.5.0",
+    "@zenith/head": "1.5.0",
+    "@zenith/ui": "1.5.0"
+  },
+  "devDependencies": {
+    "@zenith/scheduler": "1.4.0",
+    "@zenith/state": "1.4.0"
+  },
+  "peerDependencies": {
+    "@zenith/scheduler": "^1.4.0",
+    "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

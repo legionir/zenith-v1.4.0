@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zenith — Dependency Graph Viewer</title>
+    <!--
+  FEATURE (v0.4.0): DevTools Graph Viewer
+  نمایشگر زنجیره‌ی Reactivity: Signal → Effect → Directive → DOM
+
+  این صفحه self-contained است (CSS/JS خارجی هم‌بسته، بدون dependency خارجی).
+  داده را از یکی از این مسیرها بارگذاری می‌کند (به ترتیب اولویت):
+    1) window.__ZENITH__.getDependencyGraph()      ← حالت زنده وقتی DevTools نصب است
+    2) window.__ZENITH_GRAPH_DATA__                 ← داده‌ی inline از صفحه‌ی میزبان
+    3) ?data=<base64-JSON>                          ← داده‌ی رمزگذاری‌شده در query string
+    4) نمونه‌ی دمو (sample)                          ← وقتی هیچ‌کدام نبود
+
+  تم تاریک مطابق landing page: bg #0a0e1f, accent #6366f1.
+-->
+    <link rel="stylesheet" href="graph-viewer.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="logo">Zenith <small>Dependency Graph Viewer</small></div>
+        <div class="counts" id="counts">
+          <span class="chip s"
+            ><span class="dot"></span><span>سیگنال <b id="c-s">۰</b></span></span
+          >
+          <span class="chip e"
+            ><span class="dot"></span><span>افکت <b id="c-e">۰</b></span></span
+          >
+          <span class="chip d"
+            ><span class="dot"></span><span>دایرکتیو <b id="c-d">۰</b></span></span
+          >
+          <span class="chip m"
+            ><span class="dot"></span><span>DOM <b id="c-m">۰</b></span></span
+          >
+        </div>
+        <div class="spacer"></div>
+        <button id="btn-reset-zoom">تنظیم زوم</button>
+        <button id="btn-sample">نمونه‌ی دمو</button>
+        <button id="btn-refresh" class="primary">بازخوانی زنده</button>
+        <button id="btn-export">خروجی JSON</button>
+      </header>
+
+      <div id="stage">
+        <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker
+              id="arrow"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,0 L10,5 L0,10 z" fill="#475569" />
+            </marker>
+            <marker
+              id="arrow-hi"
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="8"
+              markerHeight="8"
+              orient="auto-start-reverse"
+            >
+              <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24" />
+            </marker>
+          </defs>
+          <g id="g-viewport">
+            <g id="g-edges"></g>
+            <g id="g-nodes"></g>
+          </g>
+        </svg>
+        <div class="empty" id="empty">
+          داده‌ای برای نمایش وجود ندارد — روی «بازخوانی زنده» یا «نمونه‌ی دمو» بزنید.
+        </div>
+        <div class="legend">
+          <div class="item">
+            <svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#3b82f6" /></svg> سیگنال
+          </div>
+          <div class="item">
+            <svg width="14" height="14"><polygon points="7,1 13,7 7,13 1,7" fill="#f59e0b" /></svg>
+            افکت
+          </div>
+          <div class="item">
+            <svg width="14" height="14">
+              <rect x="1" y="3" width="12" height="8" rx="1" fill="#a855f7" />
+            </svg>
+            دایرکتیو
+          </div>
+          <div class="item">
+            <svg width="14" height="14">
+              <rect x="2" y="2" width="10" height="10" fill="#22c55e" />
+            </svg>
+            DOM
+          </div>
+        </div>
+        <div class="toast" id="toast"></div>
+      </div>
+
+      <aside id="panel">
+        <h2>جزئیات نود</h2>
+        <div class="hint">
+          یک نود را در گراف انتخاب کنید تا اطلاعات آن اینجا نمایش داده شود.<br /><br />
+          روی نود کلیک کنید تا یال‌های ورودی/خروجی آن هایلایت شوند. کلیک روی فضای خالی، انتخاب را
+          لغو می‌کند.<br /><br />
+          <span class="badge">Signal → Effect</span> خوانده‌شدن،
+          <span class="badge">Effect → Directive</span> هدایت،
+          <span class="badge">Directive → DOM</span> به‌روزرسانی.
+        </div>
+      </aside>
+    </div>
+
+    <script src="message-schema.js"></script>
+
+    <script src="graph-viewer.js"></script>
+  </body>
+</html>

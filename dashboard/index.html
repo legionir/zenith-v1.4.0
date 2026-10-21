@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد مدیریتی Zenith</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/cache": "/packages/cache/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/http": "/packages/http/dist/index.js",
+      "@zenith/jalali": "/packages/jalali/dist/index.js",
+      "@zenith/logger": "/packages/logger/dist/index.js",
+      "@zenith/mock": "/packages/mock/dist/index.js",
+      "@zenith/notifications": "/packages/notifications/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/shared": "/packages/shared/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/storage": "/packages/storage/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js"
+    }
+  }
+  </script>
+  <script type="module" src="/dashboard/src/main.js"></script>
+</head>
+<body>
+  <header>
+    <h1>داشبورد مدیریتی</h1>
+    <nav>
+      <a zen-link="/">صفحه اصلی</a>
+      <a zen-link="/users">کاربران</a>
+      <a zen-link="/orders">سفارش‌ها</a>
+      <a zen-link="/stats">آمار</a>
+    </nav>
+    <div zen-if="$dashboard.user">
+      مدیر: <span zen-text="$dashboard.user.name"></span>
+      (<span zen-text="$dashboard.user.role"></span>)
+      <button zen-action="authLogout">خروج</button>
+    </div>
+    <div zen-if="!$dashboard.user">
+      <a zen-link="#auth">ورود</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="auth">
+      <h2>ورود</h2>
+      <div zen-if="!$dashboard.user">
+        <label>نام کاربری <input id="login-username" type="text" autocomplete="username" /></label>
+        <label>رمز <input id="login-password" type="password" autocomplete="current-password" /></label>
+        <button zen-action="login">ورود</button>
+        <p zen-if="$dashboard.error" zen-text="$dashboard.error"></p>
+        <p>حساب‌های نمایشی (mock، فقط همین دمو): admin/admin123 (مدیر)، editor/editor123 (ویراستار)، viewer/viewer123 (بیننده).</p>
+      </div>
+      <div zen-if="$dashboard.user">
+        <p>وارد شده‌اید به‌عنوان <span zen-text="$dashboard.user.name"></span>.</p>
+      </div>
+    </section>
+
+    <section id="stats">
+      <h2>آمار سیستم</h2>
+      <div zen-if="$dashboard.stats">
+        <p>کاربران: <span zen-text="$dashboard.stats.users"></span></p>
+        <p>سفارش‌ها: <span zen-text="$dashboard.stats.orders"></span></p>
+        <p>درآمد: <span zen-text="$dashboard.stats.revenue"></span> تومان</p>
+      </div>
+      <div zen-if="!$dashboard.stats">
+        <p>آمار فقط برای نقش‌های مجاز نمایش داده می‌شود (ویراستار و مدیر).</p>
+      </div>
+    </section>
+
+    <section id="users">
+      <h2>مدیریت کاربران</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>ایمیل</th>
+            <th>نقش</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr zen-for="user in $dashboard.users" zen-key="user.id">
+            <td zen-text="$user.name"></td>
+            <td zen-text="$user.email"></td>
+            <td zen-text="$user.role"></td>
+            <td>
+              <button zen-action="deleteUser"
+                      zen-bind:data-user-id="$user.id"
+                      zen-permission="users:delete">حذف</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

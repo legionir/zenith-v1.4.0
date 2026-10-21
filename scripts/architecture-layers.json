@@ -1,0 +1,85 @@
+{
+  "$comment": "#49 — SINGLE source of truth for the package→layer map. Read by .dependency-cruiser.cjs, scripts/dependency-graph.mjs and scripts/test/architecture-layers.test.mjs; docs/ARCHITECTURE-LAYERS.md §2 must list exactly the same packages (enforced by test). Names of packages that are planned but not yet on disk are allowed.",
+  "layers": {
+    "L0": [
+      "errors",
+      "shared",
+      "logger",
+      "cache",
+      "jalali",
+      "storage",
+      "schema",
+      "scheduler",
+      "security"
+    ],
+    "L1": [
+      "state",
+      "expressions",
+      "dependency-graph",
+      "devtools-core"
+    ],
+    "L2": [
+      "router",
+      "events",
+      "components",
+      "resource",
+      "data",
+      "http",
+      "actions",
+      "auth",
+      "permission",
+      "store",
+      "form",
+      "notifications",
+      "error-boundary",
+      "suspense",
+      "transition",
+      "virtual-list",
+      "data-table",
+      "i18n",
+      "a11y",
+      "head",
+      "ui",
+      "realtime",
+      "analytics",
+      "theme",
+      "auth-oauth",
+      "feature-flags",
+      "charts",
+      "icons"
+    ],
+    "L3": [
+      "runtime-core",
+      "runtime",
+      "ssr"
+    ],
+    "L4": [
+      "stateful",
+      "crud",
+      "service-worker",
+      "devtools",
+      "testing",
+      "adapter-node",
+      "adapter-edge",
+      "ssg",
+      "mock"
+    ],
+    "L5": [
+      "zenith"
+    ],
+    "TOOLING": [
+      "compiler",
+      "vite-plugin",
+      "cli",
+      "vscode-extension",
+      "unplugin-zenith",
+      "create-zenith",
+      "eslint-plugin",
+      "language-server",
+      "codemod",
+      "testing-e2e",
+      "devtools-extension",
+      "templates"
+    ]
+  }
+}

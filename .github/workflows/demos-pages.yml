@@ -1,0 +1,66 @@
+name: Deploy demo site to Pages
+
+# #114 — production demo site (demos/*, ecommerce-demo, dashboard) deployed
+# after merge to main. This is a SEPARATE product from the versioned library
+# bundles (`bundle.yml` → orphan `bundles` branch for jsDelivr): this
+# workflow publishes the staged, base-path-safe static site from
+# `scripts/build-demos.mjs` to GitHub Pages. The staged output works at a
+# domain root AND under a project sub-path, so no per-target rebuild is
+# needed. Trigger branch is `main` per the #114 acceptance; if the default
+# branch is named differently, adjust the single `branches:` line below.
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: demo-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and stage demo site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages
+        run: npm run build
+
+      # Audit + dist-check + stage + loopback smoke over every manifest demo.
+      # Any failure (broken link/import, missing dist, smoke 404) stops the deploy.
+      - name: Stage and smoke every demo in the manifest
+        run: node scripts/build-demos.mjs --smoke --stage demo-dist
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo-dist/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

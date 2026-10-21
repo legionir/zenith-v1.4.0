@@ -1,0 +1,94 @@
+{
+  "name": "@zenith/runtime",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 DOM Runtime and directives (Phase 6). Connects Phase 1 (State), Phase 2 (Expressions), Phase 4 (Events & Actions), Phase 5 (Lists) and Phase 6 (Components) to the browser DOM.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "demo": "tsx --tsconfig tsconfig.test.json test/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "runtime",
+    "dom",
+    "directives",
+    "framework",
+    "reactive"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/actions": "1.4.0",
+    "@zenith/analytics": "1.5.0",
+    "@zenith/auth": "1.4.0",
+    "@zenith/components": "1.4.0",
+    "@zenith/data": "1.4.0",
+    "@zenith/devtools": "1.4.0",
+    "@zenith/error-boundary": "1.4.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/events": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/jalali": "1.5.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/notifications": "1.4.0",
+    "@zenith/resource": "1.4.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/runtime-core": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/security": "1.4.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/storage": "1.5.0",
+    "@zenith/suspense": "1.4.0",
+    "@zenith/transition": "1.4.0",
+    "@zenith/ui": "1.5.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "jsdom": "^24.0.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "zenith": {
+    "target": "browser"
+  }
+}

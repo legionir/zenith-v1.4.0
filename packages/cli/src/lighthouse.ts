@@ -1,0 +1,343 @@
+import { output } from './output';
+// packages/cli/src/lighthouse.ts
+//
+// Bug Fix #6: Lighthouse PWA Audit Script
+//
+// این ماژول یک دستور `zenith lighthouse` به CLI اضافه می‌کند که:
+//   1. یک static server محلی روی پورت موقت راه‌اندازی می‌کند.
+//   2. Lighthouse را روی URL اجرا می‌کند.
+//   3. نتایج PWA audit را parse می‌کند.
+//   4. در CI mode (--ci) اگر امتیاز PWA کمتر از 90 باشد، exit code 1 می‌دهد.
+//
+// پیش‌نیازها:
+//   - Chrome یا Chromium نصب باشد.
+//   - lighthouse به‌صورت devDependency نصب باشد: npm install -D lighthouse
+//
+// استفاده:
+//   zenith lighthouse ./dist                # audit پوشه‌ی dist
+//   zenith lighthouse ./dist --port 8080    # پورت سفارشی
+//   zenith lighthouse ./dist --ci           # CI mode (exit 1 if score < 90)
+
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import url from 'node:url';
+import { createRequire } from 'node:module';
+import { type ChildProcess } from 'node:child_process';
+
+const require = createRequire(import.meta.url);
+
+/**
+ * گزینه‌های lighthouse audit.
+ */
+export interface LighthouseOptions {
+  /**
+   * پورت برای static server.
+   * @default 0
+   * @since 1.4.0
+   */
+  port?: number;
+  /**
+   * آیا در حالت CI اجرا شود (exit 1 اگر PWA score < threshold).
+   * @default false
+   * @since 1.4.0
+   */
+  ci?: boolean;
+  /**
+   * حداقل امتیاز PWA برای CI mode.
+   * @default 90
+   * @since 1.4.0
+   */
+  minScore?: number;
+  /** مسیر Chrome executable (در صورت نیاز). */
+  chromePath?: string;
+  /**
+   * آیا خروجی verbose باشد.
+   * @default false
+   * @since 1.4.0
+   */
+  verbose?: boolean;
+}
+
+/**
+ * #53: پیش‌فرض‌های منجمد برای `LighthouseOptions`.
+ * @default { port: 0, ci: false, minScore: 90, verbose: false }
+ * @since 1.4.0
+ */
+export const DEFAULTS = /* @__PURE__ */ Object.freeze({
+  port: 0,
+  ci: false,
+  minScore: 90,
+  verbose: false,
+});
+
+/**
+ * نتیجه‌ی lighthouse audit.
+ */
+export interface LighthouseResult {
+  /** امتیاز PWA (0-100). */
+  pwaScore: number;
+  /** امتیاز Performance (0-100). */
+  performanceScore: number;
+  /** امتیاز Accessibility (0-100). */
+  accessibilityScore: number;
+  /** امتیاز Best Practices (0-100). */
+  bestPracticesScore: number;
+  /** امتیاز SEO (0-100). */
+  seoScore: number;
+  /** لیست PWA audits که failed شده‌اند. */
+  failedAudits: Array<{ id: string; title: string; description: string }>;
+  /** آیا audit موفق بود. */
+  passed: boolean;
+  /** مسیر فایل HTML report. */
+  reportPath?: string;
+}
+
+/**
+ * راه‌اندازی یک static server ساده برای serve کردن پوشه.
+ */
+function startStaticServer(
+  rootDir: string,
+  port: number,
+): { process: ChildProcess; url: string; stop: () => void } {
+  // استفاده از node http مستقیم برای سادگی
+
+  const mimeTypes: Record<string, string> = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.mjs': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.webp': 'image/webp',
+    '.webmanifest': 'application/manifest+json',
+  };
+
+  const server = http.createServer((req: any, res: any) => {
+    const parsedPathname = url.parse(req.url).pathname;
+    let pathname = parsedPathname === null ? '/' : parsedPathname;
+    if (pathname === '/') pathname = '/index.html';
+
+    // BUG-CLI-03 FIX: مسیریابی امن با path.resolve + path.sep (جلوگیری از directory traversal)
+    // قبلاً از startsWith استفاده می‌کرد که با rootDir مشابه (مثلاً /app/dist-backup) قابل bypass بود.
+    // حالا با path.resolve نرمالایز می‌کنیم و path.sep را برای محدودیت دقیق‌تر اضافه می‌کنیم.
+    const resolvedRoot = path.resolve(rootDir);
+    const resolvedPath = path.resolve(resolvedRoot, pathname.replace(/^\/+/, ''));
+    if (!resolvedPath.startsWith(resolvedRoot + path.sep) && resolvedPath !== resolvedRoot) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
+    fs.readFile(resolvedPath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        res.end('Not Found');
+        return;
+      }
+      const ext = path.extname(resolvedPath).toLowerCase();
+      const mime = mimeTypes[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': mime });
+      res.end(data);
+    });
+  });
+
+  return new Promise((resolve) => {
+    server.listen(port, () => {
+      const address = server.address();
+      if (address === null || typeof address === 'string') {
+        throw new Error('[Zenith Lighthouse] server address unavailable after listen');
+      }
+      const actualPort = address.port;
+      resolve({
+        process: server,
+        url: `http://localhost:${actualPort}`,
+        // #116/DEC-032: هندل tooling برای بستن server تستی — چرخهٔ عمر
+        // کتابخانهٔ مرورگری نیست؛ در گیت cleanup-hygiene allowlist شده.
+        stop: () => server.close(),
+      });
+    });
+  }) as any;
+}
+
+/**
+ * اجرای lighthouse روی یک URL.
+ */
+async function runLighthouse(url: string, options: LighthouseOptions): Promise<any> {
+  let lighthouse: any;
+  try {
+    lighthouse = require('lighthouse').default;
+  } catch {
+    throw new Error(
+      '[Zenith Lighthouse] lighthouse is not installed. Install it with: npm install -D lighthouse',
+    );
+  }
+
+  const chromeFlags = options.chromePath ? [`--chrome-path=${options.chromePath}`] : [];
+
+  const flags = {
+    onlyCategories: ['pwa', 'performance', 'accessibility', 'best-practices', 'seo'],
+    output: 'json',
+    quiet: !options.verbose,
+    chromeFlags: chromeFlags as any,
+  };
+
+  const result = await lighthouse(url, flags);
+  return result;
+}
+
+/**
+ * اجرای lighthouse audit روی یک پوشه.
+ *
+ * @param rootDir پوشه‌ای که باید audit شود (مثل dist).
+ * @param options گزینه‌های audit.
+ * @returns نتیجه‌ی audit.
+ */
+export async function runLighthouseAudit(
+  rootDir: string,
+  options: LighthouseOptions = {},
+): Promise<LighthouseResult> {
+  if (!fs.existsSync(rootDir)) {
+    throw new Error(`[Zenith Lighthouse] Path not found: ${rootDir}`);
+  }
+
+  const stat = fs.statSync(rootDir);
+  if (!stat.isDirectory()) {
+    throw new Error(`[Zenith Lighthouse] Not a directory: ${rootDir}`);
+  }
+
+  // بررسی وجود index.html
+  const indexPath = path.join(rootDir, 'index.html');
+  if (!fs.existsSync(indexPath)) {
+    throw new Error(
+      `[Zenith Lighthouse] index.html not found in ${rootDir}. ` +
+        `Run 'npm run build' first to generate the dist folder.`,
+    );
+  }
+
+  output.line(`[Zenith Lighthouse] Starting static server for: ${rootDir}`);
+  const port = options.port || 0;
+  const server = await startStaticServer(rootDir, port);
+
+  try {
+    output.line(`[Zenith Lighthouse] Server running at: ${server.url}`);
+    output.line(`[Zenith Lighthouse] Running Lighthouse audit...`);
+
+    const lighthouseResult = await runLighthouse(server.url, options);
+    const lhr = lighthouseResult.lhr;
+
+    const pwaScore = Math.round((lhr.categories.pwa?.score || 0) * 100);
+    const performanceScore = Math.round((lhr.categories.performance?.score || 0) * 100);
+    const accessibilityScore = Math.round((lhr.categories.accessibility?.score || 0) * 100);
+    const bestPracticesScore = Math.round((lhr.categories['best-practices']?.score || 0) * 100);
+    const seoScore = Math.round((lhr.categories.seo?.score || 0) * 100);
+
+    // استخراج failed PWA audits
+    const failedAudits: Array<{ id: string; title: string; description: string }> = [];
+    const pwaAuditRefs = lhr.categories.pwa?.auditRefs || [];
+    for (const ref of pwaAuditRefs) {
+      const audit = lhr.audits[ref.id];
+      if (audit && audit.score !== null && audit.score < 1) {
+        failedAudits.push({
+          id: audit.id,
+          title: audit.title,
+          description: audit.description,
+        });
+      }
+    }
+
+    const minScore = options.minScore ?? 90;
+    const passed = !options.ci || pwaScore >= minScore;
+
+    // ذخیره‌ی HTML report
+    const reportPath = path.join(rootDir, 'lighthouse-report.html');
+    if (lighthouseResult.report) {
+      fs.writeFileSync(reportPath, lighthouseResult.report, 'utf-8');
+    }
+
+    return {
+      pwaScore,
+      performanceScore,
+      accessibilityScore,
+      bestPracticesScore,
+      seoScore,
+      failedAudits,
+      passed,
+      reportPath,
+    };
+  } finally {
+    server.stop();
+  }
+}
+
+/**
+ * نمایش نتایج lighthouse audit.
+ */
+export function printLighthouseResult(result: LighthouseResult): void {
+  const COLORS = {
+    red: '\x1b[31m',
+    yellow: '\x1b[33m',
+    green: '\x1b[32m',
+    blue: '\x1b[34m',
+    gray: '\x1b[90m',
+    reset: '\x1b[0m',
+    bold: '\x1b[1m',
+  };
+
+  const scoreColor = (score: number) => {
+    if (score >= 90) return COLORS.green;
+    if (score >= 50) return COLORS.yellow;
+    return COLORS.red;
+  };
+
+  output.line('');
+  output.line(`${COLORS.bold}━━━ Lighthouse Audit Results ━━━${COLORS.reset}`);
+  output.line('');
+  output.line(
+    `  PWA:              ${scoreColor(result.pwaScore)}${result.pwaScore}${COLORS.reset}/100`,
+  );
+  output.line(
+    `  Performance:      ${scoreColor(result.performanceScore)}${result.performanceScore}${COLORS.reset}/100`,
+  );
+  output.line(
+    `  Accessibility:    ${scoreColor(result.accessibilityScore)}${result.accessibilityScore}${COLORS.reset}/100`,
+  );
+  output.line(
+    `  Best Practices:   ${scoreColor(result.bestPracticesScore)}${result.bestPracticesScore}${COLORS.reset}/100`,
+  );
+  output.line(
+    `  SEO:              ${scoreColor(result.seoScore)}${result.seoScore}${COLORS.reset}/100`,
+  );
+  output.line('');
+
+  if (result.failedAudits.length > 0) {
+    output.line(
+      `${COLORS.bold}━━━ Failed PWA Audits (${result.failedAudits.length}) ━━━${COLORS.reset}`,
+    );
+    for (const audit of result.failedAudits) {
+      output.line(`  ${COLORS.red}✗${COLORS.reset} ${audit.title}`);
+      output.line(`    ${COLORS.gray}${audit.description}${COLORS.reset}`);
+    }
+    output.line('');
+  } else {
+    output.line(`${COLORS.green}✓ All PWA audits passed!${COLORS.reset}`);
+    output.line('');
+  }
+
+  if (result.reportPath) {
+    output.line(`${COLORS.gray}HTML report saved to: ${result.reportPath}${COLORS.reset}`);
+    output.line('');
+  }
+
+  if (result.passed) {
+    output.line(`${COLORS.green}✓ Audit passed!${COLORS.reset}`);
+  } else {
+    output.line(`${COLORS.red}✗ Audit failed (PWA score < threshold).${COLORS.reset}`);
+  }
+}

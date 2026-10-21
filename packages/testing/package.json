@@ -1,0 +1,68 @@
+{
+  "name": "@zenith/testing",
+  "version": "1.4.0",
+  "description": "Zenith framework — Testing utilities for signals, effects, and components.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "testing",
+    "vitest",
+    "jest",
+    "unit-test"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/testing"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/mock": "1.5.0",
+    "@zenith/schema": "1.5.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

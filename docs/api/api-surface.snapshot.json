@@ -1,0 +1,9205 @@
+{
+  "@zenith/actions": {
+    "slug": "actions",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "action",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ActionContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionMetadata",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionMiddleware",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionRegistry",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "clearActions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getAction",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getActionMeta",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getDefaultRegistry",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAction",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listActions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerAction",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActionRegistryStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterAction",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/auth": {
+    "slug": "auth",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "auth",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "Auth",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "AUTH_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AuthConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "authConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "authConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AuthEvent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AuthEventListener",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AuthState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AuthTokens",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AuthUser",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "canActivateRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "configureAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "fetchCurrentUser",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FUNCTIONAL_AUTH_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FunctionalAuthConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "functionalAuthConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "functionalAuthConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FunctionalAuthState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getAuthConfig",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAllRoles",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAnyPermission",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAnyRole",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasPermission",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasRole",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "initAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listAuths",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "login",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LoginCredentials",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "logout",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "refreshToken",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "register",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RegisterData",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resolveAuthConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveFunctionalAuthConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RouteGuard",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterAuth",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "User",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/auth-oauth": {
+    "slug": "auth-oauth",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "base64url",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "discover",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DiscoveryDoc",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JwtClaims",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "JwtVerifyOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "oauthAuthAdapter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthClient",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthClientOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthStatus",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthTokens",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OAuthUser",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "parseJwt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pkceChallenge",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthCallback",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthLogin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOAuthLogout",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "randomToken",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveOAuthClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateClaims",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "verifyIdToken",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/cache": {
+    "slug": "cache",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "Cache",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CacheOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CachePolicy",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CachePredicate",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CacheStats",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "EntryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EntryTtl",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EvictReason",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listCaches",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseCacheAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetCachesInternal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setSignalAdapter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SignalAdapter",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterCache",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/charts": {
+    "slug": "charts",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "Chart",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "chartOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ChartRow",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartSeries",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ChartType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createChart",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "prefersReducedMotion",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "processChart",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderChartSvg",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/cli": {
+    "slug": "cli",
+    "target": "node",
+    "exports": [
+      {
+        "name": "getCliVersion",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/cli/program": {
+    "slug": "cli",
+    "subpath": "program",
+    "target": "node",
+    "entry": "src/program.ts",
+    "exports": [
+      {
+        "name": "createProgram",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runCli",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/codemod": {
+    "slug": "codemod",
+    "target": "node",
+    "exports": [
+      {
+        "name": "CodemodError",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "CodemodReport",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FileResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FORM_CREATORS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "isTestFile",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ManualItem",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "resolveTransforms",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runCodemods",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RunCodemodsOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "TextResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "transformById",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TransformId",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TRANSFORMS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "transformText",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/compiler": {
+    "slug": "compiler",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "analyzeTemplateTypes",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "COMPILABLE_DIRECTIVES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "CompiledTemplate",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CompileOptions",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "CompilerOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "compileTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CORE_DIRECTIVES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "generateParityReport",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ParityResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ParityTestContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ParityTestSuite",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "runAllParityTests",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runParityTest",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RUNTIME_DIRECTIVES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "STANDARD_TEST_SUITES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "TemplateStateTypes",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TemplateTypeDiagnostic",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "TemplateTypeIssueKind",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/components": {
+    "slug": "components",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "AsyncProcessChildren",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CacheEntry",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "clearComponentCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ComponentCacheConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ComponentDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "componentRegistry",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "configureComponentCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "escapeHTML",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "loadComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "loadComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "preloadVisibleComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processAsyncComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setComponentRegistryStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterComponent",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/create-zenith": {
+    "slug": "create-zenith",
+    "target": "node",
+    "exports": [
+      {
+        "name": "buildInstallArgs",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CREATE_PACKAGE_MANAGERS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "CreateCLIError",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "CreateHost",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "CreatePackageManager",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CreatePlan",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "CreateResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "detectPackageManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getCreateVersion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseCreateArgs",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runCreate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runGitInit",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runInstall",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SpawnHost",
+        "kind": "interface",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/crud": {
+    "slug": "crud",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "CrudEngine",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "CrudEngineConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getResource",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "processCrud",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerCrudActions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Resource",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/data": {
+    "slug": "data",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "clearFetchCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createInfiniteQuery",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createMutation",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FetchState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getCachedData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "InfiniteQueryController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "InfiniteQueryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "invalidate",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "invalidateFetchCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LegacyInfiniteQueryRest",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LegacyMutationCallbacks",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MutationController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MutationOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "processFetch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processFetchWithCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerInvalidateHook",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setCachedData",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/data-table": {
+    "slug": "data-table",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "ColumnDef",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ColumnFilter",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ColumnSort",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createDataTable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CsvExportOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DataTableApi",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DataTableOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DataTableState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DataTableVirtualWindow",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SortDirection",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/dependency-graph": {
+    "slug": "dependency-graph",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "buildDependencyGraph",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Dependency",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "extractAllDependencies",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "extractDependencies",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasOverlap",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/devtools": {
+    "slug": "devtools",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "cleanupDevtools",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearDependencyGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearRuntimeGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ComponentInfo",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DependencyGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DEVTOOLS_HOOK_VERSION",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DEVTOOLS_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "devtoolsAPI",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DevToolsAPI",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "devtoolsCoreHook",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DevToolsSignalInfo",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DevToolsStateChange",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EffectInfo",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "exposeDevToolsAPI",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getDependencyGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getDevtoolsVersion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRuntimeGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "graph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "GraphEdge",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphEdgeType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphNode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphNodeType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphSnapshot",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "initDevTools",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "installDevtoolsCore",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isDevtoolsHookInstalled",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "markEffectActive",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "markEffectDisposed",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordDomUpdate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "recordPanelStateChange",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordRead",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "recordStateChange",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "recordWrite",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "registerEffect",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerPanelSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerSignal",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "replay",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "restore",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "runtimeGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "RuntimeGraph",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "SignalInfo",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "snapshot",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "StateChange",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "ZenithDevtoolsHook",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/devtools-core": {
+    "slug": "devtools-core",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "assertHookVersion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearDependencyGraph",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "clearDevtoolsRegistry",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "clearDevtoolsRegistryInternal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearRegistry",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearRuntimeGraph",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DependencyGraph",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DEVTOOLS_CORE_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DEVTOOLS_HOOK_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "devtoolsCoreOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DevtoolsCoreOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "devtoolsCoreOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DevtoolsHookEventMap",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "getAllSignals",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getDependencyGraph",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "getRegisteredApps",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRegisteredCaches",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRegisteredStores",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRuntimeGraph",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getSignalInfo",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getStateTimeline",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "getTimeline",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "graph",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "GraphEdge",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphEdgeType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphNode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphNodeType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "GraphSnapshot",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "hook",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "installDevtoolsCore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "nameSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onStateChange",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordDomUpdate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordRead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordStateChange",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recordWrite",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerCache",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "registerDevtoolsCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerDevtoolsStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerStore",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "replay",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveDevtoolsCoreOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "restore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runtimeGraph",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RuntimeGraph",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "SignalInfo",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "snapshot",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Snapshot",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "SnapshotSignalEntry",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "StateChange",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "UntypedSignal",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDevtoolsCoreHook",
+        "kind": "interface",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/error-boundary": {
+    "slug": "error-boundary",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "addReporter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearErrorBoundary",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorBoundaryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorBoundaryRetryOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorReporterOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "errorSignal",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ExternalErrorReport",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ExternalErrorReporter",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorHistory",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processErrorBoundary",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "recoverFromError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "redactPIIValue",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "reportError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetErrorBoundary",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "showFallback",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithErrorInfo",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/errors": {
+    "slug": "errors",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "clearErrorHandlers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearErrorHistory",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "compileMissingImportError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "compileSyntaxError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createReservedError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "deprecate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEPRECATION_CODES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "developerError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "emitError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "EmitErrorInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ERROR_CODE_PATTERN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ERROR_CODE_RANGES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ERROR_MESSAGES_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorCategory",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorCode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorCodeRange",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "errorDocsUrl",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "errorHubGeneration",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorLocale",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorLogSink",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorSeverity",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "expressionSyntaxError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "findClosestMatch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorHistory",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorLocale",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getErrorMessage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "GlobalResetHook",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "isDevMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isErrorRouted",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isZenithError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "jsVmRuntimeError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "jsVmTimeoutError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LEGACY_ERROR_MESSAGES_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "markErrorRouted",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onGlobalReset",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "reportError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RESERVED_ERROR_CODES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ReservedErrorMeta",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "resetDeprecationWarnings",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetErrorHubForTesting",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resourceDestroyedError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resourceHttpError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "routerNavigationAbortedError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runGlobalResets",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "securityError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setDevMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setErrorLocale",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setErrorLogger",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ssrEnvironmentError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toZenithError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "variableNotDefinedError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenForInvalidSyntaxError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenForNoZenKeyError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithError",
+        "kind": "class",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/events": {
+    "slug": "events",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "applyBehaviorModifiers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "applyTimingModifiers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "BUILTIN_MODIFIERS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "checkKeyboardModifiers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearBindingCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearEventModifiers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DELEGATED_EVENTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DelegatedEventName",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DelegationRoot",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EventModifierHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "extractListenerOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getEventModifier",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getLinkNavigationHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasEventModifier",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "initEventDelegation",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "InitEventDelegationOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LinkNavigationHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NON_BUBBLING_EVENTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "parseBinding",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ParsedEventBinding",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PASSIVE_BY_DEFAULT_EVENTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "registerEventModifier",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetPassiveWarnings",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setLinkNavigationHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TimedHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterEventModifier",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/expressions": {
+    "slug": "expressions",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "assertType",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ASTNode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "clearCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearExpressionCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "compile",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "compileExpression",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "configureCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createTypeContext",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "evaluate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "evaluateExpression",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ExpressionType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FORBIDDEN_IDENTIFIERS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FORBIDDEN_PROPERTIES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "getCacheSize",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getCacheStats",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "inferType",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isAssignableTo",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isForbiddenIdentifier",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "lex",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Parser",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeExpression",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Token",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TokenType",
+        "kind": "enum",
+        "tag": "public"
+      },
+      {
+        "name": "TypeCheckResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TypeContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TypeGuards",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "validate",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "validateAst",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateType",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/feature-flags": {
+    "slug": "feature-flags",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "FlagContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Flags",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FlagsOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FlagSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "flagsPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FlagValue",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processFlag",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processFlagVariant",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveFlags",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "stableHashRollout",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/form": {
+    "slug": "form",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "AdvancedFormApi",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AdvancedFormOptions",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "clearCustomRules",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createAdvancedForm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createForm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createFormFromSchema",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createReactiveForm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createWizardForm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineAsyncRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defineRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FieldArrayApi",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FieldState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FieldValidation",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "flattenValues",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FormFieldState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormSchema",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormStore",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "FormStoreState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormValidation",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FormValidationLifecycle",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "fromJsonSchema",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "fromZod",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getAsyncRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getNestedValue",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAsyncRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JsonSchema",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "listAsyncRules",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listRules",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SchemaField",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "schemaToFormConfig",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "schemaToHtml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setNestedValue",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterAsyncRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterRule",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateField",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateFieldAsync",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateForm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateFormAsync",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateWithLifecycle",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateWithZod",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ValidationResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ValidationRule",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Validator",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WizardFormApi",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WizardStep",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZodSchema",
+        "kind": "type",
+        "tag": "deprecated"
+      }
+    ]
+  },
+  "@zenith/http": {
+    "slug": "http",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "addErrorInterceptor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "addRequestInterceptor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "addResponseInterceptor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CACHE_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "CacheConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "cacheConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "cacheConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "cancelAllRequests",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "cancelRequest",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearCache",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "clearHttpCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createRealtime",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createSSE",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createWebSocket",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getHttpConfig",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "http",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "HTTP_REQUEST_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "HttpError",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "HttpProgressEvent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "httpRequest",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "httpRequestOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "HttpRequestOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "httpRequestOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "HttpResponse",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockHttp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeClient",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RealtimeStatus",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "request",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveCacheConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveHttpRequestOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveRetryConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RETRY_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RetryConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "retryConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "retryConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "setHttpConfig",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithHttpOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "zenithHttpOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/i18n": {
+    "slug": "i18n",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "__resetActiveI18n",
+        "kind": "function",
+        "tag": "internal"
+      },
+      {
+        "name": "addDaysJalali",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "applyDocumentDirection",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "bindI18nToApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CalendarName",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "clearSsrI18nData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "compareJalali",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "createI18n",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createI18nDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DetectContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "detectLocale",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DetectSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "detectTextDirection",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "escapeHtmlStrict",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatCurrency",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatDateTime",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FormatHooks",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "formatJalali",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "formatList",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatLocaleNumber",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatNumber",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatPrice",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatRelativeTime",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "fromJalali",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "getDirection",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "I18n",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18N_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "I18nDirectiveBindContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18nDirectiveDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18nDirectiveOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "I18nOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "i18nOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "I18nParams",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "i18nPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "i18nStateGlobals",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "icuInvalid",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isJalaliLeap",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "isolateBidi",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isRTL",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "jalaliMonthDays",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "jalaliMonthName",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "jalaliNow",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "languageOf",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LOGICAL_CSS_MAP",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "Messages",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MissingStrategy",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NumberingSystem",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "parseJalaliParts",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "readSsrI18nData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "regionOf",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveHorizontalStep",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveI18nOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RTL_LOCALES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SsrI18nData",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TCallOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "toArabicNums",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toJalali",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "toLogicalCss",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toPersianNums",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useI18n",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/icons": {
+    "slug": "icons",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "BASIC_ICONS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineIconSet",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "IconDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "IconSet",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "listIcons",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerIcons",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderIcon",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeIconBody",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterIcon",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/jalali": {
+    "slug": "jalali",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "addDays",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "addMonths",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "addYears",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "compareJalali",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "diffDays",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatJalali",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "fromJalaliParts",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "gregorianToJalali",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isLeap",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isValidJalali",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JalaliNameStyle",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "jalaliNow",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JalaliOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "JalaliParts",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "JalaliTimeZone",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "jalaliToGregorian",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MONTH_NAMES_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "MONTH_NAMES_FA",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "monthDays",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "monthName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseJalali",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toArabicDigits",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toJalaliParts",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toLatinDigits",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toPersianDigits",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "WEEKDAY_NAMES_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "WEEKDAY_NAMES_FA",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "WEEKDAY_SHORT_EN",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "WEEKDAY_SHORT_FA",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "weekdayIndexFromJdn",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "weekdayName",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/language-server": {
+    "slug": "language-server",
+    "target": "node",
+    "exports": [
+      {
+        "name": "analyzeZenithDocument",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "attachStdioTransport",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "closestDirectiveName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "codeActionsFor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "completeAt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "completeDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "completeSignals",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "computeDiagnostics",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createDocumentStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createLspMessageBuffer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createServerLifecycle",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createZenithLanguageServer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createZenithServerCore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "decodeLspMessages",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "decodeSemanticTokens",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEPRECATED_IDENTIFIER_RENAMES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "describeDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "directiveBaseName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "directiveKindOf",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "documentLinks",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "documentSymbols",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "encodeLspMessage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "findSignalDefinition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "findSignalReferences",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "findSignalReferencesInDocuments",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "foldingRanges",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "formatDocument",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hoverAt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isKnownDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "JsonRpcNotification",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "JsonRpcRequest",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "JsonRpcResponse",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "KNOWN_DIRECTIVES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "listKnownDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_COMPLETION_ITEM_KIND",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_DIAGNOSTIC_SEVERITY",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_DIAGNOSTIC_TAG",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_ERROR_CODES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_METHODS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_SEMANTIC_TOKENS_LEGEND",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LSP_SYMBOL_KIND",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "LspCodeAction",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspCompletionItem",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspCompletionItemKind",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LspDiagnostic",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspDiagnosticSeverity",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LspDiagnosticTag",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LspDocumentLink",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspDocumentSymbol",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspDocumentUri",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LspFoldingRange",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspFormattingOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspHover",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspInitializeResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspLocation",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspMarkupContent",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspMessageBuffer",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "lspOffsetAt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LspPosition",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "lspPositionAt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "LspPublishDiagnosticsParams",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspRange",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspReferenceContext",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspSemanticTokens",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspSemanticTokensLegend",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspServerCapabilities",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspStdioTransport",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspSymbolKind",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LspTextDocumentItem",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspTextDocumentPositionParams",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspTextEdit",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "LspVersionedTextDocumentIdentifier",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "renameSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "scanSignalOccurrences",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "scanZenithAttributes",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "semanticTokensFor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "signalNameAt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "signalReferenceAtPosition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithAttributeScan",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDecodedSemanticToken",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDiagnosticData",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDiagnosticsOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDirectiveInfo",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDirectiveKind",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDocumentAnalysis",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDocumentStore",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithFormatOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithGrepMatch",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithLanguageServer",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithLanguageServerCore",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithLanguageServerOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithRenameOutcome",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithSignalOccurrence",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithStdioTransportOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithTextDocument",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithTextDocumentChange",
+        "kind": "interface",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/logger": {
+    "slug": "logger",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "addSink",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "beaconSink",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "bufferSink",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "BufferSink",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "BufferSinkOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "consoleSink",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ConsoleSinkOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createLogger",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "deprecate",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "FullLogger",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LogEntry",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LogFormat",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "logger",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Logger",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LoggerOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LogLevel",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LogRecordLevel",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "LogSink",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "OnceOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "setLogLevel",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "warnDeprecated",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "warnOnce",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/notifications": {
+    "slug": "notifications",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "alert",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "AlertOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "autoDismissRemaining",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearAllNotifications",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "confirm",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "ConfirmOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createDialogFocusTrap",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DialogFocusTrap",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DialogFocusTrapOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DialogHandle",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "dismissNotification",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getNotificationDefaults",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getNotificationsByPosition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getQueuedNotifications",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getVisibleNotifications",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "handleNotifyDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isAutoDismissPaused",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Notification",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NotificationPosition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "notificationsAPI",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "NotificationType",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "notify",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "NotifyOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "openDialog",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pauseAutoDismiss",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderAccessibleDialog",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderAccessibleToast",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetNotificationsInternal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resumeAutoDismiss",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setNotificationDefaults",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "showAlert",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "showConfirm",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toasts",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/permission": {
+    "slug": "permission",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "can",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearPermissionManagers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createGuard",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "deepFreeze",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listPermissionManagers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PermissionManager",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "PermissionState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "processPermission",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processRole",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "requirePermission",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "requireRole",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterPermissionManager",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/resource": {
+    "slug": "resource",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "clearResources",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CrudOperation",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "CrudResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "invalidate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "invalidateAllResources",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listResources",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetResourceRegistry",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Resource",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "ResourceConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ResourceState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterResource",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/router": {
+    "slug": "router",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "afterEach",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "announceRouteChange",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "beforeEach",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "cleanupRouter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearRouteCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineRoutes",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "findMatchingRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "installPopstateListener",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "installRouteAnnouncer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "matchRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "navigate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "NavigateOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NavigationAfterHook",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "NavigationGuard",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "prefetchRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processRouter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerRouterCleanup",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Route",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RouteAnnouncerOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RouteContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "routeSignal",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RouteState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "runWithRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runWithRouteSync",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ScrollBehaviorFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ScrollPosition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "setRouteParams",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setScrollBehavior",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "syncActiveRouteLinks",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useRoute",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/runtime": {
+    "slug": "runtime",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "ActionContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionMetadata",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ActionRegistry",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "AllZenithAttributes",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsEvent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsInstance",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnalyticsProvider",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "APP_OPTIONS_DEFAULTS",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "appOptions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "appOptionsSchema",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "assertCompatible",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "assertParity",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "auth",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "AuthTokens",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "batch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "beaconProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "BindContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "canActivateRoute",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "cleanupDevtools",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearActions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearComponents",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearCustomDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearErrorBoundary",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearParityWarnings",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "computePosition",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "configureAnalytics",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "configureAuth",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "consoleProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "countHydrationMarkers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createAnalytics",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createFocusTrap",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createHydrator",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createInjectionKey",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createRovingTabindex",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "CustomDirectiveHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "defaultApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirective",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "effect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "errorSignal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "fetchCurrentUser",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "FetchState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "findMatchingRoute",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "flushSync",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "FunctionalAuthConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "FunctionalAuthState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getAction",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getActionMeta",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getCustomDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getDefaultRegistry",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getDevtoolsVersion",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "gtagProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasAction",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasAllRoles",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasAnyPermission",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasAnyRole",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasCustomDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasHydrationMarkers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasPendingEffects",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasPermission",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hasRole",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateBind",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateBindExpr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateHtml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateHtmlExpr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateHtmlTrusted",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateIf",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateModel",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateShow",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateShowExpr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateText",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hydrateTextExpr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationMismatch",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Hydrator",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "initAuth",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "initDevTools",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "initEventDelegation",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "inject",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "InjectionKey",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "isComponent",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isDevtoolsHookInstalled",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isStrictParityEnabled",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listActions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "loadComponents",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "lockScroll",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "login",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "LoginCredentials",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "logout",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "matchRoute",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "navigate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onMount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUnmount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUpdate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "parseBinding",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "pendingEffectCount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "pendingEffectsByPriority",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "PerfMeasure",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "plausibleProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Priority",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "processCloak",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processDatePicker",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processErrorBoundary",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "processFetch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "processHtmlTrusted",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processIntersection",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processIsland",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processMemo",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processOptimistic",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processPersist",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processPortal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processRef",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processStatefulButton",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processTrack",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processVirtualRepeat",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "provide",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "recoverFromError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "refreshToken",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "register",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "registerAction",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "registerComponent",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "registerCustomDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RegisterData",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "reportError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "reportParityDivergence",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetDefaultAppForTesting",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "resolveAppOptions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ResolvedAppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resolveZenStartOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RouteGuard",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "routeSignal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "RouteState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "RuntimeCorePlugin",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTML",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTMLTrusted",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTMLWithOptions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "SanitizeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "scheduleEffect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setActionRegistryStore",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setComponentRegistryStore",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setRouteParams",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setRouteSignalProvider",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setStrictParity",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "showFallback",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "SsrContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterAction",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterComponent",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterCustomDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "useId",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "User",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "walkAndBind",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Zen",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZEN_START_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenBindAttribute",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithAttributes",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithDevtoolsHook",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithError",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithPlugin",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenPerf",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenStartOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenStartOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenStartOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/runtime-core": {
+    "slug": "runtime-core",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "App",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "APP_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "appOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "appOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AppSsrOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "assertCompatible",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "BindContext",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "computePosition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ComputePositionOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createFocusTrap",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createInjectionKey",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createRovingTabindex",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defaultApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveDefinition",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FocusTrap",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "FocusTrapOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationMismatch",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "inject",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "InjectionKey",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "lockScroll",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onMount",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onUnmount",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onUpdate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Plugin",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "PluginEntry",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "provide",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetDefaultAppForTesting",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveAppOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ResolvedAppOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "SsrContext",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "useApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useId",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_RUNTIME_CORE_VERSION",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/scheduler": {
+    "slug": "scheduler",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "afterFlush",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearScheduler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "configureScheduler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "flushSync",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getSchedulerHooks",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasPendingEffects",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "nextTick",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pendingEffectCount",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pendingEffectsByPriority",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Priority",
+        "kind": "enum",
+        "tag": "public"
+      },
+      {
+        "name": "PriorityInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "registerSchedulerInstance",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetSchedulerInstanceTrackingForTesting",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "schedule",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "scheduleEffect",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "scheduleMicrotask",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SchedulerAdapter",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SchedulerHooks",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "setEffectDisposal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setSchedulerHooks",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/schema": {
+    "slug": "schema",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirectiveMeta",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DefinedOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "defineOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveMeta",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "fromJsonSchema",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getRegisteredDirectiveMetas",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HtmlCustomData",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Infer",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "isSchemaNode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Issue",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "IssueCode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "JsonSchema",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "parseConfigAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ResolvedValidateOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "s",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SafeResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "safeValidate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Schema",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SchemaKind",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SchemaNode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "setSchemaWarnReporter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ShapeOf",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "toDirectiveManifest",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toHtmlCustomData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toJsonSchema",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ValidateMode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ValidateOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WarnReporter",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithMetaDoc",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/schema/zod": {
+    "slug": "schema",
+    "subpath": "zod",
+    "target": "universal",
+    "entry": "src/zod.ts",
+    "exports": [
+      {
+        "name": "fromZod",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateWithZod",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZodLike",
+        "kind": "interface",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/schema/json-schema": {
+    "slug": "schema",
+    "subpath": "json-schema",
+    "target": "universal",
+    "entry": "src/json-schema.ts",
+    "exports": [
+      {
+        "name": "fromJsonSchema",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toJsonSchema",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/schema/attr": {
+    "slug": "schema",
+    "subpath": "attr",
+    "target": "universal",
+    "entry": "src/attr.ts",
+    "exports": [
+      {
+        "name": "parseConfigAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseJsonAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ParseJsonAttrOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "parseJsonValue",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/security": {
+    "slug": "security",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createTrustedTypesPolicy",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CSPOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "generateCSP",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetTrustedTypesPolicyCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeCSS",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTML",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTMLTrusted",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "sanitizeHTMLWithOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SanitizeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "secureId",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setSafeInnerHTML",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/service-worker": {
+    "slug": "service-worker",
+    "target": "worker",
+    "exports": [
+      {
+        "name": "CACHE_STRATEGIES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "createKillSwitchScript",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "REGISTER_SW_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "registerSW",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerSWOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RegisterSWOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "registerSWOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveRegisterSWOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveRouteConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveSWConfig",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ROUTE_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "RouteConfig",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "routeConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "routeConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SW_CONFIG_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SWConfig",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "swConfigOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "swConfigSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SWController",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterSW",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "UnregisterSWOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "updateSW",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenithSWPlugin",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/shared": {
+    "slug": "shared",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "Cleanup",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createDisposer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createId",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defineDefaults",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Disposable",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Disposer",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "hasDOM",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasWindow",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "invariant",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "InvariantFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "isReadable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isServer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MaybeReactive",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mergeOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseBooleanAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseDuration",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseNumberAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "prefersReducedMotion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Readable",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resetIdCounter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "secureId",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "toValue",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithGlobals",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/ssr": {
+    "slug": "ssr",
+    "target": "node",
+    "exports": [
+      {
+        "name": "AsyncContextStore",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "calculateChecksum",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearHydrationData",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearServerComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearSSRTemplateCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createAsyncContextStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createCloudflareHandler",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "createDenoHandler",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "createFetchHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createNodeHandler",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defineStaticRoutes",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "deserializeState",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "deserializeStateFromString",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "domAls",
+        "kind": "const",
+        "tag": "internal"
+      },
+      {
+        "name": "DOMGlobals",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "generateFullPage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "generateHydrationScript",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "generateRobotsTxt",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "generateSitemapXml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getDOMGlobals",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getEnvironment",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getSSRRuntimeEnv",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getSSRTemplateCacheStats",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HeadManager",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "injectState",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "inlineServerComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "installDOMGlobalGetters",
+        "kind": "function",
+        "tag": "internal"
+      },
+      {
+        "name": "isAsyncLocalStorageAvailable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isHydrationMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isServer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listServerComponents",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "loadPreloadedState",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "makeCloseMarker",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "makeOpenMarker",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "prerender",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderArtifacts",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PrerenderReport",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "registerServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RenderOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "renderServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderSSRHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderToReadableStream",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderToStream",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderToString",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RouterLikeRoute",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "runOnClient",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runOnServer",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "serializeState",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SERVER_COMPONENT_CLOSE_PREFIX",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SERVER_COMPONENT_OPEN_PREFIX",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ServerComponent",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRAdapterOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRHeadInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRI18nInput",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SSRResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "StaticRouteDef",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StreamChunk",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StreamOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "titleFromRoute",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterServerComponent",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useHead",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateHydration",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateHydrationChecksum",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/state": {
+    "slug": "state",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "AsyncComputeContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "asyncComputed",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AsyncOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AsyncSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "batch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearErrorHistory",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "clearRegistry",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "computed",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Computed",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "createAsync",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createOwner",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createRoot",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "disposeOwner",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "effect",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "EffectContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EffectFn",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "EffectOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "emitError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "errorBoundary",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "ErrorCategory",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorHandler",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ErrorSeverity",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getAllSignals",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "getCurrentPriority",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getEffectPriority",
+        "kind": "function",
+        "tag": "internal"
+      },
+      {
+        "name": "getErrorHistory",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getOwner",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getSignalInfo",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "getSignalObserver",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getStateTimeline",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "isDevMode",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isReadable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isWritable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MaybeSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "nameSignal",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "onCleanup",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onEffectError",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onStateChange",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "Owner",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "Priority",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Readable",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ReadonlySignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "recordStateChange",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "registerSignal",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "registerStateInstance",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resetErrorHubForTesting",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "resetStateInstanceTrackingForTesting",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setCurrentPriority",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setDevMode",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setEffectContextStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setErrorLogger",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "setOwner",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setSignalObserver",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Signal",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "SignalInfo",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "SignalObserver",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StateChange",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "untrack",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "watch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "WatchCallback",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchCleanupRegistrar",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_READABLE",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithError",
+        "kind": "type",
+        "tag": "deprecated"
+      }
+    ]
+  },
+  "@zenith/stateful": {
+    "slug": "stateful",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "installStatefulComponents",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "processActionButton",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processAuthView",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processResourceView",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithStatefulPlugin",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/storage": {
+    "slug": "storage",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "buildCookieString",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "cookieDriver",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "CookieOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createStorage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DataValidator",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "driverByName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DriverName",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "getDefaultStorage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "IDBOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "indexedDBDriver",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "IndexedDBDriver",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "isStorageAvailable",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "localDriver",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "memoryDriver",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parsePersistAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PersistConfig",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "PersistOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "persistStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PersistTarget",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "QuotaPolicy",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resetDefaultStorage",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Serializer",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "sessionDriver",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "SetOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorageDriver",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorageEventPayload",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorageOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorageRecord",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorageSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SyncBus",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithStorage",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/storage/signal": {
+    "slug": "storage",
+    "subpath": "signal",
+    "target": "universal",
+    "entry": "src/signal.ts",
+    "exports": [
+      {
+        "name": "createStorageSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "StoredSignalOptions",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/store": {
+    "slug": "store",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "clearStores",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "defineStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listStores",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "persistStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "registerStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Store",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StoreActionContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StoreContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StoreDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorePersistOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorePersistStorage",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "StorePlugin",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "unregisterStore",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useStorePlugin",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/suspense": {
+    "slug": "suspense",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createSuspense",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createSuspenseContext",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "processSuspense",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "SuspenseContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SuspenseContextOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SuspenseController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SuspenseOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "SuspenseState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "trackPromise",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TrackPromiseOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "withTimeout",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "WithTimeoutOptions",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/templates": {
+    "slug": "templates",
+    "target": "node",
+    "exports": [
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "dependencyVersion",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getTemplateManifest",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "gitignoreTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "indexHtmlTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "listTemplateFiles",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "mainTsTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MAX_PROJECT_NAME_LENGTH",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "packageJsonTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pwaMainTsTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pwaManifestTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pwaReadmeTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pwaServiceWorkerTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "pwaViteConfigTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "readmeTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "renderTemplateFile",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ScaffoldError",
+        "kind": "class",
+        "tag": "public"
+      },
+      {
+        "name": "ScaffoldHost",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ScaffoldOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "scaffoldProject",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ScaffoldResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "TEMPLATE_KINDS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "TEMPLATE_PACKAGE_VERSIONS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "tsConfigTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "validateProjectName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "viteConfigTemplate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithTemplateKind",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/testing": {
+    "slug": "testing",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "A11yAuditOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "A11yAuditResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "A11yImpact",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "A11yViolation",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "auditAccessibility",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createMockResource",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createMockSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createTestHarness",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveTestResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "expectAccessible",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "expectSignal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "FakeTimersController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockFetch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "mockHttp",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "MockHttpCall",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MockHttpController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "MockResource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "mockRouter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "MockRouterController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "registerTestingReset",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "render",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "RenderResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "resetForTesting",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "testDirective",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TestHarness",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TrackedEffect",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "trackEffect",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "useFakeTimers",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "waitFor",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenithMatchers",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/theme": {
+    "slug": "theme",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "createTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "getActiveTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processDir",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processThemeMode",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "processThemeToggle",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "resolveThemeOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "setActiveTheme",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "Theme",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeDir",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "themeInitScript",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeMode",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "themeOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "themePlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ThemeTokenSet",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/transition": {
+    "slug": "transition",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "animate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ANIMATE_PRESETS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "AnimateCallOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AnimateDirectionOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "animateEnter",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "animateGroup",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "animateLeave",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "cancelTransition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "createTransition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "enterTransition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "isTransitioning",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "leaveTransition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "parseAnimateAttr",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ParsedAnimateAttr",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "prefersReducedMotion",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "processAnimate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "runRouteTransition",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TRANSITION_NAMES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "TransitionClasses",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TransitionController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TransitionDirection",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TransitionOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "TransitionRun",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "validateEasing",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenAnimate",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "ZenAnimateConfig",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith": {
+    "slug": "unplugin-zenith",
+    "target": "node",
+    "exports": [
+      {
+        "name": "analyzeHtml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "assertPortableOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "clearCompileCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "COMPILE_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "compileOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "CompileOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "compileOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "CoreHooks",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "createCoreHooks",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getCompileCacheStats",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "getModuleName",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "globToRegex",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasZenithDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "HtmlSourceMap",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "PLUGIN_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveCompileOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveUnpluginOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "transformHtml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "TransformResult",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "unplugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "UNPLUGIN_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "unpluginOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "unpluginOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "VitePluginCompileOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenithEsbuild",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithEsbuildDefault",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithMetaRecord",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenithRollup",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithRollupDefault",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "zenithRspack",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithRspackDefault",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "zenithUnplugin",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithUnpluginOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenithVite",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenithViteDefault",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "zenithWebpack",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithWebpackDefault",
+        "kind": "value",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith/vite": {
+    "slug": "unplugin-zenith",
+    "subpath": "vite",
+    "target": "node",
+    "entry": "src/vite.ts",
+    "exports": [
+      {
+        "name": "PLUGIN_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithVite",
+        "kind": "function",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith/rollup": {
+    "slug": "unplugin-zenith",
+    "subpath": "rollup",
+    "target": "node",
+    "entry": "src/rollup.ts",
+    "exports": [
+      {
+        "name": "zenithRollup",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith/webpack": {
+    "slug": "unplugin-zenith",
+    "subpath": "webpack",
+    "target": "node",
+    "entry": "src/webpack.ts",
+    "exports": [
+      {
+        "name": "zenithWebpack",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith/esbuild": {
+    "slug": "unplugin-zenith",
+    "subpath": "esbuild",
+    "target": "node",
+    "entry": "src/esbuild.ts",
+    "exports": [
+      {
+        "name": "zenithEsbuild",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/unplugin-zenith/rspack": {
+    "slug": "unplugin-zenith",
+    "subpath": "rspack",
+    "target": "node",
+    "entry": "src/rspack.ts",
+    "exports": [
+      {
+        "name": "zenithRspack",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/virtual-list": {
+    "slug": "virtual-list",
+    "target": "browser",
+    "exports": [
+      {
+        "name": "createVirtualList",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "processVirtualList",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "ScrollAlignment",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ScrollInfo",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualItem",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualItemSize",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualListApi",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualListConfig",
+        "kind": "type",
+        "tag": "deprecated"
+      },
+      {
+        "name": "virtualListConfigToOptions",
+        "kind": "function",
+        "tag": "deprecated"
+      },
+      {
+        "name": "VirtualListController",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualListDirection",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualListOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualListState",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "VirtualRange",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "@zenith/vite-plugin": {
+    "slug": "vite-plugin",
+    "target": "node",
+    "exports": [
+      {
+        "name": "clearCompileCache",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "COMPILE_OPTIONS_DEFAULTS",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "compileOptions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "CompileOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "compileOptionsSchema",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "getCompileCacheStats",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "hasZenithDirectives",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "PLUGIN_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resolveCompileOptions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "resolveZenithPluginOptions",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "transformHtml",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "VitePluginCompileOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_PLUGIN_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "zenithPlugin",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "zenithPluginOptions",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithPluginOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "zenithPluginOptionsSchema",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith": {
+    "slug": "zenith",
+    "target": "universal",
+    "exports": [
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "APP_OPTIONS_DEFAULTS",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "assertCompatible",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "batch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "BindContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createZenith",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirective",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "effect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "flushSync",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "fullPreset",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationMismatch",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "inject",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isReadable",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isWritable",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "LOCKSTEP_PACKAGES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "MaybeSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "minimalPreset",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onMount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUnmount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUpdate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Plugin",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "provide",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ReadonlySignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "scheduleEffect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "spaPreset",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "untrack",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "useApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "watch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "WatchOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_OPTIONS_DEFAULTS",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_RUNTIME_CORE_VERSION",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_VERSION",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithError",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithOptions",
+        "kind": "interface",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithPresetName",
+        "kind": "type",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith/core": {
+    "slug": "zenith",
+    "subpath": "core",
+    "target": "universal",
+    "entry": "src/core.ts",
+    "reexports": [
+      "@zenith/runtime-core",
+      "@zenith/state",
+      "@zenith/scheduler"
+    ],
+    "exports": [
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "APP_OPTIONS_DEFAULTS",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "appOptionsSchema",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "assertCompatible",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "batch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "BindContext",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirective",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "DirectiveDefinition",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "effect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "flushSync",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationMismatch",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "HydrationResult",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "inject",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isReadable",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "isWritable",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "MaybeSignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "onMount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUnmount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUpdate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Plugin",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "provide",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ReadonlySignal",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "scheduleEffect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "Signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "untrack",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "useApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "watch",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "WatchOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "WatchSource",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "ZENITH_RUNTIME_CORE_VERSION",
+        "kind": "value",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith/ssr": {
+    "slug": "zenith",
+    "subpath": "ssr",
+    "target": "universal",
+    "entry": "src/ssr.ts",
+    "reexports": [
+      "@zenith/ssr"
+    ],
+    "exports": []
+  },
+  "zenith/testing": {
+    "slug": "zenith",
+    "subpath": "testing",
+    "target": "universal",
+    "entry": "src/testing.ts",
+    "reexports": [
+      "@zenith/testing"
+    ],
+    "exports": []
+  },
+  "zenith/presets/minimal": {
+    "slug": "zenith",
+    "subpath": "presets/minimal",
+    "target": "universal",
+    "entry": "src/presets/minimal.ts",
+    "exports": [
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createMinimalApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "events",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "minimalPreset",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "PRESET_MINIMAL_MODULES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "security",
+        "kind": "value",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith/presets/spa": {
+    "slug": "zenith",
+    "subpath": "presets/spa",
+    "target": "universal",
+    "entry": "src/presets/spa.ts",
+    "exports": [
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createSpaApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "errorBoundary",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "form",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "http",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "i18n",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "minimalPreset",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "notifications",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "PRESET_SPA_MODULES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "resource",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "router",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "spaPreset",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "store",
+        "kind": "value",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith/presets/full": {
+    "slug": "zenith",
+    "subpath": "presets/full",
+    "target": "universal",
+    "entry": "src/presets/full.ts",
+    "exports": [
+      {
+        "name": "actions",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "App",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "AppOptions",
+        "kind": "type",
+        "tag": "public"
+      },
+      {
+        "name": "auth",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "cache",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "components",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createFullApp",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "fullPreset",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "jalali",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "PRESET_FULL_MODULES",
+        "kind": "const",
+        "tag": "public"
+      },
+      {
+        "name": "spaPreset",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "storage",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "suspense",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "transition",
+        "kind": "value",
+        "tag": "public"
+      }
+    ]
+  },
+  "zenith/browser": {
+    "slug": "zenith",
+    "subpath": "browser",
+    "target": "universal",
+    "entry": "src/browser.ts",
+    "exports": [
+      {
+        "name": "assertCompatible",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "batch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "computed",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "createApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "defineDirective",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "definePlugin",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "effect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "flushSync",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "hydrate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "inject",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "installBrowserGlobal",
+        "kind": "function",
+        "tag": "public"
+      },
+      {
+        "name": "onMount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUnmount",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "onUpdate",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "provide",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "scheduleEffect",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "signal",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "startFromSSR",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "untrack",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "useApp",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "watch",
+        "kind": "value",
+        "tag": "public"
+      },
+      {
+        "name": "ZenithBrowser",
+        "kind": "const",
+        "tag": "public"
+      }
+    ]
+  }
+}

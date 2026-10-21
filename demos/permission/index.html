@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Permission (RBAC)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    button.active { background: var(--accent); border-color: var(--accent); color: white; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 240px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin: 8px 0; }
+    .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .alert-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; margin: 2px; direction: ltr; }
+    .role-admin { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .role-editor { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .role-user { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+    .role-super-admin { background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(168, 85, 247, 0.3)); color: #f472b6; }
+    .role-verified { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .role-guest { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+    .perm-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-family: ui-monospace, monospace; margin: 2px; background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); direction: ltr; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .directive-demo { padding: 14px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
+    .fallback-msg { color: var(--warning); font-size: 0.85rem; font-style: italic; padding: 8px 12px; background: rgba(245, 158, 11, 0.05); border-radius: 6px; border: 1px dashed rgba(245, 158, 11, 0.3); }
+    .guard-result { padding: 10px 14px; border-radius: 8px; font-family: ui-monospace, monospace; direction: ltr; text-align: left; }
+    .guard-pass { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+    .guard-fail { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>👥 <span class="gradient">Permission (RBAC)</span></h1>
+    <p class="subtitle">Role-Based Access Control با super-admin، expression syntax <code>any:</code> و <code>all:</code></p>
+    <div class="badges">
+      <span class="badge">PermissionManager</span>
+      <span class="badge">RBAC</span>
+      <span class="badge">zen-role</span>
+      <span class="badge">zen-permission</span>
+      <span class="badge">any:/all:</span>
+      <span class="badge">super-admin-bypass</span>
+      <span class="badge">createGuard</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── ۱. Role switching UI ──── -->
+      <div class="card">
+        <h2>۱. تعویض نقش کاربر</h2>
+        <p class="desc">با <code>pm.setUserAccess(roles, permissions)</code> دسترسی‌های کاربر فعلی را تنظیم کنید. در بخش‌های پایین، محتوای واکنش‌گرا به نقش شما تغییر می‌کند.</p>
+        <div class="row">
+          <button zen-action="switchGuest" zen-bind:class="{ active: !$pm.isSuperAdmin && $pm.roles.length === 0 }">Guest (بدون نقش)</button>
+          <button zen-action="switchUser" zen-bind:class="{ active: $pm.roles.length === 1 && $pm.roles[0] === 'user' }">User</button>
+          <button zen-action="switchEditor" zen-bind:class="{ active: $pm.roles.length === 1 && $pm.roles[0] === 'editor' }">Editor</button>
+          <button zen-action="switchAdmin" zen-bind:class="{ active: $pm.roles.includes('admin') && !$pm.isSuperAdmin }">Admin</button>
+          <button class="primary" zen-action="switchSuperAdmin" zen-bind:class="{ active: $pm.isSuperAdmin }">Super-Admin</button>
+        </div>
+      </div>
+
+      <!-- ──── ۲. Live status ──── -->
+      <div class="card">
+        <h2>۲. وضعیت زنده‌ی دسترسی‌ها</h2>
+        <p class="desc"><code>pm.signal</code> شامل <code>roles</code>، <code>permissions</code> و <code>isSuperAdmin</code> است.</p>
+        <div class="row" style="margin-bottom: 10px;">
+          <span class="stat">isSuperAdmin: <strong zen-text="$pm.isSuperAdmin"></strong></span>
+          <span class="stat">roles count: <strong zen-text="$pm.roles.length"></strong></span>
+          <span class="stat">permissions count: <strong zen-text="$pm.permissions.length"></strong></span>
+        </div>
+        <div style="margin-bottom: 6px; color: var(--text-secondary); font-size: 0.82rem;">Roles:</div>
+        <div id="rolesBadges" style="margin-bottom: 10px;"></div>
+        <div style="margin-bottom: 6px; color: var(--text-secondary); font-size: 0.82rem;">Permissions:</div>
+        <div id="permsBadges"></div>
+      </div>
+
+      <!-- ──── ۳. zen-role directive (basic) ──── -->
+      <div class="card">
+        <h2>۳. دایرکتیو <code>zen-role="admin"</code></h2>
+        <p class="desc">این بخش فقط وقتی نمایش داده می‌شود که کاربر نقش <code>admin</code> داشته باشد (یا super-admin باشد).</p>
+        <div class="directive-demo" zen-role="admin">
+          <strong>✅ پنل مدیریت</strong>
+          <p style="margin-top:6px; color: var(--text-secondary); font-size: 0.85rem;">این محتوا فقط برای کاربرانی با نقش admin قابل مشاهده است.</p>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ دسترسی فقط برای ادمین — نقش فعلی شما admin نیست.</div>
+          </template>
+        </div>
+        <pre>&lt;div zen-role="admin"&gt;
+  &lt;!-- محتوای ادمین --&gt;
+  &lt;template zen-fallback&gt;
+    &lt;p&gt;دسترسی فقط برای ادمین&lt;/p&gt;
+  &lt;/template&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۴. zen-role with any: ──── -->
+      <div class="card">
+        <h2>۴. <code>zen-role="any:admin,editor"</code> — حداقل یکی</h2>
+        <p class="desc">این بخش برای کاربرانی که نقش <code>admin</code> <strong>یا</strong> <code>editor</code> داشته باشند نمایش داده می‌شود.</p>
+        <div class="directive-demo" zen-role="any:admin,editor">
+          <strong>✅ بخش ویرایش محتوا</strong>
+          <p style="margin-top:6px; color: var(--text-secondary); font-size: 0.85rem;">این بخش برای ادمین یا ویراستار قابل مشاهده است.</p>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ نیاز به نقش admin یا editor.</div>
+          </template>
+        </div>
+        <pre>&lt;div zen-role="any:admin,editor"&gt;
+  &lt;!-- admin یا editor --&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۵. zen-role with all: ──── -->
+      <div class="card">
+        <h2>۵. <code>zen-role="all:admin,verified"</code> — همه‌ی نقش‌ها</h2>
+        <p class="desc">این بخش فقط برای کاربری که <strong>هم</strong> <code>admin</code> <strong>هم</strong> <code>verified</code> داشته باشد نمایش داده می‌شود. در این دمو، نقش Admin شامل هر دو است.</p>
+        <div class="directive-demo" zen-role="all:admin,verified">
+          <strong>✅ پنل ادمین تایید‌شده</strong>
+          <p style="margin-top:6px; color: var(--text-secondary); font-size: 0.85rem;">این محتوا فقط برای کاربری با نقش‌های admin و verified (هر دو) قابل مشاهده است.</p>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ نیاز به نقش‌های admin و verified (هر دو).</div>
+          </template>
+        </div>
+        <pre>&lt;div zen-role="all:admin,verified"&gt;
+  &lt;!-- admin و verified --&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۶. zen-permission directive ──── -->
+      <div class="card">
+        <h2>۶. دایرکتیو <code>zen-permission="users:delete"</code></h2>
+        <p class="desc">این دکمه فقط برای کاربری که permission <code>users:delete</code> داشته باشد (یا super-admin باشد) نمایش داده می‌شود.</p>
+        <div class="directive-demo" zen-permission="users:delete">
+          <button class="danger" zen-action="deleteUser">🗑️ حذف کاربر</button>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ شما permission users:delete ندارید.</div>
+          </template>
+        </div>
+        <pre>&lt;button zen-permission="users:delete"&gt;حذف کاربر&lt;/button&gt;</pre>
+      </div>
+
+      <!-- ──── ۷. zen-permission with any: ──── -->
+      <div class="card">
+        <h2>۷. <code>zen-permission="any:users:edit,users:create"</code></h2>
+        <p class="desc">این بخش برای کسی که حداقل یکی از <code>users:edit</code> یا <code>users:create</code> را داشته باشد (یا super-admin باشد) نمایش داده می‌شود.</p>
+        <div class="directive-demo" zen-permission="any:users:edit,users:create">
+          <div class="row">
+            <button zen-action="editUser">✏️ ویرایش کاربر</button>
+            <button class="primary" zen-action="createUser">➕ ایجاد کاربر</button>
+          </div>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ نیاز به users:edit یا users:create.</div>
+          </template>
+        </div>
+        <pre>&lt;div zen-permission="any:users:edit,users:create"&gt;
+  &lt;button&gt;ویرایش&lt;/button&gt;
+  &lt;button&gt;ایجاد&lt;/button&gt;
+&lt;/div&gt;</pre>
+      </div>
+
+      <!-- ──── ۸. Super-admin bypass ──── -->
+      <div class="card">
+        <h2>۸. Super-Admin Bypass — همه‌چیز مجاز</h2>
+        <p class="desc">
+          وقتی کاربر نقش <code>super-admin</code> داشته باشد، <strong>تمام</strong> بررسی‌های permission و role بدون توجه به لیست واقعی، <code>true</code> برمی‌گردند.
+          در این دمو، super-admin هیچ permission مستقیمی ندارد اما همه‌چیز برایش مجاز است.
+        </p>
+        <div class="directive-demo" zen-permission="system:format-server">
+          <button class="danger" zen-action="formatServer">💥 فرمت سرور (دسترسی بحرانی)</button>
+          <template zen-fallback>
+            <div class="fallback-msg">⛔ permission system:format-server لازم است.</div>
+          </template>
+        </div>
+        <div class="alert alert-success" zen-if="$pm.isSuperAdmin">
+          ✅ شما super-admin هستید — همه‌ی permission ها (حتی <code>system:format-server</code>) بدون تعریف مجاز هستند.
+        </div>
+        <pre>// در PermissionManager:
+can(permission) {
+  if (state.isSuperAdmin) return true;  // bypass!
+  return state.permissions.includes(permission);
+}
+hasRole(role) {
+  if (state.isSuperAdmin) return true;  // bypass!
+  return state.roles.includes(role);
+}</pre>
+      </div>
+
+      <!-- ──── ۹. Guard function ──── -->
+      <div class="card">
+        <h2>۹. <code>createGuard</code> — حفاظت از Route</h2>
+        <p class="desc">با <code>createGuard('admin:access', 'permission')</code> یک تابع guard ساخته می‌شود که می‌توان آن را قبل از ورود به یک route فراخوانی کرد.</p>
+        <div class="row" style="margin-bottom: 12px;">
+          <span class="stat">guard('admin:access') = <strong id="guardResult1">—</strong></span>
+          <span class="stat">guard('admin' as role) = <strong id="guardResult2">—</strong></span>
+          <span class="stat">guard('super-only' as role) = <strong id="guardResult3">—</strong></span>
+        </div>
+        <pre>import { createGuard } from '@zenith/permission';
+const adminGuard = createGuard('admin:access', 'permission');
+if (!adminGuard()) {
+  Zen.navigate('/login');  // رد کردن
+}</pre>
+      </div>
+
+      <!-- ──── Log ──── -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>PermissionManager</code> با یک Signal از نقش‌ها/دسترسی‌ها نگه می‌دارد.
+          دایرکتیوهای <code>zen-role</code> و <code>zen-permission</code> با expression syntax (پشتیبانی از <code>any:</code> و <code>all:</code>) کار می‌کنند.
+          نقش <code>super-admin</code> به‌صورت خودکار همه‌ی بررسی‌ها را bypass می‌کند.
+          با <code>createGuard</code> می‌توان route guard ساخت.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import {
+      createPermissionManager,
+      createGuard,
+      processPermission,
+      processRole,
+    } from '@zenith/permission';
+
+    // ═══════════════════════════════════════════════════
+    // ۱. ساخت PermissionManager (ثبت در registry با نام 'default')
+    // ═══════════════════════════════════════════════════
+    const pm = createPermissionManager('default', {
+      superAdminRole: 'super-admin',
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۲. تعریف نقش‌های مختلف
+    // ═══════════════════════════════════════════════════
+    const ROLE_PRESETS = {
+      guest:      { roles: [],                  permissions: [] },
+      user:       { roles: ['user'],            permissions: ['users:read', 'posts:read'] },
+      editor:     { roles: ['editor'],          permissions: ['posts:read', 'posts:edit', 'posts:create'] },
+      admin:      { roles: ['admin', 'verified'], permissions: ['users:read', 'users:edit', 'users:create', 'users:delete', 'posts:read', 'posts:edit', 'posts:create', 'posts:delete', 'admin:access'] },
+      superAdmin: { roles: ['super-admin'],     permissions: [] },  // خالی — super-admin خودکار همه‌چیز را دارد
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۳. State
+    // ═══════════════════════════════════════════════════
+    const state = { pm: pm.signal };
+
+    // ═══════════════════════════════════════════════════
+    // ۴. Log زنده
+    // ═══════════════════════════════════════════════════
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 80) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ۵. Actions — تعویض نقش
+    // ═══════════════════════════════════════════════════
+    function switchTo(presetName) {
+      const preset = ROLE_PRESETS[presetName];
+      pm.setUserAccess(preset.roles, preset.permissions);
+      logEvent('setUserAccess', `roles=[${preset.roles.join(',')}], perms=[${preset.permissions.join(',')}], isSuperAdmin=${pm.signal.get().isSuperAdmin}`);
+    }
+    Zen.action('switchGuest',     () => switchTo('guest'));
+    Zen.action('switchUser',      () => switchTo('user'));
+    Zen.action('switchEditor',    () => switchTo('editor'));
+    Zen.action('switchAdmin',     () => switchTo('admin'));
+    Zen.action('switchSuperAdmin',() => switchTo('superAdmin'));
+
+    // Actions برای دکمه‌های نمایشی
+    Zen.action('deleteUser',   () => logEvent('action:deleteUser', 'called (permission verified by directive)'));
+    Zen.action('editUser',     () => logEvent('action:editUser',   'called'));
+    Zen.action('createUser',   () => logEvent('action:createUser', 'called'));
+    Zen.action('formatServer', () => logEvent('action:formatServer', '⚠️  CRITICAL ACTION — only super-admin can do this'));
+
+    // ═══════════════════════════════════════════════════
+    // ۶. شروع فریم‌ورک
+    // ═══════════════════════════════════════════════════
+    Zen.start(document.getElementById('app'), state);
+
+    // ═══════════════════════════════════════════════════
+    // ۷. سیم‌کشی دستی دایرکتیوهای zen-permission و zen-role
+    // (این دایرکتیوها به‌صورت خودکار در runtime walker ثبت نشده‌اند،
+    //  پس از processPermission / processRole مستقیم استفاده می‌کنیم.)
+    // ═══════════════════════════════════════════════════
+    const customDisposes = [];
+    function wireCustomDirectives(root) {
+      // zen-permission
+      root.querySelectorAll('[zen-permission]').forEach(el => {
+        const expr = el.getAttribute('zen-permission');
+        el.removeAttribute('zen-permission');
+        const d = processPermission(el, expr);
+        customDisposes.push(d);
+      });
+      // zen-role
+      root.querySelectorAll('[zen-role]').forEach(el => {
+        const expr = el.getAttribute('zen-role');
+        el.removeAttribute('zen-role');
+        const d = processRole(el, expr);
+        customDisposes.push(d);
+      });
+    }
+    wireCustomDirectives(document.getElementById('app'));
+
+    // ═══════════════════════════════════════════════════
+    // ۸. Effects: نمایش زنده‌ی roles/permissions + guard ها
+    // ═══════════════════════════════════════════════════
+    const rolesBadgesEl = document.getElementById('rolesBadges');
+    const permsBadgesEl = document.getElementById('permsBadges');
+
+    effect(() => {
+      const s = pm.signal.get();
+      rolesBadgesEl.innerHTML = '';
+      if (s.roles.length === 0) {
+        const span = document.createElement('span');
+        span.className = 'role-badge role-guest';
+        span.textContent = '(no roles)';
+        rolesBadgesEl.appendChild(span);
+      } else {
+        for (const role of s.roles) {
+          const span = document.createElement('span');
+          const cls = 'role-' + role.replace(/[^a-zA-Z-]/g, '');
+          span.className = 'role-badge ' + (cls || 'role-user');
+          span.textContent = role;
+          rolesBadgesEl.appendChild(span);
+        }
+      }
+    });
+
+    effect(() => {
+      const s = pm.signal.get();
+      permsBadgesEl.innerHTML = '';
+      if (s.permissions.length === 0) {
+        const span = document.createElement('span');
+        span.style.color = 'var(--text-muted)';
+        span.style.fontSize = '0.78rem';
+        span.style.fontStyle = 'italic';
+        span.textContent = '(no explicit permissions — ';
+        if (s.isSuperAdmin) {
+          span.textContent += 'super-admin bypass)';
+        } else {
+          span.textContent += 'guest)';
+        }
+        permsBadgesEl.appendChild(span);
+      } else {
+        for (const perm of s.permissions) {
+          const span = document.createElement('span');
+          span.className = 'perm-badge';
+          span.textContent = perm;
+          permsBadgesEl.appendChild(span);
+        }
+      }
+    });
+
+    // Guard functions
+    const adminAccessGuard = createGuard('admin:access', 'permission');
+    const adminRoleGuard   = createGuard('admin', 'role');
+    const superRoleGuard   = createGuard('super-admin', 'role');
+
+    const guardResult1El = document.getElementById('guardResult1');
+    const guardResult2El = document.getElementById('guardResult2');
+    const guardResult3El = document.getElementById('guardResult3');
+
+    effect(() => {
+      // trigger dependency on pm.signal
+      const _ = pm.signal.get();
+      const r1 = adminAccessGuard();
+      const r2 = adminRoleGuard();
+      const r3 = superRoleGuard();
+      guardResult1El.textContent = String(r1);
+      guardResult1El.style.color = r1 ? 'var(--success)' : 'var(--danger)';
+      guardResult2El.textContent = String(r2);
+      guardResult2El.style.color = r2 ? 'var(--success)' : 'var(--danger)';
+      guardResult3El.textContent = String(r3);
+      guardResult3El.style.color = r3 ? 'var(--success)' : 'var(--danger)';
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۹. شروع اولیه با guest
+    // ═══════════════════════════════════════════════════
+    switchTo('guest');
+    logEvent('init', 'Permission demo started. 5 role presets available.');
+  </script>
+</body>
+</html>

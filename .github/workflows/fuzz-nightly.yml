@@ -1,0 +1,44 @@
+name: Nightly security fuzz
+
+# #30: اجرای دوره‌ای fuzz طولانی‌تر (۲٬۰۰۰٬۰۰۰ ورودی با seed چرخشی روزانه).
+# gate اجباری merge همان CI معمولی است (main.yml / job unit که ۱۰۰٬۰۰۰ ورودی
+# fuzz را اجرا می‌کند و شکستش merge را مسدود می‌کند)؛ این workflow فقط
+# کشف‌عمیق‌تر شبانه است و artifact لاگ نگه می‌دارد.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-nightly
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Extended fuzz (expressions + sanitizer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # seed چرخشی بر اساس روز سال: هر شب فضای ورودی متفاوتی می‌پیماید.
+      - name: Extended expressions fuzz
+        env:
+          ZENITH_FUZZ_N: 2000000
+          ZENITH_FUZZ_SEED: ${{ github.run_number }}
+        run: |
+          npx vitest run packages/expressions/test/fuzz-security.test.ts --reporter=verbose 2>&1 | tee fuzz-log.txt
+      - name: Security corpus unit tests
+        run: npx vitest run packages/security/test/xss-corpus.test.ts --reporter=verbose 2>&1 | tee -a fuzz-log.txt
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: fuzz-log-${{ github.run_number }}
+          path: fuzz-log.txt
+          retention-days: 30

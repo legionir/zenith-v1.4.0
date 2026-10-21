@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+packages/*/node_modules/
+
+# Build outputs
+dist/
+packages/*/dist/
+packages/*/dist.build-*/
+packages/*/out/
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Collected build artifacts (scripts/collect-artifacts.mjs)
+artifacts/
+
+# Standalone browser bundle output (scripts/build-browser-bundle.mjs)
+browser-bundles/
+
+# Staged demo site output (scripts/build-demos.mjs --stage / npm run build:demos)
+demo-dist/
+
+# Built template fixtures (scripts/build-template-fixtures.mjs — #33; real
+# installs, rebuilt per CI run, never committed)
+e2e/template-apps/
+
+# TypeDoc reference site output (typedoc.json → npm run docs:reference, #103;
+# deployed by f-github/workflows/docs-pages.yml, never committed)
+docs-site/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Playwright outputs
+playwright-report/
+test-results/
+
+# Temporary type-check configs (scripts/typecheck-all.mjs #26)
+.tsbuild/
+
+# Temporary modules generated from marked doc examples (scripts/check-docs-examples.mjs #106)
+.docexamples/
+benchmarks/results/latest.json
+benchmarks/results/browser.json
+
+# Explicit tool output (#51)
+tools/*/out/
+tools/*/dist/
+*.vsix

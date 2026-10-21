@@ -1,0 +1,45 @@
+<!-- این فایل به‌صورت lazy لود می‌شود -->
+<div zen-fetch="'/demos/router/api/users/' + $route.params.id + '.json'" zen-state="user">
+  <!-- Loading state -->
+  <div class="loading" zen-if="$user.loading">
+    <p>⏳ در حال بارگذاری اطلاعات کاربر...</p>
+  </div>
+
+  <!-- Error state -->
+  <div class="error" zen-if="$user.error">
+    <p>❌ خطا: <span zen-text="$user.error"></span></p>
+  </div>
+
+  <!-- Success state -->
+  <div zen-if="!$user.loading && !$user.error">
+    <h2>👤 <span zen-text="$user.data.name"></span></h2>
+    <p style="color: var(--text-secondary);">کاربر #<span zen-text="$user.data.id"></span></p>
+
+    <div style="margin-top: 16px;">
+      <div class="user-detail-row">
+        <span class="label">سمت:</span>
+        <span class="value"><span zen-text="$user.data.role"></span></span>
+      </div>
+      <div class="user-detail-row">
+        <span class="label">ایمیل:</span>
+        <span class="value" style="direction: ltr; display: inline-block;"><span zen-text="$user.data.email"></span></span>
+      </div>
+      <div class="user-detail-row">
+        <span class="label">شهر:</span>
+        <span class="value"><span zen-text="$user.data.city"></span></span>
+      </div>
+      <div class="user-detail-row">
+        <span class="label">بیو:</span>
+        <span class="value"><span zen-text="$user.data.bio"></span></span>
+      </div>
+    </div>
+
+    <p style="margin-top: 20px; font-size: 0.82rem; color: var(--text-secondary); direction: ltr; text-align: left;">
+      💡 fetched from <code>api/users/<span zen-text="$route.params.id"></span>.json</code>
+    </p>
+
+    <p style="margin-top: 16px;">
+      <a zen-link="/users">→ بازگشت به فهرست کاربران</a>
+    </p>
+  </div>
+</div>

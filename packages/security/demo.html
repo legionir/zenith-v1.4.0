@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zenith App - Phase 9 (Security)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+    .subtitle { color: #6b7280; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+    .badge-safe {
+      background: #dcfce7;
+      color: #166534;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      resize: vertical;
+    }
+    button {
+      padding: 10px 18px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fff;
+      margin-top: 8px;
+    }
+    button:hover { background: #f3f4f6; }
+    button.primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    button.primary:hover { background: #2563eb; }
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .panel {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+    .panel-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .panel-title.danger { color: #dc2626; }
+    .panel-title.safe { color: #16a34a; }
+    .panel-body {
+      min-height: 80px;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .panel-body.danger {
+      background: #fef2f2;
+      border: 1px dashed #fecaca;
+    }
+    .panel-body.safe {
+      background: #f0fdf4;
+      border: 1px dashed #bbf7d0;
+    }
+    .presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .presets button {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin: 0;
+    }
+    hr {
+      margin: 24px 0;
+      border: none;
+      border-top: 1px solid #e5e7eb;
+    }
+    .info {
+      padding: 12px 16px;
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      margin-top: 16px;
+    }
+    .alert-counter {
+      font-weight: 600;
+      color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Zenith Framework — Phase 9</h1>
+  <p class="subtitle">
+    <span class="badge">sanitizer</span> + <span class="badge">validator</span> + <span class="badge">zen-html</span>
+    خط دفاعی در برابر XSS و Prototype Pollution.
+  </p>
+
+  <div id="app">
+    <h2>۱) تست تعاملی Sanitizer</h2>
+    <p>
+      HTML آلوده را در textarea زیر وارد کنید و نتیجه‌ی پاکسازی‌شده را ببینید.
+      هیچ <code>&lt;script&gt;</code>، <code>onerror</code>، یا <code>javascript:</code> نباید در خروجی باشد.
+    </p>
+
+    <textarea id="input" zen-model="$input"></textarea>
+
+    <div class="presets">
+      <button zen-action="preset1">اسکریپت ساده</button>
+      <button zen-action="preset2">onerror در img</button>
+      <button zen-action="preset3">javascript: در href</button>
+      <button zen-action="preset4">SVG با onload</button>
+      <button zen-action="preset5">HTML امن</button>
+      <button zen-action="preset6">حمله پیچیده</button>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-title danger">🔴 خروجی zen-text (ایمن، متن خام)</div>
+        <div class="panel-body danger" id="text-output" zen-text="$input"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title safe">🟢 خروجی zen-html (پاکسازی‌شده)</div>
+        <div class="panel-body safe" id="html-output" zen-html="$input"></div>
+      </div>
+    </div>
+
+    <div class="info">
+      💡 <strong>توجه:</strong> هر دو خروجی ایمن هستند. <code>zen-text</code> داده را به‌صورت متن ساده نمایش می‌دهد (هیچ HTML‌ای رندر نمی‌شود). <code>zen-html</code> HTML را رندر می‌کند اما آن را از Sanitizer عبور می‌دهد.
+    </div>
+
+    <hr>
+
+    <h2>۲) شمارش alert ها</h2>
+    <p>
+      اگر Sanitizer درست کار کند، هیچ <code>alert()</code> نباید اجرا شود.
+      در اینجا تعداد alert های اجرا شده را شمارش می‌کنیم.
+    </p>
+    <div class="info">
+      تعداد alert های اجرا شده: <span class="alert-counter" id="alert-count">0</span>
+      <span zen-if="$alertCount > 0" style="color: red; font-weight: bold;"> ← حمله‌ی XSS موفق بود! ❌</span>
+      <span zen-if="$alertCount === 0" style="color: green; font-weight: bold;"> ← هیچ حمله‌ای موفق نشد ✅</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { signal } from './packages/state/src/index.ts';
+    import { Zen } from './packages/runtime/src/index.ts';
+
+    // ─────────────────────────────────────────────
+    // ۱. تعریف State
+    // ─────────────────────────────────────────────
+    const input = signal('<h3>سلام!</h3><p>این یک نظر امن است.</p>');
+    const alertCount = signal(0);
+    const state = { input, alertCount };
+
+    // ─────────────────────────────────────────────
+    // ۲. هک alert برای شمارش حملات XSS
+    // ─────────────────────────────────────────────
+    // ما alert اصلی را wrap می‌کنیم تا هر بار که فراخوانی شود، شمارنده را افزایش دهیم.
+    // اگر Sanitizer درست کار کند، این شمارنده هرگز نباید بیشتر از 0 شود.
+    const originalAlert = window.alert;
+    window.alert = function(...args) {
+      console.warn('🚨 ALERT CALLED (XSS attack succeeded):', args);
+      alertCount.set(alertCount.get() + 1);
+      // alert اصلی را صدا نمی‌زنیم تا UI مزاحم نشود.
+    };
+
+    // ─────────────────────────────────────────────
+    // ۳. ثبت Action ها برای Preset ها
+    // ─────────────────────────────────────────────
+    const presets = {
+      preset1: `<h3>نظر</h3><script>alert('XSS از script')</script>`,
+      preset2: `<img src="x" onerror="alert('XSS از onerror')">`,
+      preset3: `<a href="javascript:alert('XSS از href')">روی من کلیک نکن</a>`,
+      preset4: `<svg onload="alert('XSS از SVG onload')"><circle r="10"/></svg>`,
+      preset5: `<h3>HTML امن</h3><p>این <strong>کاملاً امن</strong> است.</p><ul><li>مورد ۱</li><li>مورد ۲</li></ul>`,
+      preset6: `
+        <div>
+          <p>Click: <a href="javascript:alert(1)">link1</a></p>
+          <img src="x" onerror="alert(2)">
+          <svg onload="alert(3)"><script>alert(4)</script></svg>
+          <iframe src="javascript:alert(5)"></iframe>
+          <div style="background:url(javascript:alert(6))">styled</div>
+        </div>
+      `,
+    };
+
+    for (const [name, html] of Object.entries(presets)) {
+      Zen.action(name, ({ state }) => {
+        state.alertCount.set(0);
+        state.input.set(html);
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // ۴. شروع فریم‌ورک
+    // ─────────────────────────────────────────────
+    Zen.start(document.getElementById('app'), state);
+
+    // نمایش شمارنده alert
+    const updateAlertDisplay = () => {
+      document.getElementById('alert-count').textContent = String(alertCount.get());
+    };
+    alertCount.set(0);
+    updateAlertDisplay();
+
+    // Update display هر بار که alertCount تغییر کند
+    // (zen-text این کار را هم می‌کند، اما برای اطمینان)
+    const origSet = alertCount.set.bind(alertCount);
+    alertCount.set = (v) => {
+      origSet(v);
+      updateAlertDisplay();
+    };
+
+    console.log('💡 نکات:');
+    console.log('   1. روی دکمه‌های preset کلیک کنید تا HTML آلوده را تست کنید.');
+    console.log('   2. هیچ alert نباید نمایش داده شود (شمارنده باید 0 بماند).');
+    console.log('   3. HTML امن (مثل <h3>, <p>, <strong>) به‌درستی رندر می‌شود.');
+    console.log('   4. تگ‌های خطرناک (<script>, <iframe>) حذف می‌شوند.');
+    console.log('   5. اتریبیوت‌های خطرناک (onerror, onload, onclick) حذف می‌شوند.');
+    console.log('   6. پروتکل‌های خطرناک (javascript:) از href حذف می‌شوند.');
+  </script>
+</body>
+</html>

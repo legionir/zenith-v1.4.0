@@ -1,0 +1,71 @@
+{
+  "name": "@zenith/crud",
+  "version": "1.4.0",
+  "description": "Zenith framework — CRUD UI Actions (Phase 3). Pre-built actions for create/read/update/delete operations with @zenith/resource.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "crud",
+    "actions",
+    "resource"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/crud"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/actions": "1.4.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/permission": "1.4.0",
+    "@zenith/resource": "1.4.0",
+    "@zenith/runtime": "1.4.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/shared": "1.5.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
+  }
+}

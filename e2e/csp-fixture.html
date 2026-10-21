@@ -1,0 +1,124 @@
+<!doctype html>
+<!-- #63 — strict-CSP + TrustedTypes e2e fixture.
+  Served ONLY by scripts/e2e-server.mjs (/e2e/csp-fixture.html), which replaces
+  every {{NONCE}} with a per-response CSPRNG nonce and sends an ENFORCED
+  Content-Security-Policy response header (never report-only, never <meta>):
+  no unsafe-eval/unsafe-inline, require-trusted-types-for 'script'.
+  ?violate=1 appends a nonce-less script: it must be BLOCKED (negative control
+  proving the gate trips instead of silently passing). -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zenith strict-CSP + TrustedTypes e2e fixture (#63)</title>
+    <script type="importmap">
+      {
+  "imports": {
+    "@zenith/security": "/packages/security/dist/index.js",
+    "@zenith/errors": "/packages/errors/dist/index.js",
+    "@zenith/logger": "/packages/logger/dist/index.js",
+    "@zenith/shared": "/packages/shared/dist/index.js",
+    "@zenith/a11y": "/packages/a11y/dist/index.js",
+    "@zenith/head": "/packages/head/dist/index.js",
+    "@zenith/ui": "/packages/ui/dist/index.js",
+    "@zenith/expressions": "/packages/expressions/dist/index.js",
+    "@zenith/schema": "/packages/schema/dist/index.js",
+    "@zenith/jalali": "/packages/jalali/dist/index.js",
+    "@zenith/transition": "/packages/transition/dist/index.js",
+    "@zenith/http": "/packages/http/dist/index.js",
+    "@zenith/resource": "/packages/resource/dist/index.js",
+    "@zenith/mock": "/packages/mock/dist/index.js",
+    "@zenith/ui/position": "/packages/ui/dist/position.js"
+  }
+}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="sink"></div>
+    <script nonce="{{NONCE}}" type="module">
+      import { createTrustedTypesPolicy, setSafeInnerHTML } from '@zenith/security';
+
+      window.__ZENITH_CSP_EXEC_COUNT__ = 0;
+      window.__ZENITH_CSP_EXEC__ = () => {
+        window.__ZENITH_CSP_EXEC_COUNT__++;
+      };
+      window.__ZENITH_CSP_VIOLATIONS__ = [];
+      window.__ZENITH_CSP_RESULTS__ = null;
+
+      // Forward every violation to the server collector as well: the spec
+      // asserts BOTH the in-page events and the endpoint reports, so a broken
+      // reporting channel cannot hide a violation (and vice versa).
+      document.addEventListener('securitypolicyviolation', (e) => {
+        const record = {
+          blockedURI: e.blockedURI,
+          violatedDirective: e.violatedDirective,
+          effectiveDirective: e.effectiveDirective,
+          originalPolicy: e.originalPolicy,
+          sourceFile: e.sourceFile,
+          lineNumber: e.lineNumber,
+        };
+        window.__ZENITH_CSP_VIOLATIONS__.push(record);
+        try {
+          navigator.sendBeacon('/e2e/csp-report', JSON.stringify(record));
+        } catch {
+          /* beacon unavailable — the endpoint report is best-effort backup */
+        }
+      });
+
+      // Trusted Types capability probe (acceptance: a browser without TT must
+      // report capability explicitly instead of failing or faking support).
+      const tt = window.trustedTypes;
+      const ttSupported = typeof tt?.createPolicy === 'function';
+      let ttBlockedRawSink = null;
+      {
+        const probe = document.createElement('div');
+        try {
+          probe.innerHTML = '<img src="x" onerror="window.__ZENITH_CSP_EXEC__()">';
+          ttBlockedRawSink = false;
+        } catch {
+          ttBlockedRawSink = true;
+        }
+        probe.remove();
+      }
+
+      // Positive control: WITHOUT Trusted Types enforcement a raw sink MUST
+      // execute — otherwise the harness itself is broken and the test is
+      // vacuous. Under enforcement the raw assignment throws and the control
+      // stays unfired (recorded honestly via ttEnforced).
+      let controlFired = false;
+      try {
+        const control = document.createElement('div');
+        document.getElementById('sink').appendChild(control);
+        const before = window.__ZENITH_CSP_EXEC_COUNT__;
+        control.innerHTML = '<img src="x" onerror="window.__ZENITH_CSP_EXEC__()">';
+        await new Promise((r) => setTimeout(r, 50));
+        controlFired = window.__ZENITH_CSP_EXEC_COUNT__ > before;
+        control.remove();
+      } catch {
+        controlFired = false;
+      }
+
+      // The real product path: policy-backed sanitized render. The XSS payload
+      // must NOT execute afterwards.
+      createTrustedTypesPolicy();
+      const beforeRender = window.__ZENITH_CSP_EXEC_COUNT__;
+      setSafeInnerHTML(document.getElementById('app'), {
+        html: '<p>Hello <b>CSP</b></p><img src="x" onerror="window.__ZENITH_CSP_EXEC__()"><script>window.__ZENITH_CSP_EXEC__()</script>',
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      const appHTML = document.getElementById('app').innerHTML;
+
+      window.__ZENITH_CSP_RESULTS__ = {
+        ttSupported,
+        ttBlockedRawSink,
+        ttEnforced: ttSupported && ttBlockedRawSink === true,
+        controlFired,
+        sanitizedRendered: appHTML.includes('Hello') && appHTML.includes('<b>CSP</b>'),
+        xssBlocked: window.__ZENITH_CSP_EXEC_COUNT__ === beforeRender,
+        scriptNonce: document.querySelector('script[type="module"]')?.nonce ?? null,
+        violationCount: window.__ZENITH_CSP_VIOLATIONS__.length,
+      };
+      window.__ZENITH_CSP_READY__ = true;
+    </script>
+  </body>
+</html>

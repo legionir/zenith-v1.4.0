@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Auth Flow</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 240px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin: 8px 0; }
+    .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .alert-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; margin: 2px; }
+    .role-admin { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .role-editor { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .role-user { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .token-box { background: #0a0e1f; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 0.78rem; color: #4ade80; direction: ltr; text-align: left; word-break: break-all; }
+    .countdown { font-size: 1.4rem; font-weight: 700; color: var(--warning); font-variant-numeric: tabular-nums; direction: ltr; display: inline-block; min-width: 70px; text-align: center; }
+    .user-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border); }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🔐 <span class="gradient">Auth Flow</span></h1>
+    <p class="subtitle">ورود، مدیریت توکن، refresh خودکار و route guard — با کلاس <code>Auth</code></p>
+    <div class="badges">
+      <span class="badge">Auth</span>
+      <span class="badge">login/logout</span>
+      <span class="badge">JWT-token</span>
+      <span class="badge">refresh-token</span>
+      <span class="badge">auto-refresh</span>
+      <span class="badge">signal-reactive</span>
+      <span class="badge">session-persistence</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── ۱. Login form ──── -->
+      <div class="card" zen-if="!$auth.isAuthenticated">
+        <h2>۱. فرم ورود</h2>
+        <p class="desc">
+          با <code>auth.login(&#123; email, password &#125;)</code> درخواست POST به <code>/api/auth/login</code> ارسال می‌شود.
+          در صورت موفقیت، <code>token</code>، <code>refreshToken</code>، <code>user</code> و <code>expiresIn</code> در Signal ذخیره می‌شوند.
+          <code>fetch</code> در این دمو mock شده است.
+        </p>
+        <form zen-action:submit.prevent="doLogin">
+          <div class="field">
+            <label>ایمیل</label>
+            <input type="text" placeholder="you@example.com" zen-model="$email" autocomplete="username">
+          </div>
+          <div class="field">
+            <label>رمز عبور</label>
+            <input type="password" placeholder="••••••••" zen-model="$password" autocomplete="current-password">
+          </div>
+          <div class="row">
+            <button type="submit" class="primary" zen-bind:disabled="$auth.loading">
+              <span zen-if="!$auth.loading">ورود</span>
+              <span zen-if="$auth.loading">در حال ورود...</span>
+            </button>
+            <button type="button" zen-action="fillSample">پر کردن نمونه</button>
+          </div>
+        </form>
+        <div class="alert alert-danger" zen-if="$auth.error">
+          ⚠️ خطا: <span zen-text="$auth.error"></span>
+        </div>
+        <p class="desc" style="margin-top: 10px; font-size: 0.82rem;">
+          💡 <strong>mock سرور</strong>: هر ایمیل معتبر (شامل @ و .) با هر رمزی قبول می‌شود.
+          نام کاربر بازگشتی از local-part ایمیل ساخته می‌شود. ایمیل نامعتبر (مثل <code>dddddd</code>) خطا می‌دهد.
+          expiresIn = ۱۰ ثانیه + refresh خودکار قبل از آن.
+        </p>
+      </div>
+
+      <!-- ──── ۲. User display (only when logged in) ──── -->
+      <div class="card" zen-if="$auth.user">
+        <h2>۲. اطلاعات کاربر — نمایش واکنش‌گرا</h2>
+        <p class="desc">پس از ورود، <code>$auth.user</code> برابر با آبجکت کاربر می‌شود. این بخش با <code>zen-if="$auth.user"</code> نمایش داده می‌شود.</p>
+        <div class="user-card">
+          <div class="avatar" id="avatarLetter">؟</div>
+          <div style="flex:1;">
+            <div style="font-weight: 600; font-size: 1.05rem;">
+              <span zen-text="$auth.user.name"></span>
+            </div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;" zen-text="$auth.user.email"></div>
+            <div style="margin-top: 4px;" id="roleBadges"></div>
+          </div>
+          <button class="danger" zen-action="doLogout">خروج</button>
+        </div>
+      </div>
+
+      <!-- ──── ۳. Token info ──── -->
+      <div class="card" zen-if="$auth.isAuthenticated">
+        <h2>۳. اطلاعات توکن — به‌روزرسانی واکنش‌گرا</h2>
+        <p class="desc">وقتی auto-refresh انجام می‌شود، <code>$auth.token</code> و <code>$auth.tokenExpiry</code> به‌روزرسانی می‌شوند و DOM خودکار آپدیت می‌شود.</p>
+        <div class="row" style="margin-bottom: 10px;">
+          <span class="stat">isAuthenticated: <strong zen-text="$auth.isAuthenticated"></strong></span>
+          <span class="stat">loading: <strong zen-text="$auth.loading"></strong></span>
+          <span class="stat">secondsToExpiry: <strong id="secondsToExpiry">—</strong></span>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <div style="color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px;">Access Token:</div>
+          <div class="token-box" zen-text="$auth.token"></div>
+        </div>
+        <div style="margin-bottom: 8px;">
+          <div style="color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px;">Refresh Token:</div>
+          <div class="token-box" zen-text="$auth.refreshToken"></div>
+        </div>
+        <div>
+          <div style="color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px;">Token Expiry (timestamp ms):</div>
+          <div class="token-box" zen-text="$auth.tokenExpiry"></div>
+        </div>
+      </div>
+
+      <!-- ──── ۴. Auto-refresh simulation ──── -->
+      <div class="card" zen-if="$auth.isAuthenticated">
+        <h2>۴. شبیه‌سازی Auto-Refresh</h2>
+        <p class="desc">
+          توکن این دمو <strong>۱۰ ثانیه</strong> اعتبار دارد و <code>refreshThreshold = 5</code> تنظیم شده.
+          یعنی ۵ ثانیه قبل از انقضا، <code>auth.refresh()</code> به‌صورت خودکار فراخوانی می‌شود و توکن جدید گرفته می‌شود.
+          در شمارش‌معکوس زیر، وقتی به ۵ ثانیه برسد، refresh رخ می‌دهد.
+        </p>
+        <div class="row" style="justify-content: center; padding: 12px 0;">
+          <span class="countdown" id="countdown">—</span>
+          <span style="color: var(--text-secondary);">ثانیه تا انقضای توکن</span>
+        </div>
+        <div class="row">
+          <button zen-action="forceRefresh">اجرای دستی refresh</button>
+          <button zen-action="simulateExpired">شبیه‌سازی توکن منقضی (حذف توکن)</button>
+        </div>
+        <div class="alert alert-success" zen-if="$refreshCount > 0">
+          ✅ تاکنون <strong zen-text="$refreshCount"></strong> بار توکن به‌صورت خودکار refresh شده است.
+        </div>
+        <pre>const auth = createAuth({
+  loginUrl: '/api/auth/login',
+  meUrl: '/api/auth/me',
+  refreshUrl: '/api/auth/refresh',
+  autoRefresh: true,
+  refreshThreshold: 5,  // 5 ثانیه قبل از expiry
+});
+// expiresIn در mock fetch برابر 10 ثانیه است.</pre>
+      </div>
+
+      <!-- ──── ۵. Auth state reactive (effect) ──── -->
+      <div class="card">
+        <h2>۵. Reactive Auth State — effect()</h2>
+        <p class="desc">این <code>effect</code> به <code>auth.signal</code> وابسته است. هر بار که وضعیت auth تغییر کند (login/logout/refresh)، یک خط به log اضافه می‌شود.</p>
+        <div class="log" id="authLog"></div>
+      </div>
+
+      <!-- ──── ۶. State dump ──── -->
+      <div class="card">
+        <h2>۶. Dump زنده‌ی Auth State</h2>
+        <p class="desc">این JSON از <code>auth.signal.get()</code> خوانده می‌شود و هر بار که auth تغییر کند، به‌روز می‌شود.</p>
+        <pre id="authDump" style="min-height: 140px;"></pre>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>Auth</code> یک Signal از وضعیت احراز هویت نگه می‌دارد.
+          متدهای <code>login</code>، <code>logout</code>، <code>refresh</code> و <code>fetchUser</code> فراهم هستند.
+          توکن‌ها در <code>localStorage</code>، <code>sessionStorage</code>، <code>cookie</code> یا <code>memory</code> قابل ذخیره‌اند.
+          <code>autoRefresh</code> با timeout، قبل از انقضای توکن، refresh را به‌صورت خودکار فراخوانی می‌کند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { createAuth } from '@zenith/auth';
+
+    // ═══════════════════════════════════════════════════
+    // ۱. پاک‌سازی localStorage قبل از شروع دمو
+    // ═══════════════════════════════════════════════════
+    try {
+      localStorage.removeItem('zenith_token');
+      localStorage.removeItem('zenith_refresh_token');
+      localStorage.removeItem('zenith_token_expiry');
+    } catch {}
+
+    // ═══════════════════════════════════════════════════
+    // ۲. Mock fetch
+    // ═══════════════════════════════════════════════════
+    // FEATURE (v0.4.0): mock سرور اکنون هوشمندتر است:
+    //   - کاربر بازگشتی، ایمیلی که وارد کرده‌اید را منعکس می‌کند (نه hardcoded).
+    //   - ایمیل‌های نامعتبر (بدون @) → خطای ۴۰۰ با message.
+    //   - رمز اشتباه (نمی‌تواند در mock تشخیص داده شود، پس همه رمزها قبول).
+    let loginCallCount = 0;
+    let refreshCallCount = 0;
+    let lastLoginUser = null;  // کاربری که در آخرین login موفق ذخیره شده
+
+    function buildMockUser(email) {
+      // BUG FIX (v0.4.0): کاربر mock، ایمیلی که کاربر وارد کرده را منعکس می‌کند
+      // تا رفتار دمو منطقی باشد ( قبلاً همیشه «علی احمدی / ali@example.com» برمی‌گشت).
+      const localPart = String(email).split('@')[0] || 'user';
+      const name = localPart.charAt(0).toUpperCase() + localPart.slice(1);
+      return {
+        id: Date.now(),
+        name,
+        email: String(email),
+        roles: ['user'],
+      };
+    }
+
+    window.fetch = async (url, opts) => {
+      const urlStr = String(url);
+      const method = opts?.method || 'GET';
+      console.log('[mock fetch]', method, urlStr);
+
+      // شبیه‌سازی تاخیر شبکه
+      await new Promise(r => setTimeout(r, 400));
+
+      if (urlStr.includes('/login')) {
+        loginCallCount++;
+        // پارس body برای گرفتن email
+        let bodyEmail = '';
+        try {
+          const body = typeof opts?.body === 'string' ? JSON.parse(opts.body) : (opts?.body || {});
+          bodyEmail = body.email || '';
+        } catch {}
+
+        // BUG FIX (v0.4.0): اعتبارسنجی ایمیل در سرور mock — ایمیل نامعتبر خطا می‌دهد.
+        if (!bodyEmail || !String(bodyEmail).includes('@') || !String(bodyEmail).includes('.')) {
+          return {
+            ok: false,
+            status: 400,
+            json: async () => ({ message: 'ایمیل نامعتبر است — یک ایمیل معتبر وارد کنید (مثال: you@example.com)' }),
+          };
+        }
+
+        const user = buildMockUser(bodyEmail);
+        lastLoginUser = user;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            token: 'jwt-' + Date.now() + '-' + loginCallCount,
+            refreshToken: 'refresh-' + Date.now(),
+            user,
+            expiresIn: 10,  // ۱۰ ثانیه
+          }),
+        };
+      }
+      if (urlStr.includes('/me')) {
+        // برگرداندن آخرین کاربر login‌شده (یا یک کاربر پیش‌فرض)
+        const user = lastLoginUser || { id: 0, name: 'کاربر', email: 'unknown@example.com', roles: ['user'] };
+        return { ok: true, status: 200, json: async () => ({ user }) };
+      }
+      if (urlStr.includes('/refresh')) {
+        refreshCallCount++;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            token: 'refreshed-jwt-' + Date.now() + '-' + refreshCallCount,
+            expiresIn: 10,
+          }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({ message: 'Not found' }) };
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۳. ساخت Auth instance
+    // ═══════════════════════════════════════════════════
+    const auth = createAuth({
+      loginUrl: '/api/auth/login',
+      meUrl: '/api/auth/me',
+      refreshUrl: '/api/auth/refresh',
+      tokenStorage: 'localStorage',
+      autoRefresh: true,
+      refreshThreshold: 5,  // 5 ثانیه قبل از expiry → refresh
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۴. State
+    // ═══════════════════════════════════════════════════
+    const email = signal('ali@example.com');
+    const password = signal('password123');
+    const refreshCount = signal(0);
+
+    const state = {
+      auth: auth.signal,
+      email,
+      password,
+      refreshCount,
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۵. Log زنده
+    // ═══════════════════════════════════════════════════
+    const authLogEl = document.getElementById('authLog');
+    let logLineCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      authLogEl.appendChild(line);
+      authLogEl.scrollTop = authLogEl.scrollHeight;
+      logLineCount++;
+      if (logLineCount > 80) {
+        authLogEl.removeChild(authLogEl.firstChild);
+        logLineCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ۶. Actions
+    // ═══════════════════════════════════════════════════
+    Zen.action('doLogin', async ({ state }) => {
+      logEvent('login:start', `email=${state.email.get()}`);
+      const ok = await auth.login({
+        email: state.email.get(),
+        password: state.password.get(),
+      });
+      if (ok) {
+        logEvent('login:success', `user=${auth.user?.name}, token=${auth.token?.slice(0, 24)}...`);
+      } else {
+        logEvent('login:failed', auth.signal.get().error || 'unknown');
+      }
+    });
+
+    Zen.action('doLogout', async () => {
+      logEvent('logout:start');
+      await auth.logout();
+      logEvent('logout:done', 'auth.signal cleared, tokens removed');
+    });
+
+    Zen.action('fillSample', ({ state }) => {
+      state.email.set('ali@example.com');
+      state.password.set('password123');
+      logEvent('fillSample', 'sample credentials filled');
+    });
+
+    Zen.action('forceRefresh', async () => {
+      logEvent('refresh:manual', 'calling auth.refresh()');
+      const ok = await auth.refresh();
+      logEvent('refresh:manual:' + (ok ? 'ok' : 'failed'), `token=${auth.token?.slice(0, 24)}...`);
+    });
+
+    Zen.action('simulateExpired', async () => {
+      logEvent('simulateExpired', 'manually clearing token (simulating expiry)');
+      // پاک کردن توکن ولی نگه داشتن refreshToken تا refresh کار کند
+      const current = auth.signal.get();
+      auth.signal.set({ ...current, token: null, tokenExpiry: Date.now() - 1000 });
+      logEvent('simulateExpired', 'token cleared, calling refresh...');
+      const ok = await auth.refresh();
+      logEvent('simulateExpired:refresh:' + (ok ? 'ok' : 'failed'), `new token=${auth.token?.slice(0, 24)}...`);
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۷. Effects: dump + refresh detection + avatar + role badges
+    // ═══════════════════════════════════════════════════
+    let lastToken = null;
+    const authDumpEl = document.getElementById('authDump');
+    const countdownEl = document.getElementById('countdown');
+    const secondsToExpiryEl = document.getElementById('secondsToExpiry');
+    const avatarLetterEl = document.getElementById('avatarLetter');
+    const roleBadgesEl = document.getElementById('roleBadges');
+
+    effect(() => {
+      const s = auth.signal.get();
+      const dump = {
+        isAuthenticated: s.isAuthenticated,
+        loading: s.loading,
+        user: s.user,
+        token: s.token ? s.token.slice(0, 40) + '...' : null,
+        refreshToken: s.refreshToken ? s.refreshToken.slice(0, 30) + '...' : null,
+        tokenExpiry: s.tokenExpiry,
+        error: s.error,
+      };
+      authDumpEl.textContent = JSON.stringify(dump, null, 2);
+    });
+
+    // effect برای تشخیص تغییر توکن → لاگ refresh خودکار
+    effect(() => {
+      const s = auth.signal.get();
+      const currentToken = s.token;
+      if (lastToken !== null && currentToken !== null && currentToken !== lastToken) {
+        if (s.isAuthenticated) {
+          refreshCount.set(refreshCount.get() + 1);
+          logEvent('refresh:auto', `auto-detected token change → ${currentToken.slice(0, 30)}...`);
+        }
+      }
+      lastToken = currentToken;
+    });
+
+    // effect برای آپدیت letter آواتار و badge های role
+    effect(() => {
+      const u = auth.signal.get().user;
+      if (u) {
+        avatarLetterEl.textContent = u.name.charAt(0);
+        roleBadgesEl.innerHTML = '';
+        for (const role of (u.roles || [])) {
+          const span = document.createElement('span');
+          span.className = 'role-badge role-' + role;
+          span.textContent = role;
+          roleBadgesEl.appendChild(span);
+        }
+      }
+    });
+
+    // تایمر برای آپدیت countdown (هر ۵۰۰ میلی‌ثانیه)
+    setInterval(() => {
+      const s = auth.signal.get();
+      if (s.tokenExpiry) {
+        const ms = s.tokenExpiry - Date.now();
+        const sec = Math.max(0, Math.ceil(ms / 1000));
+        countdownEl.textContent = String(sec);
+        secondsToExpiryEl.textContent = String(sec);
+      } else {
+        countdownEl.textContent = '—';
+        secondsToExpiryEl.textContent = '—';
+      }
+    }, 500);
+
+    // ═══════════════════════════════════════════════════
+    // ۸. شروع فریم‌ورک
+    // ═══════════════════════════════════════════════════
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Auth demo started. autoRefresh=true, refreshThreshold=5s, expiresIn=10s.');
+  </script>
+</body>
+</html>

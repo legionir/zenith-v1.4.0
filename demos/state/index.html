@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Signal & Reactivity</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    /* modern dark UI matching the main index.html */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input, textarea { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .counter { font-size: 2.2rem; font-weight: 700; color: var(--accent-light); font-variant-numeric: tabular-nums; margin: 8px 0; direction: ltr; display: inline-block; min-width: 60px; text-align: center; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>⚡ <span class="gradient">Signal & Reactivity</span></h1>
+    <p class="subtitle">قلب واکنش‌گرایی فریم‌ورک — signal، effect، computed و dependency tracking</p>
+    <div class="badges">
+      <span class="badge">signal</span>
+      <span class="badge">effect</span>
+      <span class="badge">computed</span>
+      <span class="badge">dependency-tracking</span>
+      <span class="badge">batching</span>
+    </div>
+
+    <div id="app">
+      <!-- ۱. Signal basics -->
+      <div class="card">
+        <h2>۱. Signal پایه</h2>
+        <p class="desc">یک <code>signal</code> ظرفی واکنش‌گراست. وقتی مقدارش با <code>set()</code> عوض شود، تمام DOMهای وابسته به‌طور خودکار آپدیت می‌شوند.</p>
+        <div class="row">
+          <button zen-action="decrement">−</button>
+          <span class="counter"><span zen-text="$count"></span></span>
+          <button zen-action="increment">+</button>
+        </div>
+        <p style="margin-top:8px; font-size:0.85rem; color: var(--text-secondary);">
+          مقدار فعلی: <code zen-text="$count"></code> — با کلیک روی دکمه‌ها، DOM بدون هیچ کد دستی آپدیت می‌شود.
+        </p>
+      </div>
+
+      <!-- ۲. Computed -->
+      <div class="card">
+        <h2>۲. Computed (مقدار مشتق‌شده)</h2>
+        <p class="desc">
+          <code>computed(() =&gt; count.get() * 2)</code> یک مقدار فقط‌خواندنی می‌سازد که از روی Signalهای دیگر محاسبه می‌شود. وقتی <code>count</code> تغییر کند، <code>doubled</code> هم به‌طور خودکار آپدیت می‌شود.
+        </p>
+        <div class="row">
+          <span class="stat">count = <strong id="countDisplay">0</strong></span>
+          <span class="stat">doubled = <strong id="doubledDisplay">0</strong></span>
+          <span class="stat">squared = <strong id="squaredDisplay">0</strong></span>
+        </div>
+        <pre>const count   = signal(0);
+const doubled = computed(() =&gt; count.get() * 2);
+const squared = computed(() =&gt; count.get() * count.get());</pre>
+      </div>
+
+      <!-- ۳. Effect side-effects -->
+      <div class="card">
+        <h2>۳. Effect (عوارض جانبی واکنش‌گرا)</h2>
+        <p class="desc">این <code>effect</code> هر بار که <code>count</code> تغییر کند، یک خط به log اضافه می‌کند. خود فریم‌ورک همین مکانیزم را برای آپدیت DOM استفاده می‌کند.</p>
+        <div class="log" id="effectLog"></div>
+      </div>
+
+      <!-- ۴. Multiple signals + zen-model -->
+      <div class="card">
+        <h2>۴. چندین Signal + zen-model</h2>
+        <p class="desc">دو Signal جداگانه برای نام و نام خانوادگی. <code>fullName</code> یک <code>computed</code> است که از هر دو می‌خواند. inputs با <code>zen-model</code> دوطرفه متصل شده‌اند.</p>
+        <div class="row">
+          <div class="field" style="flex:1; min-width: 180px;">
+            <label>نام</label>
+            <input type="text" zen-model="$firstName">
+          </div>
+          <div class="field" style="flex:1; min-width: 180px;">
+            <label>نام خانوادگی</label>
+            <input type="text" zen-model="$lastName">
+          </div>
+        </div>
+        <p style="margin-top:8px;">نام کامل: <strong id="fullNameDisplay"></strong></p>
+        <pre>const firstName = signal('علی');
+const lastName  = signal('احمدی');
+const fullName  = computed(() =&gt; firstName.get() + ' ' + lastName.get());
+// در HTML: &lt;input zen-model="$firstName"&gt;</pre>
+      </div>
+
+      <!-- ۵. Object signal -->
+      <div class="card">
+        <h2>۵. Signal با مقدار Object</h2>
+        <p class="desc">یک Signal می‌تواند هر نوعی داشته باشد — حتی Object. برای trigger کردن reactivity، یک Object جدید (با reference متفاوت) در <code>set()</code> قرار می‌دهیم.</p>
+        <div class="row" style="margin-bottom: 10px;">
+          <span class="stat">name = <strong zen-text="$user.name"></strong></span>
+          <span class="stat">age = <strong zen-text="$user.age"></strong></span>
+        </div>
+        <div class="row">
+          <button class="primary" zen-action="updateUser">تغییر کاربر (محمد، ۳۰)</button>
+          <button zen-action="setName">تنها تغییر نام (زهرا)</button>
+          <button zen-action="birthday">تولد +۱ سال</button>
+        </div>
+        <pre>const user = signal({ name: 'علی', age: 25 });
+// Action:
+user.set({ name: 'محمد', age: 30 });  // Object جدید → reactivity</pre>
+      </div>
+
+      <!-- ۶. Dependency tracking demo -->
+      <div class="card">
+        <h2>۶. Dependency Tracking (ردیابی دقیق)</h2>
+        <p class="desc">هر Effect فقط به Signalهایی وابسته است که در بدنه‌اش <code>.get()</code> شده‌اند. در این مثال، <code>effectA</code> فقط <code>count</code> می‌خواند و <code>effectB</code> فقط <code>unrelated</code>. وقتی <code>unrelated</code> را تغییر می‌دهیم، <code>effectA</code> نباید اجرا شود — و نمی‌شود!</p>
+        <div class="row" style="margin-bottom: 10px;">
+          <span class="stat">count = <strong zen-text="$count"></strong></span>
+          <span class="stat">unrelated = <strong zen-text="$unrelated"></strong></span>
+          <span class="stat">effectA runs (خواندن count) = <strong id="effectARuns">0</strong></span>
+          <span class="stat">effectB runs (خواندن unrelated) = <strong id="effectBRuns">0</strong></span>
+        </div>
+        <div class="row">
+          <button zen-action="increment">count + ۱</button>
+          <button zen-action="bumpUnrelated">unrelated + ۱</button>
+          <button zen-action="resetAll">ریست</button>
+        </div>
+        <p style="margin-top:10px; font-size:0.85rem; color: var(--text-secondary);">
+          امتحان کنید: وقتی <code>count</code> را زیاد می‌کنید، فقط <code>effectA</code> اجرا می‌شود. وقتی <code>unrelated</code> را زیاد می‌کنید، فقط <code>effectB</code>. این یعنی هیچ Effect بی‌دلیل اجرا نمی‌شود — یعنی Performance بالا.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>signal</code> = ظرف واکنش‌گرا. <code>computed</code> = مقدار مشتق‌شده و cache شده. <code>effect</code> = تابع جانبی که وابستگی‌هایش را خودکار ردیابی می‌کند.
+          هیچ کدام به DOM وابسته نیستند — می‌توانید در Node.js هم از آن‌ها استفاده کنید.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect, computed } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+
+    // ── تعریف State ──
+    const count      = signal(0);
+    const unrelated  = signal(0);
+    const firstName  = signal('علی');
+    const lastName   = signal('احمدی');
+    const user       = signal({ name: 'علی', age: 25 });
+
+    // ── Computed values ──
+    // Computed از نوع Signal نیست (get دارد ولی set ندارد) پس مستقیم در Context قرار نمی‌گیرد.
+    // برای نمایش در DOM، یک effect دستی می‌سازیم که مقدار Computed را در عنصر مورد نظر می‌نویسد.
+    const doubled  = computed(() => count.get() * 2);
+    const squared  = computed(() => count.get() * count.get());
+    const fullName = computed(() => firstName.get() + ' ' + lastName.get());
+
+    const state = {
+      count,
+      unrelated,
+      firstName,
+      lastName,
+      user,
+    };
+
+    // ── Effect برای نمایش مقادیر Computed در DOM ──
+    // (Zen.start هنوز اجرا نشده، پس این effectها هیچ وابستگی اولیه‌ای با DOM directives ندارند)
+    effect(() => {
+      document.getElementById('countDisplay').textContent   = count.get();
+      document.getElementById('doubledDisplay').textContent  = doubled.get();
+      document.getElementById('squaredDisplay').textContent  = squared.get();
+    });
+
+    effect(() => {
+      document.getElementById('fullNameDisplay').textContent = fullName.get();
+    });
+
+    // ── Effect شماره ۳: log هر تغییر count ──
+    const effectLogEl = document.getElementById('effectLog');
+    let logLineCount = 0;
+    effect(() => {
+      const c = count.get();
+      const time = new Date().toLocaleTimeString('en-GB');
+      const line = document.createElement('div');
+      line.textContent = `[${time}] effect re-ran → count = ${c}`;
+      effectLogEl.appendChild(line);
+      effectLogEl.scrollTop = effectLogEl.scrollHeight;
+      logLineCount++;
+      // محدود کردن تعداد خطوط برای جلوگیری از کند شدن صفحه
+      if (logLineCount > 50) {
+        effectLogEl.removeChild(effectLogEl.firstChild);
+        logLineCount--;
+      }
+    });
+
+    // ── Dependency tracking: دو effect مجزا ──
+    let effectARuns = 0;
+    let effectBRuns = 0;
+    effect(() => {
+      // فقط count می‌خواند → فقط با تغییر count اجرا می‌شود
+      const _ = count.get();
+      effectARuns++;
+      document.getElementById('effectARuns').textContent = effectARuns;
+    });
+    effect(() => {
+      // فقط unrelated می‌خواند → فقط با تغییر unrelated اجرا می‌شود
+      const _ = unrelated.get();
+      effectBRuns++;
+      document.getElementById('effectBRuns').textContent = effectBRuns;
+    });
+
+    // ── ثبت Action ها ──
+    Zen.action('increment', ({ state }) => {
+      state.count.set(state.count.get() + 1);
+    });
+
+    Zen.action('decrement', ({ state }) => {
+      state.count.set(state.count.get() - 1);
+    });
+
+    Zen.action('bumpUnrelated', ({ state }) => {
+      state.unrelated.set(state.unrelated.get() + 1);
+    });
+
+    Zen.action('resetAll', ({ state }) => {
+      state.count.set(0);
+      state.unrelated.set(0);
+    });
+
+    Zen.action('updateUser', ({ state }) => {
+      // یک Object جدید با reference متفاوت → reactivity trigger می‌شود
+      state.user.set({ name: 'محمد', age: 30 });
+    });
+
+    Zen.action('setName', ({ state }) => {
+      const current = state.user.get();
+      state.user.set({ ...current, name: 'زهرا' });
+    });
+
+    Zen.action('birthday', ({ state }) => {
+      const current = state.user.get();
+      state.user.set({ ...current, age: current.age + 1 });
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+  </script>
+</body>
+</html>

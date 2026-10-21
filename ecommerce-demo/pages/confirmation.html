@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>تأیید سفارش</title></head>
+<body>
+  <h2>تأیید سفارش</h2>
+  <div zen-resource="'/api/orders/' + $route.params.id" zen-state="order">
+    <h3 zen-text="$order.data.id"></h3>
+    <p>وضعیت: <span zen-text="$order.data.status"></span></p>
+    <ul zen-for="item in $order.data.items" zen-key="item.id">
+      <li><span zen-text="$item.title"></span> — <span zen-text="$item.price"></span> تومان</li>
+    </ul>
+  </div>
+</body>
+</html>

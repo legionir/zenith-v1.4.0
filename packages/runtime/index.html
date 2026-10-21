@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zenith App - Phase 6 (Components)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.7;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.15rem; margin: 1rem 0 0.5rem; }
+    .subtitle { color: #6b7280; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    button {
+      padding: 10px 18px;
+      font-size: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #fff;
+      transition: all 0.15s ease;
+    }
+    button:hover { background: #f3f4f6; }
+    button.primary {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    button.primary:hover { background: #2563eb; }
+    button.danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+      padding: 4px 12px;
+      font-size: 12px;
+    }
+    button.danger:hover { background: #dc2626; }
+    hr {
+      margin: 24px 0;
+      border: none;
+      border-top: 1px solid #e5e7eb;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #dbeafe;
+      color: #1e40af;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* ── استایل‌های کامپوننت app-product-card ── */
+    /* نکته: این استایل‌ها روی Light DOM اعمال می‌شوند (نه Shadow DOM)،
+       پس نیازی به ::part() یا CSS custom properties نیست. */
+    .product-card {
+      border: 2px solid #10b981;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+    }
+    .product-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .product-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #064e3b;
+    }
+    .product-card-id {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-family: ui-monospace, monospace;
+    }
+    .product-card-body {
+      color: #374151;
+      font-size: 0.95rem;
+    }
+    .product-card-footer {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+    }
+    .product-card-price {
+      color: #059669;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Zenith Framework — Phase 6</h1>
+  <p class="subtitle">
+    <span class="badge">zen-component</span> + Props + Slots + Context Inheritance.
+    کامپوننت‌های Reusable با Light DOM (بدون Shadow DOM).
+  </p>
+
+  <div id="app">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- تعریف کامپوننت app-product-card                       -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <zen-component name="app-product-card">
+      <template>
+        <div class="product-card">
+          <!-- هدر: از Props (prop:name و prop:id) استفاده می‌کند -->
+          <div class="product-card-header">
+            <span class="product-card-title" zen-text="$name"></span>
+            <span class="product-card-id">#<span zen-text="$id"></span></span>
+          </div>
+
+          <!-- بدنه: Slot پیش‌فرض — محتوای مصرف‌کننده -->
+          <div class="product-card-body">
+            <slot></slot>
+          </div>
+
+          <!-- فوتر: Slot نام‌گذاری شده -->
+          <div class="product-card-footer">
+            <slot name="actions"></slot>
+          </div>
+        </div>
+      </template>
+    </zen-component>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- استفاده از کامپوننت درون حلقه                       -->
+    <!-- ═══════════════════════════════════════════════════ -->
+
+    <div class="toolbar">
+      <button class="primary" zen-action="addProduct">+ افزودن محصول</button>
+      <button zen-action="shuffleProducts">↺ بُر زدن</button>
+    </div>
+
+    <!-- هر آیتم یک کامپوننت app-product-card رندر می‌کند -->
+    <div zen-for="product in $products" zen-key="product.id">
+      <app-product-card
+        prop:name="product.name"
+        prop:id="product.id"
+      >
+        <!-- محتوای Slot پیش‌فرض — با Context والد (zen-for) ارزیابی می‌شود -->
+        <p>
+          قیمت این محصول:
+          <strong class="product-card-price">
+            <span zen-text="product.price"></span>
+          </strong>
+          تومان
+        </p>
+        <p style="font-size: 0.85rem; color: #6b7280;">
+          ردیف نمایش: <span zen-text="$index"></span>
+        </p>
+
+        <!-- محتوای Slot "actions" -->
+        <button class="primary" slot="actions"
+                zen-action="viewProduct"
+                zen-bind:data-id="product.id">
+          مشاهده
+        </button>
+        <button class="danger" slot="actions"
+                zen-action="deleteProduct"
+                zen-bind:data-id="product.id">
+          حذف
+        </button>
+      </app-product-card>
+    </div>
+
+    <p zen-if="$products.length === 0" style="text-align:center; color:#9ca3af; padding: 32px;">
+      هیچ محصولی وجود ندارد. روی «افزودن محصول» کلیک کنید.
+    </p>
+  </div>
+
+  <script type="module">
+    import { signal } from './packages/state/src/index.ts';
+    import { Zen } from './packages/runtime/src/index.ts';
+
+    // ─────────────────────────────────────────────
+    // ۱. تعریف State
+    // ─────────────────────────────────────────────
+    const products = signal([
+      { id: 1, name: 'لپ‌تاپ Dell XPS',     price: 50000000 },
+      { id: 2, name: 'گوشی iPhone 15',     price: 60000000 },
+      { id: 3, name: 'هدفون Sony WH-1000', price:  1500000 },
+    ]);
+
+    const state = { products };
+
+    // ─────────────────────────────────────────────
+    // ۲. ثبت Action ها
+    // ─────────────────────────────────────────────
+    let nextId = 4;
+    const productNames = [
+      'کیبورد مکانیکی', 'ماوس گیمینگ', 'مانیتور 4K', 'اسپیکر بلوتوث',
+      'وب‌کم Full HD', 'هاب USB-C', 'شارژر فست', 'پاوربانک',
+    ];
+
+    Zen.action('addProduct', ({ state }) => {
+      const id = nextId++;
+      const name = productNames[Math.floor(Math.random() * productNames.length)];
+      const price = Math.floor(Math.random() * 5_000_000) + 500_000;
+      state.products.set([...state.products.get(), { id, name, price }]);
+    });
+
+    Zen.action('shuffleProducts', ({ state }) => {
+      const arr = [...state.products.get()];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      state.products.set(arr);
+    });
+
+    Zen.action('viewProduct', ({ element }) => {
+      const id = element.getAttribute('data-id');
+      alert(`مشاهده محصول با شناسه ${id}`);
+    });
+
+    Zen.action('deleteProduct', ({ state, element }) => {
+      const id = Number(element.getAttribute('data-id'));
+      state.products.set(state.products.get().filter(p => p.id !== id));
+    });
+
+    // ─────────────────────────────────────────────
+    // ۳. شروع فریم‌ورک (loadComponents به‌صورت خودکار فراخوانی می‌شود)
+    // ─────────────────────────────────────────────
+    Zen.start(document.getElementById('app'), state);
+
+    console.log('💡 نکات:');
+    console.log('   1. کامپوننت app-product-card با <zen-component> تعریف شده.');
+    console.log('   2. Props با prop:name و prop:id پاس داده می‌شوند (Expression ها).');
+    console.log('   3. Slot پیش‌فرض و slot="actions" به‌درستی پر می‌شوند.');
+    console.log('   4. محتوای slot با Context والد ارزیابی می‌شود (product.price کار می‌کند).');
+    console.log('   5. محتوای قالب با Context محلی ارزیابی می‌شود ($name, $id کار می‌کنند).');
+  </script>
+</body>
+</html>

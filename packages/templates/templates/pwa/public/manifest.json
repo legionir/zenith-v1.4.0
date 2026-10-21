@@ -1,0 +1,21 @@
+{
+  "name": "__PROJECT_NAME__",
+  "short_name": "__SHORT_NAME__",
+  "description": "A Zenith PWA application: __PROJECT_NAME__",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "dir": "rtl",
+  "lang": "fa",
+  "icons": [
+    {
+      "src": "/icons/app.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [],
+  "categories": ["productivity", "utilities"]
+}

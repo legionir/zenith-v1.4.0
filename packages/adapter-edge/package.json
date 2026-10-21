@@ -1,0 +1,66 @@
+{
+  "name": "@zenith/adapter-edge",
+  "version": "1.5.0",
+  "description": "Explicit-context Fetch SSR for Cloudflare Workers and Deno.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs adapter-edge",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/adapter-edge"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/main/packages/adapter-edge",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/ssr": "1.4.0",
+    "@zenith/runtime-core": "1.5.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/head": "1.5.0"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0",
+    "linkedom": "^0.18.12"
+  },
+  "zenith": {
+    "target": "worker"
+  },
+  "peerDependenciesMeta": {
+    "linkedom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "linkedom": "0.18.12",
+    "miniflare": "4.20260730.0"
+  }
+}

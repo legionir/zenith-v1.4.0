@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — امنیت و Sanitizer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; min-height: 110px; resize: vertical; direction: ltr; text-align: left; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 200px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    @media (max-width: 640px) { .panels { grid-template-columns: 1fr; } }
+    .panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .panel-title { font-weight: 600; margin-bottom: 8px; font-size: 0.85rem; font-family: ui-monospace, monospace; direction: ltr; text-align: left; }
+    .panel-title.danger { color: var(--danger); }
+    .panel-title.safe { color: var(--success); }
+    .panel-body { min-height: 90px; padding: 10px; background: #0a0e1f; border-radius: 6px; font-size: 0.85rem; border: 1px dashed var(--border); }
+    .panel-body.danger { border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; }
+    .panel-body.safe { border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+    .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .presets button { font-size: 0.8rem; padding: 6px 12px; }
+    .info { padding: 12px 16px; background: rgba(99, 102, 241, 0.08); border: 1px solid var(--border-strong); border-radius: 8px; font-size: 0.88rem; margin-top: 14px; color: var(--text-secondary); }
+    .info .alert-counter { font-weight: 700; color: var(--danger); font-family: ui-monospace, monospace; }
+    .info .safe-marker { color: var(--success); font-weight: 700; }
+    .info .danger-marker { color: var(--danger); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🔒 <span class="gradient">امنیت و Sanitizer</span></h1>
+    <p class="subtitle">تست تعاملی Sanitizer روی حملات XSS واقعی — تفاوت zen-text (متن خام) و zen-html (HTML پاکسازی‌شده)</p>
+    <div class="badges">
+      <span class="badge">zen-html</span>
+      <span class="badge">sanitizer</span>
+      <span class="badge">XSS</span>
+      <span class="badge">DOMParser</span>
+    </div>
+
+    <div id="app">
+      <!-- ۱. تست تعاملی -->
+      <div class="card">
+        <h2>۱. تست تعاملی Sanitizer</h2>
+        <p class="desc">
+          HTML آلوده را در textarea وارد کنید (یا یکی از Presetها را انتخاب کنید).
+          پنل سمت چپ نشان می‌دهد اگر با <code>zen-text</code> (یعنی textContent) رندر شود چه می‌شود (امن — هیچ کد اجرا نمی‌شود).
+          پنل سمت راست نشان می‌دهد اگر با <code>zen-html</code> رندر شود چه می‌شود — اما Sanitizer از اجرای کد مخرب جلوگیری می‌کند.
+        </p>
+        <textarea id="input" zen-model="$input" placeholder="<h3>سلام!</h3><script>alert('xss')</script>"></textarea>
+
+        <div class="presets">
+          <button zen-action="preset1">اسکریپت ساده</button>
+          <button zen-action="preset2">onerror در img</button>
+          <button zen-action="preset3">javascript: در href</button>
+          <button zen-action="preset4">SVG با onload</button>
+          <button zen-action="preset5">HTML امن</button>
+          <button zen-action="preset6">حمله‌ی پیچیده</button>
+          <button zen-action="resetAlerts" class="primary">ریست شمارنده</button>
+        </div>
+
+        <div class="panels">
+          <div class="panel">
+            <div class="panel-title danger">🔴 zen-text (متن خام — textContent)</div>
+            <div class="panel-body danger" id="text-output" zen-text="$input"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title safe">🟢 zen-html (HTML پاکسازی‌شده — Sanitizer)</div>
+            <div class="panel-body safe" id="html-output" zen-html="$input"></div>
+          </div>
+        </div>
+
+        <div class="info">
+          تعداد alert های اجرا شده:
+          <span class="alert-counter" id="alert-count">0</span>
+          <span zen-if="$alertCount > 0" class="danger-marker"> ← حمله‌ی XSS موفق بود! ❌</span>
+          <span zen-if="$alertCount === 0" class="safe-marker"> ← هیچ حمله‌ای موفق نشد ✅</span>
+        </div>
+      </div>
+
+      <!-- ۲. توضیح مکانیزم -->
+      <div class="card">
+        <h2>۲. چرا Sanitizer؟</h2>
+        <p class="desc">
+          <code>zen-html</code> در فریم‌ورک Zenith <strong>همیشه</strong> قبل از تزریق به DOM، مقدار را از
+          <code>sanitizeHTML()</code> عبور می‌دهد. این تابع از <code>DOMParser</code> استفاده می‌کند که
+          برخلاف <code>innerHTML</code> هیچ اسکریپتی را اجرا نمی‌کند. سپس تگ‌ها و attributeهای خطرناک را حذف می‌کند.
+        </p>
+        <pre>// پشت صحنه‌ی zen-html:
+import { sanitizeHTML } from '@zenith/security';
+
+const dirtyHtml = '&lt;img src=x onerror=alert(1)&gt;';
+const cleanHtml = sanitizeHTML(dirtyHtml);
+// ← '&lt;img src="x"&gt;'  (onerror حذف شد)
+
+element.innerHTML = cleanHtml;  // ایمن است</pre>
+      </div>
+
+      <!-- ۳. حملات بلاک‌شده -->
+      <div class="card">
+        <h2>۳. حملات بلاک‌شده توسط Sanitizer</h2>
+        <p class="desc">Sanitizer این دسته از حملات را به‌طور پیش‌فرض بلاک می‌کند:</p>
+        <div class="log" style="color: #c9d1d9;">
+<div style="color:#f87171;">[BLOCKED]  &lt;script&gt; tags                              → حذف کامل</div>
+<div style="color:#f87171;">[BLOCKED]  &lt;iframe&gt;, &lt;object&gt;, &lt;embed&gt;            → حذف کامل</div>
+<div style="color:#f87171;">[BLOCKED]  onclick, onerror, onload, … (on*)           → حذف attribute</div>
+<div style="color:#f87171;">[BLOCKED]  javascript: و vbscript: در href/src        → حذف href/src</div>
+<div style="color:#f87171;">[BLOCKED]  data: URL                                   → حذف href/src</div>
+<div style="color:#f87171;">[BLOCKED]  &lt;style&gt; با expression() یا url(javascript:) → حذف</div>
+<div style="color:#f87171;">[BLOCKED]  &lt;svg&gt; با &lt;script&gt; داخلی                  → پاکسازی فرزندان</div>
+<div style="color:#f87171;">[BLOCKED]  __proto__, constructor, prototype در attrs   → حذف</div>
+<div style="color:#f87171;">[BLOCKED]  Comment nodes با payloads مخرب              → حذف</div>
+<div style="color:#6ee7b7;">[ALLOWED]  &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;li&gt; …          → عبور می‌کنند</div>
+        </div>
+        <p class="desc" style="margin-top: 12px;">
+          <strong>Defense in Depth:</strong> Sanitizer یک لایه‌ی دفاعی است. همیشه روی سرور هم HTML را
+          sanitize کنید و از CSP (Content-Security-Policy) استفاده کنید.
+        </p>
+      </div>
+
+      <!-- ۴. خلاصه -->
+      <div class="card">
+        <h2>۴. خلاصه</h2>
+        <p class="desc">
+          برای رندر متن از کاربر، همیشه از <code>zen-text</code> استفاده کنید (کاملاً امن).
+          اگر باید HTML رندر کنید (مثل نظرات کاربران با فرمت‌بندی)، از <code>zen-html</code> استفاده کنید —
+          این دایرکتیو به‌طور خودکار از <code>sanitizeHTML()</code> عبور می‌کند. هیچ‌وقت <code>innerHTML</code>
+          را دستی با داده‌ی کاربر set نکنید.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { sanitizeHTML } from '@zenith/security';
+
+    // ── State ──
+    const input = signal('<h3>سلام!</h3><p>این یک نظر امن است.</p>');
+    const alertCount = signal(0);
+    const state = { input, alertCount };
+
+    // ── هک alert برای شمارش حملات XSS ──
+    // اگر Sanitizer کاری را از قلم انداخته باشد و اسکریپتی اجرا شود، این شمارنده بالا می‌رود.
+    window.alert = function(...args) {
+      console.warn('🚨 ALERT CALLED (XSS attack succeeded):', args);
+      alertCount.set(alertCount.get() + 1);
+    };
+
+    // ── Presetها ──
+    const presets = {
+      preset1: `<h3>نظر</h3><script>alert('XSS از script')</` + `script>`,
+      preset2: `<img src="x" onerror="alert('XSS از onerror')">`,
+      preset3: `<a href="javascript:alert('XSS از href')">روی من کلیک نکن</a>`,
+      preset4: `<svg onload="alert('XSS از SVG onload')"><circle r="10"/></svg>`,
+      preset5: `<h3>HTML امن</h3><p>این <strong>کاملاً امن</strong> است.</p><ul><li>مورد ۱</li><li>مورد ۲</li></ul>`,
+      preset6: `<div><p>Click: <a href="javascript:alert(1)">link1</a></p><img src="x" onerror="alert(2)"><svg onload="alert(3)"><script>alert(4)</` + `script></svg><iframe src="javascript:alert(5)"></iframe></div>`,
+    };
+
+    for (const [name, html] of Object.entries(presets)) {
+      Zen.action(name, ({ state }) => {
+        state.alertCount.set(0);
+        state.input.set(html);
+      });
+    }
+
+    Zen.action('resetAlerts', ({ state }) => {
+      state.alertCount.set(0);
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+
+    // ── آپدیت دستی شمارنده alert در DOM (چون alertCount در یک Span خارج از #app نیست،
+    //    آن را با effect آپدیت می‌کنیم)
+    const alertCountEl = document.getElementById('alert-count');
+    const updateAlertDisplay = () => {
+      alertCountEl.textContent = String(alertCount.get());
+    };
+    const origSet = alertCount.set.bind(alertCount);
+    alertCount.set = (v) => { origSet(v); updateAlertDisplay(); };
+    updateAlertDisplay();
+
+    // ─ـ Sanity check: sanitizeHTML را در console هم تست کن ──
+    console.log('🧪 sanitizeHTML test:', sanitizeHTML('<img src=x onerror=alert(1)>'));
+  </script>
+</body>
+</html>

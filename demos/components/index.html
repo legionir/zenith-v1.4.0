@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Components & Slots</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    input { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 180px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+
+    /* ── استایل کامپوننت‌ها ── */
+    /* نکته: این استایل‌ها روی Light DOM اعمال می‌شوند (نه Shadow DOM). */
+    .uc { border: 1px solid var(--border-strong); border-radius: 10px; padding: 14px 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.05) 100%); margin-bottom: 10px; }
+    .uc h3 { color: var(--accent-light); font-size: 1rem; margin-bottom: 4px; }
+    .uc .uc-age { color: var(--text-secondary); font-size: 0.85rem; }
+    .uc .uc-slot { margin-top: 8px; padding: 8px 10px; border-right: 3px solid var(--accent); background: rgba(99, 102, 241, 0.06); border-radius: 4px; font-size: 0.85rem; }
+    .uc .uc-actions { margin-top: 10px; display: flex; gap: 6px; }
+    .greeting { padding: 14px 18px; background: var(--gradient); color: white; border-radius: 10px; font-size: 1.1rem; font-weight: 600; }
+    .pw { border: 2px dashed rgba(236, 72, 153, 0.4); border-radius: 12px; padding: 12px; background: rgba(236, 72, 153, 0.04); }
+    .pw > h4 { color: #f472b6; font-size: 0.95rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🧩 <span class="gradient">Components & Slots</span></h1>
+    <p class="subtitle">کامپوننت‌های Light DOM با Props، Slots و Context Inheritance — تعریف با <code>&lt;zen-component&gt;</code></p>
+    <div class="badges">
+      <span class="badge">zen-component</span>
+      <span class="badge">props</span>
+      <span class="badge">slots</span>
+      <span class="badge">nested</span>
+      <span class="badge">reactive-props</span>
+      <span class="badge">light-dom</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- تعریف کامپوننت‌ها (همه در یک جا)                       -->
+      <!-- ═══════════════════════════════════════════════════ -->
+
+      <!-- ۱. کامپوننت ساده بدون Props -->
+      <zen-component name="zen-greeting">
+        <template>
+          <div class="greeting">سلام، دنیا! این یک کامپوننت ساده است.</div>
+        </template>
+      </zen-component>
+
+      <!-- ۲. کامپوننت user-card با Props (name, age) و Slot پیش‌فرض و Slot نام‌گذاری شده -->
+      <zen-component name="user-card">
+        <template>
+          <div class="uc">
+            <h3 zen-text="$name"></h3>
+            <div class="uc-age">سن: <strong zen-text="$age"></strong> سال</div>
+            <div class="uc-slot"><slot></slot></div>
+            <div class="uc-actions"><slot name="actions"></slot></div>
+          </div>
+        </template>
+      </zen-component>
+
+      <!-- ۳. کامپوننت profile-widget که داخل خودش از user-card استفاده می‌کند (Nested) -->
+      <zen-component name="profile-widget">
+        <template>
+          <div class="pw">
+            <h4>📦 Profile Widget (Nested Component)</h4>
+            <!-- این user-card داخل template یک کامپوننت دیگر است -->
+            <user-card prop:name="$user.name" prop:age="$user.age">
+              <p>این محتوا از parent context آمده — <span zen-text="$user.name"></span></p>
+              <button slot="actions" class="primary" zen-action="bumpAge">تولد +۱</button>
+            </user-card>
+          </div>
+        </template>
+      </zen-component>
+
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۱. کامپوننت ساده                                       -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۱. کامپوننت ساده</h2>
+        <p class="desc">
+          یک کامپوننت با <code>&lt;zen-component name="zen-greeting"&gt;</code> تعریف می‌شود. قالب آن درون <code>&lt;template&gt;</code> قرار می‌گیرد.
+          وقتی تگ <code>&lt;zen-greeting&gt;</code> در DOM ظاهر می‌شود، walker آن را تشخیص داده و قالب را جایگزین می‌کند.
+        </p>
+        <zen-greeting></zen-greeting>
+        <pre>&lt;zen-component name="zen-greeting"&gt;
+  &lt;template&gt;
+    &lt;div class="greeting"&gt;سلام، دنیا!&lt;/div&gt;
+  &lt;/template&gt;
+&lt;/zen-component&gt;
+
+&lt;zen-greeting&gt;&lt;/zen-greeting&gt;  &lt;!-- استفاده --&gt;</pre>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۲. Props — literal attributes                         -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۲. Props با Literal Attribute</h2>
+        <p class="desc">
+          attribute های معمولی روی تگ کامپوننت به‌صورت literal string به Context محلی اضافه می‌شوند.
+          مثلا <code>name="علی"</code> در template به‌صورت <code>$name</code> قابل دسترسی است.
+        </p>
+        <user-card name="علی" age="25">
+          <p>محتوای Slot پیش‌فرض — این متن از محل استفاده کامپوننت می‌آید.</p>
+        </user-card>
+        <pre>&lt;user-card name="علی" age="25"&gt;
+  &lt;p&gt;محتوای Slot پیش‌فرض&lt;/p&gt;
+&lt;/user-card&gt;
+
+&lt;!-- داخل template: zen-text="$name" و zen-text="$age" --&gt;</pre>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۳. Slots — پیش‌فرض و نام‌گذاری شده                     -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۳. Slots — پیش‌فرض و نام‌گذاری شده</h2>
+        <p class="desc">
+          کامپوننت <code>user-card</code> دو slot دارد: پیش‌فرض و <code>actions</code>.
+          فرزندان بدون <code>slot</code> به slot پیش‌فرض می‌روند؛ فرزندان با <code>slot="actions"</code> به slot نام‌گذاری شده.
+          محتوای slot با <strong>Context والد</strong> ارزیابی می‌شود (نه Context محلی کامپوننت).
+        </p>
+        <user-card name="زهرا" age="30">
+          <p>این متن در slot پیش‌فرض می‌رود.</p>
+          <button slot="actions" zen-action="slotClick" zen-bind:data-name="'زهرا'">کلیک در slot actions</button>
+          <button slot="actions" zen-action="slotClick" zen-bind:data-name="'دوم'">دکمه‌ی دوم</button>
+        </user-card>
+        <pre>&lt;user-card name="زهرا" age="30"&gt;
+  &lt;p&gt;این متن در slot پیش‌فرض می‌رود.&lt;/p&gt;
+  &lt;button slot="actions" zen-action="slotClick"&gt;...&lt;/button&gt;
+&lt;/user-card&gt;</pre>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۴. Reactive Props با prop:expression                  -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۴. Reactive Props با <code>prop:</code></h2>
+        <p class="desc">
+          با پیشوند <code>prop:</code>، مقدار prop به‌صورت یک Expression در parentContext ارزیابی می‌شود.
+          این یعنی اگر Expression وابسته به یک Signal باشد، با تغییر Signal، prop هم به‌صورت reactive آپدیت می‌شود.
+          در این مثال <code>prop:name="$user.name"</code> و <code>prop:age="$user.age"</code> به Signal کاربر متصل‌اند.
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <span class="stat">user.name = <strong zen-text="$user.name"></strong></span>
+          <span class="stat">user.age = <strong zen-text="$user.age"></strong></span>
+        </div>
+        <div class="row" style="margin-bottom: 12px;">
+          <input type="text" zen-model="$userNameInput" placeholder="نام جدید" style="max-width: 200px;">
+          <button class="primary" zen-action="updateName">اعمال نام</button>
+          <button zen-action="bumpAge">تولد +۱ سال</button>
+          <button zen-action="resetUser">ریست</button>
+        </div>
+        <user-card prop:name="$user.name" prop:age="$user.age">
+          <p>این محتوا از parent می‌آید. نام داخل کارت از <code>$user.name</code> می‌خواند.</p>
+        </user-card>
+        <pre>&lt;user-card prop:name="$user.name" prop:age="$user.age"&gt;
+  &lt;!-- prop:name یک Expression است که در parentContext ارزیابی می‌شود --&gt;
+&lt;/user-card&gt;</pre>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۵. Nested Components                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۵. Nested Components (کامپوننت تو در تو)</h2>
+        <p class="desc">
+          داخل template یک کامپوننت می‌توان از کامپوننت‌های دیگر استفاده کرد.
+          در این مثال، <code>profile-widget</code> داخل خودش یک <code>user-card</code> دارد.
+          Context محلی والد به‌صورت خودکار به فرزند ارث می‌رسد — پس <code>$user</code> در profile-widget هم در دسترس است.
+        </p>
+        <profile-widget></profile-widget>
+        <pre>&lt;zen-component name="profile-widget"&gt;
+  &lt;template&gt;
+    &lt;user-card prop:name="$user.name" prop:age="$user.age"&gt;
+      &lt;button slot="actions" zen-action="bumpAge"&gt;تولد +۱&lt;/button&gt;
+    &lt;/user-card&gt;
+  &lt;/template&gt;
+&lt;/zen-component&gt;</pre>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ۶. Multiple Instances                                  -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>۶. Multiple Instances — چندین نمونه با داده‌ی متفاوت</h2>
+        <p class="desc">
+          می‌توان همان کامپوننت را با داده‌های متفاوت چندین بار استفاده کرد. هر نمونه Context محلی مستقل خودش را دارد.
+          اینجا چهار user-card با literal props متفاوت داریم.
+        </p>
+        <div class="grid2">
+          <user-card name="محمد" age="28">
+            <p>کارشناس فرانت‌اند. علاقه‌مند به Vue و React.</p>
+            <button slot="actions" zen-action="slotClick" zen-bind:data-name="'محمد'">سلام کن</button>
+          </user-card>
+          <user-card name="مریم" age="32">
+            <p>مدیر محصول. تخصص در طراحی UI/UX.</p>
+            <button slot="actions" zen-action="slotClick" zen-bind:data-name="'مریم'">سلام کن</button>
+          </user-card>
+          <user-card name="حسین" age="22">
+            <p>دانشجو. در حال یادگیری TypeScript.</p>
+            <button slot="actions" zen-action="slotClick" zen-bind:data-name="'حسین'">سلام کن</button>
+          </user-card>
+          <user-card name="فاطمه" age="45">
+            <p>معمار نرم‌افزار. ۲۰ سال سابقه.</p>
+            <button slot="actions" zen-action="slotClick" zen-bind:data-name="'فاطمه'">سلام کن</button>
+          </user-card>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- Log                                                    -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="card">
+        <h2>📜 Log رویدادها</h2>
+        <p class="desc">هر کلیک روی دکمه‌های بالا اینجا لاگ می‌شود.</p>
+        <div class="log" id="eventLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>&lt;zen-component&gt;</code> برای تعریف، تگ سفارشی برای استفاده.
+          Props با <code>prop:name="expr"</code> (Expression) یا <code>name="literal"</code> (رشته‌ی ثابت).
+          Slots با <code>&lt;slot&gt;</code> و <code>&lt;slot name="x"&gt;</code>.
+          Context والد به‌صورت خودکار به فرزند ارث می‌رسد — پس Nested Components کار می‌کنند.
+          Light DOM (نه Shadow DOM) یعنی Event Delegation و CSS سراسری هم کار می‌کنند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+
+    // ── State ──
+    // user: Signal از نوع Object — برای Reactive Props استفاده می‌شود.
+    // برای trigger کردن reactivity، یک Object جدید با reference متفاوت در set() قرار می‌دهیم.
+    const user = signal({ name: 'علی', age: 25 });
+    const userNameInput = signal('');
+
+    const state = { user, userNameInput };
+
+    // ── Log زنده ──
+    const eventLogEl = document.getElementById('eventLog');
+    let logCount = 0;
+    function logEvent(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      eventLogEl.appendChild(line);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 60) {
+        eventLogEl.removeChild(eventLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ── Actions ──
+    Zen.action('updateName', ({ state }) => {
+      const newName = state.userNameInput.get().trim();
+      if (!newName) {
+        logEvent('updateName', 'SKIPPED — ورودی خالی است');
+        return;
+      }
+      const current = state.user.get();
+      state.user.set({ ...current, name: newName });
+      state.userNameInput.set('');
+      logEvent('updateName', `user.name → "${newName}"`);
+    });
+
+    Zen.action('bumpAge', ({ state }) => {
+      const current = state.user.get();
+      state.user.set({ ...current, age: current.age + 1 });
+      logEvent('bumpAge', `user.age → ${current.age + 1}`);
+    });
+
+    Zen.action('resetUser', ({ state }) => {
+      state.user.set({ name: 'علی', age: 25 });
+      state.userNameInput.set('');
+      logEvent('resetUser', 'user → { name: "علی", age: 25 }');
+    });
+
+    Zen.action('slotClick', ({ element }) => {
+      const name = element.getAttribute('data-name') || '(unknown)';
+      logEvent('slotClick', `clicked by "${name}" (از slot="actions")`);
+    });
+
+    // ── شروع فریم‌ورک ──
+    // loadComponents به‌صورت خودکار در Zen.start فراخوانی می‌شود
+    // و تمام <zen-component> blocks را پیدا کرده و در Registry ثبت می‌کند.
+    Zen.start(document.getElementById('app'), state);
+    logEvent('init', 'Zenith started. 3 components loaded: zen-greeting, user-card, profile-widget');
+  </script>
+</body>
+</html>

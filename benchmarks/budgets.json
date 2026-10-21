@@ -1,0 +1,5 @@
+{
+  "$comment": "#84: بودجهٔ عملکرد CI — حداقل ops/sec؛ آستانهٔ شکست = بودجه × ۰٫۶ (حاشیهٔ نویز). console numbers تغییر نمی‌کند مگر با DEC.",
+  "signalsCreateSet": 200000,
+  "ssrRender": 2000
+}

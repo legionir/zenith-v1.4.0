@@ -1,0 +1,16 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["packages/*/src/index.ts"],
+  "entryPointStrategy": "expand",
+  "out": "docs-site/api",
+  "tsconfig": "tsconfig.json",
+  "readme": "README.md",
+  "name": "Zenith Framework — API Reference",
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "defaultCategory": "API",
+  "searchInComments": true,
+  "cleanOutputDir": true,
+  "lang": "en"
+}

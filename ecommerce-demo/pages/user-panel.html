@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>پنل کاربر</title></head>
+<body>
+  <h2>پنل کاربر</h2>
+  <div zen-if="$auth.user">
+    <p>کاربر: <span zen-text="$auth.user.name"></span></p>
+    <h3>سفارش‌های من</h3>
+    <ul zen-resource="'/api/orders?user=' + $auth.user.id" zen-state="myOrders">
+      <li zen-for="o in $myOrders.data" zen-key="o.id">
+        <span zen-text="$o.id"></span> - <span zen-text="$o.status"></span>
+      </li>
+    </ul>
+  </div>
+  <div zen-if="!$auth.user">
+    <p>لطفاً <a zen-link="/login">وارد شوید</a></p>
+  </div>
+</body>
+</html>

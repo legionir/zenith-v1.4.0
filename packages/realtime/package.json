@@ -1,0 +1,77 @@
+{
+  "name": "@zenith/realtime",
+  "version": "1.5.0",
+  "description": "Typed WebSocket/EventSource transport with bounded queues and deterministic reconnect.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "default": "./dist/testing.js"
+    },
+    "./legacy": {
+      "types": "./dist/legacy.d.ts",
+      "import": "./dist/legacy.js",
+      "default": "./dist/legacy.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "websocket",
+    "sse",
+    "realtime"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/realtime"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/expressions": "1.4.0"
+  },
+  "zenith": {
+    "target": "universal"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "devDependencies": {
+    "@zenith/mock": "1.5.0"
+  }
+}

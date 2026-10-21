@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Form Validation v1.0</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8; --success: #4ade80; --error: #ef4444;
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 700px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 1.75rem; margin-bottom: 8px; }
+    h1 .gradient { background: linear-gradient(135deg, var(--accent), #a855f7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .section p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; }
+    .form-field { margin-bottom: 12px; }
+    .form-field label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: var(--text-secondary); }
+    .form-field input, .form-field select {
+      width: 100%; padding: 8px 12px; background: rgba(10, 14, 31, 0.6);
+      border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
+      font-size: 0.9rem; font-family: inherit;
+    }
+    .form-field input:focus { outline: none; border-color: var(--accent); }
+    .form-field input.invalid { border-color: var(--error); }
+    .form-field input.valid { border-color: var(--success); }
+    .field-error { color: var(--error); font-size: 0.75rem; margin-top: 4px; min-height: 1em; }
+    .field-hint { color: var(--text-muted); font-size: 0.72rem; margin-top: 2px; }
+    .btn {
+      padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 6px;
+      background: var(--accent); color: white; cursor: pointer; font-size: 0.9rem;
+      font-family: inherit; transition: all 0.2s;
+    }
+    .btn:hover { background: var(--accent-light); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary { background: transparent; border-color: var(--border); color: var(--text-primary); }
+    .status {
+      padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; margin-top: 12px;
+    }
+    .status.success { background: rgba(74, 222, 128, 0.1); color: var(--success); }
+    .status.error { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+    .status.info { background: rgba(99, 102, 241, 0.1); color: var(--accent-light); }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(99, 102, 241, 0.2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 4px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .nested-group { border: 1px dashed var(--border); border-radius: 8px; padding: 12px; margin-top: 8px; }
+    .nested-group h3 { font-size: 0.85rem; color: var(--accent-light); margin-bottom: 8px; }
+    code { background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: var(--accent-light); }
+    .results { background: rgba(10, 14, 31, 0.8); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-top: 12px; font-family: monospace; font-size: 0.75rem; color: var(--success); max-height: 200px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/demos/" class="back">← بازگشت به فهرست دموها</a>
+    <h1>📝 <span class="gradient">Form Validation</span> v1.0</h1>
+    <p class="subtitle">Async validators، nested validation، cross-field validation، lifecycle hooks.</p>
+
+    <!-- ۱. Registration Form (cross-field + async) -->
+    <div class="section">
+      <h2>۱. فرم ثبت‌نام (Cross-field + Async)</h2>
+      <p>تطابق رمز عبور، بررسی uniqueness نام کاربری از سرور (شبیه‌سازی).</p>
+      <div id="reg-form">
+        <div class="form-field">
+          <label>نام کاربری</label>
+          <input type="text" id="username" placeholder="user123">
+          <div class="field-error" id="username-error"></div>
+        </div>
+        <div class="form-field">
+          <label>ایمیل</label>
+          <input type="email" id="email" placeholder="user@example.com">
+          <div class="field-error" id="email-error"></div>
+        </div>
+        <div class="form-field">
+          <label>رمز عبور</label>
+          <input type="password" id="password" placeholder="حداقل ۶ کاراکتر">
+          <div class="field-error" id="password-error"></div>
+        </div>
+        <div class="form-field">
+          <label>تکرار رمز عبور</label>
+          <input type="password" id="confirmPassword" placeholder="تکرار رمز عبور">
+          <div class="field-error" id="confirmPassword-error"></div>
+        </div>
+        <button class="btn" id="submit-reg" onclick="submitReg()">ثبت‌نام</button>
+        <button class="btn secondary" onclick="resetReg()">ریست</button>
+        <div class="status" id="reg-status" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ۲. Nested Form -->
+    <div class="section">
+      <h2>۲. فرم آدرس (Nested Validation)</h2>
+      <p>اعتبارسنجی فیلدهای تودرتو با dot notation.</p>
+      <div class="nested-group">
+        <h3>آدرس</h3>
+        <div class="form-field">
+          <label>شهر</label>
+          <input type="text" id="city" placeholder="Tehran">
+          <div class="field-error" id="city-error"></div>
+        </div>
+        <div class="form-field">
+          <label>کد پستی</label>
+          <input type="text" id="zip" placeholder="12345678">
+          <div class="field-error" id="zip-error"></div>
+        </div>
+      </div>
+      <button class="btn" id="submit-nested" onclick="submitNested()" style="margin-top: 12px;">اعتبارسنجی آدرس</button>
+      <div class="status" id="nested-status" style="display:none;"></div>
+    </div>
+
+    <!-- ۳. Lifecycle Hooks -->
+    <div class="section">
+      <h2>۳. Lifecycle Hooks</h2>
+      <p>رویدادهای validation: onBeforeValidate، onFieldError، onFormValid.</p>
+      <div class="form-field">
+        <label>نام</label>
+        <input type="text" id="lifecycle-name" placeholder="Ali">
+      </div>
+      <div class="form-field">
+        <label>سن</label>
+        <input type="number" id="lifecycle-age" placeholder="25">
+      </div>
+      <button class="btn" onclick="runLifecycle()">اجرای Validation با Lifecycle</button>
+      <div class="results" id="lifecycle-log"></div>
+    </div>
+
+    <div class="section">
+      <h2>خلاصه</h2>
+      <p>قوانین موجود: <code>required, email, url, min, max, pattern, equals, equalsField, differentFrom, requiresField, number, integer, positive, negative, date, phone, creditCard, nationalId, persianPhone</code></p>
+      <p style="margin-top: 8px;">قوانین سفارشی: <code>defineRule(name, fn)</code> — قوانین async: <code>defineAsyncRule(name, fn)</code></p>
+      <p style="margin-top: 8px;">Nested validation: <code>validateForm({ address: { city: '' } }, { 'address.city': 'required' })</code></p>
+      <p style="margin-top: 8px;">Lifecycle: <code>validateWithLifecycle(values, rules, { onBeforeValidate, onAfterValidate, onFieldError, onFormValid, onFormInvalid })</code></p>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+  <script type="module">
+    import { validateField, validateFieldAsync, validateForm, validateFormAsync, validateWithLifecycle, defineAsyncRule, clearCustomRules } from '@zenith/form';
+
+    // Simulate server-side username uniqueness check
+    clearCustomRules();
+    defineAsyncRule('unique', async (value) => {
+      await new Promise(r => setTimeout(r, 800)); // simulate network delay
+      const taken = ['admin', 'root', 'test', 'user', 'taken'];
+      return {
+        valid: !taken.includes(String(value).toLowerCase()),
+        error: taken.includes(String(value).toLowerCase()) ? 'این نام کاربری قبلاً گرفته شده' : null,
+        rule: 'unique',
+      };
+    });
+
+    // ── 1. Registration Form ──
+    let regValidating = false;
+
+    async function validateUsername() {
+      const username = document.getElementById('username').value;
+      const errorEl = document.getElementById('username-error');
+      const inputEl = document.getElementById('username');
+
+      if (!username) { errorEl.textContent = ''; inputEl.classList.remove('valid', 'invalid'); return; }
+
+      inputEl.classList.remove('valid', 'invalid');
+      errorEl.innerHTML = '<span class="spinner"></span> در حال بررسی...';
+      regValidating = true;
+
+      const result = await validateFieldAsync(username, 'required,min:3,unique', {
+        username, email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        confirmPassword: document.getElementById('confirmPassword').value,
+      });
+
+      regValidating = false;
+      if (result.valid) {
+        inputEl.classList.add('valid');
+        errorEl.textContent = '✓ موجود است';
+        errorEl.style.color = 'var(--success)';
+      } else {
+        inputEl.classList.add('invalid');
+        errorEl.textContent = result.error;
+        errorEl.style.color = 'var(--error)';
+      }
+    }
+
+    document.getElementById('username').addEventListener('blur', validateUsername);
+
+    function validateRegField(id, rules) {
+      const value = document.getElementById(id).value;
+      const allValues = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        confirmPassword: document.getElementById('confirmPassword').value,
+      };
+      const result = validateField(value, rules, allValues);
+      const errorEl = document.getElementById(id + '-error');
+      const inputEl = document.getElementById(id);
+      if (result.valid) {
+        inputEl.classList.remove('invalid');
+        inputEl.classList.add('valid');
+        errorEl.textContent = '';
+      } else {
+        inputEl.classList.remove('valid');
+        inputEl.classList.add('invalid');
+        errorEl.textContent = result.error;
+      }
+      return result.valid;
+    }
+
+    ['email', 'password', 'confirmPassword'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        const rules = {
+          email: 'required,email',
+          password: 'required,min:6',
+          confirmPassword: 'required,equalsField:password',
+        }[id];
+        validateRegField(id, rules);
+        // Re-validate confirmPassword when password changes
+        if (id === 'password' && document.getElementById('confirmPassword').value) {
+          validateRegField('confirmPassword', 'required,equalsField:password');
+        }
+      });
+    });
+
+    window.submitReg = async function() {
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      const values = { username, email, password, confirmPassword };
+      const rules = {
+        username: 'required,min:3,unique',
+        email: 'required,email',
+        password: 'required,min:6',
+        confirmPassword: 'required,equalsField:password',
+      };
+
+      const statusEl = document.getElementById('reg-status');
+      statusEl.style.display = 'block';
+      statusEl.className = 'status info';
+      statusEl.textContent = 'در حال اعتبارسنجی...';
+
+      const result = await validateFormAsync(values, rules);
+
+      if (result.valid) {
+        statusEl.className = 'status success';
+        statusEl.textContent = '✅ فرم معتبر است! ثبت‌نام موفق بود.';
+      } else {
+        statusEl.className = 'status error';
+        const errors = Object.entries(result.fields).filter(([_, f]) => !f.valid).map(([n, f]) => `${n}: ${f.error}`).join('؛ ');
+        statusEl.textContent = '❌ خطا: ' + errors;
+      }
+    };
+
+    window.resetReg = function() {
+      ['username', 'email', 'password', 'confirmPassword'].forEach(id => {
+        document.getElementById(id).value = '';
+        document.getElementById(id).classList.remove('valid', 'invalid');
+        document.getElementById(id + '-error').textContent = '';
+      });
+      document.getElementById('reg-status').style.display = 'none';
+    };
+
+    // ── 2. Nested Form ──
+    window.submitNested = function() {
+      const values = {
+        address: {
+          city: document.getElementById('city').value,
+          zip: document.getElementById('zip').value,
+        },
+      };
+      const rules = { 'address.city': 'required,min:2', 'address.zip': 'required,pattern:^\\d{5,10}$' };
+      const result = validateForm(values, rules);
+
+      // Show errors
+      ['city', 'zip'].forEach(id => {
+        const key = 'address.' + id;
+        const field = result.fields[key];
+        const errorEl = document.getElementById(id + '-error');
+        const inputEl = document.getElementById(id);
+        if (field && !field.valid) {
+          errorEl.textContent = field.error;
+          inputEl.classList.add('invalid');
+          inputEl.classList.remove('valid');
+        } else {
+          errorEl.textContent = '';
+          inputEl.classList.add('valid');
+          inputEl.classList.remove('invalid');
+        }
+      });
+
+      const statusEl = document.getElementById('nested-status');
+      statusEl.style.display = 'block';
+      if (result.valid) {
+        statusEl.className = 'status success';
+        statusEl.textContent = '✅ آدرس معتبر است!';
+      } else {
+        statusEl.className = 'status error';
+        statusEl.textContent = '❌ آدرس نامعتبر است.';
+      }
+    };
+
+    // ── 3. Lifecycle Hooks ──
+    window.runLifecycle = async function() {
+      const logEl = document.getElementById('lifecycle-log');
+      logEl.innerHTML = '';
+      function log(msg) { logEl.innerHTML += msg + '<br>'; }
+
+      const values = {
+        name: document.getElementById('lifecycle-name').value,
+        age: document.getElementById('lifecycle-age').value,
+      };
+      const rules = { name: 'required,min:2', age: 'required,number,positive' };
+
+      log('🚀 شروع validation...');
+
+      const result = await validateWithLifecycle(values, rules, {
+        onBeforeValidate: (v) => {
+          log('📋 onBeforeValidate: مقادیر = ' + JSON.stringify(v));
+          return true;
+        },
+        onFieldError: (name, error) => {
+          log('❌ onFieldError: ' + name + ' → ' + error);
+        },
+        onFormValid: () => {
+          log('✅ onFormValid: فرم معتبر است!');
+        },
+        onFormInvalid: (r) => {
+          log('⚠️ onFormInvalid: ' + Object.keys(r.fields).filter(k => !r.fields[k].valid).length + ' فیلد نامعتبر');
+        },
+        onAfterValidate: () => {
+          log('📋 onAfterValidate: validation تمام شد.');
+        },
+      }, false);
+
+      log(result.valid ? '✅ نتیجه: VALID' : '❌ نتیجه: INVALID');
+    };
+
+    console.log('✅ Form validation demo loaded');
+  </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
+import { generateDecIndex } from '../generate-dec-index.mjs';
+
+// #175 (RFC): هر ۸ تصمیم باز NEW-PACKAGES-SPEC باید ADR داشته باشد
+// (تصمیم، دلیل، پیامد) + لینک issueهای تحت‌تأثیر، و SPEC با تصمیم‌ها همگام شود.
+// AGENT-INSTRUCTIONS §4: ADRها در docs/decisions/ (DEC-NNN) — بدنۀ issue «docs/adr/»
+// نوشته بود؛ دستورالعمل (مقدم بر issue، §1 بندر امنیتی) و رویهٔ موجود مخزن مقدم است.
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const DEC = join(ROOT, 'docs', 'decisions');
+const spec = readFileSync(join(ROOT, 'NEW-PACKAGES-SPEC.md'), 'utf8');
+
+const RFC_DECISIONS = [
+  'DEC-020-error-code-space.md',
+  'DEC-021-readable-shared.md',
+  'DEC-022-adapter-edge-deferred.md',
+  'DEC-023-ui-component-order.md',
+  'DEC-024-charts-icons-community.md',
+  'DEC-025-runtime-core-split-parity.md',
+  'DEC-026-lockstep-150-removal-200.md',
+  'DEC-027-node-floor-dual-format.md',
+];
+
+describe('RFC #175 — eight open design decisions are closed with ADRs', () => {
+  it.each(RFC_DECISIONS)('%s exists with MADR sections and issue links', (file) => {
+    const path = join(DEC, file);
+    expect(existsSync(path), path).toBe(true);
+    const text = readFileSync(path, 'utf8');
+    expect(text).toMatch(/^# DEC-\d+: /m);
+    expect(text).toMatch(/پذیرفته/);
+    expect(text).toMatch(/## زمینه/);
+    expect(text).toMatch(/## گزینه‌ها/);
+    expect(text).toMatch(/## تصمیم و دلیل/);
+    expect(text).toMatch(/## پیامدها/);
+    // «لینک به issueهای تحت‌تأثیر» — حداقل یک شمارهٔ issue
+    expect(text).toMatch(/#\d{2,3}/);
+  });
+
+  it('DEC numbering has no duplicates and reaches 041', () => {
+    const files = readdirSync(DEC).filter((f) => /^DEC-\d{3}-/.test(f));
+    const nums = files.map((f) => parseInt(f.slice(4, 7), 10));
+    expect(new Set(nums).size).toBe(nums.length);
+    expect(Math.max(...nums)).toBe(41); // #57: DEC-041 subpath-per-environment, no export conditions
+    // #13: DEC-040 secure development toolchain
+    // #86: DEC-039 (روش‌شناسی بنچمارک + گیت بازتولیدپذیری); #67: DEC-038 (extension message schema + nonce CSP); #142/#120+#118: DEC-037 (public subpath table + global-reset placement); #55: DEC-036 (options-object/positional freeze); #119: DEC-035 (unique export names); #74: DEC-034 (exports shape); #94: DEC-033 (telemetry); #116: DEC-032 (cleanup protocol); #115: DEC-031; #145: DEC-030; #142: DEC-029
+    // پوشه باید دقیقاً از ۱ تا max پیوسته باشد (شمارهٔ جاافتاده = تصمیم گم‌شده).
+    expect(nums.sort((a, b) => a - b)).toEqual(Array.from({ length: 41 }, (_, i) => i + 1));
+  });
+
+  it('DEC-040 distinguishes secure development tools from the unchanged library floor', () => {
+    const text = readFileSync(join(DEC, 'DEC-040-secure-development-toolchain.md'), 'utf8');
+    expect(text).toContain('22.12');
+    expect(text).toContain('>=18.19');
+    expect(text).toContain('#13');
+    expect(text).toContain('#110');
+    expect(text).toContain('^6.4.4 || ^7.3.7');
+    expect(text).toContain('--audit-level=low');
+  });
+
+  it('DEC-041 records the subpath-per-environment rule and pins the no-conditions gate', () => {
+    const path = join(DEC, 'DEC-041-subpath-per-environment-no-export-conditions.md');
+    expect(existsSync(path), path).toBe(true);
+    const text = readFileSync(path, 'utf8');
+    expect(text).toMatch(/^# DEC-\d+: /m);
+    expect(text).toMatch(/## زمینه/);
+    expect(text).toMatch(/## گزینه‌ها/);
+    expect(text).toMatch(/## تصمیم و دلیل/);
+    expect(text).toMatch(/## پیامدها/);
+    expect(text).toContain('#57');
+    // قانون اصلی باید در متن تصمیم باشد (نه فقط در کد).
+    expect(text).toContain('export-conditions.test.mjs');
+    expect(text).toContain('PUBLIC_SUBPATHS');
+    expect(text).toContain('__ZENITH_DEV__');
+  });
+  it('DEC-039 records the benchmark methodology, the gate policy and its honest limits', () => {
+    const path = join(DEC, 'DEC-039-benchmark-methodology-and-reproducibility-gate.md');
+    expect(existsSync(path), path).toBe(true);
+    const text = readFileSync(path, 'utf8');
+    expect(text).toMatch(/^# DEC-\d+: /m);
+    expect(text).toMatch(/## زمینه/);
+    expect(text).toMatch(/## گزینه‌ها/);
+    expect(text).toMatch(/## تصمیم و دلیل/);
+    expect(text).toMatch(/## پیامدها/);
+    expect(text).toContain('#86');
+    // سیاست‌های کلیدی باید در متن تصمیم باشند (نه فقط در کد).
+    expect(text).toContain('GATE_LIMIT_PCT');
+    expect(text).toContain('reactive.harness.ceiling');
+    expect(text).toContain('solid-js/dist/solid.js');
+    expect(text).toContain('--expose-gc');
+    expect(text).toContain('jsdom');
+    expect(text).toContain('budgets.json');
+  });
+
+  it('DEC-035 exists exactly once and the two later decisions are real files', () => {
+    const files = readdirSync(DEC).filter((f) => f.startsWith('DEC-035'));
+    expect(files).toEqual(['DEC-035-unique-public-export-names.md']);
+    expect(existsSync(join(DEC, 'DEC-036-options-object-signatures.md')), 'DEC-036').toBe(true);
+    expect(
+      existsSync(join(DEC, 'DEC-037-public-subpath-table-and-global-reset-placement.md')),
+      'DEC-037',
+    ).toBe(true);
+  });
+
+  it('docs/decisions/README.md (DEC index) lists every decision — drift fails CI', () => {
+    const { rows, stale } = generateDecIndex({ checkOnly: true });
+    expect(stale).toBe(false);
+    expect(rows.length).toBeGreaterThanOrEqual(41);
+    const index = readFileSync(join(DEC, 'README.md'), 'utf8');
+    for (const row of rows) {
+      expect(index).toContain(`[\`${row.file}\`](./${row.file})`);
+    }
+    expect(index).toContain('DEC-037');
+    expect(index).toContain('DEC-038');
+    expect(index).toContain('DEC-039');
+    expect(index).toContain('DEC-040');
+    expect(index).toContain('DEC-041');
+  });
+
+  it('DEC-036 appendix records the two owner-approved placements and links DEC-037', () => {
+    const text = readFileSync(join(DEC, 'DEC-036-options-object-signatures.md'), 'utf8');
+    expect(text).toContain('DEC-037');
+    expect(text).toMatch(/۴KB|4KB/);
+    expect(text).toContain('onGlobalReset');
+  });
+
+  it('error-space ADR formalizes ZEN-DEPR registry (DEC-019) and hands ranges to #171', () => {
+    const text = readFileSync(join(DEC, 'DEC-020-error-code-space.md'), 'utf8');
+    expect(text).toContain('ZEN-DEPR');
+    expect(text).toContain('DEC-019');
+    expect(text).toContain('#171');
+  });
+
+  it('Readable ADR builds on the Symbol.for brand (DEC-009) and mandates a type test', () => {
+    const text = readFileSync(join(DEC, 'DEC-021-readable-shared.md'), 'utf8');
+    expect(text).toContain('DEC-009');
+    expect(text).toContain('Symbol.for');
+    expect(text).toMatch(/expectTypeOf|tsd|تست نوع/);
+    expect(text).toContain('#141');
+  });
+
+  it('adapter-edge ADR applies the spec contingency: deferred until ssr DOM-impl abstraction (#92)', () => {
+    const text = readFileSync(join(DEC, 'DEC-022-adapter-edge-deferred.md'), 'utf8');
+    expect(text).toContain('linkedom');
+    expect(text).toMatch(/AsyncLocalStorage|async_hooks/);
+    expect(text).toMatch(/به تعویق|موکول|deferred/);
+    expect(text).toContain('#92');
+  });
+
+  it('runtime-core ADR requires parity tests before any move (#148)', () => {
+    const text = readFileSync(join(DEC, 'DEC-025-runtime-core-split-parity.md'), 'utf8');
+    expect(text).toMatch(/parity|برابری/);
+    expect(text).toContain('#148');
+  });
+
+  it('node-floor ADR keeps engines ≥18.19 from #14/DEC-007 (no bump to 20)', () => {
+    const text = readFileSync(join(DEC, 'DEC-027-node-floor-dual-format.md'), 'utf8');
+    expect(text).toContain('18.19');
+    expect(text).toContain('DEC-007');
+    expect(text).toMatch(/ESM/);
+  });
+
+  it('NEW-PACKAGES-SPEC risk list is annotated with the closing ADR for each item', () => {
+    const start = spec.indexOf('### ریسک‌ها و تصمیم‌های باز');
+    expect(start).toBeGreaterThan(-1);
+    let body = spec.slice(start);
+    const rest = body.indexOf('\n---');
+    if (rest >= 0) body = body.slice(0, rest);
+    for (const n of ['020', '021', '022', '023', '024', '025', '026', '027']) {
+      expect(body, `DEC-${n} referenced in spec risk list`).toContain(`DEC-${n}`);
+    }
+  });
+
+  it('ARCHITECTURE.md links the new RFC ADRs', () => {
+    const arch = readFileSync(join(ROOT, 'ARCHITECTURE.md'), 'utf8');
+    expect(arch).toMatch(/DEC-02[0-7]/);
+  });
+});

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>ورود مدیر</title></head>
+<body>
+  <h2>ورود مدیر</h2>
+  <form zen-action:submit.prevent="adminLogin">
+    <input name="username" placeholder="نام کاربری" zen-validate="required">
+    <input name="password" type="password" placeholder="رمز عبور" zen-validate="required,min:6">
+    <button type="submit">ورود مدیر</button>
+  </form>
+</body>
+</html>

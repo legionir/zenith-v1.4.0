@@ -1,0 +1,287 @@
+// packages/data/src/fetcher.ts
+//
+// پردازشگر zen-fetch — فاز ۸.
+//
+// این دایرکتیو URL را می‌گیرد، یک Signal محلی برای مدیریت وضعیت
+// (Loading/Error/Success) می‌سازد، درخواست API را ارسال می‌کند، و آن Signal
+// را به Context محلی اضافه می‌کند تا در Expressionها قابل دسترسی باشد.
+//
+// ── سینتکس ──
+//   <div zen-fetch="`/api/products/${$route.params.id}`" zen-state="product">
+//     <div zen-if="$product.loading">Loading...</div>
+//     <div zen-if="$product.error">Error: <span zen-text="$product.error"></span></div>
+//     <div zen-if="!$product.loading && !$product.error">
+//       <h2 zen-text="$product.data.name"></h2>
+//     </div>
+//   </div>
+//
+// ── ویژگی‌های اضافی (v1.3.0+) ──
+//   zen-fetch-method | متد HTTP (GET, POST, PUT, DELETE). پیش‌فرض: GET
+//   zen-fetch-body   | بدنه درخواست (برای POST/PUT).
+//   zen-fetch-params | Expression شی پارامترهای query string.
+//   zen-fetch-cache  | TTL کش به میلی‌ثانیه. پیش‌فرض: 0 (بدون کش)
+//
+// ── نکات طراحی ──
+//
+// 1) Reactive URL:
+//    اگر URL به یک Signal وابسته باشد (مثلا `$route.params.id`)، وقتی آن
+//    Signal تغییر کند، fetch باید دوباره انجام شود. ما این کار را با یک
+//    Effect انجام می‌دهیم که URL را watch می‌کند.
+//
+// 2) State Shape:
+//    Signal محلی شامل سه فیلد است:
+//      { loading: boolean, error: string | null, data: any | null }
+//
+// 3) Race Condition:
+//    اگر URL سریع تغییر کند، چند fetch همزمان ممکن است رخ دهد. ما با یک
+//    flag `currentFetchId` فقط نتیجه‌ی آخرین fetch را اعمال می‌کنیم.
+//
+// 4) Memory Leak Prevention:
+//    Effect که URL را watch می‌کند باید در dispose کامپوننت/والد dispose شود.
+//    ما dispose را در آرایه parentDisposes قرار می‌دهیم.
+//    همچنین AbortController پس از اتمام هر fetch پاک می‌شود (BUG-DAT-01).
+
+
+import { signal, effect } from '@zenith/state';
+import { compileExpression } from '@zenith/expressions';
+import { deprecate } from '@zenith/errors';
+import { logger } from '@zenith/logger';
+import { readFetchCache, invalidateFetchCache } from './fetch-cache';
+import { buildFetchContext, initialFetchState, isValidUrl, type FetchState } from './fetch-helpers';
+import { performFetch } from './fetch-perform';
+
+// ═══════════════════════════════════════════════════════════════════════
+// Cache Layer (IMP-DAT-02: SWR-like caching) — #144: روی @zenith/cache
+// ═══════════════════════════════════════════════════════════════════════
+
+export { getCachedData, setCachedData, clearFetchCache, registerInvalidateHook, invalidateFetchCache, processFetchWithCache } from './fetch-cache';
+export type { ProcessFetchWithCacheOptions, FetchCacheReadOptions, FetchCacheWriteOptions } from './fetch-cache';
+import { readFetchCache, invalidateFetchCache } from './fetch-cache';
+
+// ═══════════════════════════════════════════════════════════════════════
+// Process fetch directive (point d'entrée)
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * پردازش دایرکتیو zen-fetch.
+ *
+ * این تابع نقطه‌ی ورود اصلی سیستم Data Fetching است. توسط walker فراخوانی
+ * می‌شود وقتی به عنصری با attribute `zen-fetch` می‌رسد.
+ *
+ * مراحل:
+ *   1) نام state را از `zen-state` (یا پیش‌فرض "data") می‌گیرد.
+ *   2) یک Signal محلی برای fetch state می‌سازد.
+ *   3) Context محلی می‌سازد که `$<stateName>` به آن Signal اشاره می‌کند.
+ *   4) فرزندان را با Context محلی process می‌کند.
+ *   5) یک Effect ایجاد می‌کند که URL را watch می‌کند و fetch را انجام می‌دهد.
+ *
+ * @param el              عنصری که zen-fetch روی آن است.
+ * @param expr            Expression URL (مثلا `"/api/users"` یا `"/api/products/${$route.params.id}"`).
+ * @param context         Context والد.
+ * @param processChildren callback برای walk فرزندان.
+ *                        امضا: (node, context, disposes) => void
+ * @param disposes        آرایه‌ی dispose functions والد (سازگاری — #116).
+ * @returns Cleanup تابعی idempotent (#116: همهٔ `process*` → `Cleanup`).
+ */
+export function processFetch(
+  el: HTMLElement,
+  expr: string,
+  context: Record<string, any>,
+  processChildren: (
+    node: HTMLElement,
+    context: Record<string, any>,
+    disposes: (() => void)[],
+  ) => void,
+  disposes: (() => void)[],
+): () => void {
+  // ── ۱. گرفتن attributeها ──
+  // HTML attribute names case-insensitive هستند و DOM آن‌ها را lowercase می‌کند.
+  const stateName = el.getAttribute('zen-state') || 'data';
+
+  // BUG-DAT-03: متد HTTP (GET, POST, PUT, DELETE)
+  const method =
+    (el.getAttribute('zen-fetch-method')?.toUpperCase() as RequestInit['method']) ?? 'GET';
+  // BUG-DAT-03: بدنه درخواست (برای POST/PUT)
+  const body = el.getAttribute('zen-fetch-body') ?? null;
+
+  // IMP-DAT-02: TTL کش (0 = بدون کش)
+  const cacheTtlAttr = el.getAttribute('zen-fetch-cache');
+  const cacheTtl = cacheTtlAttr ? parseInt(cacheTtlAttr, 10) : 0;
+
+  // IMP-DAT-01: کامپایل expression پارامترهای query string
+  const paramsExpr = el.getAttribute('zen-fetch-params');
+  const paramsEvalFn = paramsExpr ? compileExpression(paramsExpr) : null;
+
+  // ── ۲. ساخت Signal محلی ──
+  const fetchStateSignal = signal<FetchState>(initialFetchState());
+
+  // ── ۳. ساخت Context محلی ──
+  const localContext = buildFetchContext(context, stateName, fetchStateSignal);
+
+  // ── ۴. Process فرزندان با Context محلی ──
+  // نکته: فرزندان باید قبل از Effect پردازش شوند تا Effectهای آن‌ها (مثل
+  // zen-if که به $product.loading وابسته است) ایجاد شوند و بتوانند به
+  // fetchStateSignal subscribe کنند.
+  const childDisposes: (() => void)[] = [];
+  for (const child of Array.from(el.children)) {
+    processChildren(child as HTMLElement, localContext, childDisposes);
+  }
+
+  // ── ۵. Effect: watch URL و fetch ──
+  // این Effect هر بار که URL (و وابستگی‌هایش) تغییر می‌کند، اجرا می‌شود.
+  // نکته: fetch به‌صورت async انجام می‌شود اما Effect خودش synchronous است.
+  let currentFetchId = 0;
+  // AbortController فعلی. در هر fetch جدید، قبلی abort می‌شود.
+  let currentAbortController: AbortController | null = null;
+
+  // FEATURE (v1.0.0): compile-once — expr فقط یک‌بار parse می‌شود.
+  const evalFn = compileExpression(expr);
+
+  const disposeEffect = effect(() => {
+    // ارزیابی URL در parentContext (نه localContext).
+    // چرا parentContext؟ چون URL ممکن است به `$route` وابسته باشد که در
+    // parentContext موجود است. اگر در localContext ارزیابی کنیم، ممکن است
+    // به `$product` (که خودمان ساختیم) دسترسی پیدا کند که منطقی نیست.
+    let url: unknown;
+    try {
+      url = evalFn(context);
+    } catch (err) {
+      logger.error(
+        `[Zenith Fetch] Failed to evaluate URL expression "${expr}": ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      fetchStateSignal.set({
+        loading: false,
+        error: `Invalid URL expression: ${(err as Error).message}`,
+        data: null,
+      });
+      return;
+    }
+
+    // BUG-DAT-04: اعتبارسنجی نوع — باید string باشد
+    if (typeof url !== 'string') {
+      logger.error(`[Zenith Fetch] URL expression must evaluate to string. Got: ${typeof url}`);
+      fetchStateSignal.set({
+        loading: false,
+        error: `URL must be a string, got ${typeof url}`,
+        data: null,
+      });
+      return;
+    }
+
+    // BUG-DAT-04: اعتبارسنجی فرمت — باید URL معتبر باشد
+    if (!isValidUrl(url)) {
+      logger.error(`[Zenith Fetch] Malformed URL: ${String(url)}`);
+      fetchStateSignal.set({
+        loading: false,
+        error: `Malformed URL: ${url}`,
+        data: null,
+      });
+      return;
+    }
+
+    // IMP-DAT-01: افزودن پارامترهای query string پویا
+    let finalUrl = url;
+    if (paramsEvalFn) {
+      try {
+        const params = paramsEvalFn(context);
+        if (params && typeof params === 'object' && !Array.isArray(params)) {
+          const query = new URLSearchParams();
+          for (const [key, value] of Object.entries(params)) {
+            query.append(key, String(value));
+          }
+          const qs = query.toString();
+          if (qs) {
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + qs;
+          }
+        }
+      } catch (err) {
+        // پارامترهای نامعتبر — با warn ادامه بده بدون پارامتر
+        logger.warn(
+          `[Zenith Fetch] Failed to evaluate params expression: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    // IMP-DAT-02: بررسی کش — اگر داده معتبر در کش هست، skip fetch
+    if (cacheTtl > 0) {
+      const cached = readFetchCache(finalUrl, { ttl: cacheTtl });
+      if (cached !== null) {
+        fetchStateSignal.set({ loading: false, error: null, data: cached });
+        return; // از fetch صرف‌نظر کن
+      }
+    }
+
+    // ── لغو fetch قبلی با AbortController ──
+    // این کار از هدررفت bandwidth جلوگیری می‌کند: اگر URL سریع تغییر کند،
+    // fetch قدیمی به‌جای کامل شدن در پس‌زمینه، لغو می‌شود.
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+
+    // شروع fetch جدید. ID و AbortController جدید ذخیره می‌کنیم.
+    const fetchId = ++currentFetchId;
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+
+    void performFetch({
+      url: finalUrl,
+      signal: fetchStateSignal,
+      fetchId,
+      getCurrentFetchId: () => currentFetchId,
+      abortController,
+      method,
+      body,
+    });
+  });
+
+  // ── ۶. ثبت dispose ──
+  // این dispose:
+  //   1) fetch در حال انجام را abort می‌کند (صرفه‌جویی bandwidth).
+  //   2) Effect را dispose می‌کند (جلوگیری از fetch بعد از unmount).
+  //   3) تمام effectهای فرزندان را dispose می‌کند.
+  // #116 cleanup protocol: Cleanup idempotent برگردانده می‌شود و همزمان
+  // به آرایهٔ disposes اضافه می‌شود (سازگاری با گذشته).
+  const cleanup = (): void => {
+    currentFetchId++; // جلوگیری از اعمال نتیجه‌ی fetch در حال انجام.
+    // abort fetch در حال انجام.
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+    }
+    disposeEffect();
+    for (const d of childDisposes) {
+      try {
+        d();
+      } catch (err) {
+        logger.error(
+          `[Zenith Fetch] Error during child dispose: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+    childDisposes.length = 0;
+  };
+  let cleaned = false;
+  const idempotentCleanup = (): void => {
+    if (cleaned) return;
+    cleaned = true;
+    cleanup();
+  };
+  disposes.push(idempotentCleanup);
+  return idempotentCleanup;
+}
+
+/**
+ * @deprecated #119 — نام `invalidate` با `@zenith/resource.invalidate`
+ * (باطل‌سازی Resourceها) هم‌نام و مبهم بود. از `invalidateFetchCache`
+ * استفاده کنید (ZEN-DEPR-046؛ حذف در ۲.۰).
+ */
+export function invalidate(tags?: string | string[]): void {
+  deprecate('ZEN-DEPR-046', 'invalidate (@zenith/data)', 'invalidateFetchCache');
+  invalidateFetchCache(tags);
+}

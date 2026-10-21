@@ -1,0 +1,30 @@
+{
+  "$comment": "#114 — single machine-readable source for every shippable demo. scripts/build-demos.mjs audits, stages and smokes exactly this list; scripts/test/demos-manifest.test.mjs pins it to the filesystem and to demos/index.html cards. `build: workspace` = no per-demo command; demos run from workspace dist via importmap (built by `npm run build`).",
+  "version": 1,
+  "home": "index.html",
+  "index": "demos/index.html",
+  "demos": [
+    { "slug": "state", "path": "demos/state/index.html", "title": "Zenith — Signal & Reactivity", "build": "workspace" },
+    { "slug": "expressions", "path": "demos/expressions/index.html", "title": "Zenith — Expression Engine", "build": "workspace" },
+    { "slug": "runtime", "path": "demos/runtime/index.html", "title": "Zenith — دایرکتیوهای DOM", "build": "workspace" },
+    { "slug": "scheduler", "path": "demos/scheduler/index.html", "title": "Zenith — Scheduler & Priority Queue", "build": "workspace" },
+    { "slug": "events", "path": "demos/events/index.html", "title": "Zenith — Events & Modifiers", "build": "workspace" },
+    { "slug": "components", "path": "demos/components/index.html", "title": "Zenith — Components & Slots", "build": "workspace" },
+    { "slug": "router", "path": "demos/router/index.html", "title": "Zenith — روتر SPA", "build": "workspace" },
+    { "slug": "security", "path": "demos/security/index.html", "title": "Zenith — امنیت و Sanitizer", "build": "workspace" },
+    { "slug": "i18n", "path": "demos/i18n/index.html", "title": "Zenith — i18n & Persian Helpers", "build": "workspace" },
+    { "slug": "form", "path": "demos/form/index.html", "title": "Zenith — Form Validation", "build": "workspace" },
+    { "slug": "form-v2", "path": "demos/form-v2/index.html", "title": "Zenith — Form Validation v1.0", "build": "workspace" },
+    { "slug": "store", "path": "demos/store/index.html", "title": "Zenith — Store (Pinia-like)", "build": "workspace" },
+    { "slug": "auth", "path": "demos/auth/index.html", "title": "Zenith — Auth Flow", "build": "workspace" },
+    { "slug": "permission", "path": "demos/permission/index.html", "title": "Zenith — Permission (RBAC)", "build": "workspace" },
+    { "slug": "resource", "path": "demos/resource/index.html", "title": "Zenith — Resource (CRUD)", "build": "workspace" },
+    { "slug": "virtual-list", "path": "demos/virtual-list/index.html", "title": "Zenith — Virtual List", "build": "workspace" },
+    { "slug": "transition", "path": "demos/transition/index.html", "title": "Zenith — Transitions", "build": "workspace" },
+    { "slug": "error-boundary", "path": "demos/error-boundary/index.html", "title": "Zenith — Error Boundary", "build": "workspace" },
+    { "slug": "suspense", "path": "demos/suspense/index.html", "title": "Zenith — Suspense", "build": "workspace" },
+    { "slug": "integration", "path": "demos/integration/index.html", "title": "Zenith — Integration Showcase", "build": "workspace" },
+    { "slug": "ecommerce-demo", "path": "ecommerce-demo/index.html", "title": "فروشگاه Zenith", "build": "workspace" },
+    { "slug": "dashboard", "path": "dashboard/index.html", "title": "داشبورد مدیریتی Zenith", "build": "workspace" }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "name": "@zenith/ssr",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 Server-Side Rendering (Phase 11). Render-to-string with hydration support.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./edge": {
+      "types": "./dist/edge.d.ts",
+      "import": "./dist/edge.js",
+      "default": "./dist/edge.js"
+    },
+    "./internal": {
+      "types": "./dist/internal.d.ts",
+      "import": "./dist/internal.js",
+      "default": "./dist/internal.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "ssr",
+    "server",
+    "rendering",
+    "hydration"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/ssr"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/errors": "1.4.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/router": "1.4.0",
+    "@zenith/runtime": "1.4.0",
+    "@zenith/schema": "1.5.0",
+    "@zenith/head": "1.5.0",
+    "@zenith/shared": "1.5.0",
+    "@zenith/runtime-core": "1.5.0"
+  },
+  "peerDependencies": {
+    "jsdom": "^24.0.0",
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "zenith": {
+    "target": "node",
+    "entryTargets": {
+      "./edge": "worker"
+    }
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    }
+  }
+}

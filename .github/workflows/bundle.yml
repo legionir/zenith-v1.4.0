@@ -1,0 +1,60 @@
+name: Build browser bundle
+
+# #76 — release bundles: minified `zenith.min.js` + separate sourcemap + `integrity.json` (SRI),
+# published to the orphan `bundles` branch under an immutable `<version>/` directory plus a moving
+# `latest/` alias. jsDelivr serves them:
+#   https://cdn.jsdelivr.net/gh/legionir/zenith-v1.4.0@bundles/<version>/zenith.min.js
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    name: Create versioned browser bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Fails unless the bundle version == Zenith.version == every workspace package (DEC-026).
+      - name: Build browser bundle (lockstep enforced)
+        run: node scripts/build-browser-bundle.mjs --require-lockstep
+
+      - name: Refuse to overwrite a published version (versioned paths are immutable)
+        run: |
+          VERSION=$(node -p "require('./packages/zenith/package.json').version")
+          git fetch --depth=1 origin bundles || true
+          if git ls-tree -d --name-only FETCH_HEAD 2>/dev/null | grep -qx "$VERSION"; then
+            echo "::error::bundles/$VERSION already exists — bump the version instead of republishing"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Stage release directories
+        run: |
+          mkdir release-bundles
+          cp -r "browser-bundles/$VERSION" browser-bundles/latest release-bundles/
+
+      - name: Publish bundle branch (previous versions are kept)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: bundles
+          publish_dir: ./release-bundles
+          keep_files: true
+          force_orphan: false

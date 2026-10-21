@@ -1,0 +1,207 @@
+{
+  "name": "Zenith HTML",
+  "patterns": [
+    {
+      "include": "#zen-directives"
+    },
+    {
+      "include": "#zen-expressions"
+    },
+    {
+      "include": "text.html.basic"
+    }
+  ],
+  "repository": {
+    "zen-directives": {
+      "patterns": [
+        {
+          "name": "meta.attribute.zen-action.html",
+          "match": "\\b(zen-action(?::[a-z.]+)?)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-text.html",
+          "match": "\\b(zen-text)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-if.html",
+          "match": "\\b(zen-if)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith.keyword.control" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-for.html",
+          "match": "\\b(zen-for)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith.keyword.control" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-bind.html",
+          "match": "\\b(zen-bind(?::[a-zA-Z-]+)?)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-model.html",
+          "match": "\\b(zen-model)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-html.html",
+          "match": "\\b(zen-html)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-fetch.html",
+          "match": "\\b(zen-fetch)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-link.html",
+          "match": "\\b(zen-link)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-key.html",
+          "match": "\\b(zen-key)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-state.html",
+          "match": "\\b(zen-state)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-resource.html",
+          "match": "\\b(zen-resource)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-permission.html",
+          "match": "\\b(zen-permission)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-role.html",
+          "match": "\\b(zen-role)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-error.html",
+          "match": "\\b(zen-error)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-validate.html",
+          "match": "\\b(zen-validate)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-show.html",
+          "match": "\\b(zen-show)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-html-trusted.html",
+          "match": "\\b(zen-html-trusted)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-cloak.html",
+          "match": "\\b(zen-cloak)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-fallback.html",
+          "match": "\\b(zen-fallback)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-slot.html",
+          "match": "\\b(zen-slot)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-css.html",
+          "match": "\\b(zen-css)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-suspense.html",
+          "match": "\\b(zen-suspense)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.zen-transition.html",
+          "match": "\\b(zen-transition)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        },
+        {
+          "name": "meta.attribute.prop.html",
+          "match": "\\b(prop:[a-zA-Z_]+)\\b",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.zenith" }
+          }
+        }
+      ]
+    },
+    "zen-expressions": {
+      "patterns": [
+        {
+          "name": "string.interpolated.zenith",
+          "match": "(\\$[a-zA-Z_][a-zA-Z0-9_.\\[\\]]*)",
+          "captures": {
+            "1": { "name": "variable.other.zenith" }
+          }
+        }
+      ]
+    }
+  },
+  "scopeName": "text.html.zenith"
+}

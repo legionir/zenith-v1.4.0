@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Zenith DevTools</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="header">
+      <h1>🚀 Zenith DevTools</h1>
+      <span class="version" id="version">v1.0.0</span>
+    </div>
+
+    <div class="status-bar" id="status-bar">در حال بررسی...</div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="signals">Signals</div>
+      <div class="tab" data-tab="timeline">Timeline</div>
+      <div class="tab" data-tab="components">Components</div>
+      <div class="tab" data-tab="effects">Effects</div>
+      <div class="tab" data-tab="v1">⚡ v1.0</div>
+      <div class="tab" data-tab="graph">📊 Graph</div>
+    </div>
+
+    <div class="tab-content">
+      <!-- Signal Inspector -->
+      <div class="panel active" id="panel-signals">
+        <div class="empty" id="signals-empty">در حال بارگذاری...</div>
+        <div id="signals-list"></div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="panel" id="panel-timeline">
+        <div class="empty" id="timeline-empty">در حال بارگذاری...</div>
+        <div id="timeline-list"></div>
+      </div>
+
+      <!-- Component Tree -->
+      <div class="panel" id="panel-components">
+        <div class="empty" id="components-empty">در حال بارگذاری...</div>
+        <div id="components-tree"></div>
+      </div>
+
+      <!-- Effect Viewer -->
+      <div class="panel" id="panel-effects">
+        <div class="empty" id="effects-empty">در حال بارگذاری...</div>
+        <div id="effects-list"></div>
+      </div>
+
+      <!-- FEATURE (v1.0.0): v1.0 Features Panel -->
+      <div class="panel" id="panel-v1">
+        <!-- zen-static Fast Path -->
+        <div class="stat-card">
+          <div class="stat-label">⚡ zen-static Fast Path</div>
+          <div class="stat-value" id="static-count">0</div>
+          <div class="stat-detail" id="static-detail">لیست‌های فقط‌خواندنی با fast path</div>
+        </div>
+        <div id="static-list"></div>
+
+        <!-- Resource Destroyed -->
+        <div class="stat-card stat-spaced">
+          <div class="stat-label">🗑️ Resource های Destroyed</div>
+          <div class="stat-value danger-value" id="destroyed-count">0</div>
+          <div class="stat-detail" id="destroyed-detail">Resource های teardown شده</div>
+        </div>
+        <div id="destroyed-list"></div>
+
+        <!-- compileExpression Cache -->
+        <div class="stat-card stat-spaced">
+          <div class="stat-label">📦 Cache آمار compileExpression</div>
+          <div class="cache-row">
+            <div>
+              <div class="stat-value cache-value" id="cache-hits">0</div>
+              <div class="stat-detail">hits</div>
+            </div>
+            <div>
+              <div class="stat-value cache-value danger-value" id="cache-misses">
+                0
+              </div>
+              <div class="stat-detail">misses</div>
+            </div>
+            <div class="cache-flex">
+              <div class="stat-detail" id="cache-ratio">Hit Ratio: —</div>
+              <div class="cache-bar">
+                <div class="cache-bar-fill" id="cache-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+          <div class="stat-detail cache-size-spaced" id="cache-size">
+            Unique expressions: 0
+          </div>
+        </div>
+
+        <!-- SSR Stores -->
+        <div class="stat-card stat-spaced">
+          <div class="stat-label">🌐 SSR Stores فعال (AsyncLocalStorage)</div>
+          <div class="stat-value warn-value" id="ssr-count">0</div>
+          <div class="stat-detail" id="ssr-detail">درخواست‌های SSR concurrent</div>
+        </div>
+        <div id="ssr-list"></div>
+      </div>
+
+      <!-- Dependency Graph Viewer -->
+      <div class="panel" id="panel-graph">
+        <div class="graph-panel">
+          <p>
+            نمایش گراف وابستگی‌های Reactivity (Signal → Effect → Directive → DOM) در یک Viewer
+            تعاملی مبتنی بر SVG. روی دکمه کلیک کنید تا گراف زنده‌ی این صفحه در یک تب جدید باز شود.
+          </p>
+          <button class="btn" id="open-graph">📊 Open Graph Viewer</button>
+          <div class="graph-status" id="graph-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="refresh">↻ Refresh</button>
+      <button class="btn danger" id="clear">Clear All</button>
+    </div>
+
+    <script src="message-schema.js"></script>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

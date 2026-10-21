@@ -1,0 +1,71 @@
+name: Deploy API reference to Pages
+
+# #103 — versioned TypeDoc reference site (latest main). This is a SEPARATE
+# product from the demo site (`demos-pages.yml`) and the versioned library
+# bundles (`bundle.yml` → orphan `bundles` branch for jsDelivr): this
+# workflow builds the per-package API reference with TypeDoc
+# (`typedoc.json`, `npm run docs:reference`) from the committed sources and
+# publishes it to GitHub Pages. Versioning is latest-only by design: every
+# deploy rebuilds from main, so the site always matches the current public
+# surface (`docs/api/api-surface.snapshot.json`). If per-release versioned
+# directories are ever wanted, add them here (owner decision) — the inventory
+# freshness itself is already gated in CI (`docs:api --check`, `check:doc-links`).
+#
+# TypeDoc emits relative asset links, so the site works at a domain root AND
+# under a project sub-path with no per-target rebuild (same property the
+# #114 staged demo site relies on).
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build TypeDoc reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Cross-package imports resolve through workspace dist, so build first.
+      - name: Build all packages
+        run: npm run build:libraries
+
+      - name: Build API reference (TypeDoc)
+        run: npm run docs:reference
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><meta charset="UTF-8"><title>ورود کاربر</title></head>
+<body>
+  <h2>ورود کاربر</h2>
+  <form zen-action:submit.prevent="authLogin">
+    <input name="email" placeholder="ایمیل" zen-validate="required,email">
+    <input name="password" type="password" placeholder="رمز عبور" zen-validate="required,min:6">
+    <button type="submit">ورود</button>
+  </form>
+  <p zen-if="$auth.error" zen-text="$auth.error" style="color:red"></p>
+</body>
+</html>

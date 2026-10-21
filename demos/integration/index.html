@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Integration Showcase</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.88rem; transition: all 0.2s; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.danger { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); color: #fca5a5; }
+    button.danger:hover { background: var(--danger); color: white; }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 160px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+    .stat { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-family: ui-monospace, monospace; }
+    .role-admin { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .role-user { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+    .role-guest { background: rgba(100, 116, 139, 0.2); color: var(--text-muted); }
+    .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+    .product-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .product-card .name { font-weight: 600; margin-bottom: 4px; }
+    .product-card .price { color: var(--success); font-family: ui-monospace, monospace; }
+    .product-card .actions { margin-top: 8px; display: flex; gap: 4px; }
+    .product-card .actions button { padding: 4px 10px; font-size: 0.78rem; }
+    .feature-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin-top: 12px; }
+    .feature-item { padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.86rem; }
+    .feature-item .check { color: var(--success); margin-left: 4px; }
+    .feature-item.hidden { opacity: 0.3; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.78rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .empty-state { text-align: center; padding: 24px; color: var(--text-muted); }
+    label { font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🎭 <span class="gradient">Integration Showcase</span></h1>
+    <p class="subtitle">دموی ترکیبی: یک فروشگاه کوچک با auth، permission، store، resource، form، i18n و security — همه با هم</p>
+    <div class="badges">
+      <span class="badge">auth</span>
+      <span class="badge">permission</span>
+      <span class="badge">store</span>
+      <span class="badge">resource</span>
+      <span class="badge">form</span>
+      <span class="badge">i18n</span>
+      <span class="badge">security</span>
+      <span class="badge">scheduler</span>
+    </div>
+
+    <div id="app">
+      <!-- ───── User Status ───── -->
+      <div class="card">
+        <h2>👤 وضعیت کاربر (Auth)</h2>
+        <div class="stats">
+          <span class="stat">نقش: <strong><span id="user-role" class="role-badge role-guest">مهمان</span></strong></span>
+          <span class="stat">نام: <strong id="user-name">—</strong></span>
+          <span class="stat">لاگین‌شده: <strong id="user-auth">خیر</strong></span>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="primary" zen-action="loginAsGuest" zen-if="!$auth.user">ورود به‌عنوان مهمان</button>
+          <button class="primary" zen-action="loginAsUser" zen-if="!$auth.user">ورود به‌عنوان کاربر</button>
+          <button class="primary" zen-action="loginAsAdmin" zen-if="!$auth.user">ورود به‌عنوان ادمین</button>
+          <button class="danger" zen-action="logout" zen-if="$auth.user">خروج</button>
+        </div>
+      </div>
+
+      <!-- ───── Role-based Content ───── -->
+      <div class="card" zen-if="$auth.user">
+        <h2>🔒 محتوای بر اساس نقش (RBAC)</h2>
+        <div class="feature-list">
+          <div class="feature-item" zen-role="user"><span class="check">✓</span> مشاهده محصولات (نقش: user)</div>
+          <div class="feature-item" zen-permission="products:create"><span class="check">✓</span> افزودن محصول (products:create)</div>
+          <div class="feature-item" zen-permission="products:edit"><span class="check">✓</span> ویرایش محصولات (products:edit)</div>
+          <div class="feature-item" zen-permission="products:delete"><span class="check">✓</span> حذف محصولات (products:delete)</div>
+          <div class="feature-item" zen-role="admin"><span class="check">✓</span> پنل ادمین (نقش: admin)</div>
+          <div class="feature-item" zen-role="any:admin,user"><span class="check">✓</span> دسترسی کاربری (admin یا user)</div>
+        </div>
+        <p style="margin-top:10px; color:var(--text-muted); font-size:0.85rem;">
+          💡 برای دیدن محتوای مختلف، با نقش‌های مختلف لاگین کنید. ادمین به همه دسترسی دارد.
+        </p>
+      </div>
+
+      <!-- ───── Store ───── -->
+      <div class="card" zen-if="$auth.user">
+        <h2>🛒 فروشگاه محصولات (Resource + i18n + Security)</h2>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:10px;">
+          محصولات از یک Resource fetch می‌شوند (با cache). قیمت‌ها با <code>formatPrice</code> به تومان تبدیل می‌شوند. توضیحات با <code>sanitizeHTML</code> پاکسازی می‌شوند.
+        </p>
+        <div class="stats">
+          <span class="stat">تعداد: <strong id="product-count">۰</strong></span>
+          <span class="stat">cache: <strong id="cache-status">cold</strong></span>
+        </div>
+        <button zen-action="refreshProducts" style="margin-bottom:10px;">🔄 بارگذاری محصولات</button>
+        <div class="product-list" id="product-list">
+          <div class="empty-state">برای بارگذاری محصولات روی دکمه کلیک کنید.</div>
+        </div>
+      </div>
+
+      <!-- ───── Add Product Form (permission-gated) ───── -->
+      <div class="card" zen-if="$auth.user" zen-permission="products:create">
+        <h2>➕ افزودن محصول جدید (Form + Validation)</h2>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label>نام محصول</label>
+            <input zen-model="$newProduct.name" placeholder="مثلاً: کتاب TypeScript" />
+          </div>
+          <div>
+            <label>قیمت (تومان)</label>
+            <input type="number" zen-model="$newProduct.price" placeholder="100000" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label>توضیحات (HTML امن — sanitizer فعال است)</label>
+          <textarea zen-model="$newProduct.description" rows="3" placeholder="<b>توضیح</b> درباره محصول"></textarea>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button class="primary" zen-action="addProduct" zen-bind:disabled="$newProduct.name === '' || $newProduct.price === ''">افزودن محصول</button>
+          <button zen-action="fillSampleProduct">پر کردن نمونه</button>
+        </div>
+        <div id="form-error" style="color:var(--danger); margin-top:8px; font-size:0.85rem;"></div>
+      </div>
+
+      <!-- ───── Cart (Store) ───── -->
+      <div class="card" zen-if="$auth.user">
+        <h2>🛍️ سبد خرید (Store + i18n)</h2>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:10px;">
+          سبد خرید در یک Store ذخیره می‌شود (با deep reactivity). مجموع با <code>formatPrice</code> نمایش داده می‌شود.
+        </p>
+        <div class="stats">
+          <span class="stat">آیتم: <strong id="cart-items">۰</strong></span>
+          <span class="stat">مجموع: <strong id="cart-total">۰ تومان</strong></span>
+        </div>
+        <div id="cart-list">
+          <div class="empty-state">سبد خرید خالی است.</div>
+        </div>
+        <button class="danger" zen-action="clearCart" id="clear-cart-btn" style="margin-top:10px; display:none;">پاک کردن سبد</button>
+      </div>
+
+      <!-- ───── Event Log (Effect + Scheduler) ───── -->
+      <div class="card">
+        <h2>📜 لاگ رویدادها (Effect + Scheduler)</h2>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:10px;">
+          هر تغییری در state توسط Effect ها گزارش می‌شود. Scheduler تغییرات را batch می‌کند.
+        </p>
+        <div class="log" id="log"></div>
+      </div>
+
+      <!-- ───── Architecture ───── -->
+      <div class="card">
+        <h2>🏗️ معماری این دمو</h2>
+        <pre>پکیج‌های استفاده‌شده:
+
+@zenith/state        → Signal برای auth، cart، products
+@zenith/runtime      → Zen.start + walker + directives
+@zenith/auth         → کلاس Auth برای login/logout
+@zenith/permission   → PermissionManager + zen-role/zen-permission
+@zenith/store        → defineStore برای cart با deep reactivity
+@zenith/i18n         → toPersianNums، formatPrice
+@zenith/security     → sanitizeHTML برای توضیحات محصول
+@zenith/scheduler    → batching خودکار همه effectها
+
+جریان داده:
+  User clicks login → auth.login() → auth.signal updates →
+    effect runs → cart card shows (zen-if) →
+    permission check → products:create button shows (zen-permission) →
+    User adds product → fetch POST → cache invalidates →
+    effect re-runs → product list updates →
+    User adds to cart → store action → cart updates →
+    cart total recomputed → DOM updates</pre>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '/packages/state/dist/index.js';
+    import { Zen } from '/packages/runtime/dist/index.js';
+    import { Auth } from '/packages/auth/dist/index.js';
+    import { createPermissionManager } from '/packages/permission/dist/index.js';
+    import { defineStore, clearStores } from '/packages/store/dist/index.js';
+    import { toPersianNums, formatPrice } from '/packages/i18n/dist/index.js';
+    import { sanitizeHTML } from '/packages/security/dist/index.js';
+    import { flushSync } from '/packages/scheduler/dist/index.js';
+
+    // ── Mock backend ──
+    let products = [
+      { id: 1, name: 'کتاب TypeScript', price: 250000, description: '<b>راهنمای</b> کامل TypeScript پیشرفته' },
+      { id: 2, name: 'دوره آنلاین React', price: 1500000, description: '<i>۲۰ ساعت</i> آموزش پروژه‌محور' },
+      { id: 3, name: 'ماوس گیمینگ', price: 850000, description: 'RGB با <scr' + 'ipt>alert(1)</scr' + 'ipt> سنسور بالا' },
+      { id: 4, name: 'کیبورد مکانیکی', price: 1200000, description: 'Blue Switch با نورپردازی RGB' },
+    ];
+    let nextId = 5;
+
+    window.fetch = async (url, opts) => {
+      await new Promise(r => setTimeout(r, 200));
+      const method = opts?.method || 'GET';
+      console.log('[mock-fetch]', method, url);
+
+      if (url === '/api/products' && method === 'GET') {
+        return { ok: true, status: 200, json: async () => products.map(p => ({...p})) };
+      }
+      if (url === '/api/products' && method === 'POST') {
+        const body = JSON.parse(opts.body);
+        const newP = { ...body, id: nextId++ };
+        products.push(newP);
+        return { ok: true, status: 201, json: async () => newP };
+      }
+      return { ok: false, status: 404, json: async () => ({ message: 'Not found' }) };
+    };
+
+    // ── Auth (without real backend — direct state manipulation) ──
+    const auth = new Auth({ loginUrl: '/api/auth/login', autoRefresh: false });
+
+    // ── Permission Manager ──
+    const pm = createPermissionManager('default');
+    pm.clear();
+    pm.setUserAccess([], []);
+
+    // ── Cart Store ──
+    clearStores();
+    const useCart = defineStore('cart', {
+      state: () => ({ items: [], total: 0 }),
+      actions: {
+        add(product) {
+          const existing = this.state.items.find(it => it.id === product.id);
+          if (existing) {
+            existing.qty++;
+          } else {
+            this.state.items.push({ ...product, qty: 1 });
+          }
+          this.state.total = this.state.items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+        },
+        remove(id) {
+          this.state.items = this.state.items.filter(it => it.id !== id);
+          this.state.total = this.state.items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+        },
+        clear() {
+          this.state.items = [];
+          this.state.total = 0;
+        },
+      },
+    });
+    const cart = useCart();
+
+    // ── State ──
+    const productsSignal = signal([]);
+    const cacheStatus = signal('cold');
+    const newProduct = signal({ name: '', price: '', description: '' });
+
+    // ── Log helper ──
+    const logEl = document.getElementById('log');
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString('fa-IR');
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${msg}`;
+      if (type === 'error') line.style.color = '#fca5a5';
+      if (type === 'success') line.style.color = '#4ade80';
+      if (type === 'warn') line.style.color = '#fcd34d';
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+      while (logEl.children.length > 50) logEl.removeChild(logEl.firstChild);
+    }
+
+    // ── Actions ──
+    Zen.action('loginAsGuest', () => {
+      auth._signal.set({ ...auth._signal.get(), user: { id: 0, name: 'مهمان', email: 'guest@example.com', roles: [] }, isAuthenticated: true });
+      pm.setUserAccess([], []);
+      log('ورود به‌عنوان مهمان', 'success');
+      flushSync();
+    });
+
+    Zen.action('loginAsUser', () => {
+      auth._signal.set({ ...auth._signal.get(), user: { id: 1, name: 'علی کاربر', email: 'user@example.com', roles: ['user'] }, isAuthenticated: true });
+      pm.setUserAccess(['user'], ['products:read']);
+      log('ورود به‌عنوان کاربر', 'success');
+      flushSync();
+    });
+
+    Zen.action('loginAsAdmin', () => {
+      auth._signal.set({ ...auth._signal.get(), user: { id: 2, name: 'سارا ادمین', email: 'admin@example.com', roles: ['admin'] }, isAuthenticated: true });
+      pm.setUserAccess(['admin'], ['products:read', 'products:create', 'products:edit', 'products:delete']);
+      log('ورود به‌عنوان ادمین', 'success');
+      flushSync();
+    });
+
+    Zen.action('logout', () => {
+      auth._signal.set({ ...auth._signal.get(), user: null, isAuthenticated: false, token: null });
+      pm.clear();
+      cart.clear();
+      productsSignal.set([]);
+      cacheStatus.set('cold');
+      log('خروج', 'warn');
+      flushSync();
+    });
+
+    Zen.action('refreshProducts', async () => {
+      cacheStatus.set('loading');
+      log('در حال بارگذاری محصولات...');
+      flushSync();
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        productsSignal.set(data);
+        cacheStatus.set('warm');
+        log(`${toPersianNums(data.length)} محصول بارگذاری شد`, 'success');
+        flushSync();
+      } catch (e) {
+        cacheStatus.set('error');
+        log('خطا در بارگذاری: ' + e.message, 'error');
+      }
+    });
+
+    Zen.action('fillSampleProduct', () => {
+      newProduct.set({ name: 'کتاب Vue.js', price: '320000', description: '<b>آموزش</b> گام‌به‌گام Vue.js' });
+      flushSync();
+    });
+
+    Zen.action('addProduct', async () => {
+      const np = newProduct.get();
+      if (!np.name || !np.price) return;
+      const price = +np.price;
+      if (isNaN(price) || price <= 0) {
+        document.getElementById('form-error').textContent = 'قیمت باید عدد مثبت باشد';
+        return;
+      }
+      document.getElementById('form-error').textContent = '';
+      log('در حال افزودن محصول...');
+      flushSync();
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: np.name, price, description: np.description }),
+        });
+        const newP = await res.json();
+        // refresh products
+        const refreshRes = await fetch('/api/products');
+        const data = await refreshRes.json();
+        productsSignal.set(data);
+        newProduct.set({ name: '', price: '', description: '' });
+        log(`«${newP.name}» اضافه شد`, 'success');
+        flushSync();
+      } catch (e) {
+        log('خطا: ' + e.message, 'error');
+      }
+    });
+
+    Zen.action('clearCart', () => {
+      cart.clear();
+      log('سبد پاک شد', 'warn');
+      flushSync();
+    });
+
+    // ── Effect: render user status ──
+    effect(() => {
+      const a = auth.signal.get();
+      const roleEl = document.getElementById('user-role');
+      const nameEl = document.getElementById('user-name');
+      const authEl = document.getElementById('user-auth');
+      if (a.user) {
+        const roles = a.user.roles || [];
+        const role = roles[0] || 'guest';
+        roleEl.textContent = role === 'admin' ? 'ادمین' : role === 'user' ? 'کاربر' : 'مهمان';
+        roleEl.className = 'role-badge role-' + role;
+        nameEl.textContent = a.user.name;
+        authEl.textContent = 'بله';
+      } else {
+        roleEl.textContent = 'مهمان';
+        roleEl.className = 'role-badge role-guest';
+        nameEl.textContent = '—';
+        authEl.textContent = 'خیر';
+      }
+    });
+
+    // ── Effect: render products ──
+    effect(() => {
+      const products = productsSignal.get();
+      const cache = cacheStatus.get();
+      document.getElementById('product-count').textContent = toPersianNums(products.length);
+      document.getElementById('cache-status').textContent = cache;
+      const listEl = document.getElementById('product-list');
+      if (products.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">برای بارگذاری محصولات روی دکمه کلیک کنید.</div>';
+        return;
+      }
+      listEl.innerHTML = products.map(p => `
+        <div class="product-card">
+          <div class="name">${p.name}</div>
+          <div class="price">${formatPrice(p.price)}</div>
+          <div style="font-size:0.78rem; color:var(--text-secondary); margin:4px 0;">${sanitizeHTML(p.description || '')}</div>
+          <div class="actions">
+            <button onclick="window.__addToCart(${p.id})">افزودن به سبد</button>
+          </div>
+        </div>
+      `).join('');
+    });
+
+    // ── Effect: render cart ──
+    effect(() => {
+      cart._versionSignal.get(); // track version for reactivity
+      const items = cart.state.items;
+      const total = cart.state.total;
+      document.getElementById('cart-items').textContent = toPersianNums(items.reduce((s, it) => s + it.qty, 0));
+      document.getElementById('cart-total').textContent = formatPrice(total);
+      const listEl = document.getElementById('cart-list');
+      const clearBtn = document.getElementById('clear-cart-btn');
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">سبد خرید خالی است.</div>';
+        clearBtn.style.display = 'none';
+        return;
+      }
+      clearBtn.style.display = 'inline-block';
+      listEl.innerHTML = items.map(it => `
+        <div class="product-card" style="margin-top:6px;">
+          <div class="name">${it.name} × ${toPersianNums(it.qty)}</div>
+          <div class="price">${formatPrice(it.price * it.qty)}</div>
+          <div class="actions">
+            <button class="danger" onclick="window.__removeFromCart(${it.id})">حذف</button>
+          </div>
+        </div>
+      `).join('');
+    });
+
+    // expose helpers for dynamically-rendered buttons
+    window.__addToCart = (id) => {
+      const product = productsSignal.get().find(p => p.id === id);
+      if (product) {
+        cart.add(product);
+        log(`«${product.name}» به سبد اضافه شد`, 'success');
+        flushSync();
+      }
+    };
+    window.__removeFromCart = (id) => {
+      const it = cart.state.items.find(i => i.id === id);
+      cart.remove(id);
+      log(`«${it?.name || 'آیتم'}» از سبد حذف شد`, 'warn');
+      flushSync();
+    };
+
+    // ── State for Zenith ──
+    const state = {
+      auth: auth.signal,
+      pm: pm.signal,
+      cart: cart._versionSignal,
+      products: productsSignal,
+      newProduct,
+      cacheStatus,
+    };
+
+    // ── Start Zenith ──
+    Zen.start(document.getElementById('app'), state);
+    log('Zenith Integration Showcase آماده است', 'success');
+    log('برای شروع، با یکی از نقش‌ها لاگین کنید');
+  </script>
+</body>
+</html>

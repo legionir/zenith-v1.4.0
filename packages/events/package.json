@@ -1,0 +1,73 @@
+{
+  "name": "@zenith/events",
+  "version": "1.4.0",
+  "description": "Zenith framework — Event Delegation engine (Phase 4). A single delegated listener per event type on document, with modifier parsing (prevent, stop, enter, escape, ...).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "events",
+    "delegation",
+    "modifiers",
+    "framework"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/events"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@zenith/actions": "1.4.0",
+    "@zenith/error-boundary": "1.4.0",
+    "@zenith/errors": "1.4.0",
+    "@zenith/expressions": "1.4.0",
+    "@zenith/logger": "1.5.0"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0",
+    "@zenith/scheduler": "^1.4.0"
+  },
+  "zenith": {
+    "target": "browser"
+  }
+}

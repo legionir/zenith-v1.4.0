@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Scheduler & Priority Queue</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    /* modern dark UI matching the main index.html */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+    body {
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      background: var(--bg-primary); color: var(--text-primary);
+      min-height: 100vh; padding: 20px; line-height: 1.7;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: #ef4444; }
+    input, textarea { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 220px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; }
+    .counter { font-size: 2.4rem; font-weight: 800; color: var(--accent-light); font-variant-numeric: tabular-nums; margin: 8px 0; direction: ltr; display: inline-block; min-width: 80px; text-align: center; background: rgba(99, 102, 241, 0.1); border-radius: 10px; padding: 4px 18px; }
+    .priority-urgent  { color: #fca5a5; border-right: 3px solid #ef4444; padding-right: 10px; }
+    .priority-normal  { color: #fcd34d; border-right: 3px solid #f59e0b; padding-right: 10px; }
+    .priority-idle    { color: #6ee7b7; border-right: 3px solid #10b981; padding-right: 10px; }
+    .order-list { font-family: ui-monospace, monospace; direction: ltr; text-align: left; padding: 12px; background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; min-height: 60px; }
+    .order-list .item { padding: 4px 8px; margin: 2px 0; border-radius: 4px; }
+    .order-list .item.urgent  { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+    .order-list .item.normal  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+    .order-list .item.idle    { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+    .order-list .empty { color: var(--text-muted); font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>📦 <span class="gradient">Scheduler & Batching</span></h1>
+    <p class="subtitle">Automatic Batching با Microtask + Priority Queue با سه سطح اولویت urgent/normal/idle</p>
+    <div class="badges">
+      <span class="badge">scheduler</span>
+      <span class="badge">microtask</span>
+      <span class="badge">batching</span>
+      <span class="badge">priority-queue</span>
+      <span class="badge">flushSync</span>
+      <span class="badge">infinite-loop-protection</span>
+    </div>
+
+    <div id="app">
+      <!-- ۱. Automatic batching -->
+      <div class="card">
+        <h2>۱. Automatic Batching با Microtask</h2>
+        <p class="desc">
+          وقتی ۱۰۰ بار پشت سر هم <code>signal.set()</code> صدا می‌زنید، بدون Scheduler، DOM ۱۰۰ بار آپدیت می‌شد.
+          Scheduler با Microtask، تمام Effectهای یک تیک را در یک flush اجرا می‌کند — یعنی DOM فقط ۱ بار آپدیت می‌شود (با مقدار نهایی).
+        </p>
+        <div class="counter"><span zen-text="$count"></span></div>
+        <div class="row">
+          <button class="primary" zen-action="fastLoop">حلقه ۱۰۰ تایی</button>
+          <button zen-action="multiSet">۳ set همزمان</button>
+          <button zen-action="increment">+ ۱</button>
+          <button zen-action="reset">ریست</button>
+        </div>
+        <div class="row" style="margin-top: 14px;">
+          <span class="stat">Effect runs: <strong id="effectRuns">0</strong></span>
+          <span class="stat">DOM updates: <strong id="domUpdates">0</strong></span>
+          <span class="stat">مقدار فعلی: <strong zen-text="$count"></strong></span>
+        </div>
+        <p class="hint" style="margin-top: 8px;">
+          امتحان کنید: روی «حلقه ۱۰۰ تایی» کلیک کنید. Effectها فقط ۱ بار (نه ۱۰۰ بار) اجرا می‌شوند — DOM فقط ۱ بار آپدیت می‌شود.
+        </p>
+      </div>
+
+      <!-- ۲. Priority Queue -->
+      <div class="card">
+        <h2>۲. Priority Queue — urgent → normal → idle</h2>
+        <p class="desc">
+          Scheduler از سه سطح اولویت پشتیبانی می‌کند:
+          <span class="priority-urgent"><code>urgent</code></span> (کار حیاتی مثل navigation)،
+          <span class="priority-normal"><code>normal</code></span> (آپدیت DOM معمولی)،
+          <span class="priority-idle"><code>idle</code></span> (analytics، logging).
+          در هر flush، Effectها به ترتیب urgent → normal → idle اجرا می‌شوند.
+        </p>
+        <div class="row" style="margin-bottom: 10px;">
+          <button class="primary" zen-action="schedulePriority">زمان‌بندی ۳ Effect با اولویت‌های مختلف</button>
+          <button zen-action="scheduleMixed">زمان‌بندی ۶ Effect با ترتیب نامرتب</button>
+          <button zen-action="clearPriority">پاک کردن</button>
+        </div>
+        <p class="desc" style="margin-top: 8px;">
+          ترتیب ثبت: <code>idle</code> → <code>normal</code> → <code>urgent</code> (عمداً برعکس).
+          ترتیب اجرا: <code>urgent</code> → <code>normal</code> → <code>idle</code> ← باید اینطور ببینید.
+        </p>
+        <div class="order-list" id="priorityOrder">
+          <div class="empty">(روی دکمه کلیک کنید)</div>
+        </div>
+        <pre>// مستقیم از @zenith/scheduler:
+import { scheduleEffect, flushSync } from '@zenith/scheduler';
+
+scheduleEffect(() =&gt; log('idle ran'),   'idle');
+scheduleEffect(() =&gt; log('normal ran'), 'normal');
+scheduleEffect(() =&gt; log('urgent ran'), 'urgent');
+flushSync();  // اجرای synchronous
+// ترتیب اجرا: urgent → normal → idle</pre>
+      </div>
+
+      <!-- ۳. flushSync -->
+      <div class="card">
+        <h2>۳. <code>flushSync()</code> — اجرای Synchronous</h2>
+        <p class="desc">
+          معمولاً Scheduler از Microtask استفاده می‌کند (یعنی Effectها در پایان تیک اجرا می‌شوند).
+          اما گاهی لازم است Effectها همین حالا اجرا شوند — مثلاً بعد از یک <code>state.set()</code> در یک Event Handler.
+          این کار با <code>flushSync()</code> انجام می‌شود. این تابع re-entrancy-safe است.
+        </p>
+        <div class="row">
+          <button zen-action="withoutFlush">set بدون flushSync</button>
+          <button class="primary" zen-action="withFlush">set با flushSync</button>
+        </div>
+        <div class="log" id="flushLog" style="margin-top: 12px;"></div>
+        <pre>count.set(42);
+// اینجا DOM هنوز ۰ است — Effectها در microtask بعدی اجرا می‌شوند.
+
+count.set(99);
+flushSync();
+// اینجا DOM با مقدار ۹۹ آپدیت شده — Effectها همین‌جا اجرا شدند.</pre>
+      </div>
+
+      <!-- ۴. Infinite loop protection -->
+      <div class="card">
+        <h2>۴. محافظت در برابر Infinite Loop</h2>
+        <p class="desc">
+          اگر یک Effect در حین اجرا، خودش را دوباره schedule کند (مثلاً با خواندن و نوشتن همان Signal)، می‌تواند Infinite Loop بسازد.
+          Scheduler این را تشخیص می‌دهد: بعد از ۱۰۰۰ iteration، اجرا را متوقف می‌کند و یک warning در console چاپ می‌کند.
+        </p>
+        <div class="row">
+          <button class="danger" zen-action="triggerInfiniteLoop">trigger infinite loop</button>
+          <button zen-action="clearLoopLog">پاک کردن log</button>
+        </div>
+        <div class="log" id="loopLog" style="margin-top: 12px;"></div>
+        <pre>// این Effect خودش را trigger می‌کند:
+let runaway = signal(0);
+effect(() =&gt; {
+  const v = runaway.get();  // read
+  runaway.set(v + 1);       // write → trigger خودش
+});
+// بعد از ۱۰۰۰ iteration، Scheduler متوقف می‌شود.</pre>
+        <p class="hint" style="margin-top: 8px;">
+          بعد از کلیک، console مرورگر را باز کنید — warning
+          <code>[Zenith Scheduler] Flush exceeded 1000 iterations...</code>
+          را خواهید دید.
+        </p>
+      </div>
+
+      <!-- ۵. Log اصلی -->
+      <div class="card">
+        <h2>📜 Log اصلی Scheduler</h2>
+        <p class="desc">تمام رویدادهای Scheduler اینجا لاگ می‌شوند.</p>
+        <div class="log" id="mainLog"></div>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          Scheduler با Microtask batching، تعداد DOM updates را از N به ۱ کاهش می‌دهد.
+          Priority Queue تضمین می‌کند که کارهای حیاتی (مثل navigation) قبل از DOM updates، و DOM updates قبل از analytics اجرا شوند.
+          <code>flushSync</code> برای مواردی که نیاز به synchronous update دارید.
+          Infinite loop protection از قفل شدن اپلیکیشن جلوگیری می‌کند.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { scheduleEffect, flushSync } from '@zenith/scheduler';
+    import { Zen } from '@zenith/runtime';
+
+    // ── State ──
+    const count = signal(0);
+    const state = { count };
+
+    // ── شمارش Effect runs و DOM updates ──
+    let effectRuns = 0;
+    let domUpdates = 0;
+
+    const counterEl = document.querySelector('.counter');
+    const observer = new MutationObserver(() => {
+      domUpdates++;
+      updateStats();
+      log(`DOM updated → value: ${count.get()}`, 'success', 'mainLog');
+    });
+    observer.observe(counterEl, { childList: true, characterData: true, subtree: true });
+
+    function updateStats() {
+      document.getElementById('effectRuns').textContent = effectRuns;
+      document.getElementById('domUpdates').textContent = domUpdates;
+    }
+
+    // ── سیستم Log مشترک ──
+    function log(msg, type = 'info', targetId = 'mainLog') {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      const entry = document.createElement('div');
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const ms = String(new Date().getMilliseconds()).padStart(3, '0');
+      const colors = { info: '#94a3b8', success: '#4ade80', warn: '#fbbf24', error: '#fca5a5' };
+      entry.style.color = colors[type] || colors.info;
+      entry.textContent = `[${time}.${ms}] ${msg}`;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+      // محدود کردن تعداد خطوط
+      while (el.children.length > 80) {
+        el.removeChild(el.firstChild);
+      }
+    }
+
+    // ── Effect برای شمارش effectRuns ──
+    // این effect به count وابسته است، پس هر بار که count تغییر کند، اجرا می‌شود.
+    // (این شمارش، تعداد دفعات re-run است که با batching باید ۱ باشد برای ۱۰۰ set)
+    effect(() => {
+      const _ = count.get();
+      effectRuns++;
+      updateStats();
+    });
+
+    // ── ثبت Action ها ──
+    Zen.action('increment', ({ state }) => {
+      state.count.set(state.count.get() + 1);
+    });
+
+    Zen.action('fastLoop', ({ state }) => {
+      log('Starting 100 synchronous state changes...', 'warn', 'mainLog');
+      // reset counters for clean measurement
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+
+      for (let i = 1; i <= 100; i++) {
+        state.count.set(i);
+      }
+      // Effect ها در microtask بعدی اجرا می‌شوند — DOM فقط ۱ بار آپدیت می‌شود.
+
+      log(`Loop finished. count = ${state.count.get()}`, 'info', 'mainLog');
+      log('Check stats above — DOM should have updated only once!', 'success', 'mainLog');
+    });
+
+    Zen.action('multiSet', ({ state }) => {
+      log('Setting count to 1, 2, 3 in one function...', 'warn', 'mainLog');
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+
+      state.count.set(1);
+      state.count.set(2);
+      state.count.set(3);
+
+      log(`After 3 sets, count = ${state.count.get()}`, 'success', 'mainLog');
+      log('DOM should have updated only once with value 3.', 'info', 'mainLog');
+    });
+
+    Zen.action('reset', ({ state }) => {
+      state.count.set(0);
+      effectRuns = 0;
+      domUpdates = 0;
+      updateStats();
+      log('Reset to 0.', 'info', 'mainLog');
+    });
+
+    // ── Priority Queue Actions ──
+    const priorityOrderEl = document.getElementById('priorityOrder');
+
+    function renderPriorityOrder(order) {
+      priorityOrderEl.innerHTML = '';
+      if (order.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = '(روی دکمه کلیک کنید)';
+        priorityOrderEl.appendChild(empty);
+        return;
+      }
+      order.forEach((entry, i) => {
+        const item = document.createElement('div');
+        item.className = `item ${entry.priority}`;
+        item.textContent = `${i + 1}. ${entry.priority.padEnd(7)} → ${entry.label}`;
+        priorityOrderEl.appendChild(item);
+      });
+    }
+
+    Zen.action('schedulePriority', () => {
+      const order = [];
+      priorityOrderEl.innerHTML = '<div class="empty">scheduling...</div>';
+
+      // ترتیب ثبت: idle → normal → urgent (عمداً برعکس)
+      // ترتیب اجرا باید urgent → normal → idle باشد.
+      scheduleEffect(() => { order.push({ priority: 'idle',   label: 'idle effect (analytics)' });   renderPriorityOrder(order); }, 'idle');
+      scheduleEffect(() => { order.push({ priority: 'normal', label: 'normal effect (DOM update)' }); renderPriorityOrder(order); }, 'normal');
+      scheduleEffect(() => { order.push({ priority: 'urgent', label: 'urgent effect (navigation)' }); renderPriorityOrder(order); }, 'urgent');
+
+      log('Scheduled 3 effects: idle, normal, urgent (in that order).', 'warn', 'mainLog');
+      log('Calling flushSync()...', 'info', 'mainLog');
+      flushSync();
+      log('Flush complete. Order should be urgent → normal → idle.', 'success', 'mainLog');
+    });
+
+    Zen.action('scheduleMixed', () => {
+      const order = [];
+      priorityOrderEl.innerHTML = '<div class="empty">scheduling...</div>';
+
+      // ۶ effect با ترتیب نامرتب — اولویت‌ها باید در نهایت مرتب شوند.
+      scheduleEffect(() => { order.push({ priority: 'normal', label: 'normal #1' }); renderPriorityOrder(order); }, 'normal');
+      scheduleEffect(() => { order.push({ priority: 'idle',   label: 'idle #1' });   renderPriorityOrder(order); }, 'idle');
+      scheduleEffect(() => { order.push({ priority: 'urgent', label: 'urgent #1' }); renderPriorityOrder(order); }, 'urgent');
+      scheduleEffect(() => { order.push({ priority: 'idle',   label: 'idle #2' });   renderPriorityOrder(order); }, 'idle');
+      scheduleEffect(() => { order.push({ priority: 'urgent', label: 'urgent #2' }); renderPriorityOrder(order); }, 'urgent');
+      scheduleEffect(() => { order.push({ priority: 'normal', label: 'normal #2' }); renderPriorityOrder(order); }, 'normal');
+
+      log('Scheduled 6 mixed-priority effects.', 'warn', 'mainLog');
+      log('Calling flushSync()...', 'info', 'mainLog');
+      flushSync();
+      log('Flush complete. Order should be: 2 urgent, 2 normal, 2 idle (FIFO within each tier).', 'success', 'mainLog');
+    });
+
+    Zen.action('clearPriority', () => {
+      renderPriorityOrder([]);
+      log('Priority order cleared.', 'info', 'mainLog');
+    });
+
+    // ── flushSync demo ──
+    Zen.action('withoutFlush', ({ state }) => {
+      const flushLog = document.getElementById('flushLog');
+      flushLog.innerHTML = '';
+      log(`BEFORE set: count = ${state.count.get()}`, 'info', 'flushLog');
+      state.count.set(777);
+      // بدون flushSync: DOM هنوز آپدیت نشده. می‌توانیم بلافاصله بخوانیم.
+      const counterNow = counterEl.textContent.trim();
+      log(`AFTER set (no flush): counter DOM = "${counterNow}"  (should still show old value)`, 'warn', 'flushLog');
+      log('Effect scheduled in microtask. DOM will update after current tick.', 'info', 'flushLog');
+      // در microtask بعدی، DOM آپدیت می‌شود
+      setTimeout(() => {
+        const counterAfter = counterEl.textContent.trim();
+        log(`AFTER microtask: counter DOM = "${counterAfter}"  (now updated)`, 'success', 'flushLog');
+      }, 0);
+    });
+
+    Zen.action('withFlush', ({ state }) => {
+      const flushLog = document.getElementById('flushLog');
+      flushLog.innerHTML = '';
+      log(`BEFORE set: count = ${state.count.get()}`, 'info', 'flushLog');
+      state.count.set(888);
+      log('AFTER set, BEFORE flushSync: DOM not yet updated.', 'warn', 'flushLog');
+      flushSync();  // حالا Effectها synchronous اجرا می‌شوند
+      const counterNow = counterEl.textContent.trim();
+      log(`AFTER flushSync: counter DOM = "${counterNow}"  (immediately updated!)`, 'success', 'flushLog');
+      log('flushSync forced the scheduler to run synchronously.', 'success', 'flushLog');
+    });
+
+    // ── Infinite loop protection ──
+    Zen.action('triggerInfiniteLoop', () => {
+      const loopLog = document.getElementById('loopLog');
+      loopLog.innerHTML = '';
+      log('Creating an effect that triggers itself...', 'warn', 'loopLog');
+      log('signal value 0 → effect reads & writes → signal value 1 → effect re-runs...', 'info', 'loopLog');
+
+      // ساخت یک Signal و Effect که خودش را trigger می‌کند
+      const runaway = signal(0);
+      let iterCount = 0;
+      effect(() => {
+        const v = runaway.get();
+        iterCount++;
+        if (iterCount <= 5 || iterCount === 1000 || iterCount === 1001) {
+          log(`effect iteration ${iterCount}: value=${v}`, iterCount > 5 ? 'error' : 'info', 'loopLog');
+        } else if (iterCount === 6) {
+          log('... (suppressing logs for iterations 6-999) ...', 'info', 'loopLog');
+        }
+        if (v < 10000) {
+          runaway.set(v + 1);
+        }
+      });
+
+      log(`Effect ran ${iterCount} iterations before being stopped.`, 'success', 'loopLog');
+      log('Check browser console for the warning message.', 'warn', 'loopLog');
+    });
+
+    Zen.action('clearLoopLog', () => {
+      document.getElementById('loopLog').innerHTML = '';
+    });
+
+    // ── شروع فریم‌ورک ──
+    Zen.start(document.getElementById('app'), state);
+    updateStats();
+    log('Framework started. Try the buttons above!', 'info', 'mainLog');
+    log('Without Scheduler, "حلقه ۱۰۰ تایی" would cause 100 DOM updates.', 'warn', 'mainLog');
+    log('With Scheduler, only 1 DOM update happens (with final value 100).', 'success', 'mainLog');
+    renderPriorityOrder([]);
+  </script>
+</body>
+</html>

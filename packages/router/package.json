@@ -1,0 +1,85 @@
+{
+  "name": "@zenith/router",
+  "version": "1.4.0",
+  "description": "Zenith framework \u2014 SPA Router with History API (Phase 8). Declarative route definitions, lazy-loaded pages, URL parameter extraction.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json",
+    "./node": {
+      "import": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "require": {
+        "types": "./dist/node.d.cts",
+        "default": "./dist/node.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zenith",
+    "router",
+    "spa",
+    "history",
+    "navigation",
+    "framework"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legionir/zenith-v1.4.0.git",
+    "directory": "packages/router"
+  },
+  "homepage": "https://github.com/legionir/zenith-v1.4.0/tree/audit/consolidated-report#readme",
+  "bugs": {
+    "url": "https://github.com/legionir/zenith-v1.4.0/issues"
+  },
+  "engines": {
+    "node": ">=18.19"
+  },
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/node.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@zenith/state": "^1.4.0"
+  },
+  "dependencies": {
+    "@zenith/cache": "1.5.0",
+    "@zenith/logger": "1.5.0",
+    "@zenith/a11y": "1.5.0",
+    "@zenith/head": "1.5.0"
+  },
+  "zenith": {
+    "target": "universal",
+    "entryTargets": {
+      "./node": "node"
+    }
+  }
+}

@@ -1,0 +1,531 @@
+# Migration Guide: Zenith 0.6.x → 1.0.0
+
+> راهنمای کامل مهاجرت از نسخه‌ی ۰.۶.x به ۱.۰.۰.
+>
+> v1.0.0 یک **major release** است با تغییرات breaking (با backwards compatibility).
+>
+> **الزامات Node (v1.4.0 به بعد):** حداقل `node >= 18.19` در تمام پکیج‌ها (DEC-007).
+> اگر روی 18.0–18.18 قفل هستید، ایزولاسیون per-request روتر در SSR (`process.getBuiltinModule`)
+> غیرفعال است؛ یا Node را ارتقا دهید یا به shared route signal متکی بمانید.
+
+---
+
+## فهرست
+
+1. [خلاصه‌ی تغییرات Breaking](#خلاصه‌ی-تغییرات-breaking)
+2. [گام ۱: به‌روزرسانی وابستگی‌ها](#گام-۱-به-روزرسانی-وابستگی‌ها)
+3. [گام ۲: بررسی Zen.start](#گام-۲-بررسی-zenstart)
+4. [گام ۳: بررسی Resource.destroy](#گام-۳-بررسی-resourcedestroy)
+5. [گام ۴: بررسی zen-for](#گام-۴-بررسی-zen-for)
+6. [گام ۵: بررسی SSR](#گام-۵-بررسی-ssr)
+7. [گام ۶: بررسی Expression Evaluator](#گام-۶-بررسی-expression-evaluator)
+8. [گام ۷: بهینه‌سازی‌های اختیاری](#گام-۷-بهینه‌سازی‌های-اختیاری)
+9. [عیب‌یابی](#عیب-یابی)
+
+---
+
+## خلاصه‌ی تغییرات Breaking
+
+| تغییر | تأثیر | خطر |
+|-------|--------|-----|
+| `Zen.start` signature اضافه شد | **بدون** — پارامتر سوم اختیاری است | 🟢 None |
+| `Resource.destroy()` اضافه شد | **بدون** — متد جدید، API موجود دست‌نخورده | 🟢 None |
+| `compileExpression` اضافه شد | **بدون** — API جدید، `evaluateExpression` همچنان موجود | 🟢 None |
+| `zen-static` attribute اضافه شد | **بدون** — attribute جدید، بدون آن رفتار قبلی | 🟢 None |
+| SSR از AsyncLocalStorage استفاده می‌کند | **بدون** — `renderToString` API همان است | 🟢 None |
+| Property Diffing در directiveها | **بدون** — فقط skip DOM mutation اگر `===` | 🟢 None |
+| DocumentFragment batching در zen-for | **بدون** — فقط سرعت mount بهتر | 🟢 None |
+| `devtools: false` option | **بدون** — پیش‌فرض `true` (مانند قبل) | 🟢 None |
+
+**نتیجه**: v1.0.0 **fully backwards compatible** است. هیچ کد 0.6.x نباید بشکند.
+
+---
+
+## گام ۱: به‌روزرسانی وابستگی‌ها
+
+### package.json
+
+```json
+{
+  "dependencies": {
+    "@zenith/runtime": "1.0.0",
+    "@zenith/state": "1.0.0",
+    "@zenith/expressions": "1.0.0",
+    "@zenith/resource": "1.0.0",
+    "@zenith/ssr": "1.0.0"
+  }
+}
+```
+
+```bash
+npm install
+# یا
+bun install
+```
+
+### TypeScript Definitions
+
+اگر از TypeScript استفاده می‌کنید، فایل‌های `.d.ts` به‌طور خودکار به‌روزرسانی می‌شوند. اما اگر type errors دارید:
+
+```bash
+# پاک کردن cache
+rm -rf node_modules/.cache
+
+# typecheck
+npx tsc --noEmit
+```
+
+---
+
+## گام ۲: بررسی Zen.start
+
+### قبل (0.6.x)
+
+```typescript
+Zen.start(root, state);
+```
+
+### بعد (1.0.0) — بدون تغییر
+
+```typescript
+Zen.start(root, state); // همچنان کار می‌کند!
+```
+
+### اختیاری: غیرفعال‌کردن DevTools در production
+
+```typescript
+// Production
+Zen.start(root, state, { devtools: false });
+
+// Development (پیش‌فرض)
+Zen.start(root, state, { devtools: true });
+// یا
+Zen.start(root, state);
+```
+
+### Migration checklist
+
+- [ ] بررسی کنید که آیا `Zen.start` با ۲ آرگومان صدا زده می‌شود — **همچنان کار می‌کند**.
+- [ ] (اختیاری) در production build، `{ devtools: false }` اضافه کنید برای performance بهتر.
+- [ ] (اختیاری) در benchmark، `{ devtools: false }` اضافه کنید.
+
+---
+
+## گام ۳: بررسی Resource.destroy
+
+### قبل (0.6.x)
+
+Resource ها فقط `reset()` داشتند. هیچ راهی برای teardown کامل نبود.
+
+```typescript
+const users = createResource('users', { url: '/api/users' });
+// ... استفاده ...
+users.reset(); // فقط state را پاک می‌کرد، اما fetch های inflight ادامه می‌یافتند.
+```
+
+### بعد (1.0.0) — اختیاری
+
+```typescript
+const users = createResource('users', { url: '/api/users' });
+// ... استفاده ...
+
+// هنگام unmount کامپوننت:
+users.destroy(); // teardown کامل: timer, abort, queue, registry removal.
+```
+
+### Migration checklist
+
+- [ ] بررسی کنید که آیا Resource هایی دارید که باید teardown شوند (مخصوصاً در SPA با route changes).
+- [ ] در `onUnmounted` یا cleanup hooks، `destroy()` را صدا بزنید.
+- [ ] اگر از `reset()` برای cleanup استفاده می‌کردید، `destroy()` را در نظر بگیرید (کامل‌تر).
+
+### مثال: React Integration
+
+```typescript
+import { createResource } from '@zenith/resource';
+import { useEffect } from 'react';
+
+function useResource(name: string, url: string) {
+  useEffect(() => {
+    const resource = createResource(name, { url });
+    resource.list();
+    return () => {
+      resource.destroy(); // v1.0.0: teardown کامل
+    };
+  }, [name, url]);
+}
+```
+
+---
+
+## گام ۴: بررسی zen-for
+
+### قبل (0.6.x)
+
+```html
+<li zen-for="item in $items" zen-key="item.id">
+  <span zen-text="item.name"></span>
+</li>
+```
+
+### بعد (1.0.0) — بدون تغییر
+
+```html
+<li zen-for="item in $items" zen-key="item.id">
+  <span zen-text="item.name"></span>
+</li>
+```
+
+### اختیاری: zen-static برای لیست‌های read-only
+
+```html
+<!-- برای لیست‌های فقط‌خواندنی (منو، جدول read-only) -->
+<li zen-for="item in $items" zen-key="item.id" zen-static="">
+  <span zen-text="item.name"></span>
+</li>
+```
+
+### Migration checklist
+
+- [ ] بررسی کنید که آیا zen-for هایی دارید که فقط read-only هستند.
+- [ ] برای آن‌ها `zen-static` اضافه کنید (۱.۳x-۱.۹x سریع‌تر mount).
+- [ ] **هشدار**: `zen-static` با `zen-model` کار نمی‌کند. اگر inside zen-for از zen-model استفاده می‌کنید، `zen-static` اضافه نکنید.
+
+### مثال: چه زمانی zen-static استفاده نکنیم
+
+```html
+<!-- ❌ این کار نمی‌کند — zen-model با zen-static پشتیبانی نمی‌شود -->
+<li zen-for="user in $users" zen-key="user.id" zen-static="">
+  <input zen-model="user.name">
+</li>
+
+<!-- ✅ درست — بدون zen-static -->
+<li zen-for="user in $users" zen-key="user.id">
+  <input zen-model="user.name">
+</li>
+```
+
+---
+
+## گام ۵: بررسی SSR
+
+### قبل (0.6.x)
+
+`renderToString` از `globalThis` mutation استفاده می‌کرد:
+
+```typescript
+// 0.6.x implementation (داخلی):
+const saved = {};
+for (const g of globals) {
+  saved[g] = globalThis[g];
+  globalThis[g] = dom.window[g]; // RACE CONDITION!
+}
+try {
+  Zen.start(root, state);
+  // ...
+} finally {
+  for (const g of globals) {
+    globalThis[g] = saved[g]; // restore
+  }
+}
+```
+
+### بعد (1.0.0)
+
+`renderToString` از `AsyncLocalStorage` استفاده می‌کند:
+
+```typescript
+// 1.0.0 implementation (داخلی):
+const globals = { window: dom.window, document: dom.window.document, ... };
+await domAls.run(globals, () => {
+  Zen.start(root, state);
+  // ...
+});
+// بدون globalThis mutation!
+```
+
+### Migration checklist
+
+- [ ] **API تغییر نکرده** — `renderToString(html, state, options)` همچنان همان است.
+- [ ] اگر کد سفارشی SSR دارید که `globalThis` را mutate می‌کند، آن را به `domAls.run` تغییر دهید.
+- [ ] در ۱۰۰+ concurrent requests، race condition برطرف شده.
+
+### مثال: کد سفارشی SSR
+
+```typescript
+// 0.6.x (خطرناک در concurrent):
+globalThis.document = dom.window.document;
+try {
+  // render
+} finally {
+  delete globalThis.document;
+}
+
+// 1.0.0 (safe در concurrent):
+import { domAls } from '@zenith/ssr';
+const globals = { document: dom.window.document, /* ... */ };
+await domAls.run(globals, () => {
+  // render
+});
+```
+
+---
+
+## گام ۶: بررسی Expression Evaluator
+
+### قبل (0.6.x)
+
+```typescript
+import { evaluateExpression } from '@zenith/expressions';
+
+const dispose = effect(() => {
+  const value = evaluateExpression(expr, context); // هر بار compile() صدا زده می‌شود
+  el.textContent = String(value);
+});
+```
+
+### بعد (1.0.0) — بدون تغییر (همچنین کار می‌کند)
+
+```typescript
+import { evaluateExpression } from '@zenith/expressions';
+
+const dispose = effect(() => {
+  const value = evaluateExpression(expr, context); // همچنان کار می‌کند
+  el.textContent = String(value);
+});
+```
+
+### اختیاری: compileExpression برای Hot Path
+
+```typescript
+import { compileExpression } from '@zenith/expressions';
+import { effect } from '@zenith/state';
+
+// compile-once — expr فقط یک‌بار parse می‌شود.
+const evalFn = compileExpression(expr);
+
+const dispose = effect(() => {
+  const value = evalFn(context); // صفر Map operation
+  el.textContent = String(value);
+});
+```
+
+### Migration checklist
+
+- [ ] **هیچ تغییری لازم نیست** — `evaluateExpression` همچنان کار می‌کند.
+- [ ] (اختیاری) برای directive processor های پرتکرار، `compileExpression` استفاده کنید.
+- [ ] (اختیاری) اگر custom directive می‌سازید، از `compileExpression` استفاده کنید.
+
+---
+
+## گام ۷: بهینه‌سازی‌های اختیاری
+
+### ۱. Property Diffing (automatic)
+
+هیچ کاری لازم نیست. v1.0.0 به‌طور خودکار در `zen-bind`, `zen-show`, `zen-html`, `zen-html-trusted`, `zen-model` property diffing را فعال می‌کند.
+
+### ۲. DocumentFragment Batching (automatic)
+
+هیچ کاری لازم نیست. v1.0.0 به‌طور خودکار در initial mountِ zen-for (هم standard و هم static) از DocumentFragment استفاده می‌کند.
+
+### ۳. DevTools disable در production
+
+```typescript
+// Production
+Zen.start(root, state, { devtools: false });
+```
+
+### ۴. zen-static برای read-only lists
+
+```html
+<li zen-for="item in $items" zen-key="item.id" zen-static="">
+  <span zen-text="item.name"></span>
+</li>
+```
+
+### ۵. compileExpression برای Hot Path
+
+```typescript
+const evalFn = compileExpression(expr);
+const dispose = effect(() => {
+  const value = evalFn(context);
+});
+```
+
+### ۶. Resource.destroy در unmount
+
+```typescript
+onUnmounted(() => {
+  resource.destroy();
+});
+```
+
+---
+
+## عیب‌یابی
+
+### مشکل: `Resource.destroy is not a function`
+
+**علت**: پکیج `@zenith/resource` به 1.0.0 به‌روزرسانی نشده.
+
+**راه‌حل**:
+```bash
+npm ls @zenith/resource
+# بررسی version
+npm install @zenith/resource@1.0.0
+```
+
+### مشکل: `compileExpression is not exported`
+
+**علت**: پکیج `@zenith/expressions` به 1.0.0 به‌روزرسانی نشده.
+
+**راه‌حل**:
+```bash
+npm install @zenith/expressions@1.0.0
+```
+
+### مشکل: `zen-static باعث می‌شود zen-model کار نکند`
+
+**علت**: این یک documented limitation است. `zen-static` signalsMap نمی‌سازد.
+
+**راه‌حل**: `zen-static` را از element حذف کنید.
+
+### مشکل: `window.__ZENITH__ undefined در production`
+
+**علت**: `devtools: false` باعث می‌شود `initDevTools` صدا زده نشود.
+
+**راه‌حل**: این رفتار درست است. اگر DevTools نیاز دارید، `devtools: true` (یا حذف option) استفاده کنید.
+
+### مشکل: `tsc errors after upgrade`
+
+**علت**: فایل‌های `.d.ts` به‌روزرسانی نشده‌اند.
+
+**راه‌حل**:
+```bash
+rm -rf node_modules/.cache
+rm -rf node_modules/@zenith
+npm install
+npx tsc --noEmit
+```
+
+### مشکل: `SSR race condition هنوز رخ می‌دهد`
+
+**علت**: کد سفارشی SSR دارید که `globalThis` را mutate می‌کند.
+
+**راه‌حل**: کد را به `domAls.run` تغییر دهید (به [گام ۵](#گام-۵-بررسی-ssr) مراجعه کنید).
+
+---
+
+## راهنمای سریع
+
+| می‌_migration خطر | اقدام لازم |
+|------------------|-----------|
+| 🟢 None | فقط `npm install` — همه چیز کار می‌کند |
+| 🟡 Low | (اختیاری) `devtools: false` در production |
+| 🟡 Low | (اختیاری) `zen-static` برای read-only lists |
+| 🟡 Low | (اختیاری) `compileExpression` برای Hot Path |
+| 🟡 Low | (اختیاری) `Resource.destroy()` در unmount |
+
+---
+
+## Deprecation & Migration Matrix (v1.4.x → v1.5.0 / v2.0.0) (#58)
+
+تمامی APIهای منسوخ‌شده در نسخهٔ ۱.۵.۰ طبق سیاست رسمی [`docs/DEPRECATION-POLICY.md`](./DEPRECATION-POLICY.md) تا نسخهٔ `2.0.0` با حفظ سازگاری کامل کار می‌کنند و در حالت توسعه فقط یک‌بار هشدار `ZEN-DEPR-xxx` چاپ می‌کنند:
+
+| کد هشدار | API قدیمی (Deprecated) | جایگزین پیشنهادی در ۱.۵+ | نسخهٔ حذف |
+|---|---|---|---|
+| `ZEN-DEPR-001` | `processVirtualList(...)` | `createVirtualList({ items, itemSize, container, renderItem })` | `2.0.0` |
+| `ZEN-DEPR-002`..`004` | `enterTransition` / `leaveTransition` / `animateGroup` | `createTransition(name, options)` | `2.0.0` |
+| `ZEN-DEPR-005` | `clearCache` در `@zenith/http` | `clearHttpCache` | `2.0.0` |
+| `ZEN-DEPR-006`..`015` | توابع تاریخ جلالی در `@zenith/i18n` | پکیج مستقل `@zenith/jalali` | `2.0.0` |
+| `ZEN-DEPR-016`..`018` | `fromZod` / `validateWithZod` / `fromJsonSchema` در `@zenith/form` | `@zenith/schema/zod` و `@zenith/schema/json-schema` | `2.0.0` |
+| `ZEN-DEPR-019`..`024` | متدهای `destroy()` در `actions`, `auth`, `crud`, `form`, `resource`, `service-worker` | متد استاندارد `dispose()` (`Disposable`) | `2.0.0` |
+| `ZEN-DEPR-025` | `schedule()` در `@zenith/scheduler` | `scheduleEffect()` | `2.0.0` |
+| `ZEN-DEPR-026` | `installStatefulComponents()` | `Zen.use(ZenithStatefulPlugin)` | `2.0.0` |
+| `ZEN-DEPR-027`..`034` | توابع رجیستری DevTools در `@zenith/state` | `@zenith/devtools-core` | `2.0.0` |
+| `ZEN-DEPR-035`..`041` | فراخوانی‌های positional بیش از ۲ آرگومان (`createMutation`, `createInfiniteQuery`, `trackPromise`, `withTimeout`, `animate`, `animateEnter`, `animateLeave`) | فراخوانی مبتنی بر شیء تنظیمات (`options object`) | `2.0.0` |
+
+---
+
+## راهنمای مهاجرت نسخه به نسخه (`v1.0` تا `v1.4 / v1.5`) (`#105`)
+
+### ۱. مهاجرت از `v1.0.x / v1.1.x` به `v1.2.x`
+- **امنیت SSR (`SEC-A1`)**: تابع `renderToString` و `renderToStream` کاراکترهای خطرناک `<`, `>`, `U+2028`, `U+2029` را در اسکریپت Hydration خنثی می‌کنند و مسیرهای حاوی `</` را با خطای `ZEN-401` رد می‌کنند.
+- **ایزولاسیون `EffectContext` در SSR (`BUG-22`)**: دیگر نیازی به مدیریت دستی سیگنال‌ها بین درخواست‌های همزمان SSR نیست؛ `domAls` به‌طور خودکار `EffectContext` هر درخواست را ایزوله می‌کند.
+
+### ۲. مهاجرت از `v1.2.x` به `v1.3.x`
+- **پشتیبانی `AbortSignal` در `renderToStream`**: می‌توانید `signal: abortController.signal` را به `renderToStream` بدهید تا در صورت قطع اتصال کلاینت، رندر بلافاصله متوقف شود.
+- **پاک‌سازی خودکار Router (`cleanupRouter`)**: تمامی listenerهای `popstate` و prefetch با فراخوانی `cleanupRouter()` یا `dispose()` آزاد می‌شوند.
+
+### ۳. مهاجرت از `v1.3.x` به `v1.4.0 / v1.5.0`
+
+#### الف) پیش‌نیاز موتور Node.js (`>= 18.19.0`)
+تمامی پکیج‌ها به `"engines": { "node": ">=18.19" }` ارتقا یافته‌اند تا `process.getBuiltinModule('node:async_hooks')` بدون وابستگی باندلر در SSR و Edge کار کند.
+
+#### ب) مهاجرت از `Zen.start` سراسری به نمونهٔ ایزولهٔ `createApp()` (`#148`)
+```ts
+// قبل (همچنان پشتیبانی می‌شود):
+import { Zen } from '@zenith/runtime';
+Zen.start(document.getElementById('app')!, { count: 0 });
+
+// پیشنهادی در v1.4+ (ایزوله برای SSR و تست‌های موازی):
+import { createApp } from '@zenith/runtime';
+const app = createApp({ state: { count: 0 } });
+const unmount = app.mount('#app');
+```
+
+#### ج) یکپارچه‌سازی قرارداد پاک‌سازی به `dispose()` (`#116`)
+```ts
+// قبل (منسوخ با ZEN-DEPR-019..024):
+resource.destroy();
+form.destroy();
+
+// بعد (استاندارد v1.4+ با پشتیبانی از `using` در TypeScript 5.2+):
+resource.dispose();
+form.dispose();
+```
+
+#### د) مهاجرت توابع تاریخ شمسی به `@zenith/jalali` (`#146` / `#101`)
+```ts
+// قبل (منسوخ با ZEN-DEPR-006..015 در @zenith/i18n):
+import { toJalali, fromJalali } from '@zenith/i18n';
+
+// بعد (دقیق، منطبق با الگوریتم Borkowski و Intl در بازهٔ ۱۲۰۱..۱۵۰۰):
+import { toJalaliParts, fromJalaliParts, formatJalali } from '@zenith/jalali';
+const parts = toJalaliParts(new Date());
+const formatted = formatJalali(new Date(), 'YYYY/MM/DD');
+```
+
+---
+
+## seealso
+
+- [شروع سریع و آموزش گام‌به‌گام (`docs/GETTING-STARTED.md`)](./GETTING-STARTED.md)
+- [کتاب آشپزی (`docs/COOKBOOK.md`)](./COOKBOOK.md)
+- [سیاست پشتیبانی و چرخهٔ عمر نسخه‌ها (`SUPPORT.md`)](../SUPPORT.md)
+- [API Reference v1.0.0](./api-v1.0.md)
+- [Public API Stability & Deprecation Policy](./DEPRECATION-POLICY.md)
+- [Performance Tuning Guide](./performance-tuning.md)
+- [Changelog v1.0.0](../CHANGELOG.md)
+- [Security Audit Report](../../tests/v1.0/security-audit/README.md)
+
+## 2026-10-16 remediation: development toolchain and CSP
+
+- For this checkout's test runner and hooks, use Node 22 LTS >=22.12. The
+  published libraries' Node >=18.19 floor is unchanged (DEC-040); old build-only
+  compatibility jobs do not promise old-Node dev-tool support.
+- Upgrade Vite 5 / unpatched Vite 6 or 7 to `^6.4.4` or `^7.3.7` before updating
+  `@zenith/vite-plugin`. Its peer range now rejects the former insecure chain.
+  Dropping Vite 5 is a breaking tooling-support change (major changeset); no
+  package version is bumped or published in this batch. Coordinate the fixed-group
+  release with the release owner. Vite 8 support remains pending in #110.
+- Newly generated CLI manifests now select `vite: ^6.4.4`, matching the patched
+  plugin peer range. This does not fix the other scaffold/workspace gaps in #109/#158.
+- CSP nonce values are no longer static. Never depend on `zen-ssr-nonce` or
+  `zen-edge-nonce`. A custom adapter CSP should use `'nonce-{{nonce}}'` so header
+  and script agree. Do not reuse full nonce-bearing response HTML across requests.
+- Fetch handler cancellation now rejects with `AbortError` instead of continuing
+  the render; Node handlers do not write a disconnected response. Code already
+  executing inside a user async function is not forcibly cancelled.
+- Analytics send rejections are now reported as sanitized `ZEN-1901` errors;
+  no raw exception or event payload is included. See the runtime README.

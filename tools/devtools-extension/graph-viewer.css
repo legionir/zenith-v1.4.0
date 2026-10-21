@@ -1,0 +1,276 @@
+:root {
+  --bg: #0a0e1f;
+  --bg-2: #111634;
+  --panel: #0f1530;
+  --border: #1e2750;
+  --accent: #6366f1;
+  --accent-2: #818cf8;
+  --text: #e5e7eb;
+  --text-dim: #94a3b8;
+  --signal: #3b82f6; /* آبی — سیگنال */
+  --effect: #f59e0b; /* نارنجی — افکت */
+  --directive: #a855f7; /* بنفش — دایرکتیو */
+  --dom: #22c55e; /* سبز — DOM */
+  --edge: #475569;
+  --edge-hi: #fbbf24;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: radial-gradient(1200px 700px at 70% -10%, #1a2150 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family:
+    'Vazirmatn',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  overflow: hidden;
+}
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 320px;
+  height: 100vh;
+}
+header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0));
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+header .logo {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+header .logo small {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+header .spacer {
+  flex: 1;
+}
+.counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.chip.s .dot {
+  background: var(--signal);
+}
+.chip.e .dot {
+  background: var(--effect);
+}
+.chip.d .dot {
+  background: var(--directive);
+}
+.chip.m .dot {
+  background: var(--dom);
+  border-radius: 2px;
+}
+button {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.primary:hover {
+  background: var(--accent-2);
+}
+#stage {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--bg-2) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--bg-2) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--bg);
+}
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+svg.dragging {
+  cursor: grabbing;
+}
+svg.panning {
+  cursor: grabbing;
+}
+.edge {
+  stroke: var(--edge);
+  stroke-width: 1.4;
+  fill: none;
+  transition:
+    stroke 0.15s,
+    stroke-width 0.15s;
+}
+.edge.hi {
+  stroke: var(--edge-hi);
+  stroke-width: 2.4;
+}
+.edge.dim {
+  opacity: 0.15;
+}
+.node {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.node.dim {
+  opacity: 0.2;
+}
+.node shape {
+  transition:
+    stroke 0.15s,
+    stroke-width 0.15s,
+    filter 0.15s;
+}
+.node.selected shape {
+  stroke: var(--edge-hi);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px var(--edge-hi));
+}
+.node text {
+  fill: var(--text);
+  font-size: 11px;
+  font-family: 'Vazirmatn', system-ui, sans-serif;
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+}
+.node text.sub {
+  fill: var(--text-dim);
+  font-size: 9px;
+}
+aside {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 14px;
+  overflow: auto;
+  direction: rtl;
+}
+aside h2 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  color: var(--accent-2);
+}
+aside .field {
+  margin-bottom: 10px;
+}
+aside .field .k {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+aside .field .v {
+  font-size: 12px;
+  word-break: break-all;
+}
+aside .hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+aside .badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+}
+.legend {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 60%;
+}
+.legend .item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgba(15, 21, 48, 0.7);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.toast {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  opacity: 0;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+  transform: translateY(10px);
+  pointer-events: none;
+  z-index: 10;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}

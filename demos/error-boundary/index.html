@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith — Error Boundary</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1f; --bg-secondary: #131830; --bg-card: rgba(28, 34, 64, 0.7);
+      --border: rgba(99, 102, 241, 0.2); --border-strong: rgba(99, 102, 241, 0.4);
+      --text-primary: #e2e8f0; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --accent: #6366f1; --accent-light: #818cf8;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    body { font-family: 'Vazirmatn', system-ui, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 20px; line-height: 1.7; }
+    .container { max-width: 900px; margin: 0 auto; }
+    a.back { color: var(--text-secondary); text-decoration: none; display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+    a.back:hover { color: var(--accent-light); }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h1 .gradient { background: var(--gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+    .badge { padding: 3px 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-light); border-radius: 4px; font-size: 0.75rem; font-family: ui-monospace, monospace; direction: ltr; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(10px); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--accent-light); }
+    .card p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 12px; }
+    button { padding: 8px 16px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.2s; margin: 2px; }
+    button:hover { background: var(--accent); border-color: var(--accent); }
+    button.primary { background: var(--gradient); border: none; color: white; }
+    button.danger { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    button.danger:hover { background: rgba(239, 68, 68, 0.3); border-color: var(--danger); }
+    button.success { border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7; }
+    button.success:hover { background: rgba(16, 185, 129, 0.3); border-color: var(--success); }
+    input, textarea, select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .log { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #4ade80; max-height: 240px; overflow-y: auto; direction: ltr; text-align: left; }
+    .stat { display: inline-block; padding: 4px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin: 2px; }
+    .stat strong { color: var(--accent-light); font-family: ui-monospace, monospace; }
+    pre { background: #0a0e1f; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: ui-monospace, monospace; font-size: 0.82rem; color: #c9d1d9; direction: ltr; text-align: left; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; background: rgba(99, 102, 241, 0.1); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; direction: ltr; display: inline-block; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin: 8px 0; }
+    .alert-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); }
+    .alert-danger { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .boundary-box {
+      padding: 16px;
+      border: 2px dashed rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.03);
+      min-height: 60px;
+      margin-bottom: 8px;
+    }
+    .boundary-box.has-error {
+      border-color: var(--danger);
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .fallback-ui {
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      color: var(--danger);
+    }
+    .item-card {
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .item-card .id { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 0.78rem; min-width: 30px; direction: ltr; }
+    .item-card.broken { border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.05); }
+    .item-card.broken .name { color: var(--danger); font-style: italic; font-size: 0.8rem; }
+    .error-list-item {
+      padding: 6px 10px;
+      border-bottom: 1px dashed var(--border);
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      direction: ltr;
+      text-align: left;
+      color: #fca5a5;
+    }
+    .error-list-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back">→ بازگشت به فهرست دموها</a>
+    <h1>🛡️ <span class="gradient">Error Boundary</span></h1>
+    <p class="subtitle">مدیریت خطاهای runtime با global error handler و دایرکتیو <code>zen-error</code></p>
+    <div class="badges">
+      <span class="badge">errorSignal</span>
+      <span class="badge">onError</span>
+      <span class="badge">reportError</span>
+      <span class="badge">zen-error directive</span>
+      <span class="badge">fallback UI</span>
+      <span class="badge">graceful-degradation</span>
+    </div>
+
+    <div id="app">
+
+      <!-- ──── ۱. Action that throws ──── -->
+      <div class="card">
+        <h2>۱. اکشن که خطا می‌دهد — Event Delegation آن را می‌گیرد</h2>
+        <p class="desc">
+          وقتی یک <code>action</code> خطا می‌دهد، لایه‌ی Event Delegation آن را catch می‌کند و جلوی خرابی کل فریم‌ورک را می‌گیرد.
+          دکمه‌ی زیر عمداً خطا می‌دهد. کل فریم‌ورک پایدار می‌ماند.
+        </p>
+        <button class="danger" zen-action="throwError">💥 اجرای اکشن خطادار</button>
+        <div class="alert alert-success" zen-if="$actionThrew">
+          ✅ خطا در اکشن catch شد. فریم‌ورک همچنان کار می‌کند — روی دکمه‌های دیگر کلیک کنید!
+        </div>
+        <pre>Zen.action('throwError', () =&gt; {
+  throw new Error('خطای عمدی از داخل اکشن!');
+});
+// event delegation این خطا را catch می‌کند — فریم‌ورک پایدار می‌ماند.</pre>
+      </div>
+
+      <!-- ──── ۲. Expression error ──── -->
+      <div class="card">
+        <h2>۲. خطای Expression — <code>zen-text</code> با expression نامعتبر</h2>
+        <p class="desc">
+          وقتی expression داخل <code>zen-text</code> (یا <code>zen-bind</code>، <code>zen-if</code>، <code>zen-html</code>) خطا دهد،
+          خود دایرکتیو آن را catch می‌کند، <code>reportError</code> را صدا می‌زند و مقدار خالی نمایش می‌دهد.
+          کلیک کنید تا یک expression نامعتبر فعال شود.
+        </p>
+        <div class="row">
+          <button class="danger" zen-action="breakData">💥 خراب کردن data (set null)</button>
+          <button class="success" zen-action="fixData">✅ اصلاح data (set valid)</button>
+        </div>
+        <div style="margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 6px;">
+          <span style="color: var(--text-secondary); font-size: 0.85rem;">نام کاربر: </span>
+          <strong zen-text="$userData.name"></strong>
+        </div>
+        <div class="alert alert-danger" zen-if="!$userData">
+          ⚠️ <code>$userData</code> برابر <code>null</code> است. Expression <code>$userData.name</code> خطا می‌دهد اما توسط <code>zen-text</code> catch شده و مقدار خالی نمایش داده می‌شود.
+        </div>
+        <pre>&lt;span zen-text="$userData.name"&gt;&lt;/span&gt;
+// اگر $userData = null باشد، expression خطا می‌دهد.
+// zen-text خطا را catch می‌کند، reportError() صدا می‌زند،
+// و textContent = '' تنظیم می‌کند.</pre>
+      </div>
+
+      <!-- ──── ۳. Custom fallback with zen-error directive ──── -->
+      <div class="card">
+        <h2>۳. <code>zen-error</code> Directive — Fallback سفارشی</h2>
+        <p class="desc">
+          با دایرکتیو <code>zen-error</code> می‌توان یک section را wrap کرد.
+          اگر Expression داخلش خطا دهد، fallback UI نمایش داده می‌شود.
+          در این دمو، <code>processErrorBoundary</code> به‌صورت دستی فراخوانی می‌شود
+          (این دایرکتیو به‌صورت خودکار در runtime walker ثبت نشده است).
+        </p>
+        <div class="row" style="margin-bottom: 12px;">
+          <button class="danger" zen-action="breakProfile">خراب کردن profile</button>
+          <button class="success" zen-action="fixProfile">اصلاح profile</button>
+          <button zen-action="retryBoundary">🔄 تلاش مجدد (recover)</button>
+        </div>
+        <div class="boundary-box" id="profileBoundary" zen-error>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width:40px; height:40px; border-radius:50%; background: var(--gradient); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;" zen-text="$profile.initial"></div>
+            <div>
+              <div style="font-weight: 600;" zen-text="$profile.name"></div>
+              <div style="color: var(--text-secondary); font-size: 0.85rem;" zen-text="$profile.email"></div>
+            </div>
+          </div>
+          <template zen-fallback>
+            <div class="fallback-ui">
+              ⚠️ <strong>خطا در نمایش پروفایل</strong>
+              <p style="margin-top: 6px; font-size: 0.85rem;">داده‌ی پروفایل در دسترس نیست یا نامعتبر است.</p>
+              <p style="margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);">روی «اصلاح profile» کلیک کنید و سپس «تلاش مجدد».</p>
+            </div>
+          </template>
+        </div>
+        <pre>&lt;div zen-error&gt;
+  &lt;span zen-text="$profile.name"&gt;&lt;/span&gt;
+  &lt;template zen-fallback&gt;
+    &lt;div&gt;⚠️ خطا در نمایش پروفایل&lt;/div&gt;
+  &lt;/template&gt;
+&lt;/div&gt;
+
+// در JavaScript:
+processErrorBoundary(el, processChildren, disposes);
+// fallback در el.__zenithFallback__ ذخیره می‌شود.
+// هنگام خطا، showFallback(el, fallback) را صدا می‌زنیم.</pre>
+      </div>
+
+      <!-- ──── ۴. Error in zen-for ──── -->
+      <div class="card">
+        <h2>۴. خطا در <code>zen-for</code> — بقیه‌ی آیتم‌ها همچنان رندر می‌شوند</h2>
+        <p class="desc">
+          اگر یک آیتم در <code>zen-for</code> داده‌ی نامعتبر داشته باشد، فقط همان آیتم خطا می‌دهد.
+          بقیه‌ی آیتم‌ها بدون مشکل رندر می‌شوند. این <strong>graceful degradation</strong> است.
+        </p>
+        <div id="usersList">
+          <div class="item-card" zen-for="u in $users" zen-key="u.id" zen-bind:class="{ broken: !$u.user }">
+            <span class="id">#<span zen-text="$u.id"></span></span>
+            <span class="name" zen-text="$u.user.name"></span>
+            <span style="color: var(--text-muted); font-size: 0.78rem;" zen-if="!$u.user">(داده نامعتبر)</span>
+          </div>
+        </div>
+        <div class="alert alert-warning" style="margin-top: 12px;">
+          💡 در این لیست ۵ آیتم وجود دارد. آیتم‌های #۲ و #۴ داده‌ی <code>user</code> برابر <code>null</code> دارند.
+          Expression <code>$u.user.name</code> برای آن‌ها خطا می‌دهد اما بقیه‌ی آیتم‌ها (#۱، #۳، #۵) به‌طور معمولی رندر می‌شوند.
+        </div>
+        <pre>const users = [
+  &#123; id: 1, user: &#123; name: 'علی' &#125; &#125;,
+  &#123; id: 2, user: null &#125;,  // ← خطا در $u.user.name
+  &#123; id: 3, user: &#123; name: 'زهرا' &#125; &#125;,
+  &#123; id: 4, user: null &#125;,  // ← خطا در $u.user.name
+  &#123; id: 5, user: &#123; name: 'محمد' &#125; &#125;,
+];
+// zen-for هر آیتم را جداگانه رندر می‌کند.
+// خطا در یک آیتم، بقیه را تحت تاثیر قرار نمی‌دهد.</pre>
+      </div>
+
+      <!-- ──── ۵. Global error handler log ──── -->
+      <div class="card">
+        <h2>۵. <code>onError</code> — لاگ سراسری خطاها</h2>
+        <p class="desc">
+          با <code>onError(callback)</code> می‌توان همه‌ی خطاهای runtime را به یک handler سراسری فراخوانی کرد.
+          این برای ارسال خطاها به سرویس‌های monitoring (مثل Sentry) مفید است.
+          هر خطا که در این دمو رخ دهد، در لاگ زیر ظاهر می‌شود.
+        </p>
+        <div class="row" style="margin-bottom: 8px;">
+          <span class="stat">errorSignal set: <strong id="errorSignalStatus">false</strong></span>
+          <span class="stat">total errors caught: <strong zen-text="$errorCount"></strong></span>
+        </div>
+        <div class="log" id="errorLog" style="max-height: 280px;"></div>
+        <div class="row" style="margin-top: 10px;">
+          <button zen-action="clearAllErrors">🧹 پاک‌سازی خطاها (clearError)</button>
+        </div>
+      </div>
+
+      <!-- ──── ۶. Recovery ──── -->
+      <div class="card">
+        <h2>۶. Recovery — <code>clearError</code></h2>
+        <p class="desc">
+          با <code>clearError()</code>، <code>errorSignal</code> به <code>null</code> برمی‌گردد.
+          این کار به UI اجازه می‌دهد دوباره محتوای اصلی را نمایش دهد (اگر data اصلاح شده باشد).
+        </p>
+        <pre>import { clearError, errorSignal } from '@zenith/error-boundary';
+clearError();
+console.log(errorSignal.get());  // null</pre>
+      </div>
+
+      <div class="card">
+        <h2>خلاصه</h2>
+        <p class="desc">
+          <code>@zenith/error-boundary</code> دو لایه‌ی مدیریت خطا فراهم می‌کند:
+          ۱) <strong>Global</strong>: <code>errorSignal</code>، <code>onError</code>، <code>reportError</code> — در همه‌ی دایرکتیوها یکپارچه شده.
+          ۲) <strong>Local</strong>: دایرکتیو <code>zen-error</code> برای wrap کردن section ها با fallback UI.
+          خطاهای runtime هیچ‌وقت کل اپ را خراب نمی‌کنند — graceful degradation.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@zenith/actions": "/packages/actions/dist/index.js",
+      "@zenith/auth": "/packages/auth/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/compiler": "/packages/compiler/dist/index.js",
+      "@zenith/components": "/packages/components/dist/index.js",
+      "@zenith/crud": "/packages/crud/dist/index.js",
+      "@zenith/data": "/packages/data/dist/index.js",
+      "@zenith/dependency-graph": "/packages/dependency-graph/dist/index.js",
+      "@zenith/devtools": "/packages/devtools/dist/index.js",
+      "@zenith/error-boundary": "/packages/error-boundary/dist/index.js",
+      "@zenith/errors": "/packages/errors/dist/index.js",
+      "@zenith/events": "/packages/events/dist/index.js",
+      "@zenith/expressions": "/packages/expressions/dist/index.js",
+      "@zenith/form": "/packages/form/dist/index.js",
+      "@zenith/i18n": "/packages/i18n/dist/index.js",
+      "@zenith/permission": "/packages/permission/dist/index.js",
+      "@zenith/resource": "/packages/resource/dist/index.js",
+      "@zenith/router": "/packages/router/dist/index.js",
+      "@zenith/runtime": "/packages/runtime/dist/index.js",
+      "@zenith/scheduler": "/packages/scheduler/dist/index.js",
+      "@zenith/security": "/packages/security/dist/index.js",
+      "@zenith/ssr": "/packages/ssr/dist/index.js",
+      "@zenith/state": "/packages/state/dist/index.js",
+      "@zenith/stateful": "/packages/stateful/dist/index.js",
+      "@zenith/store": "/packages/store/dist/index.js",
+      "@zenith/suspense": "/packages/suspense/dist/index.js",
+      "@zenith/transition": "/packages/transition/dist/index.js",
+      "@zenith/virtual-list": "/packages/virtual-list/dist/index.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import { signal, effect } from '@zenith/state';
+    import { Zen } from '@zenith/runtime';
+    import { evaluateExpression } from '@zenith/expressions';
+    import {
+      errorSignal,
+      onError,
+      clearError,
+      processErrorBoundary,
+      showFallback,
+    } from '@zenith/error-boundary';
+
+    // ═══════════════════════════════════════════════════
+    // ۱. State
+    // ═══════════════════════════════════════════════════
+    const userData = signal({ name: 'علی احمدی' });
+    const profile = signal({ name: 'زهرا کریمی', email: 'zahra@example.com', initial: 'ز' });
+    const actionThrew = signal(false);
+    const errorCount = signal(0);
+    const users = signal([
+      { id: 1, user: { name: 'علی' } },
+      { id: 2, user: null },
+      { id: 3, user: { name: 'زهرا' } },
+      { id: 4, user: null },
+      { id: 5, user: { name: 'محمد' } },
+    ]);
+
+    const state = {
+      userData,
+      profile,
+      actionThrew,
+      errorCount,
+      users,
+    };
+
+    // ═══════════════════════════════════════════════════
+    // ۲. Log زنده‌ی خطاها
+    // ═══════════════════════════════════════════════════
+    const errorLogEl = document.getElementById('errorLog');
+    let logCount = 0;
+    function logError(name, detail = '') {
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      const line = document.createElement('div');
+      line.className = 'error-list-item';
+      line.textContent = `[${time}] ${name}${detail ? '  →  ' + detail : ''}`;
+      errorLogEl.appendChild(line);
+      errorLogEl.scrollTop = errorLogEl.scrollHeight;
+      logCount++;
+      if (logCount > 100) {
+        errorLogEl.removeChild(errorLogEl.firstChild);
+        logCount--;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ۳. Actions
+    // ═══════════════════════════════════════════════════
+    Zen.action('throwError', ({ state }) => {
+      logError('action:throwError', 'about to throw...');
+      state.actionThrew.set(true);
+      // این خطا توسط event delegation catch می‌شود
+      throw new Error('خطای عمدی از داخل اکشن throwError!');
+    });
+
+    Zen.action('breakData', ({ state }) => {
+      state.userData.set(null);
+      logError('action:breakData', 'userData = null');
+    });
+
+    Zen.action('fixData', ({ state }) => {
+      state.userData.set({ name: 'علی احمدی' });
+      clearError();
+      logError('action:fixData', 'userData restored, clearError() called');
+    });
+
+    Zen.action('breakProfile', ({ state }) => {
+      state.profile.set(null);
+      logError('action:breakProfile', 'profile = null → expression will fail');
+    });
+
+    Zen.action('fixProfile', ({ state }) => {
+      state.profile.set({ name: 'زهرا کریمی', email: 'zahra@example.com', initial: 'ز' });
+      logError('action:fixProfile', 'profile restored');
+    });
+
+    Zen.action('retryBoundary', () => {
+      clearError();
+      // re-process the boundary to recover original content
+      const boundaryEl = document.getElementById('profileBoundary');
+      if (boundaryEl && boundaryEl.__zenithRecover__) {
+        boundaryEl.__zenithRecover__();
+        logError('action:retryBoundary', 'recovered — original content re-rendered');
+      } else {
+        logError('action:retryBoundary', 'no recovery function found');
+      }
+    });
+
+    Zen.action('clearAllErrors', () => {
+      clearError();
+      logError('action:clearAllErrors', 'clearError() called');
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۴. شروع فریم‌ورک
+    // ═══════════════════════════════════════════════════
+    Zen.start(document.getElementById('app'), state);
+
+    // ═══════════════════════════════════════════════════
+    // ۵. Global error listener
+    // ═══════════════════════════════════════════════════
+    const errorSignalStatusEl = document.getElementById('errorSignalStatus');
+
+    onError((err) => {
+      errorCount.set(errorCount.get() + 1);
+      const sourceDetail = err.source + (err.expression ? `  expr="${err.expression}"` : '');
+      logError(`onError [${sourceDetail}]`, err.message);
+      console.warn('[demo] Error caught:', err);
+    });
+
+    effect(() => {
+      const err = errorSignal.get();
+      errorSignalStatusEl.textContent = err ? 'true' : 'false';
+      errorSignalStatusEl.style.color = err ? 'var(--danger)' : 'var(--success)';
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۶. سیم‌کشی دستی zen-error directive
+    // ═══════════════════════════════════════════════════
+    const customDisposes = [];
+
+    // ساخت context برای processChildren (مشابه buildContext در virtual-list demo)
+    function buildContext(stateObj) {
+      const ctx = {};
+      for (const key in stateObj) {
+        const item = stateObj[key];
+        if (item && typeof item === 'object' && typeof item.get === 'function' && typeof item.set === 'function') {
+          Object.defineProperty(ctx, `$${key}`, {
+            get: () => item.get(),
+            enumerable: true,
+            configurable: true,
+          });
+        } else {
+          ctx[`$${key}`] = item;
+        }
+      }
+      return ctx;
+    }
+
+    // simplified processChildren — معادل walker runtime اما فقط برای zen-text، zen-bind:*، zen-if
+    function simpleProcessNode(el, context, disposes) {
+      if (!el || !el.hasAttribute) return;
+
+      if (el.hasAttribute('zen-if')) {
+        const expr = el.getAttribute('zen-if');
+        el.removeAttribute('zen-if');
+        disposes.push(effect(() => {
+          try {
+            const v = evaluateExpression(expr, context);
+            el.style.display = v ? '' : 'none';
+          } catch {
+            el.style.display = 'none';
+          }
+        }));
+      }
+
+      if (el.hasAttribute('zen-text')) {
+        const expr = el.getAttribute('zen-text');
+        el.removeAttribute('zen-text');
+        disposes.push(effect(() => {
+          try {
+            const v = evaluateExpression(expr, context);
+            el.textContent = v === null || v === undefined ? '' : String(v);
+          } catch {
+            el.textContent = '';
+          }
+        }));
+      }
+
+      for (const attr of Array.from(el.attributes)) {
+        if (attr.name.startsWith('zen-bind:')) {
+          const attrName = attr.name.slice('zen-bind:'.length);
+          const expr = attr.value;
+          disposes.push(effect(() => {
+            try {
+              const v = evaluateExpression(expr, context);
+              if (attrName === 'class' && typeof v === 'object' && v !== null) {
+                for (const cls in v) {
+                  if (v[cls]) el.classList.add(cls);
+                  else el.classList.remove(cls);
+                }
+              } else if (v === null || v === undefined || v === false) {
+                el.removeAttribute(attrName);
+              } else {
+                el.setAttribute(attrName, String(v));
+              }
+            } catch {
+              // ignore
+            }
+          }));
+        }
+      }
+
+      if (el.children) {
+        for (const child of Array.from(el.children)) {
+          simpleProcessNode(child, context, disposes);
+        }
+      }
+    }
+
+    function simpleProcessChildren(node, disposes) {
+      // برای zen-error، context همان context اصلی است.
+      // در processErrorBoundary، context از بیرون گرفته نمی‌شود —
+      // ما اینجا context را از state می‌سازیم.
+      const ctx = buildContext(state);
+      simpleProcessNode(node, ctx, disposes);
+    }
+
+    // راه‌اندازی zen-error boundary
+    function setupErrorBoundary(el) {
+      // ذخیره HTML اصلی برای recovery
+      const originalHTML = el.innerHTML;
+
+      // processErrorBoundary:
+      //   - fallback template را پیدا و حذف می‌کند
+      //   - fallback content در el.__zenithFallback__ ذخیره می‌کند
+      //   - فرزندان را با simpleProcessChildren process می‌کند
+      const localDisposes = [];
+      processErrorBoundary(el, simpleProcessChildren, localDisposes);
+
+      // گوش دادن به onError برای تشخیص خطاهای داخل این boundary
+      const unsubscribe = onError((err) => {
+        // اگر خطا از داخل این boundary باشد، fallback نمایش بده
+        if (err.element && el.contains(err.element)) {
+          showFallback(el, el.__zenithFallback__);
+          el.classList.add('has-error');
+        }
+      });
+
+      // ذخیره تابع recovery برای استفاده‌ی بعدی
+      el.__zenithRecover__ = () => {
+        // پاک‌سازی disposes قبلی
+        localDisposes.forEach(d => { try { d(); } catch {} });
+        localDisposes.length = 0;
+        // بازگرداندن HTML اصلی (شامل template zen-fallback)
+        el.innerHTML = originalHTML;
+        el.classList.remove('has-error');
+        // re-process
+        processErrorBoundary(el, simpleProcessChildren, localDisposes);
+      };
+
+      customDisposes.push(() => {
+        unsubscribe();
+        localDisposes.forEach(d => { try { d(); } catch {} });
+      });
+    }
+
+    // راه‌اندازی همه‌ی zen-error boundary ها
+    document.querySelectorAll('[zen-error]').forEach(el => {
+      setupErrorBoundary(el);
+    });
+
+    // ═══════════════════════════════════════════════════
+    // ۷. Init log
+    // ═══════════════════════════════════════════════════
+    logError('init', 'Error boundary demo started. 5 sections ready.');
+  </script>
+</body>
+</html>
