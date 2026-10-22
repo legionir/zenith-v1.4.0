@@ -110,7 +110,7 @@ export function readonlyState<T>(value: { get(): T; peek(): T }): { get(): Reado
   let previous: T; let snapshot: Readonly<T>;
   const read = (next: T): Readonly<T> => {
     if (!Array.isArray(next)) return next as Readonly<T>;
-    if (previous !== next) { previous = next; snapshot = Object.freeze([...next]) as Readonly<T>; }
+    if (previous !== next) { previous = next; snapshot = Object.freeze([...next]) as unknown as Readonly<T>; }
     return snapshot;
   };
   return { get: () => read(value.get()), peek: () => read(value.peek()) };

@@ -5,6 +5,7 @@
 
 import { ZenithError, emitError, isErrorRouted, deprecate, onGlobalReset } from '@zenith/errors';
 import { normalizePriority, MAX_FLUSH_ITERATIONS, type PriorityInput } from './scheduler-priority';
+import { _customAdapter } from './scheduler-adapter';
 import { _sched, queue, afterFlushCallbacks, getEffectivePriority } from './scheduler-state';
 
 

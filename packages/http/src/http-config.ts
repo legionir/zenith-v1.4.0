@@ -4,8 +4,16 @@
 // بدون تغییر رفتار (#40، code-first: نوشته‌شده، اجرا نشده).
 
 import { httpRequestOptions } from './http-options';
-import type { HttpRequestOptions } from './http-types';
-import { setDefaultConfig } from './http-state';
+import { s, defineOptions } from '@zenith/schema';
+import { REQUEST_CACHE_VALUES, type HttpRequestOptions } from './http-types';
+import { defaultConfig, setDefaultConfig } from './http-state';
+
+const fetchRequestCacheOptions = defineOptions<{ cache?: RequestCache }>(
+  'HttpRequestInitCache',
+  s.object({
+    cache: s.optional(s.enum(REQUEST_CACHE_VALUES)),
+  }),
+);
 
 export function mergeAndValidateHttpOptions(
   base: HttpRequestOptions,

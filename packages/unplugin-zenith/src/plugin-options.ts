@@ -1,6 +1,6 @@
 // packages/unplugin-zenith/src/plugin-options.ts
 import { s, defineOptions } from '@zenith/schema';
-import { compileOptions } from './compile-types';
+import { compileOptions, type CompileOptions } from './compile-types';
 
 /**
  * گزینه‌های پلاگین Zenith.

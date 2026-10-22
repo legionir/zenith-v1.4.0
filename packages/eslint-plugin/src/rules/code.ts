@@ -6,7 +6,7 @@ const shape = (value: unknown): Shape => value && typeof value === 'object' ? va
 const nameOf = (value: unknown): string | undefined => {
   const item = shape(value); return typeof item.name === 'string' ? item.name : typeof item.value === 'string' ? item.value : undefined;
 };
-function ancestors(node: Node): Node[] { const result: Node[] = []; for (let n: Node | undefined = node; n; n = n.parent) result.push(n); return result; }
+function ancestors(node: Node): Node[] { const result: Node[] = []; for (let n: Node | null | undefined = node; n; n = n.parent) result.push(n); return result; }
 function exported(node: Node): boolean { return ancestors(node).some(n => n.type === 'ExportNamedDeclaration' || n.type === 'ExportDefaultDeclaration'); }
 function factory(node: Node): Node | undefined { return ancestors(node).find(n => /Function|ArrowFunction/.test(n.type)); }
 function functionName(node: Node): string { const item = shape(node); return nameOf(item.id) ?? nameOf(shape(node.parent).id) ?? ''; }

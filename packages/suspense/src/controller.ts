@@ -1,4 +1,4 @@
-import { signal, effect, untrack } from '@zenith/state';
+import { signal, effect, untrack, type ReadonlySignal } from '@zenith/state';
 import { createSuspenseContext } from './context';
 import type { SuspenseOptions, SuspenseController, SuspenseLoadingPhase } from './types';
 function normalizeError(error: unknown): Error { return error instanceof Error ? error : new Error(String(error)); }

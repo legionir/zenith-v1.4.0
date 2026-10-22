@@ -41,11 +41,11 @@ Implemented:
   audit pass + references shape, root-home links ⊆ manifest, rel-prefix
   math, rewrite rules incl. router/API/escaped-sample preservation.
 - `package.json`: `build:demos` (stage to `demo-dist/`), `demos:smoke`.
-  `f-gitignore`: `demo-dist/`.
-- CI `demos` job in `f-github/workflows/main.yml` (needs build, dist
+  `.gitignore`: `demo-dist/`.
+- CI `demos` job in `.github/workflows/main.yml` (needs build, dist
   cache incl. demo sources in the key, `demos:smoke -- --stage demo-dist`,
   `demo-site` artifact).
-- `f-github/workflows/demos-pages.yml` (new): push to `main` (+ manual)
+- `.github/workflows/demos-pages.yml` (new): push to `main` (+ manual)
   → build → stage+smoke → `upload-pages-artifact` → `deploy-pages`.
   Separate product from the library `bundles` branch, as the plan
   requires. Trigger is `main` per plan §114 — if the default branch is

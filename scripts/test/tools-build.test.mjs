@@ -91,7 +91,7 @@ describe('explicit tools build/package (#51/#97)', () => {
     const SELF = join('scripts', 'test', 'tools-build.test.mjs');
     const TEXT_EXT =
       /\.(mjs|cjs|js|jsx|ts|tsx|mts|cts|json|md|mdx|yml|yaml|html|css|txt)$/;
-    const TEXT_BASENAMES = new Set(['CODEOWNERS', 'f-vscodeignore']);
+    const TEXT_BASENAMES = new Set(['CODEOWNERS', '.vscodeignore']);
     const offenders = [];
     function scanFile(rel) {
       if (rel === SELF) return;
@@ -119,8 +119,8 @@ describe('explicit tools build/package (#51/#97)', () => {
     for (const dir of ['scripts', 'tools', '.github', 'docs']) walk(dir);
     for (const file of [
       'package.json', 'tsconfig.json', 'vitest.config.ts', 'eslint.config.mjs',
-      'index.html', 'README.md', 'ARCHITECTURE.md', 'f-size-limit.json',
-      'STANDARDIZATION-PLAN.md', 'NEW-PACKAGES-SPEC.md', 'PRODUCTION-READINESS.md',
+      'index.html', 'README.md', 'ARCHITECTURE.md', '.size-limit.json',
+      'docs/reports/STANDARDIZATION-PLAN.md', 'docs/reports/NEW-PACKAGES-SPEC.md', 'docs/reports/PRODUCTION-READINESS.md',
       'CODEOWNERS',
     ]) {
       if (existsSync(file)) scanFile(file);

@@ -140,8 +140,8 @@ export function processResourceView(
   // plain object در state ذخیره می‌شوند (نه به‌صورت Signal). اما اگر کاربر
   // آن را به‌صورت Signal<ResourceState> ذخیره کرده باشد، مقدار برگشتی
   // ResourceState خواهد بود که `list` ندارد — در این صورت هشدار می‌دهیم.
-  const resource = context[refName];
-  if (!isResourceLike(resource)) {
+  const candidate = context[refName];
+  if (!isResourceLike(candidate)) {
     logger.warn(
       `[zen-resource-view] Resource "${configAttr}" not found in context or is not a Resource. ` +
         `Make sure you pass the Resource instance (from createResource) in your state, not its signal. ` +
@@ -149,6 +149,7 @@ export function processResourceView(
     );
     return () => {};
   }
+  const resource: ResourceLike = candidate;
 
   // ── ۲. استخراج <template> کاربر ──
   // کاربر باید یک (و فقط یک) <template> به‌عنوان فرزند مستقیم قرار دهد.

@@ -55,7 +55,7 @@ export {
 export {
   createAuthRegistry, authPlugin, getAppAuth, authPluginOptions,
   type AuthRegistry, type AuthRegistryStore, type AuthAppHost, type AuthPluginOptions,
-} from './registry';
+} from './app-registry';
 
 // Higher-layer ownership bridge; not an application configuration API.
 export { setAuthRegistryOwner, type AuthRegistryOwner } from './auth';

@@ -3,6 +3,7 @@
 // تایمرها، toastها، alert/confirm و API نمایشی — استخراج مکانیکی از
 // notifications.ts بدون تغییر رفتار (#40، code-first: نوشته‌شده، اجرا نشده).
 
+import type { NotificationType } from './notification-types';
 import { computed, type ReadonlySignal } from '@zenith/state';
 import { deprecate } from '@zenith/errors';
 import { prefersReducedMotion } from '@zenith/shared';

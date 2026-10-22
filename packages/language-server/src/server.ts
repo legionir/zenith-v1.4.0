@@ -365,7 +365,7 @@ export function createZenithLanguageServer(
                 if (!isNotification) return errorResponse(id, LSP_ERROR_CODES.InvalidParams, 'Invalid change range.');
                 return null;
               }
-              changes.push(range === undefined ? { text: raw.text } : { text: raw.text, range });
+              changes.push(range == null ? { text: raw.text } : { text: raw.text, range });
             }
             server.changeDocument(
               document.uri,

@@ -9,8 +9,8 @@
 import { isGlobalDiagnosticsAllowed } from './observation-policy';
 import type { Cleanup } from '@zenith/shared';
 import { DEVTOOLS_CORE_DEFAULTS } from './core-options';
+import type { DevtoolsCoreOptions } from './core-options';
 import type {
-  DevtoolsCoreOptions,
   SignalInfo,
   StateChange,
   UntypedSignal,
@@ -29,7 +29,7 @@ export const idToInfo = new Map<string, SignalInfo>();
 export let nextSignalSeq = 1;
 export let nextChangeSeq = 1;
 export const timeline: StateChange[] = [];
-interface StateChangeListener { callback: ((change: StateChange) => void) | null; }
+export interface StateChangeListener { callback: ((change: StateChange) => void) | null; }
 export const stateChangeListeners = new Set<StateChangeListener>();
 export const pendingRegistrations = new WeakSet<UntypedSignal>();
 export let registryGeneration = 0;
@@ -38,7 +38,7 @@ export const restoringOperations = new Set<object>();
 // older disposer must not unpublish the hook still used by another installation.
 export const activeInstallations = new Set<object>();
 
-interface PanelRegistration { value: unknown; }
+export interface PanelRegistration { value: unknown; }
 export const registeredCaches = new Map<string, PanelRegistration>();
 export const registeredStores = new Map<string, PanelRegistration>();
 export const registeredApps = new Map<string, PanelRegistration>();
@@ -74,7 +74,7 @@ export function formatCapturedValue(val: unknown): unknown {
   if (val === null || typeof val !== 'object' || Array.isArray(val)) {
     return val;
   }
-  const redactSet = new Set(currentConfig.redact.map((k) => k.toLowerCase()));
+  const redactSet = new Set(currentConfig.redact.map((k: string) => k.toLowerCase()));
   if (redactSet.size === 0) return val;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(val as Record<string, unknown>)) {

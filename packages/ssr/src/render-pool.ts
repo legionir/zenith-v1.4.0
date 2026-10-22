@@ -11,8 +11,8 @@ export interface PooledDOMEntry {
   templates: Map<string, HTMLTemplateElement>;
 }
 
-const MAX_DOM_POOL_SIZE = 8;
-const MAX_TEMPLATE_CACHE_ENTRIES = 128;
+export const MAX_DOM_POOL_SIZE = 8;
+export const MAX_TEMPLATE_CACHE_ENTRIES = 128;
 export const _jsdomPool: PooledDOMEntry[] = [];
 const _templateParseCounts = new Map<string, number>();
 export let templateCacheEpoch = 0;

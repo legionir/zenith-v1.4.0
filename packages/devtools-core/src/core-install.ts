@@ -14,8 +14,11 @@ import {
   recordStateChange,
   registerSignal,
 } from './core-registry';
+import { registerDevtoolsCache, registerDevtoolsStore } from './core-panels';
 import {
   activeInstallations,
+  idToInfo,
+  signalToId,
   isSSRContext,
   noopCleanup,
   setCurrentConfig,

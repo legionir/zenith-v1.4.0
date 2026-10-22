@@ -5,8 +5,6 @@
 
 import { signal, emitError } from '@zenith/state';
 import { ZenithError } from '@zenith/errors';
-import { s, defineOptions } from '@zenith/schema';
-import { httpRequestOptions } from './http-options';
 import { mergeAndValidateHttpOptions } from './http-config';
 import {
   REQUEST_INIT_ALLOWLIST,
@@ -25,13 +23,6 @@ import {
   requestInterceptors,
   responseInterceptors,
 } from './http-state';
-
-const fetchRequestCacheOptions = defineOptions<{ cache?: RequestCache }>(
-  'HttpRequestInitCache',
-  s.object({
-    cache: s.optional(s.enum(REQUEST_CACHE_VALUES)),
-  }),
-);
 
 // ============================================================
 // Core Request Function

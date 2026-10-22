@@ -6,7 +6,7 @@
 import { deprecate } from '@zenith/errors';
 import { createTransition } from './transition-core';
 import { validateEasing } from './transition-group';
-import type { TransitionRun, AnimateCallOptions, AnimateDirectionOptions } from './transition-types';
+import type { TransitionRun } from './transition-types';
 
 
 

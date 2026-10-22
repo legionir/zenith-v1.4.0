@@ -45,7 +45,7 @@ export function uiFloating(el: HTMLElement, name: string, fallback: Placement, c
   };
   return { ...uiMotion(el, name, context), trigger: uiConfigured(el, `zen-${name}-trigger`, s.optional(UI_TARGET), undefined, context), placement, arrow: isReadable(rawArrow) ? { get: resolveArrow } : resolveArrow(),
     offset: uiConfigured(el, `zen-${name}-offset`, s.number(), 8, context), flip: uiConfiguredBoolean(el, `zen-${name}-flip`, true, context), shift: uiConfiguredBoolean(el, `zen-${name}-shift`, true, context),
-    ...(name === 'popover' ? { role: uiConfigured(el, `zen-${name}-role`, s.optional(s.string({ min: 1 })), undefined, context) } : {}),
+    ...(name === 'popover' ? { role: uiConfigured(el, `zen-${name}-role`, s.optional(s.string({ min: 1 })), undefined, context) } : {}) as { role?: never },
     ...(name === 'tooltip' ? {} : { triggerOn: uiConfigured(el, `zen-${name}-trigger-on`, s.enum(['click', 'hover', 'focus', 'manual']), 'click', context), returnFocus: uiConfiguredBoolean(el, `zen-${name}-return-focus`, true, context) }) };
 }
 

@@ -61,7 +61,7 @@ describe('demos manifest and demo-site contract (#114)', () => {
     expect(relToRoot('index.html')).toBe('');
     expect(relToRoot('demos/index.html')).toBe('../');
     expect(relToRoot('demos/auth/index.html')).toBe('../../');
-    expect(relToRoot('packages/state/dist/index.js')).toBe('../../');
+    expect(relToRoot('packages/state/dist/index.js')).toBe('../../../');
   });
 
   it('relativizes root-absolute refs and leaves router/API/escaped samples alone', () => {

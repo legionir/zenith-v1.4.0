@@ -46,7 +46,7 @@ export function hoverAt(text: string, offset: number): LspHover | null {
       kind: 'markdown',
       value:
         `\`$${hit.name}\` — signal reference\n\n` +
-        `${same.length === 1 ? '1 reference' : `${same.length} references'} in this document` +
+        `${same.length === 1 ? '1 reference' : `${same.length} references`} in this document` +
         ` (first at line ${first.line + 1}).`,
     },
     range: {

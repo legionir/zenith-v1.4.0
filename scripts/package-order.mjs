@@ -84,9 +84,9 @@ export function getPackageOrder(options = {}) {
         .slice(startIdx + 1)
         .map((f) => f.inKind)
         .concat(edge.kind);
-      if (cycleKinds.every((kind) => kind === 'dev')) {
+      if (cycleKinds.includes('dev')) {
         logger.warn(
-          `⚠️  Dev-only workspace dependency cycle skipped for ordering: ${cycleNames.join(' -> ')}`,
+          `⚠️  Workspace dependency cycle broken at a dev edge for ordering: ${cycleNames.join(' -> ')}`,
         );
         return; // drop this dev edge and keep cruising
       }

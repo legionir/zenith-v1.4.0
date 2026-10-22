@@ -2,6 +2,7 @@
 //
 // OAuth client shapes. Pure declarations — no runtime imports, so type-only
 // consumers never pull fetch/crypto/DOM-touching code into their graph.
+import type { Disposable } from '@zenith/shared';
 import type { ReadonlySignal, Signal } from '@zenith/state';
 import type { JwtClaims } from './jwt';
 

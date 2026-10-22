@@ -6,7 +6,8 @@
 import type { CacheStrategyName } from './strategies.js';
 
 
-const SW_CACHE_STRATEGIES = [
+/** @public */
+export const CACHE_STRATEGIES = [
   'cacheFirst',
   'networkFirst',
   'staleWhileRevalidate',
@@ -75,7 +76,7 @@ export interface SWRuntimeConfig {
  * FEATURE (v0.5.0): فیلد `id` برای کلیدِ autoIncrementِ IndexedDB اضافه شد تا
  * بتوانیم سطرها را به‌صورت تک‌تک حذف/به‌روز کنیم.
  */
-interface QueuedMutation {
+export interface QueuedMutation {
   /** کلیدِ autoIncrement در IndexedDB (بعد از ذخیره‌سازی ست می‌شود). */
   id?: number;
   url: string;
@@ -84,4 +85,84 @@ interface QueuedMutation {
   body?: string;
   timestamp: number;
   retryCount: number;
+}
+
+/**
+ * #52: RouteConfig — یک route برای پلاگین/ثبت SW (هم‌شکل با RouteMatcher).
+ * @public
+ */
+export interface RouteConfig {
+  /** الگوی URL (regex یا string). */
+  urlPattern: RegExp | string;
+  /** متد HTTP برای تطبیق؛ اگر ست نشود همهٔ متدها match می‌شوند. */
+  method?: string;
+  /** استراتژی کش برای این route. */
+  strategy: CacheStrategyName;
+  /** نام cache برای این route. */
+  cacheName?: string;
+  /** timeout برای networkFirst (میلی‌ثانیه). */
+  timeout?: number;
+}
+
+/**
+ * پیکربندی SW برای `zenithSWPlugin` (main thread).
+ * @public
+ */
+export interface SWConfig {
+  /** @default '/sw.js' */
+  swUrl?: string;
+  /** @default '/' */
+  scope?: string;
+  /** @default [] */
+  routes?: RouteConfig[];
+  /** @default [] */
+  precache?: string[];
+  /** @default 'networkOnly' */
+  defaultStrategy?: CacheStrategyName;
+  /** @default false */
+  skipWaiting?: boolean;
+  /** @default false */
+  clientsClaim?: boolean;
+}
+
+/**
+ * گزینه‌های `registerSW`.
+ * @public
+ */
+export interface RegisterSWOptions {
+  /** @default '/' */
+  scope?: string;
+  /** وقتی SW جدیدی در حال نصب است. */
+  onUpdateFound?: (registration: ServiceWorkerRegistration) => void;
+  /** وقتی SW جدید کنترل را به‌دست می‌گیرد. */
+  onControllerChange?: (controller: ServiceWorker | null) => void;
+  /** خطای ثبت SW. */
+  onError?: (error: Error) => void;
+}
+
+/**
+ * Controller بازگشتی از `registerSW`.
+ * @public
+ */
+export interface SWController {
+  readonly registration: ServiceWorkerRegistration | null;
+  readonly supported: boolean;
+  update(): Promise<boolean>;
+  unregister(): Promise<boolean>;
+  skipWaiting(): void;
+  dispose(): void;
+  /** @deprecated #116 — از `dispose()` استفاده کنید (ZEN-DEPR-024). */
+  destroy(): void;
+}
+
+/** ساختار حداقلی `Zen` که پلاگین SW به آن نیاز دارد. */
+export interface ZenLikeForSW {
+  sw?: SWController;
+  action?: (name: string, handler: () => void | Promise<void>) => void;
+}
+
+/** ساختار حداقلی پلاگین Zenith (بدون وابستگی به @zenith/runtime). */
+export interface ZenithPluginStructural {
+  name: string;
+  install: (zen: ZenLikeForSW, options?: unknown) => void;
 }

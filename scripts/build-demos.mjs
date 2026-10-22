@@ -26,10 +26,20 @@
 // Exit 0 on success; exit 1 prints every failure (any demo failure breaks).
 // Only node builtins are used.
 import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync, rmSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, relative, sep } from 'node:path';
+import { join, dirname, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
+
+/** Loopback and RFC 2606 example hosts are sample data, never fetched or imported. */
+function isSampleDataUrl(url) {
+  try {
+    const host = new URL(url).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === 'example.com' || host.endsWith('.example.com');
+  } catch {
+    return false;
+  }
+}
 
 const MANIFEST_REL = join('demos', 'manifest.json');
 const FONT_CDN_ALLOW = 'https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css';
@@ -161,7 +171,9 @@ export function auditDemos(rootDir) {
     }
     // 3c. remote imports other than the font allowlist.
     for (const match of text.matchAll(/["'](https?:\/\/[^"']+)["']/g)) {
-      if (match[1] !== FONT_CDN_ALLOW) failures.push(`${rel}: remote URL not allowlisted: \`${match[1]}\``);
+      if (match[1] !== FONT_CDN_ALLOW && !isSampleDataUrl(match[1])) {
+        failures.push(`${rel}: remote URL not allowlisted: \`${match[1]}\``);
+      }
     }
     // 3d. absolute asset refs outside the known root-absolute set.
     // NOTE: the `[^\w-]` guard keeps `zen-link=`/`data-src=`-style names out
@@ -369,5 +381,73 @@ export async function smokeStage(rootDir, stageDir, { port = 0 } = {}) {
       if (body.length === 0) failures.push(`${path}: empty body`);
       if (path.endsWith('.html') && !body.includes('<title')) failures.push(`${path}: no <title> marker`);
       if (body.includes('"/packages/') || body.includes("'/packages/")) {
-        failures.push(`${path}: unre
-...[truncated 2112 chars]
+        failures.push(`${path}: unrewritten root-absolute /packages/ reference`);
+      }
+    }
+  } finally {
+    close();
+  }
+  return { failures, checked };
+}
+
+function parseArgs(argv) {
+  const args = { withDist: false, smoke: false, stage: undefined, port: 0 };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--with-dist') args.withDist = true;
+    else if (arg === '--smoke') args.smoke = true;
+    else if (arg === '--stage') args.stage = argv[++i];
+    else if (arg === '--port') args.port = Number(argv[++i]);
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  if (args.stage !== undefined && (args.stage.length === 0 || args.stage.startsWith('--'))) {
+    throw new Error('--stage requires a directory');
+  }
+  if (!Number.isInteger(args.port) || args.port < 0) throw new Error('--port requires a non-negative integer');
+  return args;
+}
+
+function fail(failures) {
+  console.error(`❌ ${failures.length} demo failure(s):`);
+  for (const failure of failures) console.error(`   • ${failure}`);
+  process.exit(1);
+}
+
+async function main() {
+  const rootDir = process.cwd();
+  const args = parseArgs(process.argv.slice(2));
+  const { failures, references } = auditDemos(rootDir);
+  if (failures.length > 0) fail(failures);
+  console.log(`✅ audit: ${references.length} workspace artifact reference(s), all demo sources consistent.`);
+
+  const wantsStage = args.smoke || args.stage !== undefined;
+  if (args.withDist || wantsStage) {
+    const missing = checkDistFiles(rootDir, references);
+    if (missing.length > 0) {
+      fail([`missing ${missing.length} built artifact(s) — run \`npm run build\` first:`, ...missing.map((m) => `  ${m}`)]);
+    }
+    console.log('✅ dist: every referenced artifact exists.');
+  }
+  if (!wantsStage) return;
+
+  const stageDir = args.stage ?? join(tmpdir(), `zenith-demos-${process.pid}`);
+  const { staged, rewrites } = stageDemos(rootDir, stageDir, references);
+  console.log(`✅ stage: ${staged.length} file(s) in ${stageDir} (${rewrites} rewritten).`);
+
+  if (args.smoke) {
+    const result = await smokeStage(rootDir, stageDir, { port: args.port });
+    if (args.stage === undefined) rmSync(stageDir, { recursive: true, force: true });
+    if (result.failures.length > 0) fail(result.failures);
+    console.log(`✅ smoke: ${result.checked.length} path(s) answered 200.`);
+  }
+}
+
+const invokedDirectly =
+  process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

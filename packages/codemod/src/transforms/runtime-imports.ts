@@ -115,7 +115,7 @@ export const runtimeImports: Transform = {
     const edits: TextEdit[] = [];
     const manuals: ManualItem[] = [];
     const changes = new Set<string>();
-    const byModule = new Map<string, Array<{ name: string; local: string }>>();
+    const byModule = new Map<string, Array<{ imported: string; local: string }>>();
 
     for (const statement of source.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -190,7 +190,7 @@ export const runtimeImports: Transform = {
 
     function pushOrigin(origin: string, name: string, local: string): void {
       const list = byModule.get(origin) ?? [];
-      list.push({ name, local });
+      list.push({ imported: name, local });
       byModule.set(origin, list);
     }
 

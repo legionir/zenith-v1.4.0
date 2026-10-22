@@ -4,7 +4,7 @@
 // بدون تغییر رفتار (#40).
 
 import { _sched } from './scheduler-state';
-import { AGING_THRESHOLD } from './scheduler-priority';
+import { AGING_THRESHOLD, type Priority } from './scheduler-priority';
 
 
 // ── SchedulerAdapter ──

@@ -33,7 +33,7 @@ export const formUnify: Transform = {
     if (imports.length === 0) return { edits, manual: manuals, changes: [] };
 
     const blocked = isNameTaken(source, 'createForm');
-    const actives = [];
+    const actives: ts.ImportSpecifier[] = [];
     for (const imp of imports) {
       if (blocked) {
         manuals.push(

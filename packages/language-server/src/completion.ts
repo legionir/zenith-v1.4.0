@@ -94,7 +94,7 @@ export function completeAt(text: string, offset: number): LspCompletionItem[] {
       if (fragment.includes(':')) return [];
       return completeDirectives(fragment);
     }
-    if (attr.valueStart !== null && attr.valueEnd !== null && safe >= attr.valueStart && safe <= attr.valueEnd) {
+    if (attr.value !== null && attr.valueStart !== null && attr.valueEnd !== null && safe >= attr.valueStart && safe <= attr.valueEnd) {
       const fragment = signalFragment(attr.value, safe - attr.valueStart);
       if (fragment !== null) return completeSignals(text, fragment);
       return [];

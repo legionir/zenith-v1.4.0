@@ -1,8 +1,8 @@
-import { computed } from '@zenith/state';
+import { computed, type Signal } from '@zenith/state';
 import type { DataTableApi, DataTableOptions } from './types';
 import { getNestedValue, compareValues } from './values';
 /** Internal derived-state operands; these are the real owner signals. @internal */
-export type TableViewInput<T extends object> = Pick<DataTableApi<T>, 'data' | 'columns' | 'hiddenColumns' | 'globalSearch' | 'columnFilters' | 'sortState' | 'currentPage' | 'pageSize' | 'selectedRows'> & { rowKey: string; filtering: NonNullable<DataTableOptions<T>['filtering']>; sorting: NonNullable<DataTableOptions<T>['sorting']>; pagination: NonNullable<DataTableOptions<T>['pagination']>; };
+export type TableViewInput<T extends object> = Pick<DataTableApi<T>, 'data' | 'columns' | 'globalSearch' | 'columnFilters' | 'sortState' | 'currentPage' | 'pageSize' | 'selectedRows'> & { hiddenColumns: Signal<Set<string>>; rowKey: string; filtering: NonNullable<DataTableOptions<T>['filtering']>; sorting: NonNullable<DataTableOptions<T>['sorting']>; pagination: NonNullable<DataTableOptions<T>['pagination']>; };
 /** Construct once in the caller's active reactive owner. @internal */
 export function createTableViews<T extends object>(input: TableViewInput<T>) {
   const { data, columns, hiddenColumns, globalSearch, columnFilters, sortState, currentPage, pageSize, selectedRows, rowKey, filtering, sorting, pagination } = input;

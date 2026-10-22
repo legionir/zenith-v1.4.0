@@ -3,7 +3,7 @@
 // ReadableStream روی استریم SSR — استخراج مکانیکی از render.ts،
 // بدون تغییر رفتار (#40).
 
-import { renderToStream } from './render-stream';
+import { renderToStream, type StreamOptions } from './render-stream';
 
 
 /**

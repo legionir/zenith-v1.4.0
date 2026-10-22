@@ -9,7 +9,7 @@ const intlOptions = s.custom(value => value !== null && typeof value === 'object
 const localeSchema = s.object({ locale: s.optional(s.string({ min: 1 })), intl: s.optional(intlOptions) });
 const currencySchema = s.object({ locale: s.optional(s.string({ min: 1 })), intl: s.optional(intlOptions), currency: s.optional(s.string({ min: 1 })) });
 function resolve<T>(options: LocaleFormatOptions<T> | string | undefined, legacy: T | undefined, name: string, code: string): { locale: string; intl: T | undefined } {
-  if (options !== undefined && typeof options !== 'string') options = validate<LocaleFormatOptions<T>>(localeSchema, options, { name: 'LocaleFormatOptions', mode: 'throw', strict: true, coerce: false });
+  if (options !== undefined && typeof options !== 'string') options = validate(localeSchema, options, { name: 'LocaleFormatOptions', mode: 'throw', strict: true, coerce: false }) as unknown as LocaleFormatOptions<T>;
   if (typeof options === 'string' || legacy !== undefined) deprecate(code, `${name}(value, locale, options)`, `${name}(value, { locale, intl })`);
   return { locale: typeof options === 'string' ? options : options?.locale ?? DEFAULTS.locale, intl: typeof options === 'string' || options === undefined ? legacy : options.intl ?? legacy };
 }
@@ -25,11 +25,11 @@ export function formatCurrency(value: number, options?: CurrencyFormatOptions): 
 /** @public @deprecated Use formatCurrency(value, { locale, currency, intl }). */
 export function formatCurrency(value: number, locale?: string, currency?: string, options?: Intl.NumberFormatOptions): string;
 export function formatCurrency(value: number, options?: CurrencyFormatOptions | string, legacyCurrency?: string, legacyIntl?: Intl.NumberFormatOptions): string {
-  if (options !== undefined && typeof options !== 'string') options = validate<CurrencyFormatOptions>(currencySchema, options, { name: 'CurrencyFormatOptions', mode: 'throw', strict: true, coerce: false });
+  if (options !== undefined && typeof options !== 'string') options = validate(currencySchema, options, { name: 'CurrencyFormatOptions', mode: 'throw', strict: true, coerce: false }) as unknown as CurrencyFormatOptions;
   const legacy = typeof options === 'string' || legacyCurrency !== undefined || legacyIntl !== undefined;
   if (legacy) deprecate('ZEN-DEPR-075', 'formatCurrency(value, locale, currency, options)', 'formatCurrency(value, { locale, currency, intl })');
   const locale = typeof options === 'string' ? options : options?.locale ?? DEFAULTS.locale;
-  const currency = legacy ? legacyCurrency ?? DEFAULTS.currency : options?.currency ?? DEFAULTS.currency;
+  const currency = legacy ? legacyCurrency ?? DEFAULTS.currency : (typeof options === 'object' ? options.currency : undefined) ?? DEFAULTS.currency;
   const intl = legacy ? legacyIntl : typeof options === 'object' ? options.intl : undefined;
   if (currency.toUpperCase() === 'IRT') {
     const formatted = new Intl.NumberFormat(locale, { maximumFractionDigits: 0, ...intl }).format(value);

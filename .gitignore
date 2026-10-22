@@ -25,7 +25,7 @@ demo-dist/
 e2e/template-apps/
 
 # TypeDoc reference site output (typedoc.json → npm run docs:reference, #103;
-# deployed by f-github/workflows/docs-pages.yml, never committed)
+# deployed by .github/workflows/docs-pages.yml, never committed)
 docs-site/
 
 # Logs
@@ -69,3 +69,4 @@ benchmarks/results/browser.json
 tools/*/out/
 tools/*/dist/
 *.vsix
+**/.claude-flow/**

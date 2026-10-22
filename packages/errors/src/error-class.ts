@@ -19,7 +19,7 @@
  * @property details   جزئیات اضافی برای دیباگ (اختیاری)
  * @property context   context در زمان خطا (اختیاری)
  */
-import { printToHost } from './print';
+import { errorDocsUrl, type ErrorCategory, type ErrorSeverity } from './error-kinds';
 
 /** @public */
 export class ZenithError extends Error {

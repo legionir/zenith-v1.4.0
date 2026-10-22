@@ -56,7 +56,7 @@ import { performFetch } from './fetch-perform';
 
 export { getCachedData, setCachedData, clearFetchCache, registerInvalidateHook, invalidateFetchCache, processFetchWithCache } from './fetch-cache';
 export type { ProcessFetchWithCacheOptions, FetchCacheReadOptions, FetchCacheWriteOptions } from './fetch-cache';
-import { readFetchCache, invalidateFetchCache } from './fetch-cache';
+export type { FetchState };
 
 // ═══════════════════════════════════════════════════════════════════════
 // Process fetch directive (point d'entrée)

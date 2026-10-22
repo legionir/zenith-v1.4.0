@@ -3,6 +3,7 @@
 // کاتالوگ کدهای رزروشدهٔ ۴رقمی: ادغام دو نیمهٔ verbatim با spread (ترتیب
 // کلیدها عین literal اصل است) — بخش #40 (code-first: نوشته‌شده، اجرا نشده).
 
+import type { ErrorCategory } from './error-kinds';
 import { RESERVED_ERROR_CODES_A } from './reserved-codes-a';
 import { RESERVED_ERROR_CODES_B } from './reserved-codes-b';
 

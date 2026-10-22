@@ -24,7 +24,7 @@ import { parseJsonValue } from '@zenith/schema/attr';
 const OPEN_TAG_REGEX = /<zen-server-component\b([^>]*)>/g;
 const CLOSE_TAG_REGEX = /<\/zen-server-component\s*>/g;
 
-interface FoundTag {
+export interface FoundTag {
   /** اندیس شروع opening tag در HTML اصلی. */
   start: number;
   /** اندیس پس از پایان closing tag (یا opening tag اگر self-closing). */

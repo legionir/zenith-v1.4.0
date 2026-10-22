@@ -59,7 +59,6 @@ export function transformText(
       manual: transforms.map((transform) => syntaxManualItem(path, transform.id)),
     };
   }
-  const { source, checker } = parsed;
   const applied = new Set<TransformId>();
   const manual: ManualItem[] = [];
   let current = text;

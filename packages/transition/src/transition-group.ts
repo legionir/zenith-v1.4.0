@@ -5,7 +5,7 @@
 
 import { deprecate } from '@zenith/errors';
 import { createTransition } from './transition-core';
-import type { TransitionDirection, AnimateGroupOptions } from './transition-types';
+import type { TransitionDirection } from './transition-types';
 
 
 // ── CSS Transition Names ──

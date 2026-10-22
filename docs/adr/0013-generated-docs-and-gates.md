@@ -34,7 +34,7 @@
 |---|---|---|
 | `docs/ERROR-CODES.md` + `docs/errors/*` | `scripts/generate-error-docs.mjs` | `npm run check:error-docs` |
 | `docs/api/*` + `api-surface.snapshot.json` | `scripts/generate-api-docs.mjs` | `npm run docs:api -- --check` |
-| `docs-site/api` (مرجع TypeDoc نسخهٔ جاری، latest-only) | `typedoc` (`typedoc.json`, `npm run docs:reference`) | استقرار `f-github/workflows/docs-pages.yml` (تازگی INDEX در job `deps`) |
+| `docs-site/api` (مرجع TypeDoc نسخهٔ جاری، latest-only) | `typedoc` (`typedoc.json`, `npm run docs:reference`) | استقرار `.github/workflows/docs-pages.yml` (تازگی INDEX در job `deps`) |
 | لینک‌های نسبی `docs/api/*` + ورودی‌های مرجع | `scripts/check-doc-links.mjs` | `npm run check:doc-links` |
 | `docs/meta/zenith.meta.json` | `scripts/gen-zenith-meta.mjs` | `node scripts/gen-zenith-meta.mjs --check` |
 | `docs/ARCHITECTURE-GRAPH.md` | `scripts/generate-architecture-graph.mjs` | `npm run check:architecture-graph` |

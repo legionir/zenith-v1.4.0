@@ -3,7 +3,7 @@
 // binding-cache و یافتن binding/عنصر اکشن — استخراج مکانیکی از delegation.ts
 // بدون تغییر رفتار (#40، code-first: نوشته‌شده، اجرا نشده).
 
-import { parseBinding } from './modifiers';
+import { parseBinding } from './modifier-parse';
 import { parseActionCall, type ParsedActionCall } from './action-parse';
 
 

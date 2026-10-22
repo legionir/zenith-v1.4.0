@@ -31,6 +31,7 @@ import { signal, effect, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
 import { deprecate } from '@zenith/errors';
 import { createVirtualList, registerVirtualListNodeDisposes, type VirtualListApi, type VirtualListDirection } from './controller';
+import { makeController } from './virtual-list-items';
 import { virtualListConfigToOptions, type VirtualListConfig, type VirtualRange, type VirtualListController } from './virtual-list-config';
 import { animateItem, type ItemBinding } from './virtual-list-items';
 

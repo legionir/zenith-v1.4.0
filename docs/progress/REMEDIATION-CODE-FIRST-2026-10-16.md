@@ -1163,7 +1163,7 @@ typecheck، build، audit، CI، commit، push یا بستن issue انجام ن
   miss مسیر در هر دو، و rejection غیرمنتظره در Express — با fake shellها، بدون
   نصب پکیج express/fastify.
 - `README.md`: بخش «Framework middleware» با مثال هر دو فریم‌ورک و معنای
-  miss/error. changeset پیشنهادی `f-changeset/adapter-node-frameworks.md`
+  miss/error. changeset پیشنهادی `.changeset/adapter-node-frameworks.md`
   (minor، صرفاً افزودنی) ثبت شد — مجوز انتشار نیست.
 - باقی‌ماندهٔ #156 طبق پلن: اجرای واقعی روی consumerهای Express/Fastify، بودجهٔ
   اندازه‌گیری‌شدهٔ slow-client (قبل/بعد)، و گیت‌های G/P. این بسته همچنان کارت

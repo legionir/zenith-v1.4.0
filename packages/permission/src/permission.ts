@@ -1,4 +1,3 @@
-import { createScopedRegistry } from '@zenith/shared';
 // packages/permission/src/permission.ts
 //
 // @zenith/permission — Authorization Runtime (Phase 4).

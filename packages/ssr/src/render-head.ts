@@ -2,7 +2,7 @@
 //
 // رندر head و useHead — استخراج مکانیکی از render.ts، بدون تغییر رفتار (#40).
 
-import { renderManagedHead, type HeadManager } from '@zenith/head';
+import { renderHead as renderManagedHead, type HeadManager } from '@zenith/head';
 import { domAls } from './dom-context';
 import { ZenithError, deprecate } from '@zenith/errors';
 import type { SSRHeadInput, SSRI18nInput } from './render-serialize';

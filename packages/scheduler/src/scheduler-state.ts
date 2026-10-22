@@ -4,7 +4,8 @@
 // بدون تغییر رفتار (#40).
 
 import { AGING_THRESHOLD, PRIORITY_AGING_RATE, type Priority } from './scheduler-priority';
-import type { SchedulerHooks } from './scheduler-adapter';
+import type { SchedulerAdapter, SchedulerHooks } from './scheduler-adapter';
+import { emitError } from '@zenith/errors';
 
 
 /**

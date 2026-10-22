@@ -6,6 +6,8 @@
 import { defineDefaults } from '@zenith/shared';
 import type { Schema } from './s';
 import type { SchemaNode } from './types';
+import { isPlainObject } from './validate-check';
+import { validate } from './validate-engine';
 
 
 // ── defineOptions ──

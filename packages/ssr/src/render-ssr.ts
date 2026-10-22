@@ -3,7 +3,7 @@
 // renderToString — استخراج مکانیکی از render.ts، بدون تغییر رفتار (#40).
 
 import { cloneRequestState } from './request-state';
-import { createHead as createRequestHead } from '@zenith/head';
+import { createHead as createRequestHead, type HeadManager } from '@zenith/head';
 import { isReadable, createDisposer, createReferenceRegistry, type RegistryOwner } from '@zenith/shared';
 import { flushSync } from '@zenith/scheduler';
 import { createOwner, disposeOwner, setOwner, type Owner } from '@zenith/state';
@@ -15,8 +15,8 @@ import { raceWithTimeout, setEffectContextStoreOnce } from './render-await';
 import { createAbortError, raceWithAbort } from './render-abort';
 import { safeScriptValue, isRouteSafe, type SSRResult } from './render-serialize';
 import { renderSSRHead } from './render-head';
-import { _jsdomPool, templateCacheEpoch, recordTemplateParse, type PooledDOMEntry } from './render-pool';
-import { factoryApps, activeApps } from './render-context';
+import { _jsdomPool, templateCacheEpoch, recordTemplateParse, MAX_DOM_POOL_SIZE, MAX_TEMPLATE_CACHE_ENTRIES, type PooledDOMEntry } from './render-pool';
+import { factoryApps, activeApps, type RenderOptions } from './render-context';
 import { ActionRegistry, type App } from '@zenith/runtime';
 import type { SSRDOMInstance } from './dom-types';
 
@@ -43,7 +43,7 @@ export function renderToString(
 }
 
 /** One owned render lifetime shared by string output and demand-driven streams. */
-async function renderWithRoot<T>(
+export async function renderWithRoot<T>(
   html: string,
   state: Record<string, unknown>,
   options: RenderOptions,

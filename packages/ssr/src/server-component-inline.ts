@@ -4,7 +4,7 @@
 // بدون تغییر رفتار (#40).
 
 import { renderServerComponent } from './server-component-render';
-import { findServerComponentTags, parseServerComponentAttrs } from './server-component-parser';
+import { findServerComponentTags, parseServerComponentAttrs, type FoundTag } from './server-component-parser';
 
 
 // ── INLINE PASS ──

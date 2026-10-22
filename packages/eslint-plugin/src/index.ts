@@ -19,7 +19,12 @@ export const ruleContracts: Readonly<Record<string, string>> = Object.freeze(Obj
 /** Published rule map (`zenith/*`). @public */
 export const rules: Record<string, Rule.RuleModule> = { 'options-object': optionsObjectRule, ...codeRules, ...templateRules };
 /** Published ESLint plugin object (rules + processors + configs). @public */
-export const plugin = {
+export const plugin: {
+  meta: { name: string; version: string };
+  rules: Record<string, Rule.RuleModule>;
+  processors: Record<string, Linter.Processor>;
+  configs: Record<string, Linter.Config[]>;
+} = {
   meta: { name: '@zenith/eslint-plugin', version: '1.5.0' }, rules,
   processors: { html: htmlProcessor }, configs: {} as Record<string, Linter.Config[]>,
 };

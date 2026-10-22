@@ -83,7 +83,7 @@ export function createMountController(doc: Document, dependencies: MountDependen
             ready: () => current === mounted && mounted.ready,
             snapshot: () => ({
               state: Object.fromEntries(Object.entries(state).map(([name, value]) => [name, value.get()])),
-              registries: Object.fromEntries(Object.entries(app.registries).map(([name, registry]) => [name, registry.list()]),
+              registries: Object.fromEntries(Object.entries(app.registries).map(([name, registry]) => [name, registry.list()])),
             }),
           });
           mounted.bridge = bridge;

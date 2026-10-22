@@ -6,6 +6,7 @@
 import { deprecate } from '@zenith/errors';
 import { normalizePriority, Priority, type PriorityInput } from './scheduler-priority';
 import { _sched, queue, effectDisposalMap } from './scheduler-state';
+import { _customAdapter } from './scheduler-adapter';
 import { flushQueue } from './scheduler-flush';
 
 

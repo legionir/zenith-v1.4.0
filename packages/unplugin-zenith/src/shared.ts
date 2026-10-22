@@ -20,7 +20,7 @@ import { globToRegex } from './plugin-glob';
 export interface ZenithUnpluginOptions {
   /**
    * Globs compiled by the shared transform.
-   * @default ['**/*.html']
+   * @default every `.html` file (`**` + `/*.html`)
    */
   readonly include?: readonly string[];
   /**

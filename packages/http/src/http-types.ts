@@ -36,7 +36,7 @@ export interface ZenithHttpOptions {
   fetchImpl?: typeof fetch;
 }
 
-const REQUEST_CACHE_VALUES = [
+export const REQUEST_CACHE_VALUES = [
   'default',
   'no-store',
   'reload',
@@ -45,7 +45,7 @@ const REQUEST_CACHE_VALUES = [
   'only-if-cached',
 ] as const;
 
-const REQUEST_INIT_ALLOWLIST: ReadonlyArray<keyof RequestInit> = Object.freeze([
+export const REQUEST_INIT_ALLOWLIST: ReadonlyArray<keyof RequestInit> = Object.freeze([
   'method',
   'headers',
   'body',

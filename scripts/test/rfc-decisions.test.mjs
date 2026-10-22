@@ -10,7 +10,7 @@ import { generateDecIndex } from '../generate-dec-index.mjs';
 // نوشته بود؛ دستورالعمل (مقدم بر issue، §1 بندر امنیتی) و رویهٔ موجود مخزن مقدم است.
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DEC = join(ROOT, 'docs', 'decisions');
-const spec = readFileSync(join(ROOT, 'NEW-PACKAGES-SPEC.md'), 'utf8');
+const spec = readFileSync(join(ROOT, 'docs/reports/NEW-PACKAGES-SPEC.md'), 'utf8');
 
 const RFC_DECISIONS = [
   'DEC-020-error-code-space.md',

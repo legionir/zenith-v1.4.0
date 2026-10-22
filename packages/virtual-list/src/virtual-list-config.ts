@@ -3,7 +3,7 @@
 // کانفیگ قدیمی و تایپ‌های کنترلر — استخراج مکانیکی از virtual-list.ts،
 // بدون تغییر رفتار (#40).
 
-import type { VirtualItemSize, VirtualListOptions } from './controller';
+import type { VirtualItemSize, VirtualListDirection, VirtualListOptions } from './controller';
 
 
 // ── Types (قرارداد عمومی پکیج) ──

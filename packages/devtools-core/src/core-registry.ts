@@ -28,10 +28,11 @@ import {
   restoringOperations,
   signalToId,
   stateChangeListeners,
+  type StateChangeListener,
   timeline,
 } from './core-state';
+import type { Cleanup } from '@zenith/shared';
 import type {
-  Cleanup,
   SignalInfo,
   StateChange,
   UntypedSignal,

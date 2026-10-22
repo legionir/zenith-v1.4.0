@@ -17,8 +17,8 @@ Implemented:
 
 - `typedoc.json` (new): entryPoints `packages/*/src/index.ts`, out
   `docs-site/api`, `npm run docs:reference` (new script) + `typedoc ^0.26.11`
-  devDep; `f-gitignore` ignores `docs-site/`.
-- `f-github/workflows/docs-pages.yml` (new, mirrors `demos-pages.yml`):
+  devDep; `.gitignore` ignores `docs-site/`.
+- `.github/workflows/docs-pages.yml` (new, mirrors `demos-pages.yml`):
   push-main + manual, build libraries (cross-package imports resolve via
   dist) → `docs:reference` → Pages artifact `docs-site/`; latest-only
   versioning by design (per-release versioned dirs = owner decision).
@@ -32,7 +32,7 @@ Implemented:
   every publishable package; INDEX count == rows and covers surface; every
   row links a committed page; generator has no hardcoded count; typedoc
   wiring committed; READMEs link the inventory; link audit clean.
-- CI (`f-github/workflows/main.yml`, `deps` job): `npm run docs:api --
+- CI (`.github/workflows/main.yml`, `deps` job): `npm run docs:api --
   --check` (was documented in ADR-0013 but never wired) +
   `npm run check:doc-links`.
 - Entry points: root README + `docs/README.md` link `docs/api/INDEX.md`

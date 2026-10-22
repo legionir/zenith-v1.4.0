@@ -52,7 +52,8 @@ export function zenithVite(options: ZenithUnpluginOptions = {}): Plugin {
       ? watchPatterns.map((p) => globToRegex(p))
       : [/\/pages\/.*\.html$/, /\/components\/.*\.html$/];
 
-  return {
+  // `transformInclude` is an unplugin-portable hook, not part of Vite's Plugin type.
+  const plugin: Plugin & { transformInclude(id: string): boolean } = {
     name: 'zenith-plugin',
     enforce: 'pre', // قبل از پلاگین‌های دیگر اجرا شود.
 
@@ -226,6 +227,7 @@ export function zenithVite(options: ZenithUnpluginOptions = {}): Plugin {
       });
     },
   };
+  return plugin;
 }
 
 /**

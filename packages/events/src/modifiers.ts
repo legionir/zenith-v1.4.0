@@ -1,7 +1,4 @@
 // packages/events/src/modifiers.ts
-import { developerError, deprecate } from '@zenith/errors';
-import { logger } from '@zenith/logger';
-import { onGlobalReset } from '@zenith/errors';
 //
 // تجزیه و اعمال Modifier های رویداد.
 //
@@ -19,6 +16,7 @@ import { onGlobalReset } from '@zenith/errors';
 //   سفارشی (مثل `.longpress`, `.swipe`, `.doubletap`) اضافه کنند.
 
 
+import { deprecate } from '@zenith/errors';
 import { logger } from '@zenith/logger';
 import { _customModifiers, BUILTIN_MODIFIERS } from './modifier-registry';
 

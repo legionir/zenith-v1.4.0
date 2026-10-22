@@ -4,6 +4,7 @@
 // بدون تغییر رفتار (#40).
 
 import type { Signal } from '@zenith/state';
+import type { VirtualListController } from './virtual-list-config';
 
 
 // ── Animate Mount/Unmount ──

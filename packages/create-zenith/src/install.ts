@@ -67,7 +67,7 @@ export function detectPackageManager(options: {
  *
  * @public
  */
-export function buildInstallArgs(pm: CreatePackageManager): readonly string[] {
+export function buildInstallArgs(_pm: CreatePackageManager): readonly string[] {
   return ['install'];
 }
 

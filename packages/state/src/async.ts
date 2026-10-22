@@ -85,7 +85,7 @@ export function createAsync<T>(
 
   let runVersion = 0;
   let activeController: AbortController | null = null;
-  let disposed = owner.disposed;
+  let disposed: boolean = owner.disposed;
   let stopEffect: (() => void) | undefined;
 
   const abortCurrent = () => {

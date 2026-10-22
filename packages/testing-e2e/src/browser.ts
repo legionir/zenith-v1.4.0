@@ -1,7 +1,7 @@
 import { createReservedError } from '@zenith/errors';
 
 import { createMountController } from './mount';
-import { TEST_BRIDGE_KEY, TEST_MOUNT_KEY, type TestBridge, type TestMountController, type BrowserMountOptions } from './contract';
+import { TEST_BRIDGE_KEY, TEST_MOUNT_KEY, type TestBridge } from './contract';
 export { TEST_BRIDGE_KEY, TEST_MOUNT_KEY, type TestBridge, type TestMountController, type BrowserMountOptions, type TestPluginModule } from './contract';
 
 /** @public */

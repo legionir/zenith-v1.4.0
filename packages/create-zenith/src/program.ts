@@ -154,7 +154,7 @@ export function parseCreateArgs(argv: readonly string[], cwd: string = process.c
   let yes = DEFAULTS.yes;
   let json = DEFAULTS.json;
 
-  const fail = (message: string): never => {
+  const fail: (message: string) => never = (message) => {
     throw new CreateCLIError(`${message}\n\n${USAGE}`, 1);
   };
 
@@ -256,8 +256,8 @@ export function runCreate(
   argv: readonly string[],
   host?: Partial<CreateHost> & { cwd?: string },
 ): number {
-  const out = host?.out ?? ((line: string): void => process.stdout.write(line + '\n'));
-  const err = host?.err ?? ((line: string): void => process.stderr.write(line + '\n'));
+  const out = host?.out ?? ((line: string): void => { process.stdout.write(line + '\n'); });
+  const err = host?.err ?? ((line: string): void => { process.stderr.write(line + '\n'); });
   const spawn = host?.spawn;
   const cwd = host?.cwd ?? process.cwd();
 

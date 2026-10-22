@@ -1,6 +1,5 @@
 import { effect, signal, type Signal } from '@zenith/state';
 import { compileExpression } from '@zenith/expressions';
-import { reportError } from '@zenith/error-boundary';
 import { logger } from '@zenith/logger';
 import { zenForNoZenKeyError, ZenithError, ErrorCode } from '@zenith/errors';
 import { parseForSyntax } from './for-syntax';

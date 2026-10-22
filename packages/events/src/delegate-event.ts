@@ -10,11 +10,10 @@ import { reportError } from '@zenith/error-boundary';
 import { evaluateExpression } from '@zenith/expressions';
 import {
   applyBehaviorModifiers,
-  checkKeyboardModifiers,
-  parseBinding,
   PASSIVE_BY_DEFAULT_EVENTS,
   type DelegatedEventName,
 } from './modifiers';
+import { checkKeyboardModifiers, parseBinding } from './modifier-parse';
 import { applyTimingModifiers, type TimedHandler } from './timing-modifiers';
 import { createContextForEval } from './action-parse';
 import {

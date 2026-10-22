@@ -6,6 +6,7 @@
 import { s, defineOptions, type Schema } from '@zenith/schema';
 import type {
   CacheConfig,
+  HttpProgressEvent,
   HttpRequestOptions,
   RetryConfig,
 } from './http-types';

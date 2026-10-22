@@ -57,10 +57,10 @@ Implemented:
 - `playwright.config.ts`: `testIgnore` skips only `templates-matrix` when
   `ZENITH_TEMPLATE_APPS` is unset (main e2e job has no fixtures); the
   dedicated job sets it, so the matrix runs exactly once per commit.
-- CI `templates-e2e` job in `f-github/workflows/main.yml` (Chromium-only):
+- CI `templates-e2e` job in `.github/workflows/main.yml` (Chromium-only):
   build → `build:template-fixtures` → manual e2e-server → matrix +
   ecommerce + dashboard-rbac → `templates-e2e-report` artifact.
-- `package.json`: `build:template-fixtures`. `f-gitignore`:
+- `package.json`: `build:template-fixtures`. `.gitignore`:
   `e2e/template-apps/`.
 
 Deliberate non-goals (validation/owner): run the builder + all three specs

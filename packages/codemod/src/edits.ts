@@ -125,7 +125,7 @@ export function resolvesTo(
   target: ts.Node,
 ): boolean {
   const symbol = checker.getSymbolAtLocation(id);
-  return symbol?.declarations?.includes(target) ?? false;
+  return symbol?.declarations?.includes(target as ts.Declaration) ?? false;
 }
 
 /**

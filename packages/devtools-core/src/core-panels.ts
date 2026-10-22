@@ -7,6 +7,7 @@ import type { Cleanup } from '@zenith/shared';
 import {
   isSSRContext,
   noopCleanup,
+  type PanelRegistration,
   registeredApps,
   registeredCaches,
   registeredStores,

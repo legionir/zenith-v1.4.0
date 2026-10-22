@@ -5,11 +5,11 @@
 import { cloneRequestState } from './request-state';
 import { serializeDOMChunks } from './dom-stream';
 import { createDisposer } from '@zenith/shared';
-import { renderToString } from './render-ssr';
+import { renderToString, renderWithRoot } from './render-ssr';
 import { generateHydrationScript } from './render-page';
 import { createAbortError, raceWithAbort } from './render-abort';
 import type { RenderOptions } from './render-context';
-import type { SSRResult } from './render-serialize';
+import { safeScriptValue, type SSRResult } from './render-serialize';
 
 
 // ── Streaming SSR ──

@@ -7,29 +7,29 @@
 
 /** @public */
 export {
-  parseBinding,
-  checkKeyboardModifiers,
   applyBehaviorModifiers,
+  extractListenerOptions,
+  DELEGATED_EVENTS,
+  PASSIVE_BY_DEFAULT_EVENTS,
+  NON_BUBBLING_EVENTS,
+  resetPassiveWarnings,
+  type DelegatedEventName,
+} from './modifiers';
+export { clearBindingCache } from './binding-cache';
+export { parseBinding, checkKeyboardModifiers, type ParsedEventBinding } from './modifier-parse';
+export {
   registerEventModifier,
   unregisterEventModifier,
   clearEventModifiers,
   hasEventModifier,
   getEventModifier,
-  extractListenerOptions,
   BUILTIN_MODIFIERS,
-  DELEGATED_EVENTS,
-  PASSIVE_BY_DEFAULT_EVENTS,
-  NON_BUBBLING_EVENTS,
-  resetPassiveWarnings,
-  type ParsedEventBinding,
-  type DelegatedEventName,
   type EventModifierHandler,
-} from './modifiers';
+} from './modifier-registry';
 
 /** @public */
 export {
   initEventDelegation,
-  clearBindingCache,
   setLinkNavigationHandler,
   getLinkNavigationHandler,
   type LinkNavigationHandler,
